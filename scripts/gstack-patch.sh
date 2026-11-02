@@ -99,9 +99,9 @@ fi
 #
 # The skills reach their own binaries and reference files through
 # ~/.claude/skills/gstack/ — where upstream's ./setup plants the whole repo.
-# This install deliberately does not do that: only the fifteen chosen skills go
+# This install deliberately does not do that: only the three chosen skills go
 # into the skills directory, and the 42 MB runtime stays in third_party/. Left
-# alone, roughly 110 references across those fifteen files would resolve to
+# alone, roughly 110 references across those three files would resolve to
 # nothing, and not decoratively: qa opens by shelling out to gstack-config, and
 # reads half its body out of qa/sections/.
 #

@@ -238,7 +238,7 @@ assert_eq "the description's punctuation is untouched" "1" \
 # The skills call their own binaries and read their own reference files through
 # ~/.claude/skills/gstack/, which is where upstream's ./setup plants the repo.
 # A vendored install never creates that path, so roughly 110 references across
-# the fifteen skills would resolve to nothing — and the failure is not cosmetic:
+# the adopted skills would resolve to nothing — and the failure is not cosmetic:
 # qa opens by shelling out to gstack-config, and half its body reads sections
 # out of qa/sections/. They are repointed at ~/.gstack, a stable symlink the
 # sync step creates, so the skills keep working without the full upstream

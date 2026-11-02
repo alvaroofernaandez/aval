@@ -25,18 +25,14 @@ VENDOR="$REPO/third_party/gstack"
 PATCH="$REPO/scripts/gstack-patch.sh"
 PIN="$REPO/GSTACK_PIN"
 
-# The fifteen skills adopted from gstack, and the reason each one earned its
+# The three skills adopted from gstack, and the reason each one earned its
 # place. They were chosen because nothing in this configuration already covers
 # them; the families that DID overlap (planning, design system, memory, docs,
 # security, PDF, release) were rejected on purpose, and adding one back here
 # without removing its local counterpart would put two skills in competition
 # for the same trigger.
 GSTACK_SKILLS=(
-  browse scrape                        # headless Chromium, no local equivalent
-  qa qa-only                           # real-browser QA and regression tests
-  careful freeze guard unfreeze        # guardrails, 12 KB all in
-  investigate diagram                  # hypothesis debugging, mermaid from prose
-  canary benchmark retro               # post-deploy watch, Core Web Vitals
+  browse                               # headless Chromium, no local equivalent
   land-and-deploy                      # the tranche after ship stops at the PR
   design-shotgun                       # parallel variants + taste memory
 )
@@ -126,7 +122,7 @@ assert_eq "every generated skill has usable frontmatter" "0" "$bad_fm"
 # one wins depends on directory order.
 dupes=0
 for s in "${GSTACK_SKILLS[@]}"; do
-  for own in ship pdf-report product-demo-video repo-prep; do
+  for own in ship pdf-report repo-prep; do
     [ "$s" = "$own" ] && { echo "     $s collides with the hand-written $own"; dupes=1; }
   done
 done

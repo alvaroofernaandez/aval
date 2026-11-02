@@ -21,17 +21,9 @@ pin with its own provenance header (`gstack-sync.sh`, `p87-sync.sh`,
 | `branch-pr` | Apache-2.0 | gentleman-programming |
 | `chained-pr` | Apache-2.0 | gentleman-programming |
 | `cognitive-doc-design` | Apache-2.0 | gentleman-programming |
-| `comment-writer` | Apache-2.0 | gentleman-programming |
-| `django-drf` | Apache-2.0 | gentleman-programming |
-| `go-testing` | Apache-2.0 | gentleman-programming |
 | `issue-creation-pro` | Apache-2.0 | gentleman-programming |
-| `jira-epic` | Apache-2.0 | gentleman-programming |
-| `jira-task` | Apache-2.0 | gentleman-programming |
 | `judgment-day` | Apache-2.0 | gentleman-programming |
-| `nextjs-15` | Apache-2.0 | gentleman-programming |
-| `playwright` | Apache-2.0 | gentleman-programming |
 | `prs-pro` | Apache-2.0 | alvaroofernaandez |
-| `pytest` | Apache-2.0 | gentleman-programming |
 | `react-19` | Apache-2.0 | gentleman-programming |
 | `readme-guardian` | Apache-2.0 | gentleman-programming |
 | `readme-portal` | Apache-2.0 | alvaroofernaandez |
@@ -52,4 +44,3 @@ pin with its own provenance header (`gstack-sync.sh`, `p87-sync.sh`,
 | `typescript` | Apache-2.0 | gentleman-programming |
 | `work-unit-commits` | Apache-2.0 | gentleman-programming |
 | `zod-4` | Apache-2.0 | gentleman-programming |
-| `zustand-5` | Apache-2.0 | gentleman-programming |

@@ -286,8 +286,7 @@ nada.
 brew install tmux yazi neovim bat fd ripgrep sd eza gitleaks
 ```
 
-Las skills de gstack que abren un navegador (`/browse`, `/qa`, `/canary`, `/benchmark`,
-`/scrape`, `/diagram`, `/land-and-deploy`) necesitan además **Bun**, que compila su
+Las skills de gstack que abren un navegador (`/browse`, `/land-and-deploy`) necesitan además **Bun**, que compila su
 runtime:
 
 ```bash
@@ -295,7 +294,7 @@ brew install oven-sh/bun/bun
 ./scripts/gstack-sync.sh          # clona el pin, compila y regenera las skills
 ```
 
-Sin ese paso las quince skills quedan instaladas pero inertes. El resto de la
+Sin ese paso las tres skills quedan instaladas pero inertes. El resto de la
 configuración funciona igual.
 
 ---
@@ -305,7 +304,7 @@ configuración funciona igual.
 ```
 dotfiles/
 │
-├── 📁 shared/skills/          Skills propias y las quince adoptadas de gstack
+├── 📁 shared/skills/          Skills propias y las tres adoptadas de gstack
 │
 ├── 📁 config/
 │   ├── 🖥️  ghostty/            Tema Tokyo Night, tipografía, arranque
@@ -655,20 +654,14 @@ sola vez.
 | 📄 `pdf-report` | Documentos PDF A4 de calidad de imprenta, de cualquier tipo |
 | 🏗️ `repo-prep` | Deja un repositorio con descripción, topics y README de la casa |
 | 🧭 `readme-portal` | README visual con tarjetas de imagen, centro de docs, READMEs de carpeta y unidades versionadas |
-| 🎬 `product-demo-video` | Vídeos de demo de producto de 60–90 s |
 | 🚢 `ship` | De árbol de trabajo a PR publicada |
 
-**Adoptadas de [gstack](https://github.com/garrytan/gstack)**, quince de sus cincuenta y
+**Adoptadas de [gstack](https://github.com/garrytan/gstack)**, tres de sus cincuenta y
 cuatro, y parcheadas (ver más abajo):
 
 | Skill | Función |
 | :--- | :--- |
-| 🌐 `browse` · `scrape` | Chromium headless, ~100 ms por orden, con defensa antiinyección local |
-| 🐞 `qa` · `qa-only` | QA con navegador real: encuentra fallos, los corrige y genera tests de regresión |
-| 🛡️ `careful` · `freeze` · `guard` · `unfreeze` | Avisan antes de órdenes destructivas y limitan las ediciones a un directorio |
-| 🔍 `investigate` | Depuración por hipótesis hasta la causa raíz |
-| 📐 `diagram` | De una descripción en prosa a mermaid editable, excalidraw y SVG/PNG |
-| 📈 `canary` · `benchmark` · `retro` | Vigilancia tras desplegar, Core Web Vitals y retrospectiva con métricas |
+| 🌐 `browse` | Chromium headless, ~100 ms por orden, con defensa antiinyección local |
 | 🚀 `land-and-deploy` | Merge → CI → despliegue → verificación en producción |
 | 🎨 `design-shotgun` | Cuatro a seis variantes en paralelo con tablero de comparación |
 
@@ -725,6 +718,7 @@ el mismo disparador es peor que cualquiera de las dos por separado:
 | `/cso` | `claude-security` + `owasp-security` |
 | `/make-pdf` | `pdf-report` |
 | El `/ship` de gstack | El `/ship` propio, que tiene presupuesto de revisión y PRs encadenadas |
+| `/scrape`, `/qa`, `/qa-only`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/investigate`, `/diagram`, `/canary`, `/benchmark`, `/retro` | Nunca se usaron; retiradas el 2026-11-02 |
 
 Por eso **nunca se ejecuta el `./setup` de gstack**: planta el repositorio entero en
 `~/.claude/skills/gstack`, registra 54 comandos y cuatro familias de hooks, y devolvería

@@ -9,7 +9,7 @@
 # (SDD), the design system, memory (engram), docs, security, PDF, release — and
 # two skills competing for one trigger is worse than either alone.
 #
-# So this takes fifteen skills and three binaries, and nothing else.
+# So this takes three skills and three binaries, and nothing else.
 #
 # The split, and why
 # ------------------
@@ -45,11 +45,7 @@ UPSTREAM="https://github.com/garrytan/gstack.git"
 # Keep this list in step with GSTACK_SKILLS in tests/gstack-skills.test.sh —
 # that suite fails if a skill named there is not checked in.
 GSTACK_SKILLS=(
-  browse scrape
-  qa qa-only
-  careful freeze guard unfreeze
-  investigate diagram
-  canary benchmark retro
+  browse
   land-and-deploy
   design-shotgun
 )
@@ -120,13 +116,13 @@ if [ "$CHECK_ONLY" -eq 0 ]; then
 fi
 
 # --- build the runtime -------------------------------------------------------
-# Eight of the fifteen skills shell out to the compiled browse binary; without
+# The browser-backed skills shell out to the compiled browse binary; without
 # it they fail at their first command rather than degrading.
 if [ "$DO_BUILD" -eq 1 ]; then
   if command -v bun >/dev/null 2>&1; then
     say "building the runtime (bun install, then compile)"
     ( cd "$VENDOR" && bun install --silent && bun run build ) \
-      || warn "the build failed — the skills are still generated, but /browse, /qa, /canary, /benchmark, /scrape, /diagram, /land-and-deploy and /design-shotgun will not run until it succeeds"
+      || warn "the build failed — the skills are still generated, but /browse, /land-and-deploy and /design-shotgun will not run until it succeeds"
   else
     warn "bun is not installed — skipping the build. The browser-backed skills need it: brew install oven-sh/bun/bun"
   fi
