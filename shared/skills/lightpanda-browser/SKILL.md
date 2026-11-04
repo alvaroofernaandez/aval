@@ -54,9 +54,31 @@ visual check or HTML-to-PDF render.
    ```
 
    Puppeteer: `puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9222' })`.
-4. Playwright Test: start `lightpanda serve` in `globalSetup` (or `webServer`)
-   and connect with `connectOverCDP` in a fixture; keep a separate `chromium`
-   project for visual/screenshot specs.
+4. Playwright Test (verified with 1.63.0 in three repos): add a `webServer`
+   entry `{ command: 'lightpanda serve --host 127.0.0.1 --port 9222', url:
+   'http://127.0.0.1:9222/json/version', reuseExistingServer: true, env: {
+   LIGHTPANDA_DISABLE_TELEMETRY: 'true' } }`, a `lightpanda` project with
+   `use: { cdpEndpoint: 'ws://127.0.0.1:9222' }`, and a `chromium` project
+   limited (`testMatch`) to pixel specs. Override `browser` in a shared fixture
+   and make EVERY spec import `test`/`expect` from it — a spec importing from
+   `@playwright/test` silently keeps launching Chromium:
+
+   ```ts
+   export const test = base.extend<{}, { cdpEndpoint: string | undefined }>({
+     cdpEndpoint: [undefined, { scope: 'worker', option: true }],
+     browser: [async ({ cdpEndpoint, playwright, browserName, launchOptions }, use) => {
+       const b = cdpEndpoint
+         ? await playwright.chromium.connectOverCDP(cdpEndpoint)
+         : await playwright[browserName].launch(launchOptions);
+       await use(b);
+       await b.close();
+     }, { scope: 'worker' }],
+   });
+   ```
+
+   Read the ports from env (e.g. `E2E_LIGHTPANDA_PORT`) — worktrees and dev
+   servers collide on fixed ports. CI (Linux): download
+   `https://github.com/lightpanda-io/browser/releases/download/nightly/lightpanda-x86_64-linux`.
 5. One-shot reads without a script:
    `lightpanda fetch --dump markdown --wait-until networkidle <url>`
    (`html`, `markdown`, `structured_data`; `--wait-selector` to wait for content).
@@ -88,7 +110,16 @@ Playwright stays the client: fastest per action and it keeps the test runner.
 ## Verified on 1.0.2 (2026-11-04)
 
 Works over CDP with Playwright: `goto`, `title`, `content`, `evaluate`, `$eval`,
-locators (`locator`, `getByRole`, strict mode), `click` + navigation.
+locators (`locator`, `getByRole`, strict mode), `click` + navigation,
+`expect().toHaveText/toHaveCount`.
+
+Known gaps — keep these specs on Chromium:
+- No `navigator.serviceWorker`: apps mocking with MSW in the browser cannot run.
+- `ReadableStream.tee` missing (logged as a warning).
+- Anything using `setViewportSize`, `boundingBox`, `getComputedStyle`,
+  `toHaveCSS`, `emulateMedia`, hover/`mouse.wheel` geometry, canvas/WebGL
+  (maps, charts) or axe contrast.
+Split by file: one layout assertion keeps the whole spec file on Chromium.
 
 ## Output Contract
 

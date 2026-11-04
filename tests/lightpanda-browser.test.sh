@@ -40,6 +40,8 @@ assert_eq "skill: never uses Lightpanda png dump as a screenshot" "yes" "$(has '
 assert_eq "skill: agent flows use the Lightpanda MCP server" "yes" "$(has 'lightpanda mcp' "$SKILL")"
 assert_eq "skill: installs playwright-core without browser download" "yes" "$(has 'PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1' "$SKILL")"
 assert_eq "skill: keeps a single Chromium headless shell" "yes" "$(has '(?i)one .*headless shell' "$SKILL")"
+assert_eq "skill: documents the Playwright Test cdpEndpoint fixture" "yes" "$(has 'cdpEndpoint' "$SKILL")"
+assert_eq "skill: warns Service Workers (MSW) are unsupported" "yes" "$(has 'serviceWorker' "$SKILL")"
 
 # --- always-on rule, mirrored to OpenCode ----------------------------------------
 block="$(shared_block "$CLAUDE_MD")"
