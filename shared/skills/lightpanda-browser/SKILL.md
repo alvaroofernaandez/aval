@@ -84,7 +84,9 @@ visual check or HTML-to-PDF render.
    (`html`, `markdown`, `structured_data`; `--wait-selector` to wait for content).
 6. Agent flows: prefer `lightpanda mcp` (stdio MCP server; `--port` for HTTP,
    `--cdp-port` to also expose CDP) or `fetch` over writing a Playwright script.
-7. Stop the server when done (`pkill -f "lightpanda serve"`).
+7. Stop only what you started, by the PID you captured. NEVER `pkill`/`killall`
+   by pattern (`lightpanda serve`, `next dev`, `node`): other sessions run dev
+   servers and Lightpanda instances on this machine.
 
 ## Install Footprint
 
@@ -113,7 +115,21 @@ Works over CDP with Playwright: `goto`, `title`, `content`, `evaluate`, `$eval`,
 locators (`locator`, `getByRole`, strict mode), `click` + navigation,
 `expect().toHaveText/toHaveCount`.
 
+**Hydration probe first.** Before moving any spec, load one client-rendered
+route on Lightpanda and check the app hydrates (a client-only element appears,
+or React fibers exist on the DOM). A Next 16 app (gdr) never hydrated: 0
+fibers after 15 s, no errors — server-rendered headings pass, everything
+interactive times out. If the probe fails, wire the `lightpanda` project but
+leave it empty.
+
+Measured on 13 repos (2026-11-04): Lightpanda paid off on pure functional
+suites (freak-hub auth specs 26 s vs 1.1 min on Chromium), and moved nothing
+in layout-heavy marketing sites or apps gated by Clerk.
+
 Known gaps — keep these specs on Chromium:
+- Clerk browser sign-up/sign-in does not complete (mir-platform onboarding
+  never renders). Use a pre-authenticated `storageState` or keep the spec on Chromium.
+- Hydration can fail silently on some React/Next apps (see probe above).
 - No `navigator.serviceWorker`: apps mocking with MSW in the browser cannot run.
 - `ReadableStream.tee` missing (logged as a warning).
 - Anything using `setViewportSize`, `boundingBox`, `getComputedStyle`,

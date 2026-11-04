@@ -42,6 +42,9 @@ assert_eq "skill: installs playwright-core without browser download" "yes" "$(ha
 assert_eq "skill: keeps a single Chromium headless shell" "yes" "$(has '(?i)one .*headless shell' "$SKILL")"
 assert_eq "skill: documents the Playwright Test cdpEndpoint fixture" "yes" "$(has 'cdpEndpoint' "$SKILL")"
 assert_eq "skill: warns Service Workers (MSW) are unsupported" "yes" "$(has 'serviceWorker' "$SKILL")"
+assert_eq "skill: requires a hydration probe before moving specs" "yes" "$(has '(?i)hydration probe' "$SKILL")"
+assert_eq "skill: warns Clerk browser sign-up fails" "yes" "$(has '(?i)clerk' "$SKILL")"
+assert_eq "skill: forbids broad process kills" "yes" "$(has '(?i)never .*pkill' "$SKILL")"
 
 # --- always-on rule, mirrored to OpenCode ----------------------------------------
 block="$(shared_block "$CLAUDE_MD")"
