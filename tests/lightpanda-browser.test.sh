@@ -37,6 +37,9 @@ assert_eq "skill: states there is no rendering engine" "yes" "$(has '(?i)no (gra
 assert_eq "skill: keeps screenshots on Chromium" "yes" "$(has '(?i)screenshot' "$SKILL")"
 assert_eq "skill: keeps PDF generation on Chromium" "yes" "$(has '(?i)pdf' "$SKILL")"
 assert_eq "skill: never uses Lightpanda png dump as a screenshot" "yes" "$(has 'dump png' "$SKILL")"
+assert_eq "skill: agent flows use the Lightpanda MCP server" "yes" "$(has 'lightpanda mcp' "$SKILL")"
+assert_eq "skill: installs playwright-core without browser download" "yes" "$(has 'PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1' "$SKILL")"
+assert_eq "skill: keeps a single Chromium headless shell" "yes" "$(has '(?i)one .*headless shell' "$SKILL")"
 
 # --- always-on rule, mirrored to OpenCode ----------------------------------------
 block="$(shared_block "$CLAUDE_MD")"

@@ -35,7 +35,7 @@ visual check or HTML-to-PDF render.
 |---|---|
 | E2E functional flow (navigate, click, fill, assert text/URL/DOM) | Lightpanda |
 | Scraping, page → markdown/HTML/JSON-LD | Lightpanda (`fetch --dump`) |
-| Agent browsing via MCP | Lightpanda (`lightpanda mcp`) |
+| Agent reads/browses a page (no script needed) | Lightpanda `fetch --dump markdown` or `lightpanda mcp` — no Node at all |
 | Screenshot, visual diff, layout/contrast gate | Chromium |
 | PDF generation | Chromium |
 | Lightpanda lacks an API the page needs | Chromium for that flow only |
@@ -60,7 +60,30 @@ visual check or HTML-to-PDF render.
 5. One-shot reads without a script:
    `lightpanda fetch --dump markdown --wait-until networkidle <url>`
    (`html`, `markdown`, `structured_data`; `--wait-selector` to wait for content).
-6. Stop the server when done (`pkill -f "lightpanda serve"`).
+6. Agent flows: prefer `lightpanda mcp` (stdio MCP server; `--port` for HTTP,
+   `--cdp-port` to also expose CDP) or `fetch` over writing a Playwright script.
+7. Stop the server when done (`pkill -f "lightpanda serve"`).
+
+## Install Footprint
+
+- New projects: `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 pnpm add -D playwright-core`
+  (13 MB library, no browser). `@playwright/test` only when the runner is needed;
+  keep the same env var so no Chromium lands per project.
+- Keep one Chromium headless shell per pinned Playwright revision, only for the
+  pixel tasks above. Before pruning `~/Library/Caches/ms-playwright`, list which
+  `playwright-core/browsers.json` pin each revision — a revision still pinned by a
+  project (or gstack `/browse`) is in use, not a duplicate.
+
+## Benchmark (2026-11-04, local page, fill + click + read, 20 runs)
+
+| Setup | Browser RSS | Median per page |
+|---|---|---|
+| Playwright + Chromium headless shell | 284 MB | 82 ms |
+| Playwright + Lightpanda | 39 MB | 38–44 ms |
+| Puppeteer + Lightpanda | 39 MB | 54–57 ms |
+| `lightpanda fetch --dump markdown` | 31 MB | 240 ms per call, no Node |
+
+Playwright stays the client: fastest per action and it keeps the test runner.
 
 ## Verified on 1.0.2 (2026-11-04)
 
