@@ -54,6 +54,7 @@ SUITES=(
   "$REPO/config/tmux/tests/paste-router.test.sh"
   "$REPO/tests/docker-runtime-skills.test.sh"
   "$REPO/tests/orca-config.test.sh"
+  "$REPO/tests/lightpanda-browser.test.sh"
 )
 
 total_pass=0

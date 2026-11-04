@@ -1,0 +1,73 @@
+---
+name: lightpanda-browser
+description: "Trigger: headless browser, Playwright, Puppeteer, E2E tests, scraping, browser automation, CDP, read a web page, screenshot, captura, PDF render. Pick Lightpanda (default) or Chromium (pixels only) and wire Playwright to it."
+metadata:
+  author: "alvaroofernaandez"
+  version: "1.0"
+---
+
+## Activation Contract
+
+Load before launching any headless browser: Playwright or Puppeteer scripts, E2E
+tests, scraping, reading/extracting a page, form automation, or any screenshot,
+visual check or HTML-to-PDF render.
+
+## Hard Rules
+
+- **Lightpanda is the default headless browser.** It is not Chromium-based,
+  written in Zig, far lighter on RAM/CPU and built for agents.
+- **Lightpanda has no graphical rendering engine.** It ignores CSS layout:
+  `page.screenshot()` and `lightpanda fetch --dump png|pdf` return a
+  *text-only* render (verified: a centered 26em page comes out full-width,
+  CJK glyphs missing). Never present that output as a screenshot.
+- **Chromium only when pixels matter**: real screenshots, visual regression,
+  `design-gates` render gates (contrast, overflow, target size, responsive,
+  reduced motion), `design-taste-frontend` look-and-fix loop, HTML-to-PDF
+  (`pdf-report` and any branded PDF/manual skill), and
+  anything reading `getBoundingClientRect`/computed layout.
+- If a flow fails on Lightpanda because of a missing Web API (it is beta),
+  rerun that one flow on Chromium and say so; do not switch the whole suite.
+- Always set `LIGHTPANDA_DISABLE_TELEMETRY=true` (telemetry is on by default).
+
+## Decision Gates
+
+| Task | Browser |
+|---|---|
+| E2E functional flow (navigate, click, fill, assert text/URL/DOM) | Lightpanda |
+| Scraping, page → markdown/HTML/JSON-LD | Lightpanda (`fetch --dump`) |
+| Agent browsing via MCP | Lightpanda (`lightpanda mcp`) |
+| Screenshot, visual diff, layout/contrast gate | Chromium |
+| PDF generation | Chromium |
+| Lightpanda lacks an API the page needs | Chromium for that flow only |
+
+## Execution Steps
+
+1. Install if missing: `brew install lightpanda-io/browser/lightpanda` (Docker: `lightpanda/browser:nightly`, CDP on 9222).
+2. Start the CDP server:
+   `LIGHTPANDA_DISABLE_TELEMETRY=true lightpanda serve --host 127.0.0.1 --port 9222`
+3. Connect Playwright over CDP (use `playwright-core`; no bundled browser needed):
+
+   ```js
+   import { chromium } from 'playwright-core';
+   const browser = await chromium.connectOverCDP('ws://127.0.0.1:9222');
+   const page = await (await browser.newContext()).newPage();
+   ```
+
+   Puppeteer: `puppeteer.connect({ browserWSEndpoint: 'ws://127.0.0.1:9222' })`.
+4. Playwright Test: start `lightpanda serve` in `globalSetup` (or `webServer`)
+   and connect with `connectOverCDP` in a fixture; keep a separate `chromium`
+   project for visual/screenshot specs.
+5. One-shot reads without a script:
+   `lightpanda fetch --dump markdown --wait-until networkidle <url>`
+   (`html`, `markdown`, `structured_data`; `--wait-selector` to wait for content).
+6. Stop the server when done (`pkill -f "lightpanda serve"`).
+
+## Verified on 1.0.2 (2026-11-04)
+
+Works over CDP with Playwright: `goto`, `title`, `content`, `evaluate`, `$eval`,
+locators (`locator`, `getByRole`, strict mode), `click` + navigation.
+
+## Output Contract
+
+State which browser ran each check. A screenshot or visual claim must come from
+Chromium; label any Lightpanda image as text-only.

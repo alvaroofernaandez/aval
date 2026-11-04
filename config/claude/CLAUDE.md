@@ -149,6 +149,12 @@ The `<available_skills>` block in your system prompt is authoritative — it lis
 
 Multiple skills can apply at once. Match by file context (extensions, paths) and task context (what the user is asking for).
 
+## Headless browser
+
+- Lightpanda is the default headless browser for Playwright/Puppeteer (via CDP), E2E flows, scraping and page reading.
+- It has no rendering engine: screenshots, visual/layout gates and PDF generation stay on Chromium.
+- Skill: `lightpanda-browser` — load it before launching any headless browser.
+
 ## Docker en macOS
 
 - Use OrbStack as the only Docker runtime. Never use, install or recommend Colima.
