@@ -161,3 +161,11 @@ export PATH="$(go env GOPATH)/bin:$PATH"
 export PATH="/Users/alvaroofernaandez/.local/bin:$PATH"
 
 export PATH="/Users/alvaroofernaandez/.stripe/bin:$PATH"
+
+# Added by Kiri: its docker and kiri commands (kiri setup --uninstall removes this)
+case ":$PATH:" in *":$HOME/.kiri/bin:"*) ;; *) export PATH="$PATH:$HOME/.kiri/bin" ;; esac
+
+# Kiri: builds go to an isolated BuildKit builder. Kiri's own `kiri` builder resolves
+# docker.io/quay.io through a mirror of the local store, which hands back the arm64
+# variant even for --platform linux/amd64 (silent wrong-arch deploy images).
+export BUILDX_BUILDER=multiarch
