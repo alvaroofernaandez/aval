@@ -16,12 +16,12 @@ brew cleanup -s --prune=all
 
 `~/Library/Caches ~/.cache ~/.npm ~/.bun/install/cache ~/Library/pnpm/store go/pkg/mod/cache
 ~/.cargo/registry ~/Library/Developer/Xcode/DerivedData ~/Library/Developer/CoreSimulator
-~/.gradle/caches "~/Library/Group Containers/HUAQ24HBR6.dev.orbstack/data" ~/.local/share/opencode
+~/.gradle/caches "~/Library/Application Support/Kiri" ~/.local/share/opencode
 ~/.Trash "~/Library/Application Support/Steam/steamapps/common" /opt/homebrew /nix`
 
 ## Container runtimes on this machine
 
-- OrbStack is the only Docker runtime (context `orbstack`). Its `data.img` is sparse and shrinks automatically; `~/.orbstack` is config only.
+- Kiri is the only Docker runtime (context `kiri`); data lives in `~/Library/Application Support/Kiri`, config in `~/.kiri`. Shrink-after-delete is not verified: measure before/after. OrbStack was retired on 2026-11-17.
 - Colima, Lima and ColimaBar were removed on 2026-11-02. The history below predates that and its fstrim recipes no longer apply.
 - Apple `container` CLI is still installed but has no data and is not used for Docker.
 

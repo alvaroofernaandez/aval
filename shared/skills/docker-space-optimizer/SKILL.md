@@ -1,23 +1,23 @@
 ---
 name: docker-space-optimizer
-description: "Trigger: docker ocupa mucho, liberar espacio docker, build cache, prune, docker disk usage. Diagnose and reclaim OrbStack Docker space safely."
+description: "Trigger: docker ocupa mucho, liberar espacio docker, build cache, prune, docker disk usage. Diagnose and reclaim Kiri Docker space safely."
 metadata:
   author: "alvaroofernaandez"
-  version: "1.0"
+  version: "2.0"
 ---
 
 ## Activation Contract
 
-Load when Docker images, build cache, volumes or OrbStack's disk use too much space, after large builds, or when free space on `/` is low.
+Load when Docker images, build cache, volumes or Kiri's disk use too much space, after large builds, or when free space on `/` is low.
 
 ## Hard Rules
 
-- OrbStack is the only runtime. Confirm `docker context show` is `orbstack` before any prune; otherwise stop and switch.
+- Kiri is the only runtime. Act only when `docker context show` is `kiri`; refuse any other context (the script exits non-zero).
 - Measure BEFORE and AFTER, and report the difference.
-- Safe cleanup needs no confirmation: `docker container prune -f`, `docker image prune -f`, `docker builder prune -af`.
+- Safe cleanup needs no confirmation: `docker container prune -f`, `docker image prune -f`, `docker builder prune -af`, `docker buildx prune --builder multiarch -af`.
 - Destructive cleanup (`docker system prune -af --volumes`, `docker volume rm/prune`, `docker image prune -a`, `docker rmi`) runs ONLY after listing exactly what will be removed, with sizes, and getting explicit approval.
-- Measure OrbStack's real usage at `~/Library/Group Containers/HUAQ24HBR6.dev.orbstack/data` (`~/.orbstack` is only config).
-- `orbctl compact` does not exist in OrbStack 2.x; `data.img` is sparse and shrinks automatically. Never invent a compaction step.
+- Measure Kiri's real usage with `du -sh ~/Library/Application\ Support/Kiri` before and after, and report the measured number.
+- Whether Kiri's disk shrinks after deletes is NOT verified: never claim it does and never invent a compaction step.
 
 ## Decision Gates
 
@@ -27,18 +27,18 @@ Load when Docker images, build cache, volumes or OrbStack's disk use too much sp
 | Dangling images / stopped containers | Safe cleanup (script) |
 | Unused tagged images | List `repo:tag`, size, age → ask |
 | Unused volumes | List name, size, owning compose project → ask; never prune DB volumes silently |
-| Context ≠ orbstack | `docker context use orbstack`, re-measure |
+| Context ≠ kiri | Stop; load `kiri-health` |
 
 ## Execution Steps
 
-1. Diagnose: `df -h /`, `docker system df`, `docker system df -v`, `du -sh ~/Library/Group\ Containers/HUAQ24HBR6.dev.orbstack/data`.
-2. Run `scripts/cleanup.sh` (checks context, safe prunes, compact if available, before/after report).
+1. Diagnose: `df -h /`, `docker system df`, `docker system df -v`, `du -sh ~/Library/Application\ Support/Kiri`.
+2. Run `scripts/cleanup.sh` (checks context, safe prunes incl. the `multiarch` builder cache, before/after report).
 3. If more space is needed, present destructive candidates as a table and wait for approval.
 4. Re-measure with step 1 commands.
 
 ## Output Contract
 
-Return a table: free space on `/` before/after, OrbStack data size before/after, total reclaimed, what was removed, what was kept and why.
+Return a table: free space on `/` before/after, Kiri data size before/after (measured), total reclaimed, what was removed, what was kept and why.
 
 ## References
 
