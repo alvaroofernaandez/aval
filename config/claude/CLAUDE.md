@@ -157,13 +157,13 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 
 ## Docker en macOS
 
-- Use OrbStack as the only Docker runtime. Never use, install or recommend Colima.
-- For images, builds, containers and Compose, use `docker`, `docker compose` and `docker buildx` against the `orbstack` context.
+- Use Kiri as the only Docker runtime. Never use, install or recommend OrbStack, Colima or Docker Desktop.
+- For images, builds, containers and Compose, use `docker`, `docker compose` and `docker buildx` against the `kiri` context, with `BUILDX_BUILDER=multiarch` (Kiri's own builder can return ARM64 for amd64 builds; verify with `docker image inspect -f '{{.Architecture}}'`).
 - Before deleting images, volumes or build cache, show what will be removed and ask for confirmation.
-- After large builds or when disk is low, run the safe cleanup (`docker-space-optimizer`). `orbctl compact` does not exist: OrbStack's disk shrinks on its own.
+- After large builds or when disk is low, run the safe cleanup (`docker-space-optimizer`). Measure `~/Library/Application Support/Kiri` before/after.
 - Prefer small images, multi-stage builds, `.dockerignore` and Buildx cache.
 - Do not install Kubernetes unless explicitly asked.
-- Skills: `orbstack-docker`, `docker-space-optimizer`, `orbstack-health`, `docker-build-optimized`.
+- Skills: `kiri-docker`, `docker-space-optimizer`, `kiri-health`, `docker-build-optimized`.
 
 <!-- /shared:agent-rules -->
 
