@@ -25,6 +25,7 @@ Load when Docker fails, the user asks for a Docker/Kiri health check, a build pr
 | `docker context show` | `kiri` | `docker context use kiri`; if absent, `kiri setup` |
 | `echo $DOCKER_HOST` | empty | remove it from shell rc files (ask) |
 | `ls -l ~/.kiri/run/docker.sock /var/run/docker.sock` | socket exists, `/var/run` links to it | `kiri setup` |
+| `ls /Library/LaunchDaemons \| rg com.docker` | nothing | Docker Desktop's `com.docker.socket` helper re-links `/var/run/docker.sock` to the dead `~/.docker/run/docker.sock` on every boot, and Kiri's `dev.kiri.docker-socket` only links when the path is absent, so Docker's wins. With the user's sudo: `launchctl bootout system/com.docker.socket`, remove `/Library/LaunchDaemons/com.docker.{socket,vmnetd}.plist` and `/Library/PrivilegedHelperTools/com.docker.*`, then `ln -sfn ~/.kiri/run/docker.sock /var/run/docker.sock` |
 | `launchctl list \| rg dev.kiri.daemon` | listed | `kiri setup` (re-creates the agent) |
 | `docker info` | succeeds | `kiri diag logs --errors`, then `kiri setup` |
 | `kiri diag logs -n 50 --errors` | no recent errors | quote the errors; `kiri diag report` for a bundle |

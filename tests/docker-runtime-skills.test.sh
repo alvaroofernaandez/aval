@@ -41,6 +41,8 @@ for s in kiri-docker docker-space-optimizer kiri-health docker-build-optimized; 
 done
 
 assert_eq "old orbstack-docker skill is gone" "no" "$([ -e "$SKILLS/orbstack-docker" ] && echo yes || echo no)"
+assert_eq "kiri-health detects Docker Desktop's socket helper hijacking /var/run/docker.sock" "yes" \
+  "$(rg -q 'com\.docker\.socket' "$SKILLS/kiri-health/SKILL.md" 2>/dev/null && echo yes || echo no)"
 assert_eq "old orbstack-health skill is gone" "no" "$([ -e "$SKILLS/orbstack-health" ] && echo yes || echo no)"
 assert_eq "kiri-docker documents BUILDX_BUILDER=multiarch" "yes" \
   "$(rg -q 'BUILDX_BUILDER=multiarch' "$SKILLS/kiri-docker/SKILL.md" 2>/dev/null && echo yes || echo no)"
