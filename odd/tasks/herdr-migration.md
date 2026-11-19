@@ -8,6 +8,6 @@ terminal/agent workspace. Claude Code reports its status to Herdr natively
 - [x] T2 Remove Orca worktrees with `git worktree remove` (branches kept in ~/Proyectos repos)
 - [x] T3 Uninstall Orca: app, ~/orca, ~/.orca, Application Support, caches, prefs, agent leftovers
 - [x] T4 Dotfiles: drop the 16 Orca hooks, config/orca, tests/orca-config.test.sh
-- [ ] T5 Skills: `herdr` skill (TDD), replace Orca `orchestration` skill, hc templates
-- [ ] T6 Version herdr-core config (templates) via install.manifest
+- [x] T5 Skills: `herdr` skill (TDD), replace Orca `orchestration` skill, hc templates
+- [x] T6 Version herdr-core config (templates) via install.manifest
 - [ ] T7 Memories + run-all.sh green
