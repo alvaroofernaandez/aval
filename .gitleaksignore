@@ -1,0 +1,4 @@
+# Attacker payload from the 2026-11-10 GitHub compromise (commit f3fb98e, net-zero,
+# reverted a minute later). WF_CTOKEN is the attacker's own callback token next to
+# WF_CALLBACK, not a credential of this repo. Ignored by exact fingerprint only.
+f3fb98ef18d6b0d85325f338c47910a552d9103b:.github/workflows/npm.yml:generic-api-key:48
