@@ -20,6 +20,8 @@ Load for any Docker task on this Mac: running or building images, containers, Co
 - `buildx build --add-host x:host-gateway` fails on docker-container builders; use `198.19.248.254` (host gateway on this Mac).
 - Stopping containers is safe; `docker compose down -v`, `docker rm -v` or deleting volumes needs explicit confirmation.
 - Kubernetes stays stopped unless the user asks (`kiri k8s start`).
+- Never run `kiri ui` (not even `--help`) unasked: it opens the window and the window installs pending Kiri updates.
+- Slow builds, `compose up` with long boot, image pushes: run them in a Herdr terminal (`hc run --bg --name <x> -- zsh -ic '<cmd>'`, see `herdr`) so you stay reachable.
 - The VM sleeps after 60 s idle and wakes in ~0.15 s: a sleeping VM is normal, not a fault.
 
 ## Decision Gates
@@ -31,7 +33,7 @@ Load for any Docker task on this Mac: running or building images, containers, Co
 | Build for this Mac | `docker build -t <app>:local .` (builder `multiarch`, native arm64) |
 | Build amd64 for deploy | `docker build --platform linux/amd64 -t <app>:<tag> .` then verify `Architecture` |
 | Run an amd64 image | `docker run --platform linux/amd64 ...` (Rosetta) |
-| `multiarch` builder missing | `docker buildx create --name multiarch --driver docker-container --driver-opt default-load=true --bootstrap kiri` |
+| Docker not answering, wrong context, `multiarch` builder missing | `kiri-up` (idempotent; creates the builder with the bounded cache in `scripts/buildkitd.toml`) |
 | Local domain for a container | `http(s)://<container>.kiri.local`; compose: `<service>.<project>.kiri.local`; custom: label `dev.kiri.domain=api.myapp`; `*.kiri.localhost` needs no setup |
 | Reach the host from a container | `host.docker.internal` (gateway IP `198.19.248.254`) |
 | Public link to a port/container | `kiri share <PORT\|CONTAINER>` (exposes it publicly: confirm first) |
@@ -39,14 +41,14 @@ Load for any Docker task on this Mac: running or building images, containers, Co
 | Linux machine | `kiri machine create NAME --distro ubuntu` |
 | Import from another runtime | `kiri import [orbstack\|desktop-linux] [--list]` (imports ALL images, not selective) |
 | Shell into a container | `docker exec -it <name> sh` |
-| VM resources | `~/.kiri/vm.json` or `KIRI_CPUS` / `KIRI_MEMORY_MIB`; applied on next VM start |
+| VM resources | `~/.kiri/vm.json` `{"cpus": 6, "memory_mib": 8192}` (this Mac: M4, 10 cores, 16 GB); CPUs are only used while containers are busy; applied on next VM start (`launchctl kickstart -k gui/$(id -u)/dev.kiri.daemon`, stops running containers: ask first) |
 | Update Kiri | `kiri update --check` |
 | Docker misbehaves | `kiri-health` |
 | Low disk space | `docker-space-optimizer` |
 
 ## Execution Steps
 
-1. `docker context show` → must be `kiri`.
+1. Run `kiri-up` (starts Kiri if needed, fixes the context and builder, flags a foreign `/var/run/docker.sock`).
 2. For builds, `echo $BUILDX_BUILDER` → must be `multiarch`; export it for the session if empty.
 3. Run the task with `docker`, `docker compose` or `docker buildx`.
 4. For deploy images, run the amd64 verification before pushing.

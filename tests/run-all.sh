@@ -55,6 +55,7 @@ SUITES=(
   "$REPO/tests/docker-runtime-skills.test.sh"
   "$REPO/tests/lightpanda-browser.test.sh"
   "$REPO/tests/herdr.test.sh"
+  "$REPO/tests/kiri-up.test.sh"
 )
 
 total_pass=0

@@ -31,6 +31,7 @@ config/yazi                        .config/yazi
 config/yazi-sidebar                .config/yazi-sidebar
 config/ghostty                     .config/ghostty
 config/herdr-core/templates        .config/herdr-core/templates
+shared/skills/kiri-docker/scripts/kiri-up.sh .local/bin/kiri-up
 home/tmux.conf                     .tmux.conf
 home/zshrc                         .zshrc
 home/zprofile                      .zprofile
