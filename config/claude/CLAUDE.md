@@ -155,6 +155,12 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 - It has no rendering engine: screenshots, visual/layout gates and PDF generation stay on Chromium.
 - Skill: `lightpanda-browser` — load it before launching any headless browser.
 
+## Terminal and agent workspace
+
+- Herdr is the only workspace (Orca was removed 2026-11-19): `hc` runs terminals and agents, `herdr-app` is the window.
+- Delegate long, parallel or cross-agent work and slow commands to `hc run --bg`; never add agent hooks (status is native).
+- Skill: `herdr` — load it before any `hc` or `herdr-app` command.
+
 ## Docker en macOS
 
 - Use Kiri as the only Docker runtime. Never use, install or recommend OrbStack, Colima or Docker Desktop.
