@@ -11,15 +11,17 @@
       "Bash(rm -rf /)",
       "Bash(sudo rm -rf /)",
       "Bash(rm -rf ~)",
-      "Bash(sudo rm -rf ~)",
-      "Read(.env)",
-      "Read(.env.*)",
+      "Bash(sudo rm -rf ~)"
+    ],
+    "ask": [
+      "Edit(.env.*)",
       "Edit(.env)",
-      "Edit(.env.*)"
+      "Read(.env)",
+      "Read(.env.*)"
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "opus[1m]",
+  "model": "opus",
   "hooks": {
     "Notification": [
       {
@@ -221,6 +223,12 @@
   "modelSettings": {
     "claude-opus-5-5": {
       "effortLevel": "medium"
+    },
+    "claude-fable-5-1": {
+      "effortLevel": "high"
+    },
+    "claude-fable-5-2": {
+      "effortLevel": "xhigh"
     }
   },
   "autoUpdatesChannel": "latest",
