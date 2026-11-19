@@ -10,4 +10,6 @@ terminal/agent workspace. Claude Code reports its status to Herdr natively
 - [x] T4 Dotfiles: drop the 16 Orca hooks, config/orca, tests/orca-config.test.sh
 - [x] T5 Skills: `herdr` skill (TDD), replace Orca `orchestration` skill, hc templates
 - [x] T6 Version herdr-core config (templates) via install.manifest
-- [ ] T7 Memories + run-all.sh green
+- [x] T7 Memories + run-all.sh green
+
+Done 2026-11-19: Orca uninstalled (~2 GB freed). Full suite green except yazi-sidebar-config, which times out only inside an hc pty (passes from a normal shell).
