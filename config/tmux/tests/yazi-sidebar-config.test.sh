@@ -56,9 +56,16 @@ assert_eq "sidebar config exists" "yes" \
 # `ya env` and reduce `yazi --debug` to a deprecation notice, older ones only
 # have `--debug`. Both are tried, newest first, because which yazi is installed
 # is the machine's business and not this repo's.
-debug="$(YAZI_CONFIG_HOME="$SIDEBAR_CONFIG_HOME" ya env 2>/dev/null || true)"
+#
+# Both run bounded and detached from stdin: `yazi --debug` probes the terminal
+# through /dev/tty and, inside a headless pty (a Herdr/hc terminal after the
+# open-file suite), never gets an answer and blocks until the runner's 300s
+# timeout. A probe that does not answer in time is the same skip as one that
+# reports nothing.
+YAZI_PROBE_TIMEOUT="${YAZI_PROBE_TIMEOUT:-15}"
+debug="$(YAZI_CONFIG_HOME="$SIDEBAR_CONFIG_HOME" timeout "$YAZI_PROBE_TIMEOUT" ya env </dev/null 2>/dev/null || true)"
 if ! printf '%s' "$debug" | rg -qi 'yazi'; then
-  debug="$(YAZI_CONFIG_HOME="$SIDEBAR_CONFIG_HOME" yazi --debug 2>&1 || true)"
+  debug="$(YAZI_CONFIG_HOME="$SIDEBAR_CONFIG_HOME" timeout "$YAZI_PROBE_TIMEOUT" yazi --debug </dev/null 2>&1 || true)"
 fi
 
 # A build that answers neither is reported as a skip, not a failure. Asserting
