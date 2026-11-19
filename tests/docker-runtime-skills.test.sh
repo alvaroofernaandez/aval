@@ -72,7 +72,9 @@ if [ -f "$SCRIPT" ]; then
   assert_contains "runs image prune (dangling only)" "docker image prune -f" "$calls"
   assert_contains "runs builder prune" "docker builder prune -af" "$calls"
   assert_not_contains "never runs system prune" "system prune" "$calls"
-  assert_not_contains "never prunes volumes" "volume" "$calls"
+  assert_not_contains "never prunes volumes" "volume prune" "$calls"
+  assert_eq "only ever removes its own probe volume" "" \
+    "$(printf '%s\n' "$calls" | rg 'volume rm' | rg -v 'volume rm kiri-fstrim-probe$')"
   assert_not_contains "never prunes all images" "image prune -a" "$calls"
   assert_contains "prints a BEFORE section" "BEFORE" "$out"
   assert_contains "prints an AFTER section" "AFTER" "$out"
@@ -80,6 +82,13 @@ if [ -f "$SCRIPT" ]; then
   assert_contains "measures the Kiri data dir" "Application Support/Kiri" "$out"
   assert_not_contains "does not claim the disk auto-shrinks" "auto-shrink" "$out"
   assert_contains "succeeds on kiri" "exit=0" "$out"
+  # Kiri's data.img never returns freed blocks by itself; fstrim on the VM's ext4
+  # (reached through a throwaway volume) did: 49.4 -> 25.2 GB on 2026-11-19.
+  assert_contains "trims the VM disk through a throwaway volume" "docker volume create kiri-fstrim-probe" "$calls"
+  assert_contains "runs fstrim on that volume's filesystem" "fstrim -v /v" "$calls"
+  assert_contains "removes the probe volume afterwards" "docker volume rm kiri-fstrim-probe" "$calls"
+  assert_not_contains "never mounts the VM block device itself" "mount /dev/vda" "$calls"
+  assert_contains "measures data.img real size" "data.img" "$out"
 
   for other in orbstack colima-rosetta desktop-linux; do
     out="$(run "$other")"; calls="$(cat "$LOG")"

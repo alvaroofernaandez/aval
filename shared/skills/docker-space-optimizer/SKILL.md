@@ -17,7 +17,8 @@ Load when Docker images, build cache, volumes or Kiri's disk use too much space,
 - Safe cleanup needs no confirmation: `docker container prune -f`, `docker image prune -f`, `docker builder prune -af`, `docker buildx prune --builder multiarch -af`.
 - Destructive cleanup (`docker system prune -af --volumes`, `docker volume rm/prune`, `docker image prune -a`, `docker rmi`) runs ONLY after listing exactly what will be removed, with sizes, and getting explicit approval.
 - Measure Kiri's real usage with `du -sh ~/Library/Application\ Support/Kiri` before and after, and report the measured number.
-- Whether Kiri's disk shrinks after deletes is NOT verified: never claim it does and never invent a compaction step.
+- Kiri's `vm/data.img` does NOT shrink by itself after deletes. `scripts/cleanup.sh` ends with `fstrim` on the VM's ext4 through a throwaway volume (`kiri-fstrim-probe`), which returns freed blocks to macOS (verified 2026-11-19: 49.4 → 25.2 GB real). Never mount `/dev/vda` directly. Report the measured `du -h vm/data.img` before/after, never an assumed number.
+- Manual trim without pruning: `docker volume create kiri-fstrim-probe && docker run --rm --privileged -v kiri-fstrim-probe:/v alpine:3 fstrim -v /v; docker volume rm kiri-fstrim-probe`.
 
 ## Decision Gates
 

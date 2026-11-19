@@ -32,7 +32,7 @@ Load when the user asks to free disk space on this Mac, says the disk is full, o
 
 1. Baseline `df`; measure paths in `references/targets.md` with `du -sh`; run `docker context ls`, `docker system df`.
 2. Tier 1: run the cache commands in `references/targets.md`.
-3. Docker: follow `docker-space-optimizer` (safe prunes via its `scripts/cleanup.sh`; measure `~/Library/Application Support/Kiri` before/after, no fstrim).
+3. Docker: follow `docker-space-optimizer` (safe prunes via its `scripts/cleanup.sh`; it ends with an fstrim of the VM disk; measure `~/Library/Application Support/Kiri/vm/data.img` before/after). If only trimming is wanted, use the manual trim in that skill.
 4. Present Tier 2 candidates (images, big dirs) as a table with sizes; delete only what the user approves.
 5. Final `df`; note that shared image layers may free ~0 B even when many tags are removed.
 
