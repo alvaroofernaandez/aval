@@ -59,7 +59,8 @@ platforms = all
 config/claude/CLAUDE.md            .claude/CLAUDE.md
 config/claude/RTK.md               .claude/RTK.md
 config/claude/MCP-PER-PROJECT.md   .claude/MCP-PER-PROJECT.md
-config/claude/settings.json        .claude/settings.json
+# Claude settings are not linked: `aval sync` owns the live file (seeded
+# by the installers) so personal keys and the private overlay stay out of git.
 config/claude/agents               .claude/agents
 config/claude/commands             .claude/commands
 config/claude/hooks                .claude/hooks

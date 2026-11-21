@@ -234,6 +234,9 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 
 	if yes {
 		err := runHeadless(p, pf, runner, symlinks, dryRun)
+		if err == nil {
+			err = seedClaudeSettings(repo, home, dryRun)
+		}
 		return finish(runner, err)
 	}
 
@@ -250,7 +253,7 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 	if fm, ok := final.(ui.Model); ok && len(fm.Errs()) > 0 {
 		return fmt.Errorf("%d action(s) failed", len(fm.Errs()))
 	}
-	return nil
+	return seedClaudeSettings(repo, home, dryRun)
 }
 
 // finish closes the runner's backup run without hiding the original error.

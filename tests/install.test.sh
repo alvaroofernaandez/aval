@@ -161,8 +161,14 @@ assert_eq "links ~/.claude/agents" \
   "$REPO/config/claude/agents" "$(readlink "$SANDBOX/.claude/agents")"
 assert_eq "links ~/.claude/CLAUDE.md" \
   "$REPO/config/claude/CLAUDE.md" "$(readlink "$SANDBOX/.claude/CLAUDE.md")"
-assert_eq "links ~/.claude/settings.json" \
-  "$REPO/config/claude/settings.json" "$(readlink "$SANDBOX/.claude/settings.json")"
+# settings.json is owned by `aval sync`, never linked: it keeps personal keys
+# and the private overlay, which must never be written back into this repo.
+assert_eq "~/.claude/settings.json is a real file, not a link" "file" \
+  "$([ -L "$SANDBOX/.claude/settings.json" ] && echo link || { [ -f "$SANDBOX/.claude/settings.json" ] && echo file || echo missing; })"
+assert_eq "...seeded with the repo's hooks" "yes" \
+  "$(jq -e '.hooks' "$SANDBOX/.claude/settings.json" >/dev/null 2>&1 && diff <(jq -S .hooks "$REPO/config/claude/settings.json") <(jq -S .hooks "$SANDBOX/.claude/settings.json") >/dev/null && echo yes || echo no)"
+assert_eq "the manifest does not link settings.json" "0" \
+  "$(rg -c '\.claude/settings\.json' "$REPO/install.manifest" || echo 0)"
 
 assert_eq "never links ~/.claude itself" "real directory" \
   "$([ -L "$SANDBOX/.claude" ] && echo symlink || echo "real directory")"

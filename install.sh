@@ -128,6 +128,25 @@ for entry in "${LINKS[@]}"; do
   say "$name" "linked"
 done
 
+# ~/.claude/settings.json is owned by `aval sync`, never linked: a link would
+# make sync write personal keys and the private overlay into this repo. Seed it
+# from the repo when missing (or when an older install left a link), then let
+# `aval sync` merge the repo-managed keys if the binary is available.
+settings="$HOME/.claude/settings.json"
+if [ "${DRY_RUN:-0}" != 1 ]; then
+  if [ -L "$settings" ] || [ ! -e "$settings" ]; then
+    mkdir -p "$HOME/.claude"
+    rm -f "$settings"
+    cp "$REPO_ROOT/config/claude/settings.json" "$settings"
+    say "claude settings (aval sync)" "seeded" >&2
+  fi
+  for bin in "$HOME/.local/bin/aval" "$(command -v aval 2>/dev/null || true)"; do
+    if [ -n "$bin" ] && [ -x "$bin" ]; then "$bin" sync --repo "$REPO_ROOT" >/dev/null 2>&1 || true; break; fi
+  done
+else
+  say "claude settings (aval sync)" "would seed" >&2
+fi
+
 # Versioned git hooks: pre-push refuses employer material and secrets in
 # outgoing commits. Skipped on --dry-run and outside a git checkout.
 if [ "${DRY_RUN:-0}" != 1 ] && git -C "$REPO_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
