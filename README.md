@@ -8,10 +8,9 @@
 <br/>
 <br/>
 
-![harness](https://img.shields.io/badge/harness-personal-000000?style=flat-square)
-![platforms](https://img.shields.io/badge/macOS%20·%20Linux%20·%20Windows-000000?style=flat-square)
-![TDD](https://img.shields.io/badge/TDD-estricto-000000?style=flat-square)
-![gitleaks](https://img.shields.io/badge/gitleaks-limpio-000000?style=flat-square)
+![macOS](https://img.shields.io/badge/-macOS-000000?style=flat-square&logo=apple&logoColor=white)
+![Linux](https://img.shields.io/badge/-Linux-000000?style=flat-square&logo=linux&logoColor=white)
+![Windows](https://img.shields.io/badge/-Windows-000000?style=flat-square&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0yIDJoOS41djkuNUgyek0xMi41IDJIMjJ2OS41aC05LjV6TTIgMTIuNWg5LjVWMjJIMnpNMTIuNSAxMi41SDIyVjIyaC05LjV6Ii8+PC9zdmc+&logoColor=white)
 
 <br/>
 

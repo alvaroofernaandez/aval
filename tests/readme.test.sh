@@ -205,5 +205,12 @@ for doc in "$README" "$GUIDE"; do
   assert_eq "$name: no home paths, emails or IPs" "" "$personal"
 done
 
+# Badges: only the three platforms, each with a minimal monochrome icon.
+badges="$(rg -o 'img\.shields\.io/badge/[^)]*' README.md)"
+assert_eq "badges are exactly macOS, Linux and Windows" "macOS Linux Windows" \
+  "$(printf '%s\n' "$badges" | rg -o 'badge/-?([A-Za-z]+)-' -r '$1' | tr '\n' ' ' | sd ' $' '')"
+assert_eq "every badge carries a white icon" "3" \
+  "$(printf '%s\n' "$badges" | rg -c 'logo=[^&]+.*logoColor=white')"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
