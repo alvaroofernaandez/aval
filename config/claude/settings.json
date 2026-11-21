@@ -165,7 +165,7 @@
     "engram@engram": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "warp@claude-code-warp": true
+    "warp@claude-code-warp": false
   },
   "extraKnownMarketplaces": {
     "bencium-marketplace": {

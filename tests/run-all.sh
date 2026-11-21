@@ -58,6 +58,7 @@ SUITES=(
   "$REPO/tests/kiri-up.test.sh"
   "$REPO/tests/readme.test.sh"
   "$REPO/tests/agent-hooks.test.sh"
+  "$REPO/tests/no-sdd.test.sh"
 )
 
 total_pass=0
