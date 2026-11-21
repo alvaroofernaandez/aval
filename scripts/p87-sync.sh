@@ -75,8 +75,19 @@ DATE="$(git -C "$TMP/src" log -1 --format=%ad --date=short)"
 
 ABS='$HOME/.claude/skills/design-gates'
 
+# Files this repo wrote itself, inside the vendored tree. `rm -rf "$DEST"` would
+# destroy them, so they are stashed and put back (shot.mjs: render evidence).
+LOCAL_SCRIPTS=(shot.mjs)
+mkdir -p "$TMP/local"
+for f in "${LOCAL_SCRIPTS[@]}"; do
+  [ -f "$DEST/scripts/$f" ] && cp "$DEST/scripts/$f" "$TMP/local/$f"
+done
+
 rm -rf "$DEST"
 mkdir -p "$DEST/scripts" "$DEST/skills" "$DEST/accessibility"
+for f in "${LOCAL_SCRIPTS[@]}"; do
+  [ -f "$TMP/local/$f" ] && cp -p "$TMP/local/$f" "$DEST/scripts/$f"
+done
 
 # The same rewrite is applied to the scripts' own --help text. Upstream's usage
 # strings say `python3 scripts/contrast.py`, which is correct inside upstream's

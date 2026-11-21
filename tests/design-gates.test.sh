@@ -277,5 +277,54 @@ fi
 assert_eq "the stale loose copy is gone from ~/.claude/skills" "yes" \
   "$([ ! -e "$HOME/.claude/skills/ui-ux-pro-max" ] || [ -L "$HOME/.claude/skills/ui-ux-pro-max" ] && echo yes || echo no)"
 
+# --- shot.mjs: verification by rendering -------------------------------------
+# About one user message in five was a screenshot saying a "fixed" visual bug was
+# not fixed: the fix was verified by reading code. shot.mjs renders the page in
+# Chromium (Lightpanda has no rendering engine) at 390/768/1440, writes the
+# screenshots into .design/shots/ of the project, runs the overflow audit and
+# prints paths and numbers. It never passes silently when it cannot render.
+# It lives here because the render gates do, and scripts/p87-sync.sh preserves it.
+SHOT="$GATES/scripts/shot.mjs"
+assert_eq "shot.mjs exists" "yes" "$([ -f "$SHOT" ] && echo yes || echo no)"
+
+if [ -f "$SHOT" ] && command -v node >/dev/null 2>&1; then
+  OUT="$(node "$SHOT" 2>&1)"; RC=$?
+  assert_eq "shot.mjs without a target fails with usage" "yes" \
+    "$([ "$RC" -ne 0 ] && printf '%s' "$OUT" | rg -qi 'usage' && echo yes || echo no)"
+
+  OUT="$(SHOT_PLAYWRIGHT=playwright-that-is-not-installed node "$SHOT" /nonexistent.html 2>&1)"; RC=$?
+  assert_eq "a missing Playwright is a failure, never a silent pass" "yes" \
+    "$([ "$RC" -ne 0 ] && printf '%s' "$OUT" | rg -qi 'playwright' && echo yes || echo no)"
+
+  SP="$TMPD/shot-proj"; mkdir -p "$SP"; git -C "$SP" init -q
+  printf '<!doctype html><meta name=viewport content="width=device-width"><h1>ok</h1><p>short</p>' >"$SP/clean.html"
+  printf '<!doctype html><meta name=viewport content="width=device-width"><div style="width:900px;height:20px;background:#ccc">wide</div>' >"$SP/wide.html"
+
+  OUT="$(cd "$SP" && node "$SHOT" clean.html 2>&1)"; RC=$?
+  if printf '%s' "$OUT" | rg -qi 'not installed|executable doesn|not found'; then
+    echo "  (Playwright Chromium unavailable here; render assertions skipped)"
+  else
+    assert_eq "a clean page exits 0" "0" "$RC"
+    for w in 390 768 1440; do
+      assert_eq "it writes a ${w}px screenshot into .design/shots" "1" \
+        "$(fd -t f "${w}\\.png$" "$SP/.design/shots" 2>/dev/null | wc -l | tr -d ' ')"
+    done
+    assert_eq "it prints the screenshot paths" "yes" \
+      "$(printf '%s' "$OUT" | rg -q '\.design/shots/.*390\.png' && echo yes || echo no)"
+    assert_eq "it prints measured numbers (scrollWidth)" "yes" \
+      "$(printf '%s' "$OUT" | rg -q 'scrollWidth=[0-9]+' && echo yes || echo no)"
+
+    OUT="$(cd "$SP" && node "$SHOT" wide.html 2>&1)"; RC=$?
+    assert_eq "a page that scrolls sideways at 390px fails" "1" "$RC"
+    assert_eq "...and says so with the number" "yes" \
+      "$(printf '%s' "$OUT" | rg -qi 'overflow.*390|390.*overflow' && echo yes || echo no)"
+  fi
+fi
+
+# scripts/p87-sync.sh wipes design-gates before regenerating it; the files this
+# repo wrote itself must come back.
+assert_eq "p87-sync.sh preserves shot.mjs across a regeneration" "yes" \
+  "$(rg -q 'shot\.mjs' "$REPO/scripts/p87-sync.sh" && echo yes || echo no)"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
