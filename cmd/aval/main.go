@@ -99,6 +99,11 @@ func run() error {
 		return runDesign(flag.Args()[1:], wd, os.Stdout)
 	}
 
+	// Unix-only commands say so instead of failing somewhere inside.
+	if err := unsupportedHere(runtime.GOOS, flag.Arg(0)); err != nil {
+		return err
+	}
+
 	// tmux/Ghostty/zsh helpers run on every refresh or cd: no repo lookup.
 	if flag.Arg(0) == "tmux" {
 		os.Exit(runTmux(flag.Args()[1:]))

@@ -221,3 +221,21 @@ func TestGateDenialIsOneLineAndNamesTheFile(t *testing.T) {
 		t.Errorf("quotes and backslashes in the name become _, got %q", got)
 	}
 }
+
+// Windows hands the hook native paths (C:\proj\src\Button.tsx). The surface
+// check works on slash paths, so it must normalise first.
+func TestIsUISurfaceUnderstandsNativePaths(t *testing.T) {
+	native := func(p string) string { return filepath.FromSlash(p) }
+	for p, want := range map[string]bool{
+		"/proj/src/Button.tsx":              true,
+		"/proj/src/Button.test.tsx":         false,
+		"/proj/src/__tests__/Button.tsx":    false,
+		"/proj/node_modules/pkg/index.html": false,
+		"/proj/src/app.css":                 true,
+		"/proj/src/main.go":                 false,
+	} {
+		if got := isUISurface(native(p)); got != want {
+			t.Errorf("isUISurface(%q) = %v, want %v", native(p), got, want)
+		}
+	}
+}

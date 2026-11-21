@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 func write(t *testing.T, path, s string) {
@@ -128,6 +130,7 @@ func hooksHome(t *testing.T, settings string) string {
 }
 
 func TestHookLatencyAgainstBudget(t *testing.T) {
+	testenv.SkipWindows(t, "the fixture hooks are POSIX shell scripts")
 	home := t.TempDir()
 	slow := filepath.Join(home, "slow.sh")
 	fast := filepath.Join(home, "fast.sh")
@@ -169,6 +172,7 @@ func TestHookLatencyAgainstBudget(t *testing.T) {
 }
 
 func TestHookTimeoutCountsAsOver(t *testing.T) {
+	testenv.SkipWindows(t, "the fixture hooks are POSIX shell scripts")
 	home := t.TempDir()
 	hang := filepath.Join(home, "hang.sh")
 	write(t, hang, "#!/bin/sh\nexec sleep 5\n")
@@ -192,6 +196,7 @@ func TestHookTimeoutCountsAsOver(t *testing.T) {
 }
 
 func TestHookReceivesRepresentativeStdin(t *testing.T) {
+	testenv.SkipWindows(t, "the fixture hooks are POSIX shell scripts")
 	home := t.TempDir()
 	probe := filepath.Join(home, "probe.sh")
 	out := filepath.Join(home, "stdin.json")
@@ -259,5 +264,31 @@ func TestRender(t *testing.T) {
 	var back Report
 	if err := json.Unmarshal(b.Bytes(), &back); err != nil || !back.Over || len(back.Agents) != 1 {
 		t.Errorf("json round trip failed: %v\n%s", err, b.String())
+	}
+}
+
+func TestHookArgvExecFormSkipsTheShell(t *testing.T) {
+	name, args := hookArgv(hookSpec{command: "C:/bin/aval.exe", args: []string{"hook", "lessons"}})
+	if name != "C:/bin/aval.exe" || len(args) != 2 || args[0] != "hook" {
+		t.Errorf("exec form = %q %v", name, args)
+	}
+	name, args = hookArgv(hookSpec{command: "echo hi"})
+	if name != "sh" || len(args) != 2 || args[0] != "-c" || args[1] != "echo hi" {
+		t.Errorf("shell form = %q %v", name, args)
+	}
+}
+
+// An exec-form hook is measured on every OS, Windows included: the test
+// binary itself is the program, so no shell or script is needed.
+func TestExecFormHookIsMeasured(t *testing.T) {
+	home := t.TempDir()
+	settings := fmt.Sprintf(`{"hooks":{"PreToolUse":[{"matcher":"Edit","hooks":[{"type":"command","command":%q,"args":["-test.run=^$"]}]}]}}`, os.Args[0])
+	write(t, filepath.Join(home, ".claude", "settings.json"), settings)
+	r, err := Run(Options{Home: home, Runs: 2, Timeout: 5 * time.Second, HookBudget: 5 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Hooks) != 1 || r.Hooks[0].TimedOut || r.Hooks[0].P50Ms <= 0 {
+		t.Errorf("hooks = %+v, want one measured exec-form hook", r.Hooks)
 	}
 }
