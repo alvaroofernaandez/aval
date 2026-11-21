@@ -27,7 +27,7 @@ Decisions
       deleted design-gates scripts; `design-ack` as `aval design ack`.
 - [x] T4 Claude hooks (`config/claude/hooks/*.sh`) → `aval hook <name>`;
       settings.json points at the binary.
-- [ ] T5 tmux helpers (`config/tmux/*.sh`) → `aval tmux <name>`; tmux.conf
+- [x] T5 tmux helpers (`config/tmux/*.sh`) → `aval tmux <name>`; tmux.conf
       calls the binary.
 - [ ] T6 Remaining scripts → Go: `install.sh`, `scripts/install.sh`,
       `scripts/sync-agent-rules.sh`, `scripts/reap-orphan-tests.sh`,
