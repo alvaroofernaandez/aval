@@ -146,7 +146,13 @@ func TestOpenFile(t *testing.T) {
 			c := s.q("display", "-p", "-t", pane, "#{pane_current_command}")
 			return c == "nano" || c == "pico"
 		}
-		eq(t, "defaults to nano/pico, which exits with Ctrl+X", true, waitFor(settle, isNano))
+		if !waitFor(settle, isNano) {
+			// Say what is in the pane instead of a bare true/false.
+			t.Logf("pane command: %q", s.q("display", "-p", "-t", pane, "#{pane_current_command}"))
+			t.Logf("pane dead: %q", s.q("display", "-p", "-t", pane, "#{pane_dead} #{pane_dead_status}"))
+			t.Logf("pane screen:\n%s", s.q("capture-pane", "-p", "-t", pane))
+			t.Fatal("defaults to nano/pico, which exits with Ctrl+X: the editor never showed in the pane")
+		}
 		eq(t, "ignores $EDITOR for this flow", false, strings.Contains(s.q("capture-pane", "-p", "-t", pane), "should/not/be/used"))
 
 		// Ctrl+X must actually close it, the whole reason nano is the default.
