@@ -1,13 +1,7 @@
 ---
 name: design-refactor
 description: >
-  Improve an EXISTING UI rather than design a new one: normalise components so a
-  product looks coherent, migrate a codebase onto shadcn/ui + Radix, replace native
-  controls with custom accessible ones, add purposeful micro-interactions, and raise
-  a screen to professional SaaS quality without breaking behaviour. Invoke for
-  "improve/polish/modernise this view", design-debt cleanup, inconsistent spacing or
-  colour across pages, or any native <select>, date input or dialog that must become
-  a shadcn component.
+  Improve an EXISTING UI: normalise components, migrate to shadcn/ui + Radix, replace native select/date/dialog controls, polish a screen without breaking behaviour. For polish and design-debt cleanup.
 ---
 
 # Design refactor

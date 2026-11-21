@@ -1,14 +1,7 @@
 ---
 name: design-gates
 description: >
-  Objective, runnable quality gates for UI work: WCAG contrast ratios, design-token
-  validation, hardcoded-value linting, theme-reference checks and accessibility
-  audits. Every gate prints a real measured number and exits non-zero on failure.
-  Invoke after writing or changing any UI surface — component, stylesheet, token
-  file, screen — to prove the result is correct instead of asserting that it is.
-  Also invoke when asked whether a colour pair passes AA/AAA, whether a design
-  system's tokens are valid, or whether a component hardcodes values it should
-  be reading from tokens.
+  Runnable UI quality gates that print measured numbers and exit non-zero: WCAG contrast, tokens, hardcodes, a11y, render shots (shot.mjs). Run after any UI change, or for AA/AAA questions.
 ---
 
 # Design gates
@@ -48,16 +41,22 @@ python3 ~/.claude/skills/design-gates/scripts/contrast.py "#767676" "#ffffff"
 Exit 0 passes, non-zero fails. Report the **printed number**, not your reading
 of it.
 
-## Render gates — need Playwright, opt-in
+## Render gates - need Playwright + Chromium
 
-Sixteen further gates measure a rendered page (`verify_states`,
-`verify_keyboard`, `verify_focustrap`, `verify_target_size`,
-`verify_reduced_motion`, `verify_rtl`, `verify_responsive`, `verify_overflow`,
-`axe_audit`, `measure_render`…). They are **not vendored** — they need
-Playwright and its ~300MB browser.
+`shot.mjs` is the one to run before claiming a visual fix or a finished screen:
 
-To use them, install upstream separately (`npx ux-ui-agent-skills`) and say so
-in the audit. Never claim a render gate ran when only the static ones did.
+```
+node ~/.claude/skills/design-gates/scripts/shot.mjs <url | file.html>
+```
+
+It screenshots 390/768/1440 px into `.design/shots/` (add `.design/` to the
+project's `.gitignore`), runs the overflow audit and prints paths and numbers.
+It exits 1 when it cannot render or when the layout overflows. Look at the PNGs.
+
+The other render gates (`verify_states`, `verify_keyboard`, `verify_focustrap`,
+`verify_target_size`, `verify_reduced_motion`, `verify_rtl`, `verify_responsive`,
+`verify_overflow`, `axe_audit`, `measure_render`...) take a file or URL too.
+Never claim a render gate ran when it did not.
 
 ## Reference
 

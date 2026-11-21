@@ -1,14 +1,7 @@
 ---
 name: laws-of-ux
 description: >
-  The 30 Laws of UX (lawsofux.com, Jon Yablonski) as binding design constraints.
-  Step 0 of the design pipeline: resolve which laws govern the surface BEFORE art
-  direction, because they cap what the direction is allowed to propose — how many
-  options a menu may hold, how small a tap target may be, whether a novel pattern
-  is permitted at all. Use when designing, building, reviewing or auditing any UI
-  surface: navigation, forms, tables, modals, onboarding, empty states, pricing,
-  checkout, dashboards, settings, error states, loading states, motion.
-  Also use to justify or reject a UI decision with a named principle instead of taste.
+  The 30 Laws of UX as binding constraints, resolved before art direction (Hick, Fitts, Jakob...). Use when designing, building or reviewing any UI surface: nav, forms, tables, modals, dashboards, states.
 ---
 
 # Laws of UX

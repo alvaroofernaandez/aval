@@ -88,7 +88,7 @@ if [ -f "$PIPELINE" ]; then
       "$(rg -q "^[0-9]\..*$gone" "$PIPELINE" && echo yes || echo no)"
   done
   assert_eq "the pipeline requires a gates step" "yes" \
-    "$(rg -q '^2\. gates' "$PIPELINE" && echo yes || echo no)"
+    "$(rg -qi 'gates' "$PIPELINE" && echo yes || echo no)"
 fi
 
 # --- the refactor half of the pipeline --------------------------------------

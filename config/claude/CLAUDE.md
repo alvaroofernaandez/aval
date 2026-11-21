@@ -60,52 +60,19 @@ This section carries only tooling and workflow directives — it does not restat
 <!-- Kept byte-identical in config/opencode/AGENTS.md by
      scripts/sync-agent-rules.sh. Edit HERE, never there. -->
 
-## Design Architecture (STRICT — BLOCKING for any UI/UX/Frontend work)
+## Design Architecture (BLOCKING for UI work)
 
-Any change touching a visible surface — component, screen, layout, style, token,
-UI copy, animation, empty/error state, form, chart, spacing, colour, typography,
-motion, accessibility — is BLOCKED until the design pipeline has run.
-
-**Invoke the `design-pipeline` skill before writing a single line of UI code**,
-and `design-gates` after, to prove the result with measured output rather than
-a claim. The pipeline is three steps — laws, direction, gates — and the skill
-carries the checklist, the `DESIGN.md` contract and its schema.
-
-Two things stay here because they must hold even before the skill loads:
-
-- `.agents/DESIGN.md` is the project's source of truth. It outranks your default
-  taste and any skill's suggestion. Read it first; if your output conflicts with
-  it, your output is wrong.
-- The gate is real, not advisory. `config/claude/hooks/design-pipeline-gate.sh`
-  runs on every `Edit`/`Write`/`NotebookEdit` and **denies** the call on a UI
-  surface until the filled checklist has been emitted in this session. It scans
-  sub-agent transcripts too. `DESIGN_PIPELINE_OFF=1` bypasses it deliberately.
-
-**Native interactive elements are NEVER acceptable.** No native date picker, no
-raw `<select>`, no `<datalist>`, no browser `<dialog>`, no `confirm()`/`alert()`.
-Always a custom shadcn/ui + Radix component. This holds in every project, for
-every framework, with no "just this once" — a native control cannot be styled
-consistently, renders differently on every OS, and is a hole in the shared
-primitive layer.
-
-Invoke the `design-refactor` skill for the replacement of each one, and enforce
-it rather than trusting it:
-
-```bash
-python3 ~/.claude/skills/design-refactor/scripts/lint_native_elements.py src/
-```
-
-It exits non-zero on any hit. `components/ui/**` is exempt, because that is
-where the Radix wrappers legitimately live. Text, email, password, number,
-search inputs and `<textarea>` stay native — shadcn's own `Input` wraps exactly
-those. The rule is about controls whose appearance and behaviour the browser
-owns.
-
-Never state a number you did not measure: a contrast ratio or a "WCAG pass"
-comes from running a gate and quoting its output, never from reading the code.
-A gate you did not run is reported as not run, never as a pass.
-
-Never ship generic AI aesthetics. Motion needs a stated reason or it is removed.
+- `.agents/DESIGN.md` outranks your taste and any skill. Read it first.
+- Before editing a visible surface: run the `design-pipeline` skill (laws,
+  direction, gates), then `design-ack <surface>`. The PreToolUse gate denies UI
+  edits without a fresh ack. Bypass: `DESIGN_PIPELINE_OFF=1`.
+- Never use native interactive elements (date picker, `<select>`, `<datalist>`,
+  `<dialog>`, `confirm()`/`alert()`): shadcn/ui + Radix only, `components/ui`
+  exempt. `python3 ~/.claude/skills/design-refactor/scripts/lint_native_elements.py src/`
+  must exit 0.
+- Before claiming a visual fix or a finished screen, run
+  `node ~/.claude/skills/design-gates/scripts/shot.mjs <url|file>` and quote its
+  paths and numbers. A gate you did not run is "not run".
 
 ## Strict TDD (MANDATORY for ALL projects — frontend AND backend)
 

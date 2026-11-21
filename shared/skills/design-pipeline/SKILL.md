@@ -1,136 +1,45 @@
 ---
 name: design-pipeline
 description: >
-  The blocking design pipeline and the per-project DESIGN.md contract: the
-  mandatory skill order, the [design-pipeline] checklist the PreToolUse gate
-  enforces, how DESIGN.md outranks default taste, and the required schema for
-  it. Invoke before ANY work on a visible surface — component, screen, layout,
-  token, style, motion, copy in a UI — and before creating or updating a
-  project's DESIGN.md.
+  Blocking design pipeline and the DESIGN.md contract: laws, direction, gates, then `design-ack <surface>`. Invoke before ANY visible-surface work (component, screen, layout, style, motion, UI copy) or DESIGN.md changes.
 ---
 
 # Design pipeline
 
-Any change to a visible surface runs this before code is written, and proves
-itself with measured output after. The PreToolUse gate
-(`config/claude/hooks/design-pipeline-gate.sh`) denies `Edit`/`Write` on a UI
-file until the checklist has been emitted in this session.
+A UI edit is denied by the PreToolUse gate until `design-ack <surface>` has
+recorded this project (valid 4 h, and only while `.agents/DESIGN.md` is
+unchanged). Do the three steps, then ack once.
 
-## Why it is three steps now, not five
+1. **laws-of-ux** - which of the 30 Laws govern this surface and the number each
+   forces: Hick caps option count, Fitts sets target size, Jakob decides whether
+   a novel pattern is allowed. Constraints first; after the direction exists
+   they get rationalised away.
+2. **direction** - read `.agents/DESIGN.md`; it outranks taste and this skill.
+   Cite the section that settles it. If it is open (new surface, redesign, no
+   file), use `ui-ux-pro-max` for references and `design-shotgun` for variants,
+   and write the winner back into DESIGN.md in the same change. Schema:
+   `references/design-md-schema.md`.
+3. **gates** - name the `design-gates` checks that can fail for this surface
+   (contrast for colour, hardcodes for a component, tokens for a token change).
 
-It used to be five advisory skills — `frontend-design`, `ui-ux-pro-max`,
-`design-shotgun`, `impeccable`, `design-motion-principles` — each asking the
-model to report on its own work. Two things were measured on 2026-09-19 and
-both argue against that shape:
+Then run `design-ack <surface>` (it prints this reminder) and write the code.
 
-- **`impeccable` had never run.** It halts on `NO_PRODUCT_MD`, and a search of
-  the whole machine found zero `PRODUCT.md` files. Step 3 of five aborted in
-  every project, for as long as it was installed, and nothing surfaced it —
-  because a pipeline built on self-report has no way to report that a step
-  never happened.
-- **The prose cost ~12.2K tokens on every turn**, including turns with no UI in
-  them at all.
+## After the code
 
-A self-report cannot fail. A gate that exits non-zero can. So the direction
-steps collapse into one and the quality step becomes something that runs.
+Prove it with output, not reading:
 
-## The pipeline
+- `node ~/.claude/skills/design-gates/scripts/shot.mjs <url|file.html>` renders
+  390/768/1440 px into `.design/shots/` and prints paths and overflow numbers.
+  Run it before claiming a visual fix or a finished screen. Add `.design/` to
+  the project's `.gitignore`. A Stop hook asks for it once per UI turn.
+- Run the other gates and report their real output. A gate not run is "not
+  run", never a pass.
 
-**0 — `laws-of-ux`.** Resolve which of the 30 Laws of UX govern this surface and
-what number each one forces. Constraints first: Hick's Law caps how many items
-the navigation may carry, Fitts's Law sets the minimum target size, Jakob's Law
-decides whether a novel pattern is allowed at all. Run after the direction
-exists and they get rationalised around instead of applied.
+## Rules
 
-**1 — direction.** Read `.agents/DESIGN.md` first; it outranks everything here.
-Where the direction is already settled, cite the section that settles it. Where
-it is genuinely open — a new surface, a redesign, a project with no `DESIGN.md`
-— use `ui-ux-pro-max` for references (79 styles, 192 palettes, 74 pairings) and
-`design-shotgun` to generate variants and pick one. Whatever wins is written
-back into `DESIGN.md` in the same change.
+- Native interactive elements never: shadcn/ui + Radix (`design-refactor`).
+- Laws of UX persuasion (Goal-Gradient, Zeigarnik, Von Restorff) help users
+  finish their task; used against it they are dark patterns. Refuse those.
+- No generic AI aesthetics. Motion needs a stated reason or it goes.
 
-**2 — gates.** Name which `design-gates` checks will run once the code exists.
-Pick the ones that can actually fail for this surface: contrast for anything
-with colour, hardcodes for a component, token validation for a token change.
-
-### Checklist
-
-Emit this before writing UI code. The gate matches on it.
-
-```
-[design-pipeline]
-0. laws-of-ux    → laws: <which laws govern this surface, with the number each forces>
-1. direction     → <DESIGN.md section, or ui-ux-pro-max/design-shotgun outcome>
-2. gates         → <which design-gates checks will run after the code exists>
-```
-
-Placeholders left intact do not count as a run — the gate rejects them.
-
-### Audit
-
-Close the work with real output from `design-gates`. A gate you did not run is
-reported as not run, never as a pass.
-
-```
-[design-audit]
-contrast     #1d1d1f on #ffffff → 17.4:1  AA PASS  AAA PASS
-hardcodes    src/Button.tsx → 0 findings
-render gates not run (Playwright not installed)
-```
-
-## DESIGN.md — the project's source of truth
-
-Every project keeps `.agents/DESIGN.md`. It is binding: if your output conflicts
-with it, your output is wrong. If the user asks for something that conflicts
-with it, surface the conflict rather than silently picking a side — either the
-decision is being changed deliberately, which belongs in the Decision Log with
-its reason, or the request is out of scope.
-
-Create it the first time UI work happens in a project. Update it in the same
-change that introduces a decision; never let it rot. Mark superseded entries
-rather than deleting them.
-
-### Schema
-
-```
-# DESIGN.md — <Project Name>
-
-## 1. Intent & North Star
-<art direction, voice, anti-references>
-
-## 2. Tokens
-Colour (hex + semantic role) · Typography (family, size, weight, line-height)
-· Spacing · Radius · Shadow/elevation · Z-index layers
-
-## 3. Layout Primitives
-Grid, breakpoints, container widths
-
-## 4. Component Patterns
-Per component: purpose, anatomy, states, accessibility notes, code reference
-
-## 5. Motion System
-Curves, durations, choreography, prefers-reduced-motion strategy
-
-## 6. Accessibility Baselines
-WCAG level, contrast minimums, focus rules, keyboard rules
-
-## 7. Anti-patterns (banned here, and why)
-
-## 8. Decision Log
-Dated: decision, rationale, supersedes
-```
-
-## Ethics
-
-Several Laws of UX are persuasion mechanisms — Goal-Gradient, Zeigarnik, Choice
-Overload, Von Restorff, Cognitive Bias. They become dark patterns the moment
-they serve the business against the user's own goal: endowed progress toward a
-purchase nobody asked for, a permanently "incomplete" profile to farm data, a
-cancel button hidden behind deliberate contrast failure. Use them to help
-someone finish what they came to do, and refuse them otherwise.
-
-## Output discipline
-
-No generic AI aesthetics; no purple-gradient glassmorphism unless it is a stated
-decision. Hierarchy, spacing, alignment, type scale and contrast are
-non-negotiable. Motion needs a reason you can state, or it is removed.
+Bypass on purpose: `DESIGN_PIPELINE_OFF=1`.
