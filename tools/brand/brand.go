@@ -7,7 +7,8 @@
 //	go run ./tools/brand --no-logo    # prints the tools with no published logo
 //
 // Outputs come in a light and a dark variant: hero-*, mark-*, wordmark-*,
-// stack-*. Logos are vendored under docs/logos/ (provenance in
+// desktop-* (the future desktop app) and stack-* (today's tools and what
+// replaces them on the roadmap). Logos are vendored under docs/logos/ (provenance in
 // docs/logos/SOURCES.md) and embedded as data URIs, because GitHub renders a
 // README SVG as an <img>, which cannot load files outside itself.
 // tests/readme_test.go fails if the committed images drift from this output.
@@ -29,37 +30,6 @@ import (
 )
 
 type tool struct{ label, logo, mono string }
-
-type group struct {
-	name  string
-	tools []tool
-}
-
-var stackGroups = []group{
-	{"terminal", []tool{
-		{"Ghostty", "ghostty.png", ""}, {"tmux", "tmux.svg", ""}, {"Zsh", "zsh.svg", ""},
-		{"yazi", "yazi.png", ""}, {"Herdr", "herdr.svg", ""},
-	}},
-	{"agentes", []tool{
-		{"Claude Code", "claude.svg", ""}, {"OpenCode", "opencode.svg", ""},
-		{"Engram", "engram.png", ""}, {"RTK", "rtk.png", ""},
-	}},
-	{"toolchain", []tool{
-		{"Go", "go.svg", ""}, {"Node.js", "nodejs.svg", ""}, {"npm", "npm.svg", ""}, {"Bun", "bun.svg", ""},
-		{"Python", "python.svg", ""}, {"Bash", "bash.svg", ""}, {"Homebrew", "homebrew.svg", ""},
-	}},
-	{"runtime", []tool{
-		{"Docker", "docker.svg", ""}, {"Kiri", "kiri.svg", ""}, {"Lightpanda", "lightpanda.png", ""},
-		{"Git", "git.svg", ""}, {"GitHub CLI", "github.svg", ""}, {"gitleaks", "gitleaks.png", ""},
-	}},
-	{"cli", []tool{
-		{"ripgrep", "", "rg"}, {"fd", "fd.svg", ""}, {"bat", "bat.png", ""}, {"eza", "eza.png", ""},
-		{"fzf", "fzf.png", ""}, {"zoxide", "zoxide.svg", ""}, {"atuin", "atuin.png", ""}, {"delta", "", "Δ"},
-	}},
-	{"plataformas", []tool{
-		{"macOS", "apple.svg", ""}, {"Linux", "linux.svg", ""}, {"Windows", "windows.svg", ""},
-	}},
-}
 
 type theme struct{ fg, muted, card, edge, mono string }
 
@@ -87,7 +57,6 @@ const (
 	card    = 88
 	logoSz  = 60
 	head    = 30
-	rowH    = head + card + 52
 	hexExpr = `#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b`
 )
 
@@ -221,29 +190,6 @@ func (g gen) tile(x, y int, tl tool, t theme, th string) ([]string, error) {
 	return out, nil
 }
 
-func (g gen) stack(th string) (string, error) {
-	t := themes[th]
-	height := rowH * len(stackGroups)
-	parts := []string{fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" `+
-		`width="%d" height="%d" role="img" `+
-		`aria-label="Herramientas del entorno">`, stackW, height, stackW, height)}
-	for row, grp := range stackGroups {
-		y := row * rowH
-		parts = append(parts, fmt.Sprintf(`<text x="%s" y="%d" font-family="%s" `+
-			`font-size="12" letter-spacing="3" fill="%s">%s</text>`,
-			pyFloat(float64(tileW)/2-float64(card)/2), y+16, monoFont, t.muted, esc(strings.ToUpper(grp.name))))
-		for col, tl := range grp.tools {
-			p, err := g.tile(col*tileW, y, tl, t, th)
-			if err != nil {
-				return "", err
-			}
-			parts = append(parts, p...)
-		}
-	}
-	parts = append(parts, "</svg>")
-	return strings.Join(parts, "\n") + "\n", nil
-}
-
 func contentName(name, svg string) string {
 	return fmt.Sprintf("%s.%x.svg", name, sha256.Sum256([]byte(svg)))[:len(name)+1+8] + ".svg"
 }
@@ -321,11 +267,9 @@ func run(args []string, stdout, stderr io.Writer) error {
 	}
 
 	if *list || *noLogo {
-		for _, grp := range stackGroups {
-			for _, tl := range grp.tools {
-				if *list || tl.logo == "" {
-					fmt.Fprintln(stdout, tl.label)
-				}
+		for _, tl := range allTools() {
+			if *list || tl.logo == "" {
+				fmt.Fprintln(stdout, tl.label)
 			}
 		}
 		return nil
@@ -365,6 +309,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 			image{"stack-" + th, st},
 			image{"mark-" + th, mark(th)},
 			image{"wordmark-" + th, wordmark(th)},
+			image{"desktop-" + th, desktop(th)},
 		)
 	}
 	names, err := writeAssets(out, images)

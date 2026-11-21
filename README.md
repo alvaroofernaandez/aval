@@ -1,8 +1,8 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.6704cc71.svg">
-  <img src="docs/assets/hero-light.100c6ed4.svg" alt="aval. Nada sin pruebas." width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.2efc5ab3.svg">
+  <img src="docs/assets/hero-light.1db648a3.svg" alt="aval. Nothing without proof." width="100%">
 </picture>
 
 <br/>
@@ -14,134 +14,184 @@
 
 <br/>
 
-[**Qué es**](#qué-es-aval) &nbsp;·&nbsp;
-[**Garantías**](#garantías) &nbsp;·&nbsp;
-[**Stack**](#stack) &nbsp;·&nbsp;
-[**Instalar**](#instalar) &nbsp;·&nbsp;
-[**Comandos**](#comandos) &nbsp;·&nbsp;
-[**Dentro**](#dentro) &nbsp;·&nbsp;
-[**Principios**](#principios) &nbsp;·&nbsp;
-[**Guía completa →**](docs/guide.md)
+[**What it is**](#what-aval-is) &nbsp;·&nbsp;
+[**Guarantees**](#guarantees) &nbsp;·&nbsp;
+[**Stack and roadmap**](#stack-and-roadmap) &nbsp;·&nbsp;
+[**Install**](#install) &nbsp;·&nbsp;
+[**Commands**](#commands) &nbsp;·&nbsp;
+[**Inside**](#inside) &nbsp;·&nbsp;
+[**Principles**](#principles) &nbsp;·&nbsp;
+[**Full guide →**](docs/guide.md)
 
 </div>
 
 <br/>
 
-## Qué es aval
+## What aval is
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/mark-dark.a2bb352f.svg">
-  <img src="docs/assets/mark-light.22afeffc.svg" alt="Isotipo de aval: la a y el check en un solo trazo" width="96" align="right">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/mark-dark.1e2f0412.svg">
+  <img src="docs/assets/mark-light.ab7493b7.svg" alt="The aval mark: the a and the check in a single stroke" width="96" align="right">
 </picture>
 
-aval es un **harness de ingeniería para agentes de IA**: las reglas, la
-memoria, las skills, los hooks y los controles de calidad con los que Claude
-Code y OpenCode trabajan, junto con el entorno de terminal donde se ejecutan.
-Es un único binario de Go, versionado, cubierto por tests e instalable en macOS,
-Linux y Windows.
+aval is an **engineering harness for AI coding agents**: the rules, memory,
+skills, hooks and quality gates that Claude Code and OpenCode work with, plus
+the terminal environment they run in. It ships as a single Go binary that is
+versioned, covered by tests and installs on macOS, Linux and Windows.
 
-Su principio está en el nombre: un aval es una **garantía**. Ninguna regla
-depende de la buena voluntad del agente; cada una tiene detrás un mecanismo que
-la verifica, ya sea un test, un hook o un control con resultados medidos. Por eso
-la **v** del logotipo es un check.
+The name is the principle. In Spanish, an *aval* is a **guarantee**, a
+co-signature that vouches for something. No rule in aval depends on the agent's
+good will: each one is backed by a mechanism that checks it, whether a test, a
+hook or a gate with measured results. That is why the **v** in the logo is a
+check mark.
 
 <br/>
 
-## Garantías
+## Guarantees
 
-| Lo que se promete | Cómo se comprueba |
+| The promise | How it is checked |
 | :--- | :--- |
-| Ningún secreto llega a git | `gitleaks` revisa el árbol **y todo el historial** en cada ejecución de los tests |
-| Nada se implementa sin test | TDD estricto: el agente emite un `[tdd-gate]` con el test que falla antes de escribir código |
-| Nada visual se aprueba a ojo | Un hook bloquea la edición de UI hasta pasar el pipeline de diseño; los gates **miden** el contraste |
-| Una sola fuente de verdad | La TUI, `--yes`, `update`, `doctor` y `uninstall` leen `install.manifest`; nada lleva su propia lista |
-| Nada se borra al instalar | Lo que existiera se mueve a `~/.aval-backup/<fecha>/` antes de enlazar |
-| El agente no olvida | Memoria persistente con Engram entre sesiones y compactaciones |
+| No secret reaches git | `gitleaks` scans the tree **and the full history** on every test run |
+| Nothing ships without a test | Strict TDD: the agent writes a `[tdd-gate]` naming the failing test before any code |
+| Nothing visual is approved by eye | A hook blocks UI edits until the design pipeline runs; the gates **measure** contrast |
+| One source of truth | The TUI, `--yes`, `update`, `doctor` and `uninstall` all read `install.manifest`; nothing keeps its own list |
+| Installing deletes nothing | Anything in the way moves to `~/.aval-backup/<date>/` before linking |
+| The agent does not forget | Persistent memory with Engram across sessions and compactions |
 
 <br/>
 
-## Stack
+## Stack and roadmap
+
+aval runs today on a set of proven tools. The roadmap moves every piece of the
+**workspace** into aval itself, so that the only external dependency left is the
+AI provider you choose. Standard tools (languages, git, CLI utilities) stay:
+aval drives them and does not reinvent them.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.ba66d22a.svg">
-  <img src="docs/assets/stack-light.881a536c.svg" alt="Ghostty, tmux, Zsh, yazi, Herdr, Claude Code, OpenCode, Engram, RTK, Go, Node.js, npm, Bun, Python, Bash, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux y Windows" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.58991889.svg">
+  <img src="docs/assets/stack-light.5a6dbd14.svg" alt="Today: Ghostty is replaced by aval desktop (v0.9.0); tmux, Herdr and yazi by aval core and the aval TUI (v0.7.0); Engram and RTK move behind aval memory and context ports (v0.3.0); Claude Code and OpenCode are driven through aval agent adapters (v0.4.0). Kept: Go, Node.js, npm, Bun, Python, Bash, Zsh, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux and Windows" width="100%">
 </picture>
 
-<sub>Logos oficiales de cada proyecto (<a href="docs/logos/SOURCES.md">procedencia</a>). ripgrep y delta no publican logo: llevan sus iniciales en vez de uno inventado.</sub>
+<sub>Official logos of each project (<a href="docs/logos/SOURCES.md">sources</a>). ripgrep and delta publish no logo, so they show their initials instead of an invented one.</sub>
+
+### What is configured today and what replaces it
+
+| Job | Today | Replaced by | Ships in |
+| :--- | :--- | :--- | :--- |
+| Terminal window | Ghostty | **aval desktop**: a native window over `aval core` with an embedded terminal | [v0.9.0](https://github.com/alvaroofernaandez/aval/milestone/5) |
+| Sessions, panes and agents | tmux, Herdr | **aval core**: persistent PTYs, spaces, tabs and panes, a socket API, worktree per task | [v0.6.0](https://github.com/alvaroofernaandez/aval/milestone/3) |
+| Multiplexer UI, file panel, status bar | tmux, yazi | **aval TUI**: panes, agent list with status, diff review with line comments, file panel | [v0.7.0](https://github.com/alvaroofernaandez/aval/milestone/4) |
+| Memory and context | Engram, RTK, code-review-graph | **aval memory** and **aval context**: native ports; today's tools become adapters | [v0.3.0](https://github.com/alvaroofernaandez/aval/milestone/1) |
+| Harness glue | gentle-ai, agnix, Node screenshot script | **native aval commands**: `aval lint`, `aval shot` (CDP from Go), hook guard and done gate | [v0.3.0](https://github.com/alvaroofernaandez/aval/milestone/1) |
+| Agent configuration | One config file per agent | **aval agents**: one config model with an adapter each for Claude Code, OpenCode, Codex and Gemini | [v0.4.0](https://github.com/alvaroofernaandez/aval/milestone/2) |
+| Agent runtime | Claude Code, OpenCode | Stays. An own runtime on the provider's SDK is only **evaluated** for v1.0 | [v1.0.0](https://github.com/alvaroofernaandez/aval/milestone/6) |
+
+### The desktop app
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/desktop-dark.872815f5.svg">
+  <img src="docs/assets/desktop-light.7d1e149d.svg" alt="The aval desktop mark: the aval mark inside an app frame, followed by a terminal cursor" width="96" align="right">
+</picture>
+
+**aval desktop** is where the roadmap ends up: one lightweight app that is
+shell, multiplexer and agent workspace at once, built on `aval core` and sharing
+the TUI's features. Its mark is the aval mark inside an app frame, followed by a
+terminal cursor.
+
+### Milestones
+
+| Version | Goal |
+| :--- | :--- |
+| [v0.1.0](https://github.com/alvaroofernaandez/aval/milestone/12) | First release: signed binaries, npm packages, Windows support |
+| [v0.2.0](https://github.com/alvaroofernaandez/aval/milestone/13) | Maintainability: one local check equal to CI, generated CLI reference, architecture map, dependency and size budgets |
+| [v0.3.0](https://github.com/alvaroofernaandez/aval/milestone/1) | Native harness core: guard, secrets, formatter, done gate, lint, shot, memory and context ports |
+| [v0.4.0](https://github.com/alvaroofernaandez/aval/milestone/2) | Agent runtime adapters |
+| [v0.5.0](https://github.com/alvaroofernaandez/aval/milestone/7) | Local observability and distribution: insights, usage, history, bench, update channels, Homebrew tap |
+| [v0.6.0](https://github.com/alvaroofernaandez/aval/milestone/3) | aval core |
+| [v0.7.0](https://github.com/alvaroofernaandez/aval/milestone/4) | aval TUI, and the retirement of tmux, Herdr and yazi |
+| [v0.8.0](https://github.com/alvaroofernaandez/aval/milestone/9) | Development workflow: `aval init`, commands, rule-compliance evals |
+| [v0.9.0](https://github.com/alvaroofernaandez/aval/milestone/5) | Desktop app, remote machines and personalization |
+| [v1.0.0](https://github.com/alvaroofernaandez/aval/milestone/6) | Stable contract, and an evaluation of an own agent runtime |
+
+Each issue is written as a spec an AI agent can implement directly. The full
+plan lives in the [pinned roadmap issue](https://github.com/alvaroofernaandez/aval/issues/23).
 
 <br/>
 
-## Instalar
+## Install
 
 ```sh
-go install github.com/alvaroofernaandez/aval/cmd/aval@latest   # o el paquete npm, o el binario de Releases
+npx @alvaroofernaandez/aval@next   # prerelease from npm, or a binary from Releases
+go install github.com/alvaroofernaandez/aval/cmd/aval@latest
 git clone https://github.com/alvaroofernaandez/aval.git ~/aval && cd ~/aval
 
-aval                  # TUI: elige qué instalar
-aval --yes --dry-run  # sin TUI: muestra qué haría, no toca nada
-aval --yes            # sin TUI: instala todo lo que aplica (--copy copia en vez de enlazar)
+aval                  # TUI: choose what to install
+aval --yes --dry-run  # no TUI: shows what it would do, touches nothing
+aval --yes            # no TUI: installs everything that applies (--copy copies instead of linking)
 ```
 
-`aval` busca `install.manifest` en el repo: ejecútalo dentro del clon o pasa `--repo <ruta>`.
-Los subcomandos que no dependen del repo (`hook`, `design`, `tmux`, `pdf`…) funcionan solo con el binario.
-Lo instalado a propósito con Homebrew está en el `Brewfile` (`brew bundle --file=Brewfile`).
+`aval` looks for `install.manifest` in the repo: run it inside the clone or pass `--repo <path>`.
+Subcommands that do not depend on the repo (`hook`, `design`, `tmux`, `pdf`…) work with the binary alone.
+Everything installed on purpose with Homebrew is in the `Brewfile` (`brew bundle --file=Brewfile`).
 
-Lo privado (nombres de empresa, skills de cliente) vive fuera del repo, en `~/.config/aval/private`
-(o `$AVAL_PRIVATE_DIR`): un `settings.json` que `aval sync` fusiona encima y un `links.manifest` que enlaza.
+Private material (company names, client skills) lives outside the repo, in `~/.config/aval/private`
+(or `$AVAL_PRIVATE_DIR`): a `settings.json` that `aval sync` merges on top and a `links.manifest` that it links.
 
 > [!NOTE]
-> `npx @alvaroofernaandez/aval` y los binarios precompilados se publican desde CI y aún no están disponibles con el nombre nuevo.
+> Until v0.1.0 is final, npm packages and binaries are prereleases: npm serves them under the `next` tag.
 
 <br/>
 
-## Comandos
+## Commands
 
-| Orden | Para qué |
+| Command | What it does |
 | :--- | :--- |
-| `aval doctor` | Revisa enlaces, hooks, agentes y settings (`--fix`, `--json`, `--security`) |
-| `aval sync` | Vuelca lo que gestiona el repo en `~/.claude/settings.json` y en Codex/Gemini; transaccional (`--dry-run`, `--check`) |
-| `aval update` | `git pull` + enlaza lo nuevo (`--dry-run`) |
-| `aval restore` · `aval uninstall` | Deshacen una instalación o sync desde `~/.aval-backup` (`--list`, `latest`, `<id>`, `--pin`) · quitan solo los enlaces de este repo |
-| `aval budget` | Contexto siempre activo por agente y latencia de cada hook; sale con 1 si se pasa |
-| `aval review assess` | Nivel de riesgo del diff, solo con git, y qué revisores lanzar |
-| `aval rules sync` | Replica las reglas compartidas de `CLAUDE.md` y las lecciones en el `AGENTS.md` de OpenCode (`--check`) |
-| `aval hook <nombre>` | `lessons` · `design-gate` · `design-shot-stop` · `rtk-rewrite` · `repo-profile` · `pre-push` |
-| `aval statusline` | Línea de estado de Claude Code |
-| `aval design ack <superficie>` · `aval design gate <…>` | Ack del pipeline de diseño · gates medidos: `contrast`, `tokens`, `pairs`, `hardcodes`, `theme-refs`, `component`, `emoji`, `native` |
+| `aval doctor` | Checks links, hooks, agents and settings (`--fix`, `--json`, `--security`) |
+| `aval sync` | Writes what the repo manages into `~/.claude/settings.json` and Codex/Gemini; transactional (`--dry-run`, `--check`) |
+| `aval update` | `git pull` and links what is new (`--dry-run`) |
+| `aval restore` · `aval uninstall` | Undo an install or sync from `~/.aval-backup` (`--list`, `latest`, `<id>`, `--pin`) · remove only this repo's links |
+| `aval budget` | Always-on context per agent and the latency of each hook; exits 1 when over budget |
+| `aval review assess` | Risk level of the diff, from git alone, and which reviewers to run |
+| `aval rules sync` | Mirrors the shared rules of `CLAUDE.md` and the lessons into OpenCode's `AGENTS.md` (`--check`) |
+| `aval hook <name>` | `lessons` · `design-gate` · `design-shot-stop` · `rtk-rewrite` · `repo-profile` · `pre-push` |
+| `aval statusline` | Claude Code status line |
+| `aval design ack <surface>` · `aval design gate <…>` | Design pipeline ack · measured gates: `contrast`, `tokens`, `pairs`, `hardcodes`, `theme-refs`, `component`, `emoji`, `native` |
 | `aval tmux <…>` | `sidebar-toggle`, `sidebar-follow`, `sidebar-watch`, `open-file`, `close-file`, `paste-router`, `statusbar`, `launch` |
 | `aval macos <…>` | `defaults`, `screenshot-clipboard install` / `copy` |
-| `aval kiri up` · `aval docker cleanup` | Deja Docker listo sobre Kiri · prunes seguros (`--dry-run`) |
-| `aval pdf init` · `aval pdf assets` | Proyecto de informe PDF · `assets/brand.css` |
-| `aval reap-orphan-tests` | Termina procesos de test huérfanos (`--min-age`, `--dry-run`) |
-| `aval dev` | Prueba aval en un sandbox sin tocar tu máquina: [modo dev](docs/devmode.md) |
+| `aval kiri up` · `aval docker cleanup` | Gets Docker ready on Kiri · safe prunes (`--dry-run`) |
+| `aval pdf init` · `aval pdf assets` | PDF report project · `assets/brand.css` |
+| `aval reap-orphan-tests` | Ends orphaned test processes (`--min-age`, `--dry-run`) |
+| `aval release <…>` | Cuts versions, release candidates and promotions: [releasing](docs/releasing.md) |
+| `aval dev` | Try aval in a sandbox that never touches your machine: [dev mode](docs/devmode.md) |
 
-Detalle de cada una en la [guía](docs/guide.md#️-comandos).
+Details for each one are in the [guide](docs/guide.md#️-commands).
 
 <br/>
 
-## Dentro
+## Inside
 
-| | Qué | Detalle |
+| | What | Details |
 | :--- | :--- | :--- |
-| `config/claude` · `config/opencode` | Instrucciones, agentes, hooks, comandos | [Agentes](docs/guide.md#-agentes) |
-| `skills/` | Skills compartidas por todos los agentes | [Skills](docs/guide.md#-skills-compartidas) |
-| `config/ghostty` · `config/yazi*` · `config/herdr-*` · `home/tmux.conf` | Terminal, barra de estado, sidebar de yazi, Herdr | [Barra](docs/guide.md#-barra-de-estado) · [Sidebar](docs/guide.md#-barra-lateral-de-archivos) |
-| `home/` | zsh, p10k, git | [Shell](docs/guide.md#-shell-y-herramientas) |
-| `cmd/aval` · `internal/` · `npm/` | El binario, por dominios, y su empaquetado | [Mapa](docs/guide.md#️-mapa-del-repositorio) |
-| `install.manifest` | Qué se instala y dónde: fuente única | [Instalación](docs/guide.md#-instalación) |
-| `.goreleaser.yaml` · `.github/workflows/release.yml` | Versiones SemVer, binarios con procedencia verificable y paquetes npm | [Releases](docs/releasing.md) · [Changelog](CHANGELOG.md) |
-| `tests/` | Tests de integración en Go | [Tests](docs/guide.md#-tests) |
+| `config/claude` · `config/opencode` | Instructions, agents, hooks, commands | [Agents](docs/guide.md#-agents) |
+| `skills/` | Skills shared by every agent | [Skills](docs/guide.md#-shared-skills) |
+| `config/ghostty` · `config/yazi*` · `config/herdr-*` · `home/tmux.conf` | Terminal, status bar, yazi sidebar, Herdr | [Status bar](docs/guide.md#-status-bar) · [Sidebar](docs/guide.md#-file-sidebar) |
+| `home/` | zsh, p10k, git | [Shell](docs/guide.md#-shell-and-tools) |
+| `cmd/aval` · `internal/` · `npm/` | The binary, by domain, and its packaging | [Map](docs/guide.md#️-repository-map) |
+| `install.manifest` | What is installed and where: the single source | [Installation](docs/guide.md#-installation) |
+| `.goreleaser.yaml` · `.github/workflows/release.yml` | SemVer versions, binaries with verifiable provenance and npm packages | [Releasing](docs/releasing.md) · [Changelog](CHANGELOG.md) |
+| `tests/` | Go integration tests | [Tests](docs/guide.md#-tests) |
 
 <br/>
 
-## Principios
+## Principles
 
-- **Un solo binario de Go.** Toda la lógica propia es Go; sin shell ni Python propios, salvo los dotfiles de zsh (`home/`) y el shim de 3 líneas de `.githooks/pre-push` (git exige un ejecutable).
-- **Manifiesto declarativo.** `install.manifest` dice qué se instala y dónde; el código lee datos, no rutas.
-- **Sin upstream vendorizado.** Dependencias como módulos, no árboles copiados.
-- **Nada se borra.** Todo lo desplazado se guarda en `~/.aval-backup` y `aval restore` lo devuelve.
+- **One Go binary.** All of aval's own logic is Go; no shell or Python of its own, except the zsh dotfiles (`home/`) and the 3-line `.githooks/pre-push` shim (git needs an executable).
+- **Declarative manifest.** `install.manifest` says what is installed and where; the code reads data, not paths.
+- **No vendored upstream.** Dependencies are modules, not copied trees.
+- **Nothing is deleted.** Everything moved aside is kept in `~/.aval-backup` and `aval restore` brings it back.
+- **Maintainability first.** A feature that makes aval harder to maintain waits until it does not.
 
-[Contribuir](CONTRIBUTING.md) · [Licencia MIT](LICENSE) · [Seguridad](SECURITY.md) · [Código de conducta](CODE_OF_CONDUCT.md)
+[Contributing](CONTRIBUTING.md) · [MIT License](LICENSE) · [Security](SECURITY.md) · [Code of conduct](CODE_OF_CONDUCT.md)
 
 <br/>
 
@@ -152,6 +202,6 @@ Detalle de cada una en la [guía](docs/guide.md#️-comandos).
   <img src="docs/assets/wordmark-light.8ec8a19c.svg" alt="aval" width="88">
 </picture>
 
-<sub>Imágenes generadas con <code>go run ./tools/brand</code> · cada logo del stack es marca registrada de su proyecto</sub>
+<sub>Images generated with <code>go run ./tools/brand</code> · every stack logo is a trademark of its project</sub>
 
 </div>

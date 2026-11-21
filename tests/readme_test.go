@@ -23,7 +23,7 @@ import (
 // images are byte-identical to the generator's output, the tools with no
 // published logo are exactly ripgrep and delta, and stale versions are pruned.
 
-var imageNames = []string{"hero-light", "hero-dark", "stack-light", "stack-dark", "mark-light", "mark-dark", "wordmark-light", "wordmark-dark"}
+var imageNames = []string{"hero-light", "hero-dark", "stack-light", "stack-dark", "mark-light", "mark-dark", "wordmark-light", "wordmark-dark", "desktop-light", "desktop-dark"}
 
 var (
 	brandOnce sync.Once
@@ -109,7 +109,8 @@ func TestReadmeHeroAndMark(t *testing.T) {
 	isTrue(t, "the matrix inks enough cells to trace the mark (>= 25, is "+strconv.Itoa(inked)+")", inked >= 25)
 	// Presented as a brand, not as a document: a claim, no labelled fields.
 	// The visible text, not just the aria-label that repeats it.
-	mustHave(t, `>Nada sin pruebas\.<`, hero, "hero carries the brand claim")
+	mustHave(t, `>Nothing without proof\.<`, hero, "hero carries the brand claim")
+	eq(t, "hero is in English", 0, count(`[áéíóúñ]|Nada sin|HARNESS PERSONAL`, hero))
 	eq(t, "hero has no document labels", 0, count(`DEFINICIÓN|TESIS|>PARA<|NOMBRE MASCULINO`, hero))
 	eq(t, "hero drops the old guilloché and suminagashi", 0, count(`(?i)guilloche|suminagashi|id="vig"`, hero))
 	eq(t, "hero no longer says Dotfiles", 0, count(`(?i)dotfiles`, hero))
@@ -136,7 +137,7 @@ func TestReadmeHeroIsMonochrome(t *testing.T) {
 	out := generated(t)
 	re := regexp.MustCompile(`#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b`)
 	bad := map[string]bool{}
-	for _, prefix := range []string{"hero-", "mark-", "wordmark-"} {
+	for _, prefix := range []string{"hero-", "mark-", "wordmark-", "desktop-"} {
 		for _, theme := range []string{"light", "dark"} {
 			for _, c := range re.FindAllString(svg(t, out, prefix+theme), -1) {
 				h := strings.ToLower(c[1:])
@@ -237,7 +238,10 @@ func TestReadmeShowsTheGeneratedImages(t *testing.T) {
 	// old installer name is gone everywhere a reader would copy a command from.
 	isTrue(t, "README shows the aval mark",
 		has(`docs/assets/mark-dark\.[0-9a-f]{8}\.svg`, readme) && has(`docs/assets/mark-light\.[0-9a-f]{8}\.svg`, readme))
-	mustHave(t, `(?i)garant`, readme, "README explains what aval means")
+	mustHave(t, `(?i)guarantee`, readme, "README explains what aval means")
+	eq(t, "README is in English", 0, count(`[áéíóúñ¿¡]`, readme))
+	isTrue(t, "README shows the desktop app logo",
+		has(`docs/assets/desktop-dark\.[0-9a-f]{8}\.svg`, readme) && has(`docs/assets/desktop-light\.[0-9a-f]{8}\.svg`, readme))
 	for _, doc := range []string{"README.md", "docs/guide.md", "npm/cli/README.md"} {
 		eq(t, doc+": no old installer name", 0, count(`dotfiles-installer|\.dotfiles-backup|DOTFILES_`, read(t, doc)))
 	}
@@ -320,4 +324,18 @@ func TestReadmeBadges(t *testing.T) {
 	}
 	eq(t, "badges are exactly macOS, Linux and Windows", "macOS Linux Windows", strings.Join(names, " "))
 	eq(t, "every badge carries a white icon", 3, white)
+}
+
+// The stack image explains the roadmap: each lane shows what runs today and
+// the native aval piece that replaces it, with the version that ships it; the
+// tools aval keeps driving are shown apart, so nobody reads them as going away.
+func TestReadmeStackShowsTheRoadmap(t *testing.T) {
+	stack := svg(t, generated(t), "stack-light")
+	lanes := count(`data-part="lane"`, stack)
+	isTrue(t, "the stack has at least 4 replacement lanes (is "+strconv.Itoa(lanes)+")", lanes >= 4)
+	eq(t, "every lane names its aval replacement", lanes, count(`data-target="aval[^"]*"`, stack))
+	eq(t, "every lane names the version that ships it", lanes, count(`data-version="v[0-9]+\.[0-9]+\.[0-9]+`, stack))
+	mustHave(t, `data-part="kept"`, stack, "the tools aval keeps are a separate section")
+	mustHave(t, `data-target="aval desktop"`, stack, "the terminal window lane ends in the desktop app")
+	eq(t, "stack is in English", 0, count(`[áéíóúñ]|AGENTES|PLATAFORMAS|Herramientas`, stack))
 }

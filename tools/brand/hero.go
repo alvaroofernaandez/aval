@@ -85,14 +85,14 @@ func heroBuild(theme string) string {
 	parts := []string{
 		fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" `+
 			`width="%d" height="%d" role="img" `+
-			`aria-label="aval. Nada sin pruebas. Harness personal para agentes de IA.">`, heroW, heroH, heroW, heroH),
+			`aria-label="aval. Nothing without proof. Engineering harness for AI agents.">`, heroW, heroH, heroW, heroH),
 		fmt.Sprintf(`<rect width="%d" height="%d" fill="%s"/>`, heroW, heroH, t.bg),
 		wordGroup(t.ink, heroPad-4, top, scale),
 		fmt.Sprintf(`<text x="%d" y="%.0f" font-family="%s" font-size="%d" `+
-			`font-weight="600" letter-spacing="-0.8" fill="%s">Nada sin pruebas.</text>`,
+			`font-weight="600" letter-spacing="-0.8" fill="%s">Nothing without proof.</text>`,
 			heroPad, claimY, sansFont, claimSize, t.ink),
 		fmt.Sprintf(`<text x="%d" y="%.0f" font-family="%s" font-size="13" `+
-			`letter-spacing="3" fill="%s">HARNESS PERSONAL PARA AGENTES DE IA</text>`,
+			`letter-spacing="3" fill="%s">ENGINEERING HARNESS FOR AI AGENTS</text>`,
 			heroPad+2, descY, monoFont, t.muted),
 	}
 	parts = append(parts, matrix(t, float64(heroH-cells*cell)/2)...)

@@ -97,16 +97,45 @@ func wordmark(theme string) string {
 }
 
 func mark(theme string) string {
+	return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" `+
+		`width="%d" height="%d" role="img" aria-label="aval">`+"\n", markM, markM, markM, markM) +
+		markGroup(ink[theme]) + "\n</svg>\n"
+}
+
+// markGroup is the isotype on the 512 canvas: the a's ring and the check,
+// drawn as one stroke.
+func markGroup(inkColor string) string {
 	cx, cy, r := ring[0], ring[1], ring[2]
 	tx, ty := checkTip[0], checkTip[1]
 	jx, jy := cx+r+40, cy+r
-	style := fmt.Sprintf(`fill="none" stroke="%s" stroke-width="%d" stroke-linecap="round" stroke-linejoin="round"`,
-		ink[theme], markMS)
+	return fmt.Sprintf(`<g fill="none" stroke="%s" stroke-width="%d" stroke-linecap="round" stroke-linejoin="round">`, inkColor, markMS) +
+		fmt.Sprintf(`<circle cx="%d" cy="%d" r="%d"/>`, cx, cy, r) +
+		fmt.Sprintf(`<path d="M %d %d L %d %d L %d %d"/>`, cx+r, cy, jx, jy, tx, ty) + "</g>"
+}
+
+// The desktop app (the future aval shell and window): the isotype inside an
+// app frame, followed by a terminal cursor. Same stroke weight as the mark.
+const (
+	deskInset = 32
+	deskScale = 0.56
+	deskCX    = 236.0
+	deskCY    = 240.0
+)
+
+func desktopGroup(inkColor string) string {
+	size := markM - 2*deskInset
+	sw := float64(markMS) * deskScale
+	tx, ty := deskCX-float64(markM/2)*deskScale, deskCY-float64(markM/2)*deskScale
+	return fmt.Sprintf(`<g data-part="desktop" fill="none" stroke="%s" stroke-linecap="round" stroke-linejoin="round">`, inkColor) +
+		fmt.Sprintf(`<rect x="%d" y="%d" width="%d" height="%d" rx="112" stroke-width="%.1f"/>`, deskInset, deskInset, size, size, sw) +
+		fmt.Sprintf(`<g transform="translate(%.1f %.1f) scale(%.2f)">`, tx, ty, deskScale) + markGroup(inkColor) + "</g>" +
+		fmt.Sprintf(`<path d="M %d %d H %d" stroke-width="%.1f"/>`, 314, 388, 384, sw) + "</g>"
+}
+
+func desktop(theme string) string {
 	return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" `+
-		`width="%d" height="%d" role="img" aria-label="aval">`+"\n", markM, markM, markM, markM) +
-		fmt.Sprintf(`<circle cx="%d" cy="%d" r="%d" %s/>`+"\n", cx, cy, r, style) +
-		fmt.Sprintf(`<path d="M %d %d L %d %d L %d %d" %s/>`+"\n", cx+r, cy, jx, jy, tx, ty, style) +
-		"</svg>\n"
+		`width="%d" height="%d" role="img" aria-label="aval desktop">`+"\n", markM, markM, markM, markM) +
+		desktopGroup(ink[theme]) + "\n</svg>\n"
 }
 
 // pyFloat renders an integral float like Python's str(float): 22.0, 20.0.

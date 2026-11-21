@@ -29,8 +29,8 @@ func TestGoldenMatchesCommittedAssets(t *testing.T) {
 		t.Fatal(err)
 	}
 	gen, _ := filepath.Glob(filepath.Join(out, "*.svg"))
-	if len(gen) != 8 {
-		t.Fatalf("want 8 generated svgs, got %d", len(gen))
+	if len(gen) != 10 {
+		t.Fatalf("want 10 generated svgs, got %d", len(gen))
 	}
 	for _, g := range gen {
 		want, err := os.ReadFile(filepath.Join(docs, "assets", filepath.Base(g)))
