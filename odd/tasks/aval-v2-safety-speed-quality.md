@@ -4,10 +4,10 @@ Why: research of gentle-ai, FullFran/hcs + precedent, ECC, rulesync, codeburn
 and others (2026-11-21). Three parallel worktrees, merged by the coordinator.
 
 ## A — safety (branch feat/safety)
-- [ ] `aval restore [--list|latest|<id>]`, backup manifest + retention (5, pin)
-- [ ] Transactional `sync`: backup → apply → doctor → auto-restore, one attempt
-- [ ] `aval uninstall [--dry-run]`: only repo links, restore previous files
-- [ ] Deny-list coverage test; private overlay can narrow, never widen denies
+- [x] `aval restore [--list|latest|<id>]`, backup manifest + retention (5, pin)
+- [x] Transactional `sync`: backup → apply → doctor → auto-restore, one attempt
+- [x] `aval uninstall [--dry-run]`: only repo links, restore previous files
+- [x] Deny-list coverage test; private overlay can narrow, never widen denies
 
 ## B — fewer tokens, faster (branch feat/lean)
 - [ ] Lessons hook (`aval hook lessons`): path-triggered lessons instead of

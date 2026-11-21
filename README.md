@@ -84,7 +84,11 @@ curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/aval/main/scripts
 aval update   # git pull + enlaza lo nuevo
 aval doctor   # revisa enlaces, hooks, agentes y settings (--fix repara, --json para scripts)
 aval sync     # vuelca lo que gestiona el repo en ~/.claude/settings.json y en Codex/Gemini (--dry-run)
+aval restore  # --list | latest | <id> | --pin <id>: deshace cualquier instalación o sync desde ~/.aval-backup
+aval uninstall --dry-run   # quita solo los enlaces que apuntan a este repo y devuelve lo que desplazaron
 ```
+
+`sync` es transaccional: copia de seguridad, aplica, comprueba con `doctor` y, si algo falla, restaura sola y sale con 1.
 
 Lo privado (nombres de empresa, skills de cliente) vive fuera del repo, en `~/.config/aval/private`
 (o `$AVAL_PRIVATE_DIR`): un `settings.json` que `aval sync` fusiona encima y un `links.manifest` que enlaza.

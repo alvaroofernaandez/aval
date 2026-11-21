@@ -182,6 +182,39 @@ solo entre sus marcadores `aval:agent-rules`.
 líneas `<origen relativo a la carpeta privada>  <destino relativo a $HOME>` y `sync` las enlaza,
 guardando antes lo que hubiera en el destino. `doctor` informa de si existe y revisa sus enlaces.
 
+### ↩️ Restaurar, desinstalar y sync transaccional
+
+Todo lo que aval mueve o sobrescribe (instalador, `sync`, `uninstall`) se anota en una **ejecución de
+copia** `~/.aval-backup/<AAAAMMDD-HHMMSS>[-n]/` con un `manifest.json` (ruta absoluta, si existía, tipo,
+destino del enlace, sha256) y las copias guardadas. Una ejecución idéntica a la anterior no se crea; se
+conservan las 5 últimas sin fijar, y una con marcador `PINNED` no se borra nunca. Las carpetas antiguas
+(sin manifiesto) se listan pero no se podan.
+
+```sh
+aval restore --list          # id, fecha, entradas, fijada, estado
+aval restore latest          # o un <id> (basta un prefijo único); --dry-run para ver qué haría
+aval restore --pin <id>      # protege una copia de la poda (--unpin la suelta)
+aval uninstall --dry-run     # qué quitaría; sin --dry-run pide confirmación (--yes la salta)
+```
+
+`restore` es atómico por archivo (temporal + rename) y recrea enlaces. Lo que la ejecución **creó** solo
+se borra si es un enlace que apunta al repo o un archivo cuyo sha256 es el que aval escribió; el
+contenido editado después se aparta a `.displaced/` dentro de la copia, nunca se pierde. `uninstall`
+quita únicamente los destinos del manifiesto que son enlaces hacia este repo, devuelve lo que había
+antes según la copia más reciente, borra el bloque `aval:agent-rules` de `~/.codex/AGENTS.md` y
+`~/.gemini/GEMINI.md` (solo el bloque) y los directorios que el instalador creó si quedan vacíos.
+`aval restore latest` deshace el propio uninstall.
+
+**`aval sync` es transaccional**: marcador `PENDING` → copia → aplica → comprueba `settings-drift`,
+`hooks-resolve`, `hooks-retired`, `hooks-drift` y `overlay`. Si alguna da FAIL, restaura esa copia,
+la marca `FAILED` con el motivo y sale con 1; un solo intento, sin reintentos. Si un sync anterior murió
+a medias (marcador `PENDING` huérfano), el siguiente lo avisa y lo restaura antes de seguir.
+
+**Denegaciones**: `permissions.deny` del repo prohíbe leer `~/.ssh/**`, `~/.aws/**`, `.credentials.json`
+y `.env`/`.env.*` (incluye `.env.example`: Claude da prioridad a deny sobre allow). El overlay privado
+solo puede **añadir** denegaciones (el resultado es repo ∪ vivo ∪ overlay); un `allow` del overlay que
+cubra una denegación se descarta con un aviso.
+
 ### Sin binario: el instalador de siempre
 
 ```bash
