@@ -55,3 +55,59 @@ waitfor() {
   command -v osascript >/dev/null && osascript -e "display notification \"$1\" with title \"waitfor: done\"" 2>/dev/null
   return 0
 }
+
+# wt: one worktree per task, with the repo's ignored .env files and its own
+# port, so two dev servers never fight over 3000.
+#   wt <name> [base]   create (or reuse) .worktrees/<name> on branch <name>, cd into it
+#   wt ls              list worktrees
+#   wt rm <name>       remove it (refuses if dirty); deletes the branch if merged
+wt() {
+  local root; root=$(git rev-parse --show-toplevel 2>/dev/null) || { print -u2 "wt: not in a git repo"; return 1; }
+  # From inside a worktree, operate on the main checkout.
+  local common; common=$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+  [[ $common == */.git ]] && root=${common:h}
+  case ${1:-} in
+    ''|-h|--help) print "usage: wt <name> [base] | wt ls | wt rm <name>"; return 0 ;;
+    ls) git -C "$root" worktree list; return ;;
+    rm)
+      [[ -n ${2:-} ]] || { print -u2 "usage: wt rm <name>"; return 2; }
+      git -C "$root" worktree remove "$root/.worktrees/$2" || return
+      git -C "$root" branch -d "$2" 2>/dev/null || print "wt: branch $2 kept (not merged)"
+      return 0 ;;
+  esac
+  local name=$1 base=${2:-HEAD} dir=$root/.worktrees/$1
+  if [[ ! -d $dir ]]; then
+    if git -C "$root" show-ref -q "refs/heads/$name"; then
+      git -C "$root" worktree add -q "$dir" "$name" || return
+    else
+      git -C "$root" worktree add -q -b "$name" "$dir" "$base" || return
+    fi
+    local f
+    for f in $root/.env*(N.); do
+      [[ ${f:t} == .env.example ]] && continue
+      git -C "$root" check-ignore -q "$f" && cp "$f" "$dir/"
+    done
+  fi
+  # Stable per name: 3100-3599, never the default 3000.
+  local port=$(( 3100 + $(print -n -- "$name" | cksum | cut -d' ' -f1) % 500 ))
+  if [[ ! -f $dir/.env.local || ${(M)${(f)"$(<$dir/.env.local)"}:#PORT=*} == "" ]]; then
+    print "PORT=$port" >> "$dir/.env.local"
+  fi
+  print "wt: $name → $dir (PORT=$port)"
+  cd "$dir"
+}
+
+# forrepos '<command>': run a command in every git repo under
+# ${FORREPOS_ROOT:-~/Proyectos} (3 levels deep), output prefixed with the repo.
+#   forrepos 'git status -sb'     forrepos 'git pull --ff-only'
+forrepos() {
+  (( $# )) || { print -u2 "usage: forrepos '<command>'"; return 2; }
+  local root=${FORREPOS_ROOT:-$HOME/Proyectos} g repo rel failed=()
+  for g in $root/{*,*/*,*/*/*}/.git(N/); do
+    repo=${g:h}; rel=${repo#$root/}
+    ( cd "$repo" && eval "$1" ) 2>&1 | while IFS= read -r line; do printf '%-28s %s\n' "$rel" "$line"; done
+    (( ${pipestatus[1]} )) && failed+=$rel
+  done
+  (( $#failed )) && { print "forrepos: failed in ${#failed}: ${failed[*]}"; return 1 }
+  return 0
+}

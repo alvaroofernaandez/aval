@@ -62,6 +62,36 @@ if [ -f "$HELPERS" ]; then
   for a in cñear ckear clea clar exir exirt; do
     assert_eq "typo alias $a exists" "yes" "$(z "$T" "alias -- $a >/dev/null && echo yes || echo no")"
   done
+  # --- wt: worktree per task, its own .env and port ------------------------
+  R="$T/repo"; mkdir -p "$R"; git -C "$R" init -q -b main
+  printf '.env*\n.worktrees/\n' > "$R/.gitignore"; printf 'SECRET=1\n' > "$R/.env"
+  git -C "$R" add .gitignore && git -C "$R" -c user.name=t -c user.email=t@t commit -qm init
+  wtz() { (cd "$R" && PATH="/usr/bin:/bin:/opt/homebrew/bin" zsh -f -c "source '$HELPERS'; $1" 2>&1); }
+  wtz 'wt feat-a' >/dev/null
+  assert_eq "wt creates .worktrees/<name> on its own branch" "feat-a" \
+    "$(git -C "$R/.worktrees/feat-a" branch --show-current 2>/dev/null)"
+  assert_eq "wt copies the ignored .env files" "SECRET=1" "$(cat "$R/.worktrees/feat-a/.env" 2>/dev/null)"
+  port="$(rg -o '^PORT=(\d+)$' -r '$1' "$R/.worktrees/feat-a/.env.local" 2>/dev/null)"
+  assert_eq "wt gives the worktree its own port (not 3000)" "yes" \
+    "$([ -n "$port" ] && [ "$port" != 3000 ] && echo yes || echo no)"
+  wtz 'wt feat-a' >/dev/null
+  assert_eq "the port is stable for the same name" "$port" \
+    "$(rg -o '^PORT=(\d+)$' -r '$1' "$R/.worktrees/feat-a/.env.local" | tail -1)"
+  assert_eq "wt ls lists it" "yes" "$(wtz 'wt ls' | rg -q 'feat-a' && echo yes || echo no)"
+  wtz 'wt rm feat-a' >/dev/null
+  assert_eq "wt rm removes the worktree" "no" "$([ -d "$R/.worktrees/feat-a" ] && echo yes || echo no)"
+
+  # --- forrepos: one command across every repo -----------------------------
+  F="$T/projects"; mkdir -p "$F/a" "$F/b" "$F/group/c" "$F/not-a-repo"
+  for r in a b group/c; do git -C "$F/$r" init -q; done
+  out="$(cd "$T" && PATH="/usr/bin:/bin:/opt/homebrew/bin" FORREPOS_ROOT="$F" zsh -f -c "source '$HELPERS'; forrepos 'pwd'" 2>&1)"
+  assert_eq "forrepos runs in every repo, nested ones included" "3" \
+    "$(printf '%s\n' "$out" | rg -c '/(a|b|group/c)$')"
+  assert_eq "forrepos prefixes output with the repo name" "yes" \
+    "$(printf '%s\n' "$out" | rg -q '^group/c +' && echo yes || echo no)"
+  out="$(cd "$T" && PATH="/usr/bin:/bin:/opt/homebrew/bin" FORREPOS_ROOT="$F" zsh -f -c "source '$HELPERS'; forrepos '[ \$(basename \$PWD) != a ]'" 2>&1)"; rc=$?
+  assert_eq "a failing repo does not stop the others, and the exit is non-zero" "1" "$rc"
+  assert_eq "...with a summary naming it" "yes" "$(printf '%s\n' "$out" | rg -q 'failed.*\ba\b' && echo yes || echo no)"
 fi
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
