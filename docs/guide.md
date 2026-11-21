@@ -156,6 +156,32 @@ satisfacer.
 
 </details>
 
+### 🩺 Doctor, sync y la capa privada
+
+```sh
+aval doctor            # tabla STATUS · CHECK · MESSAGE; sale con 1 si algo falla
+aval doctor --json     # lo mismo como array JSON
+aval doctor --fix      # borra enlaces rotos y ejecuta sync
+aval sync --dry-run    # muestra qué claves cambiarían, no escribe nada
+aval sync              # aplica el cambio (copia previa en ~/.aval-backup/<fecha>/)
+```
+
+`doctor` es offline y de solo lectura: enlaces del manifiesto, enlaces rotos en los directorios de
+agentes, hooks del `settings.json` vivo (que existan, que no sean comandos retirados, que coincidan con el repo),
+`model:` de cada agente, `SKILL.md` de cada skill y plugins activos sin instalar.
+
+`sync` mantiene `~/.claude/settings.json` como archivo real (lo reescriben otras herramientas y
+guarda claves personales): **reemplaza** `hooks`, `attribution`, `worktree`, `spinnerTipsEnabled` y
+`subagentPromptCacheTtl`, **fusiona** `env`, `enabledPlugins`, `skillOverrides` y
+`extraKnownMarketplaces` (gana el repo, se conservan las claves solo-vivas) y no toca nada más. Además
+copia el bloque `shared:agent-rules` de `CLAUDE.md` a `~/.codex/AGENTS.md` y `~/.gemini/GEMINI.md`,
+solo entre sus marcadores `aval:agent-rules`.
+
+**Capa privada**: `~/.config/aval/private` (o `$AVAL_PRIVATE_DIR`), fuera del repo y opcional.
+`settings.json` es un fragmento que se fusiona al final (gana sobre el repo); `links.manifest` tiene
+líneas `<origen relativo a la carpeta privada>  <destino relativo a $HOME>` y `sync` las enlaza,
+guardando antes lo que hubiera en el destino. `doctor` informa de si existe y revisa sus enlaces.
+
 ### Sin binario: el instalador de siempre
 
 ```bash

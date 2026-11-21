@@ -18,4 +18,4 @@ and Gemini instructions, employer material that can't live in the public repo.
 
 ## T3 — private overlay `~/.config/aval/private`
 - [x] settings.json fragment merged by sync; links manifest applied by sync
-- [ ] Employer material moves there; no-proprietary goes green
+- [x] Employer material moves there; no-proprietary goes green

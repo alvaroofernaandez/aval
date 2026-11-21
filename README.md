@@ -82,7 +82,12 @@ Con Go instalado, el arranque de un comando compila la TUI multiplataforma:
 ```sh
 curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/aval/main/scripts/install.sh | sh
 aval update   # git pull + enlaza lo nuevo
+aval doctor   # revisa enlaces, hooks, agentes y settings (--fix repara, --json para scripts)
+aval sync     # vuelca lo que gestiona el repo en ~/.claude/settings.json y en Codex/Gemini (--dry-run)
 ```
+
+Lo privado (nombres de empresa, skills de cliente) vive fuera del repo, en `~/.config/aval/private`
+(o `$AVAL_PRIVATE_DIR`): un `settings.json` que `aval sync` fusiona encima y un `links.manifest` que enlaza.
 
 > [!NOTE]
 > `npx @alvaroofernaandez/aval` y los binarios precompilados se publican desde CI y aún no están disponibles con el nombre nuevo.
