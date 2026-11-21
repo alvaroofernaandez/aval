@@ -1,10 +1,10 @@
 <div align="center">
 
-# Guía completa
+# Guía completa de aval
 
 <sub><a href="../README.md">← volver al README</a></sub>
 
-Un flujo de trabajo completo sin salir de la terminal: **tmux**, **yazi** y **Ghostty**,
+El harness por dentro: un flujo de trabajo completo sin salir de la terminal: **tmux**, **yazi** y **Ghostty**,
 más la configuración de **Claude Code** y **OpenCode**.<br/>
 Cada pieza está documentada, y toda la lógica propia está cubierta por tests.
 
@@ -50,8 +50,11 @@ CPU · GPU · RAM · hora · fecha, y el botón **`[FILES]`**, que es clicable.
 ### npm — siempre la última versión
 
 ```sh
-npx @alvaroofernaandez/dotfiles-installer
+npx @alvaroofernaandez/aval
 ```
+
+> [!NOTE]
+> El paquete con el nombre `aval` aún no está publicado: lo publica CI, que está pausado.
 
 `npx` resuelve la última publicada **cada vez**, y cada push a `main` publica una nueva.
 Así que este comando siempre trae el último commit, sin instalar nada de forma permanente.
@@ -71,11 +74,11 @@ el comando exacto para tu forma de instalación:
 
 ```
 A newer version is available: 0.1.42 → 0.1.51
-Update with: npm update -g @alvaroofernaandez/dotfiles-installer
+Update with: npm update -g @alvaroofernaandez/aval
 ```
 
-Si instalaste por `curl`, el mismo aviso te dice `dotfiles-installer update` en vez de npm.
-Se desactiva con `DOTFILES_NO_UPDATE_CHECK=1`.
+Si instalaste por `curl`, el mismo aviso te dice `aval update` en vez de npm.
+Se desactiva con `AVAL_NO_UPDATE_CHECK=1`.
 
 **La forma de estar siempre al día sin pensar es `npx`**, que no instala nada.
 
@@ -84,7 +87,7 @@ Se desactiva con `DOTFILES_NO_UPDATE_CHECK=1`.
 ### Un comando, sin Node (macOS · Linux · Windows)
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/dotfiles/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/aval/main/scripts/install.sh | sh
 ```
 
 Clona el repositorio, descarga el binario para tu plataforma y abre la **TUI de
@@ -101,7 +104,7 @@ instalación**: detecta el sistema, muestra solo lo que aplica y deja elegir qu�
 | **Tema** | Tokyo Night, la misma paleta que el resto del entorno |
 | **Personalizado por SO** | En Windows nativo se ofrecen los agentes IA y git; el entorno de terminal aparece en gris con el motivo, y se instala completo si detecta WSL |
 | **Enlaza o copia** | Symlink donde se puede; en Windows sin Developer Mode **copia**, porque lo comprueba en vez de suponerlo |
-| **Auto-actualizable** | `dotfiles-installer update` trae los cambios y enlaza lo nuevo |
+| **Auto-actualizable** | `aval update` trae los cambios y enlaza lo nuevo |
 
 > [!NOTE]
 > El GIF es una instalación real grabada con [VHS](https://github.com/charmbracelet/vhs)
@@ -112,7 +115,7 @@ instalación**: detecta el sistema, muestra solo lo que aplica y deja elegir qu�
 ### Actualizar
 
 ```sh
-dotfiles-installer update
+aval update
 ```
 
 Como los configs son **symlinks al repo**, el `git pull` ya actualiza todo lo enlazado.
@@ -133,7 +136,7 @@ campos `os` y `cpu` — el patrón de esbuild. npm consulta esos campos y descar
 que corresponde a la máquina; los otros cinco los salta.
 
 ```
-@alvaroofernaandez/dotfiles-installer          ← el que instalas
+@alvaroofernaandez/aval          ← el que instalas
 ├── …-darwin-arm64   (os: darwin, cpu: arm64)  ← npm baja solo el que toca
 ├── …-darwin-x64
 ├── …-linux-arm64
@@ -156,8 +159,8 @@ satisfacer.
 ### Sin binario: el instalador de siempre
 
 ```bash
-git clone https://github.com/alvaroofernaandez/dotfiles.git ~/dotfiles
-cd ~/dotfiles
+git clone https://github.com/alvaroofernaandez/aval.git ~/aval
+cd ~/aval
 
 ./install.sh --dry-run   # 👀 muestra qué haría, sin tocar nada
 ./install.sh             # 🔗 enlaza de verdad
@@ -168,7 +171,7 @@ dejan de coincidir. No hay dos listas que mantener sincronizadas.
 
 > [!IMPORTANT]
 > **`install.sh` nunca borra nada.** Si ya tienes configuración en el destino, la mueve a
-> `~/.dotfiles-backup/<timestamp>/` antes de enlazar. Volver a ejecutarlo es seguro: los
+> `~/.aval-backup/<timestamp>/` antes de enlazar. Volver a ejecutarlo es seguro: los
 > enlaces que ya apuntan aquí se dejan intactos.
 
 <details>
@@ -283,7 +286,7 @@ configuración funciona igual.
 ## 🗺️ Mapa del repositorio
 
 ```
-dotfiles/
+aval/
 │
 ├── 📁 shared/skills/          Skills propias y las tres adoptadas de gstack
 │
@@ -308,7 +311,7 @@ dotfiles/
 │
 ├── 📁 home/                   tmux.conf, zshrc, zprofile, gitconfig, p10k.zsh
 │
-├── 📁 cmd/dotfiles-installer/ TUI multiplataforma (Go + Bubbletea)
+├── 📁 cmd/aval/              TUI multiplataforma (Go + Bubbletea)
 ├── 📁 internal/
 │   ├── manifest/              Lee install.manifest
 │   ├── platform/              Detecta SO, WSL y si hay symlinks
@@ -334,7 +337,7 @@ dotfiles/
 │   └── gstack-sync.sh         Clona gstack al pin, compila y regenera las skills
 │
 ├── 📁 third_party/gstack/     ⛔ No versionado. Runtime de gstack, 42 MB
-├── 📌 GSTACK_PIN              Commit exacto de gstack que se vendoriza
+├── 📌 vendor/pins/            Commit exacto de gstack, plugin87 y ui-ux-pro-max
 ├── 📋 install.manifest        Qué se instala y dónde — fuente única
 ├── ⚙️  install.sh              Instalador shell: lee el mismo manifiesto
 └── 🧪 tests/                  10 suites transversales
@@ -861,7 +864,7 @@ escaneo informó «sin credenciales».
 | `~/.local/share/opencode/opencode.db` | 💾 4,5 GB |
 | `~/.claude/settings.local.json` | 💻 Permisos de una máquina concreta |
 | `.agents/` | 📓 Notas de diseño, solo locales |
-| `third_party/gstack/` | ♻️ 42 MB reproducibles desde `GSTACK_PIN` |
+| `third_party/gstack/` | ♻️ 42 MB reproducibles desde `vendor/pins/GSTACK_PIN` |
 | `node_modules`, `*.bak` | ♻️ Regenerables |
 
 ---

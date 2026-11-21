@@ -116,6 +116,17 @@ assert_eq "README links the full guide" "yes" \
   "$(rg -qF '(docs/guide.md' "$README" && echo yes || echo no)"
 assert_eq "the full guide exists" "yes" "$([ -s "$GUIDE" ] && echo yes || echo no)"
 
+# The brand: the README introduces aval, says what the word means, and the
+# old installer name is gone everywhere a reader would copy a command from.
+assert_eq "README shows the aval mark" "yes" \
+  "$(rg -qF 'docs/assets/mark-dark.svg' "$README" && rg -qF 'docs/assets/mark-light.svg' "$README" && echo yes || echo no)"
+assert_eq "README explains what aval means" "yes" \
+  "$(rg -qi 'garant' "$README" && echo yes || echo no)"
+for doc in "$README" "$GUIDE" "$REPO/npm/cli/README.md"; do
+  assert_eq "${doc#"$REPO"/}: no old installer name" "0" \
+    "$(rg -c 'dotfiles-installer|\.dotfiles-backup|DOTFILES_' "$doc" || echo 0)"
+done
+
 # Every relative link and image in the README resolves to a real file.
 broken=""
 while IFS= read -r ref; do

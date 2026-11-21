@@ -1,6 +1,6 @@
 # aval
 
-Cross-platform installer for [alvaroofernaandez/aval](https://github.com/alvaroofernaandez/aval) — a terminal environment (tmux, yazi, Ghostty, zsh) plus Claude Code and OpenCode configuration.
+Installer for [aval](https://github.com/alvaroofernaandez/aval), a personal agent harness. *Aval* is Spanish for a guarantee: nothing in it counts as done without evidence. It sets up Claude Code and OpenCode (instructions, skills, hooks, memory) plus a terminal environment (tmux, yazi, Ghostty, zsh) on macOS, Linux and Windows.
 
 ## Use it
 
