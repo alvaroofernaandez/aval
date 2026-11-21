@@ -16,11 +16,11 @@ Decisions
 
 ## Tasks
 
-- [ ] T1 Remove vendored upstream: `third_party/`, `pins/`, skills `browse`,
+- [x] T1 Remove vendored upstream: `third_party/`, `pins/`, skills `browse`,
       `design-shotgun`, `land-and-deploy`, `gstack-policy`, `ui-ux-pro-max`,
       `design-gates`; `scripts/{gstack-sync,gstack-patch,p87-sync,uiux-sync}.sh`;
       lesson `gstack-vendored.md`; their tests; every reference.
-- [ ] T2 OSS hygiene: `LICENSE` (MIT), `CONTRIBUTING.md`, `SECURITY.md`,
+- [x] T2 OSS hygiene: `LICENSE` (MIT), `CONTRIBUTING.md`, `SECURITY.md`,
       `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/*`,
       `.github/PULL_REQUEST_TEMPLATE.md`, `.gitattributes`.
 - [ ] T3 `aval design gate` (contrast, hardcodes, tokens) in Go, replacing the
