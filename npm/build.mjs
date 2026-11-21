@@ -52,13 +52,9 @@ for (const target of TARGETS) {
   const file = binaryName(target.platform);
   const source = path.join(distDir, `aval-${target.goos}-${target.goarch}${target.platform === "win32" ? ".exe" : ""}`);
 
-  if (!existsSync(source)) {
-    // Skipping rather than failing: a partial matrix (one runner down) should
-    // still publish the platforms that did build, and the CLI degrades to a
-    // clear "no binary for your platform" instead of being unpublishable.
-    console.warn(`skip ${target.pkg}: ${source} not found`);
-    continue;
-  }
+  // All or nothing: a CLI published without one of its binaries is worse than
+  // no release.
+  if (!existsSync(source)) throw new Error(`missing binary for ${target.pkg}: ${source}`);
 
   const dir = path.join(outDir, target.pkg.replace(/^@[^/]+\//, ""));
   await mkdir(path.join(dir, "bin"), { recursive: true });
@@ -84,10 +80,6 @@ for (const target of TARGETS) {
 
   built.push(target);
   console.log(`built ${target.pkg}`);
-}
-
-if (built.length === 0) {
-  throw new Error(`no binaries found in ${distDir}`);
 }
 
 // --- the CLI package ---------------------------------------------------------

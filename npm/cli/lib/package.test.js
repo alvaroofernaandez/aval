@@ -109,6 +109,22 @@ test("every package is public and versioned alike", () => {
   }
 });
 
+test("a missing binary fails the build instead of publishing a partial set", () => {
+  // The release job feeds this from the release archives: a platform that did
+  // not build must stop the publish, never ship the CLI without its binary.
+  const work = mkdtempSync(path.join(tmpdir(), "aval-npm-partial-"));
+  const dist = path.join(work, "dist");
+  mkdirSync(dist, { recursive: true });
+  writeFileSync(path.join(dist, "aval-linux-amd64"), "stub");
+  assert.throws(() => {
+    execFileSync(
+      process.execPath,
+      [path.join(repoRoot, "npm/build.mjs"), "--version", "9.9.9", "--dist", dist, "--out", path.join(work, "o")],
+      { stdio: "pipe" },
+    );
+  });
+});
+
 test("a non-semver version is rejected before anything is written", () => {
   // Better to fail at build time than to half-publish and have the registry
   // reject the second package.
