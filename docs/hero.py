@@ -1,170 +1,130 @@
 #!/usr/bin/env python3
-"""The README hero: aval as a certificate.
+"""The README hero: the aval mark, built out of passed checks.
 
     python3 docs/brand.py          # writes hero-light.svg and hero-dark.svg
 
-Guilloché is the engraved lattice of interlaced curves on banknotes, share
-certificates and diplomas. It exists to vouch for a document: it is too
-precise to forge by hand, so its presence is the guarantee. That is what
-"aval" means, so the hero is built as one: a guilloché rosette sealed with
-the aval isotype, an engraved rope border, a circle of microtext, and beside
-it the word with its definition.
+An editorial, Swiss-grid composition. The wordmark is set large and flush
+left; mono metadata sits above and below on hairline rules. On the right,
+the isotype is drawn as a matrix of tiny check marks: the cells that fall on
+the mark's stroke are inked, every other cell is a faint check. The mark is
+literally made of passed checks — "nada sin pruebas" as a picture.
 
-Everything is computed — sine waves in polar coordinates — and seeded by
-nothing, so the image is identical on every run. Pure black and white; depth
-comes from line density and opacity, never from hue.
+Pure geometry, no randomness: the matrix is a distance test against the same
+circle and polyline that docs/logo.py draws, so the hero can never drift from
+the logo. Black and white only.
 """
 
 import math
 
 import logo
 
-W, H = 1200, 440
+W, H = 1200, 520
+PAD = 56
 
 THEMES = {
-    "light": {"bg": "#ffffff", "ink": "#000000", "muted": "#525252"},
-    "dark": {"bg": "#000000", "ink": "#ffffff", "muted": "#a3a3a3"},
+    "light": {"bg": "#ffffff", "ink": "#000000", "muted": "#525252", "faint": "#d4d4d4"},
+    "dark": {"bg": "#000000", "ink": "#ffffff", "muted": "#a3a3a3", "faint": "#2e2e2e"},
 }
 
-SERIF = "ui-serif,'New York',Georgia,'Times New Roman',serif"
 MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
 
-# The rosette sits left of centre; the text block takes the right.
-CX, CY = 290, H / 2
-SEAL_R = 58          # clear disc that holds the isotype
-
-# Interlaced bands, outermost first: (base radius, amplitude, lobes, strands).
-# Each strand is the same wave shifted in phase, which is what produces the
-# woven moiré of real guilloché rather than a stack of separate rings.
-BANDS = [
-    (136, 17, 24, 18),
-    (100, 13, 18, 14),
-    (74, 7, 12, 10),
-]
+# The matrix: a square of CELLS x CELLS checks on the right of the grid.
+CELLS = 20
+CELL = 15
+MX = W - PAD - CELLS * CELL      # left edge of the matrix
 
 
-def wave_ring(cx, cy, base, amp, lobes, phase, points=720):
-    """One closed polar sine wave: r(θ) = base + amp·sin(lobes·θ + phase)."""
-    pts = []
-    for i in range(points):
-        t = i / points * math.tau
-        r = base + amp * math.sin(lobes * t + phase)
-        pts.append(f"{cx + r * math.cos(t):.2f} {cy + r * math.sin(t):.2f}")
-    return "M " + " L ".join(pts) + " Z"
+def _seg_dist(px, py, ax, ay, bx, by):
+    dx, dy = bx - ax, by - ay
+    t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
+    return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
 
 
-def rosette(t):
-    out = [f'<g data-part="guilloche" fill="none" stroke="{t["ink"]}" stroke-width="0.5">']
-    for base, amp, lobes, strands in BANDS:
-        for j in range(strands):
-            phase = j / strands * math.tau / 2
-            out.append(
-                f'<path stroke-opacity="0.45" d="{wave_ring(CX, CY, base, amp, lobes, phase)}"/>'
-            )
-    # Hairline rings that bound each band, as an engraver would rule them.
-    for r in (157, 118, 86, SEAL_R + 6):
-        out.append(f'<circle cx="{CX}" cy="{CY}" r="{r}" stroke-opacity="0.9"/>')
-    out.append("</g>")
-    return out
+def on_mark(u, v):
+    """Is the point (u, v), in the logo's 512 canvas, on the mark's stroke?"""
+    rx, ry, r = logo.RING
+    tx, ty = logo.CHECK_TIP
+    jx, jy = rx + r + 40, ry + r
+    half = logo.MS / 2
+    if abs(math.hypot(u - rx, v - ry) - r) <= half:
+        return True
+    return (
+        _seg_dist(u, v, rx + r, ry, jx, jy) <= half
+        or _seg_dist(u, v, jx, jy, tx, ty) <= half
+    )
 
 
-def microtext(t):
-    """Banknote microprint: the thesis set around the rosette.
+def mini_check(x, y, on, t):
+    """One cell: a small check, inked when it falls on the mark."""
+    p = [(0.24, 0.54), (0.43, 0.72), (0.78, 0.30)]
+    d = "M " + " L ".join(f"{x + a * CELL:.1f} {y + b * CELL:.1f}" for a, b in p)
+    if on:
+        return f'<path class="ck on" d="{d}" stroke="{t["ink"]}" stroke-width="2.2"/>'
+    return f'<path class="ck" d="{d}" stroke="{t["faint"]}" stroke-width="1.3"/>'
 
-    Each glyph is placed and rotated on its own instead of using <textPath>,
-    which librsvg (and so most non-browser viewers) does not render.
-    """
-    r = 168
-    phrase = "AVAL · NADA SIN PRUEBAS · " * 4
+
+def matrix(t, top):
+    scale = 512 / (CELLS * CELL)
     out = [
-        f'<g font-family="{MONO}" font-size="9" fill="{t["muted"]}" '
-        f'text-anchor="middle">'
+        f'<g data-part="matrix" fill="none" stroke-linecap="round" '
+        f'stroke-linejoin="round">'
     ]
-    for i, ch in enumerate(phrase):
-        if ch == " ":
-            continue
-        a = i / len(phrase) * math.tau - math.pi / 2
-        x, y = CX + r * math.cos(a), CY + r * math.sin(a)
-        out.append(
-            f'<text x="{x:.1f}" y="{y:.1f}" '
-            f'transform="rotate({math.degrees(a) + 90:.1f} {x:.1f} {y:.1f})">{ch}</text>'
-        )
+    for row in range(CELLS):
+        for col in range(CELLS):
+            # Sample the logo at the cell's centre.
+            u = (col + 0.5) * CELL * scale
+            v = (row + 0.5) * CELL * scale
+            out.append(mini_check(MX + col * CELL, top + row * CELL, on_mark(u, v), t))
     out.append("</g>")
     return out
 
 
-def seal(t):
-    """The isotype in a clear disc at the rosette's centre, like a stamp."""
-    return [
-        f'<g data-part="seal">',
-        f'<circle cx="{CX}" cy="{CY}" r="{SEAL_R}" fill="{t["bg"]}" '
-        f'stroke="{t["ink"]}" stroke-width="2"/>',
-        logo.mark_group(t["ink"], CX + 3, CY, 76),
-        "</g>",
-    ]
-
-
-def rope(t, y0, y1):
-    """An engraved rope border: interlaced sine strands across the width."""
-    mid, amp = (y0 + y1) / 2, (y1 - y0) / 2 - 1
-    out = [f'<g fill="none" stroke="{t["ink"]}" stroke-width="0.6" stroke-opacity="0.6">']
-    for j in range(6):
-        phase = j / 6 * math.tau / 2
-        pts = []
-        for i in range(0, W - 80 + 1, 3):
-            x = 40 + i
-            y = mid + amp * math.sin(i / 9.0 + phase)
-            pts.append(f"{x:.1f} {y:.2f}")
-        out.append(f'<path d="M {" L ".join(pts)}"/>')
-    out.append("</g>")
-    return out
-
-
-def frame(t):
-    """Double rule, the border of a certificate."""
-    return [
-        f'<rect x="16" y="16" width="{W - 32}" height="{H - 32}" fill="none" '
-        f'stroke="{t["ink"]}" stroke-width="1.5"/>',
-        f'<rect x="24" y="24" width="{W - 48}" height="{H - 48}" fill="none" '
-        f'stroke="{t["ink"]}" stroke-width="0.6"/>',
-    ]
-
-
-def entry(t):
-    """The dictionary entry: wordmark, pronunciation, definition, thesis."""
-    x = 600
-    ww, _ = logo.word_size()
-    scale = 0.95
-    return [
-        logo.word_group(t["ink"], x - 6, 78, scale),
-        f'<text x="{x}" y="270" font-family="{MONO}" font-size="16" '
-        f'fill="{t["muted"]}">/aˈβal/ · nombre masculino</text>',
-        f'<text x="{x}" y="312" font-family="{SERIF}" font-size="26" '
-        f'fill="{t["ink"]}"><tspan font-style="italic">Garantía:</tspan> '
-        f"alguien responde por algo.</text>",
-        f'<line x1="{x}" y1="340" x2="{x + 360}" y2="340" stroke="{t["ink"]}" '
-        f'stroke-width="0.8"/>',
-        f'<text x="{x}" y="370" font-family="{MONO}" font-size="14" '
-        f'letter-spacing="4" fill="{t["muted"]}">HARNESS PERSONAL · NADA SIN PRUEBAS</text>',
-    ]
+def meta(t, x, y, text, anchor="start", colour=None):
+    return (
+        f'<text x="{x}" y="{y}" text-anchor="{anchor}" font-family="{MONO}" '
+        f'font-size="13" letter-spacing="2.5" fill="{colour or t["muted"]}">{text}</text>'
+    )
 
 
 def build(theme="light"):
     t = THEMES[theme]
+    top, bottom = PAD + 8, H - PAD
+    rule_top, rule_bottom = top + 20, bottom - 52
+    scale = 1.6
+    ww, wh = logo.word_size()
+
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
         f'width="{W}" height="{H}" role="img" '
         f'aria-label="aval — Garantía: alguien responde por algo. Harness personal.">',
         f'<rect width="{W}" height="{H}" fill="{t["bg"]}"/>',
+        # Header: name of the thing on the left, what kind of word it is on the right.
+        meta(t, PAD, top, "AVAL — HARNESS PERSONAL", colour=t["ink"]),
+        meta(t, W - PAD, top, "/aˈβal/ · NOMBRE MASCULINO", anchor="end"),
+        f'<line x1="{PAD}" y1="{rule_top}" x2="{W - PAD}" y2="{rule_top}" '
+        f'stroke="{t["ink"]}" stroke-width="1"/>',
+        # The wordmark, flush left, vertically centred between the rules.
+        logo.word_group(
+            t["ink"], PAD - 4, (rule_top + rule_bottom) / 2 - wh * scale / 2, scale
+        ),
     ]
-    parts += frame(t)
-    parts += rope(t, 32, 48)
-    parts += rope(t, H - 48, H - 32)
-    parts += rosette(t)
-    parts += microtext(t)
-    parts += seal(t)
-    parts += entry(t)
-    parts.append("</svg>")
+    # The matrix is centred between the rules, so it never touches either.
+    parts += matrix(t, (rule_top + rule_bottom) / 2 - CELLS * CELL / 2)
+    # Footer: three columns, the definition first.
+    parts += [
+        f'<line x1="{PAD}" y1="{rule_bottom}" x2="{W - PAD}" y2="{rule_bottom}" '
+        f'stroke="{t["ink"]}" stroke-width="1"/>',
+        meta(t, PAD, rule_bottom + 30, "DEFINICIÓN"),
+        f'<text x="{PAD}" y="{bottom}" font-family="{MONO}" font-size="16" '
+        f'fill="{t["ink"]}">Garantía: alguien responde por algo.</text>',
+        meta(t, 560, rule_bottom + 30, "TESIS"),
+        f'<text x="560" y="{bottom}" font-family="{MONO}" font-size="16" '
+        f'fill="{t["ink"]}">Nada se da por bueno sin pruebas.</text>',
+        meta(t, W - PAD, rule_bottom + 30, "PARA", anchor="end"),
+        f'<text x="{W - PAD}" y="{bottom}" text-anchor="end" font-family="{MONO}" '
+        f'font-size="16" fill="{t["ink"]}">Claude Code · OpenCode</text>',
+        "</svg>",
+    ]
     return "\n".join(parts)
 
 

@@ -41,14 +41,17 @@ assert_eq "wordmark is drawn with paths, not text" "0" \
   "$(rg -c '<text' "$out/wordmark-light.svg" || echo 0)"
 assert_eq "hero carries the aval wordmark" "yes" \
   "$(rg -q 'aria-label="aval' "$out/hero-light.svg" && echo yes || echo no)"
-assert_eq "hero is a certificate: guilloché rosette" "yes" \
-  "$(rg -q 'data-part="guilloche"' "$out/hero-light.svg" && echo yes || echo no)"
-assert_eq "hero seals the rosette with the isotype" "yes" \
-  "$(rg -q 'data-part="seal"' "$out/hero-light.svg" && echo yes || echo no)"
+# The hero draws the isotype as a matrix of tiny checks: the mark is built
+# out of passed checks. Inked cells must actually trace the shape.
+assert_eq "hero builds the mark from a check matrix" "yes" \
+  "$(rg -q 'data-part="matrix"' "$out/hero-light.svg" && echo yes || echo no)"
+inked="$(rg -c 'class="ck on"' "$out/hero-light.svg" || echo 0)"
+assert_eq "the matrix inks enough cells to trace the mark" "yes" \
+  "$([ "$inked" -ge 25 ] && echo yes || echo no)"
 assert_eq "hero defines the word" "yes" \
   "$(rg -q 'Garantía' "$out/hero-light.svg" && echo yes || echo no)"
-assert_eq "hero drops the old suminagashi" "0" \
-  "$(rg -c -i 'suminagashi|id="vig"' "$out/hero-light.svg" || echo 0)"
+assert_eq "hero drops the old guilloché and suminagashi" "0" \
+  "$(rg -c -i 'guilloche|suminagashi|id="vig"' "$out/hero-light.svg" || echo 0)"
 assert_eq "hero no longer says Dotfiles" "0" \
   "$(rg -c -i 'dotfiles' "$out/hero-light.svg" || echo 0)"
 # Legible as a 16px favicon: the stroke must be at least 1/8 of the canvas.
