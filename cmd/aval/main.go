@@ -5,6 +5,7 @@
 //	aval --dry-run  show what would happen, change nothing
 //	aval update     pull the repo, then re-apply
 //	aval doctor     check this machine against the repo (--fix, --json)
+//	aval budget     always-on context per agent and hook latency (--json)
 //	aval sync       merge repo-managed settings into the live config (--dry-run)
 //	aval --version  print the version
 //
@@ -81,6 +82,8 @@ func run() error {
 	switch flag.Arg(0) {
 	case "doctor":
 		return runDoctor(repo, home, flag.Args()[1:], os.Stdout)
+	case "budget":
+		return runBudget(home, flag.Args()[1:], os.Stdout)
 	case "sync":
 		return runSync(repo, home, flag.Args()[1:], *dryRun, os.Stdout)
 	}

@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
+	"github.com/alvaroofernaandez/aval/internal/budget"
 	"github.com/alvaroofernaandez/aval/internal/doctor"
 	avalsync "github.com/alvaroofernaandez/aval/internal/sync"
 )
@@ -118,4 +120,37 @@ func printSync(out io.Writer, home string, rep *avalsync.Report, dry bool) {
 	if dry {
 		fmt.Fprintln(out, "\nDry run — nothing was written.")
 	}
+}
+
+// runBudget is `aval budget [--json] [--skip-hooks] [--runs N]`: always-on
+// context per agent plus hook latency against its budget. Exit 1 when a
+// synchronous PreToolUse/PostToolUse hook is over budget.
+func runBudget(home string, args []string, out io.Writer) error {
+	fs := newFlagSet("budget", out)
+	asJSON := fs.Bool("json", false, "print the report as JSON")
+	skip := fs.Bool("skip-hooks", false, "measure context only; do not execute any hook")
+	runs := fs.Int("runs", 5, "executions per hook")
+	hookBudget := fs.Duration("hook-budget", 20*time.Millisecond, "p95 ceiling for synchronous Pre/PostToolUse hooks")
+	timeout := fs.Duration("timeout", 2*time.Second, "per-execution timeout")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	rep, err := budget.Run(budget.Options{
+		Home: home, Runs: *runs, Timeout: *timeout, HookBudget: *hookBudget, SkipHooks: *skip,
+	})
+	if err != nil {
+		return err
+	}
+	if *asJSON {
+		if err := budget.RenderJSON(out, rep); err != nil {
+			return err
+		}
+	} else {
+		budget.Render(out, rep)
+	}
+	if rep.Over {
+		return errChecksFailed
+	}
+	return nil
 }
