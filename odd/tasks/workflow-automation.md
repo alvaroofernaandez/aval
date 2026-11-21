@@ -18,3 +18,5 @@
 - [x] LaunchAgent + scripts/macos/screenshot-to-clipboard
 
 ## T4 — research: Willow Voice; habits audit (shell, Claude Code, browser, OS)
+- [x] Habits: up/down, waitfor, gp, rd, typo aliases, /progreso, /cierre,
+      macOS defaults (scripts/macos/defaults.sh), Raycast dev-sites script (local)
