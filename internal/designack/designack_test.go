@@ -81,3 +81,30 @@ func TestAckRequiresSurface(t *testing.T) {
 		t.Error("an empty surface must be rejected")
 	}
 }
+
+func TestMarkerPathAndRead(t *testing.T) {
+	cache := t.TempDir()
+	p := MarkerPath(cache, "/p/root")
+	if want := filepath.Join(cache, "design-gate", sum("/p/root")); p != want {
+		t.Fatalf("MarkerPath = %q, want %q", p, want)
+	}
+	if _, ok := ReadMarker(p); ok {
+		t.Error("an absent marker must report ok=false")
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte("surface=a=b\nepoch=12\nepoch=34\ndesign_sha1=abc\njunk\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m, ok := ReadMarker(p)
+	if !ok || m.Epoch != "34" || m.DesignSHA1 != "abc" {
+		t.Errorf("ReadMarker = %+v ok=%v, want the last epoch=34 and design_sha1=abc", m, ok)
+	}
+}
+
+func TestSha1Hex(t *testing.T) {
+	if got := Sha1Hex([]byte("x")); got != sum("x") {
+		t.Errorf("Sha1Hex = %q", got)
+	}
+}

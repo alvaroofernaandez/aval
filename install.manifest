@@ -33,7 +33,6 @@ config/ghostty                     .config/ghostty
 config/herdr-core/templates        .config/herdr-core/templates
 config/herdr-app/keys.json         .config/herdr-app/keys.json
 shared/skills/kiri-docker/scripts/kiri-up.sh .local/bin/kiri-up
-shared/skills/design-pipeline/scripts/design-ack .local/bin/design-ack
 home/tmux.conf                     .tmux.conf
 home/zshrc                         .zshrc
 home/zprofile                      .zprofile
@@ -64,7 +63,6 @@ config/claude/MCP-PER-PROJECT.md   .claude/MCP-PER-PROJECT.md
 # by the installers) so personal keys and the private overlay stay out of git.
 config/claude/agents               .claude/agents
 config/claude/commands             .claude/commands
-config/claude/hooks                .claude/hooks
 config/claude/lessons              .claude/lessons
 config/claude/themes               .claude/themes
 

@@ -7,14 +7,14 @@ import { homedir } from "node:os"
 /**
  * The OpenCode half of the design-pipeline gate.
  *
- * Same contract as config/claude/hooks/design-pipeline-gate.sh, same marker
- * file: `design-ack <surface>` writes
+ * Same contract as `aval hook design-gate` (internal/designhook), same marker
+ * file: `aval design ack <surface>` writes
  *
  *   ${XDG_CACHE_HOME:-~/.cache}/design-gate/<sha1 of project root>
  *
  * and an edit to a UI surface is allowed while that marker is younger than
  * DESIGN_ACK_TTL seconds (default 4 h) and the sha1 it recorded for
- * .agents/DESIGN.md still matches the file. One `design-ack` therefore opens
+ * .agents/DESIGN.md still matches the file. One `aval design ack` therefore opens
  * both agents, and sub-agents and post-compaction turns need no special case:
  * there is no in-memory checklist to lose.
  *
@@ -33,7 +33,7 @@ const UI_EXT = [
 
 /**
  * Tests are not design surfaces. Blocking them would deadlock against the
- * strict-TDD rule, which requires the test to be written FIRST. The bash gate
+ * strict-TDD rule, which requires the test to be written FIRST. The Go gate
  * carves out the same exception.
  */
 export function isUISurface(filePath: string): boolean {
@@ -92,7 +92,7 @@ export function denyReason(file: string, cwd: string, env = process.env, nowMs =
   }
 
   const base = file.split("/").pop()
-  return `Blocked: ${base} is a UI surface and ${why}. Do the design pipeline (invoke the design-pipeline skill if you have not: laws of UX, direction from .agents/DESIGN.md, gates), then run \`design-ack <surface>\` and retry.`
+  return `Blocked: ${base} is a UI surface and ${why}. Do the design pipeline (invoke the design-pipeline skill if you have not: laws of UX, direction from .agents/DESIGN.md, gates), then run \`aval design ack <surface>\` and retry.`
 }
 
 export const DesignGate: Plugin = async ({ directory }: any = {}) => {

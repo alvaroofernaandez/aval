@@ -8,7 +8,7 @@ of scope.
 
 Create it the first time UI work happens in a project. Update it in the same
 change that introduces a decision. Mark superseded entries, never delete them.
-`design-ack` records its sha1, so editing it invalidates earlier acks.
+`aval design ack` records its sha1, so editing it invalidates earlier acks.
 
 ```
 # DESIGN.md — <Project Name>

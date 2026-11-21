@@ -1,14 +1,14 @@
 ---
 name: design-pipeline
 description: >
-  Blocking design pipeline and the DESIGN.md contract: laws, direction, gates, then `aval design ack <surface>`. Invoke before ANY visible-surface work (component, screen, layout, style, motion, UI copy) or DESIGN.md changes.
+  Blocking design pipeline and DESIGN.md contract: laws, direction, gates, then `aval design ack <surface>`. Invoke before ANY visible-surface work (component, screen, layout, style, motion, copy) or DESIGN.md changes.
 ---
 
 # Design pipeline
 
 A UI edit is denied by the PreToolUse gate until `aval design ack <surface>` has
 recorded this project (valid 4 h, and only while `.agents/DESIGN.md` is
-unchanged). Do the three steps, then ack once.
+unchanged). Do the three steps, ack once.
 
 1. **laws-of-ux** - which of the 30 Laws govern this surface and the number each
    forces: Hick caps option count, Fitts sets target size, Jakob decides whether
@@ -26,18 +26,17 @@ Then run `aval design ack <surface>` (it prints this reminder) and write the cod
 
 ## After the code
 
-Prove it with output, not reading:
+Prove it with output:
 
 - `node ~/.claude/skills/design-pipeline/scripts/shot.mjs <url|file.html>` renders
   390/768/1440 px into `.design/shots/` and prints paths and overflow numbers.
-  Run it before claiming a visual fix or a finished screen. Add `.design/` to
-  the project's `.gitignore`. A Stop hook asks for it once per UI turn.
-- Run the gates that apply and report their real output. A gate not run is
-  "not run", never a pass:
+  Run it before claiming a visual fix or finished screen. Add `.design/` to the
+  project's `.gitignore`. A Stop hook asks for it once per UI turn.
+- Run the gates that apply and report real output. A gate not run is "not run":
 
   ```bash
-  aval design gate contrast <fg> <bg>            # WCAG ratio, AA/AAA
-  aval design gate pairs tokens/colors.json      # semantic pairs, light and dark
+  aval design gate contrast <fg> <bg>            # WCAG ratio
+  aval design gate pairs tokens/colors.json      # semantic pairs
   aval design gate hardcodes src/                # literals that should be tokens
   aval design gate theme-refs --theme theme.css src/
   aval design gate tokens tokens/                # DTCG aliases resolve
@@ -46,9 +45,9 @@ Prove it with output, not reading:
 
 ## Rules
 
-- Native interactive elements never: shadcn/ui + Radix (`design-refactor`).
-- Laws of UX persuasion (Goal-Gradient, Zeigarnik, Von Restorff) help users
-  finish their task; used against it they are dark patterns. Refuse those.
-- No generic AI aesthetics. Motion needs a stated reason or it goes.
+- No native interactive elements: shadcn/ui + Radix (`design-refactor`).
+- Persuasion laws (Goal-Gradient, Zeigarnik, Von Restorff) help users finish
+  their task; used against it they are dark patterns. Refuse those.
+- No generic AI aesthetics. Motion needs a stated reason.
 
 Bypass on purpose: `DESIGN_PIPELINE_OFF=1`.

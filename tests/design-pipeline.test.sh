@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Tests for the design-pipeline gate and its `design-ack` marker.
+# Tests for the design-pipeline gate (`aval hook design-gate`) and its marker
+# (`aval design ack`). The Go suites in internal/designhook cover the same cases.
 #
 # History: the gate used to scan the session transcript for a filled
 # [design-pipeline] checklist. Measured over 60 days that denied edits 229
@@ -7,7 +8,7 @@
 # existed in a sub-agent transcript, and every call paid for a jq scan of a
 # transcript that grows (20 ms for a non-UI edit, 130 ms for a UI edit).
 #
-# The gate now reads a MARKER instead: `design-ack <surface>` writes
+# The gate now reads a MARKER instead: `aval design ack <surface>` writes
 # ${XDG_CACHE_HOME:-~/.cache}/design-gate/<sha1 of project root> after the
 # pipeline has been done, and the hook allows a UI edit while that marker is
 # fresh (4 h) and .agents/DESIGN.md still hashes the same. The marker is per
@@ -15,8 +16,7 @@
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HOOK="$REPO/config/claude/hooks/design-pipeline-gate.sh"
-ACK="$REPO/shared/skills/design-pipeline/scripts/design-ack"
+. "$REPO/tests/lib/aval-bin.sh"
 SETTINGS="$REPO/config/claude/settings.json"
 
 pass=0
@@ -32,6 +32,7 @@ TMP="$(mktemp -d)"
 cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT
 
+AVAL="$(build_aval "$TMP")"
 export XDG_CACHE_HOME="$TMP/cache"
 unset DESIGN_PIPELINE_OFF DESIGN_ACK_TTL
 
@@ -42,7 +43,7 @@ sha_of() { local o; o="$(printf '%s' "$1" | shasum -a 1)"; printf '%s' "${o%% *}
 # Marker path for a project, computed independently of the code under test.
 marker_for() { printf '%s/design-gate/%s' "$XDG_CACHE_HOME" "$(sha_of "$(cd "$1" && pwd -P)")"; }
 
-ack() { (cd "$1" && "$ACK" "${2:-component}" >/dev/null 2>&1); }
+ack() { (cd "$1" && "$AVAL" design ack "${2:-component}" >/dev/null 2>&1); }
 
 # Feed the hook a PreToolUse payload and print its stdout.
 run_hook() { # $1 tool  $2 file  $3 cwd  [$4 transcript]  [$5 session]
@@ -50,7 +51,7 @@ run_hook() { # $1 tool  $2 file  $3 cwd  [$4 transcript]  [$5 session]
     --arg tp "${4:-$TMP/transcript.jsonl}" --arg sid "${5:-sess-1}" \
     '{session_id:$sid, transcript_path:$tp, cwd:$cwd,
       hook_event_name:"PreToolUse", tool_name:$tool, tool_input:{file_path:$fp}}' \
-    | "$HOOK" 2>/dev/null
+    | "$AVAL" hook design-gate 2>/dev/null
 }
 
 decision() {
@@ -60,12 +61,11 @@ decision() {
 
 # --- the pieces exist --------------------------------------------------------
 
-assert_eq "gate hook exists" "yes" "$([ -f "$HOOK" ] && echo yes || echo no)"
-assert_eq "gate hook is executable" "yes" "$([ -x "$HOOK" ] && echo yes || echo no)"
-assert_eq "design-ack exists" "yes" "$([ -f "$ACK" ] && echo yes || echo no)"
-assert_eq "design-ack is executable" "yes" "$([ -x "$ACK" ] && echo yes || echo no)"
+assert_eq "aval builds" "yes" "$([ -x "$AVAL" ] && echo yes || echo no)"
+assert_eq "the bash gate and design-ack are gone" "no" \
+  "$([ -e "$REPO/config/claude/hooks/design-pipeline-gate.sh" ] || [ -e "$REPO/shared/skills/design-pipeline/scripts/design-ack" ] && echo yes || echo no)"
 
-if [ ! -x "$HOOK" ]; then
+if [ ! -x "$AVAL" ]; then
   printf '\n%d passed, %d failed\n' "$pass" "$((fail + 1))"
   exit 1
 fi
@@ -74,7 +74,7 @@ fi
 
 P1="$TMP/p1"; mkdir -p "$P1/src" "$P1/.agents"
 printf '# DESIGN\n' >"$P1/.agents/DESIGN.md"
-ACK_OUT="$(cd "$P1" && "$ACK" dashboard 2>&1)"
+ACK_OUT="$(cd "$P1" && "$AVAL" design ack dashboard 2>&1)"
 M1="$(marker_for "$P1")"
 
 assert_eq "design-ack writes the project marker" "yes" "$([ -f "$M1" ] && echo yes || echo no)"
@@ -89,12 +89,12 @@ for word in laws direction gates; do
     "$(printf '%s' "$ACK_OUT" | rg -qi -- "$word" && echo yes || echo no)"
 done
 assert_eq "design-ack without a surface fails" "yes" \
-  "$( (cd "$P1" && "$ACK" >/dev/null 2>&1) && echo no || echo yes)"
+  "$( (cd "$P1" && "$AVAL" design ack >/dev/null 2>&1) && echo no || echo yes)"
 
 # The project root is the git toplevel of cwd, not cwd itself.
 P2="$TMP/p2"; mkdir -p "$P2/src/deep"
 git -C "$P2" init -q
-(cd "$P2/src/deep" && "$ACK" card >/dev/null 2>&1)
+(cd "$P2/src/deep" && "$AVAL" design ack card >/dev/null 2>&1)
 assert_eq "design-ack from a subdirectory marks the git toplevel" "yes" \
   "$([ -f "$(marker_for "$(git -C "$P2" rev-parse --show-toplevel)")" ] && echo yes || echo no)"
 
@@ -160,11 +160,11 @@ done
 assert_eq "tools other than Edit/Write pass through" "none" \
   "$(decision "$(run_hook Bash "$P5/src/Button.tsx" "$P5")")"
 
-# A non-UI edit must exit before spawning anything: with an empty PATH there is
-# no jq, no git, no hash tool, so only bash builtins can have run.
+# A non-UI edit needs nothing but the binary: with an empty PATH there is no
+# jq, no git, no hash tool.
 NONUI_JSON="$(jq -cn --arg fp "$P5/main.go" '{tool_name:"Edit",tool_input:{file_path:$fp},cwd:"/x"}')"
-EMPTY_PATH_OUT="$(printf '%s' "$NONUI_JSON" | PATH=/nonexistent "$(command -v bash)" "$HOOK" 2>&1; echo "rc=$?")"
-assert_eq "a non-UI edit runs on bash builtins alone" "rc=0" "$EMPTY_PATH_OUT"
+EMPTY_PATH_OUT="$(printf '%s' "$NONUI_JSON" | PATH=/nonexistent "$AVAL" hook design-gate 2>&1; echo "rc=$?")"
+assert_eq "a non-UI edit runs with an empty PATH" "rc=0" "$EMPTY_PATH_OUT"
 
 # --- bypass and fail-open ----------------------------------------------------
 
@@ -172,7 +172,7 @@ assert_eq "DESIGN_PIPELINE_OFF bypasses the gate" "none" \
   "$(decision "$(DESIGN_PIPELINE_OFF=1 run_hook Edit "$P5/src/Button.tsx" "$P5")")"
 
 for bad in '' 'not json at all' '{"tool_name":"Edit","tool_input":{"file_path":' '{"tool_name":"Edit"}' '{}'; do
-  out="$(printf '%s' "$bad" | "$HOOK" 2>/dev/null; echo "rc=$?")"
+  out="$(printf '%s' "$bad" | "$AVAL" hook design-gate 2>/dev/null; echo "rc=$?")"
   assert_eq "malformed stdin fails open: ${bad:-<empty>}" "rc=0" "$out"
 done
 
@@ -193,7 +193,7 @@ assert_eq "the stamp names the project root" "$(cd "$P3" && pwd -P)" "$(<"$STAMP
 DENY="$(run_hook Edit "$P5/src/Button.tsx" "$P5")"
 REASON="$(printf '%s' "$DENY" | jq -r '.hookSpecificOutput.permissionDecisionReason // ""')"
 assert_eq "denial reason names design-ack" "yes" \
-  "$(printf '%s' "$REASON" | rg -q -- 'design-ack <surface>' && echo yes || echo no)"
+  "$(printf '%s' "$REASON" | rg -q -- 'aval design ack <surface>' && echo yes || echo no)"
 assert_eq "denial reason names the design-pipeline skill" "yes" \
   "$(printf '%s' "$REASON" | rg -q -- 'design-pipeline' && echo yes || echo no)"
 assert_eq "denial reason is a single line" "1" "$(printf '%s\n' "$REASON" | wc -l | tr -d ' ')"
@@ -203,17 +203,16 @@ assert_eq "denial reason is a single line" "1" "$(printf '%s\n' "$REASON" | wc -
 # unless the installer links it onto PATH.
 
 assert_eq "settings.json wires the gate as a PreToolUse hook" "yes" \
-  "$(jq -e '.hooks.PreToolUse[]?.hooks[]?.command | select(test("design-pipeline-gate"))' \
+  "$(jq -e '.hooks.PreToolUse[]?.hooks[]?.command | select(test("hook design-gate"))' \
       "$SETTINGS" >/dev/null 2>&1 && echo yes || echo no)"
 
 assert_eq "the gate matches Edit and Write" "yes" \
-  "$(jq -e '.hooks.PreToolUse[]? | select(.hooks[]?.command | test("design-pipeline-gate"))
+  "$(jq -e '.hooks.PreToolUse[]? | select(.hooks[]?.command | test("hook design-gate"))
             | .matcher | select(test("Edit") and test("Write"))' \
       "$SETTINGS" >/dev/null 2>&1 && echo yes || echo no)"
 
-assert_eq "install.manifest links design-ack onto PATH" "yes" \
-  "$(rg -q '^shared/skills/design-pipeline/scripts/design-ack\s+\.local/bin/design-ack$' "$REPO/install.manifest" \
-      && echo yes || echo no)"
+assert_eq "install.manifest no longer links a design-ack script" "no" \
+  "$(rg -q 'design-ack' "$REPO/install.manifest" && echo yes || echo no)"
 
 # --- the colliding plugin ----------------------------------------------------
 # bencium-innovative-ux-designer ships a description that is a word-for-word
@@ -293,7 +292,7 @@ assert_eq "design-pipeline SKILL.md stays under 2500 chars (is $PSIZE)" "yes" \
 assert_eq "the skill names the three steps" "yes" \
   "$(rg -q 'laws-of-ux' "$PIPELINE_SKILL" && rg -q 'direction' "$PIPELINE_SKILL" && rg -q 'gates' "$PIPELINE_SKILL" && echo yes || echo no)"
 assert_eq "the skill tells the model to run design-ack" "yes" \
-  "$(rg -q 'design-ack <surface>' "$PIPELINE_SKILL" && echo yes || echo no)"
+  "$(rg -q 'aval design ack <surface>' "$PIPELINE_SKILL" && echo yes || echo no)"
 assert_eq "the skill points at shot.mjs for render evidence" "yes" \
   "$(rg -q 'shot\.mjs' "$PIPELINE_SKILL" && echo yes || echo no)"
 assert_eq "the skill says .design/ belongs in .gitignore" "yes" \
@@ -317,7 +316,7 @@ SECTION="$(awk '/^## Design Architecture/{f=1} f&&/^## /&&!/^## Design Architect
 SLEN="$(printf '%s' "$SECTION" | wc -c | tr -d ' ')"
 assert_eq "the Design Architecture section stays under 850 chars (is $SLEN)" "yes" \
   "$([ "$SLEN" -le 850 ] && echo yes || echo no)"
-for needle in 'DESIGN.md' 'design-pipeline' 'design-ack <surface>' 'DESIGN_PIPELINE_OFF' 'aval design gate'; do
+for needle in 'DESIGN.md' 'design-pipeline' 'aval design ack <surface>' 'DESIGN_PIPELINE_OFF' 'aval design gate'; do
   assert_eq "the section still says: $needle" "yes" \
     "$(printf '%s' "$SECTION" | rg -qF -- "$needle" && echo yes || echo no)"
 done

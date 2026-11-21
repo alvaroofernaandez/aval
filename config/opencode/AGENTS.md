@@ -219,7 +219,7 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 
 - `.agents/DESIGN.md` outranks your taste and any skill. Read it first.
 - Before editing a visible surface: run the `design-pipeline` skill (laws,
-  direction, gates), then `design-ack <surface>`. The PreToolUse gate denies UI
+  direction, gates), then `aval design ack <surface>`. The PreToolUse gate denies UI
   edits without a fresh ack. Bypass: `DESIGN_PIPELINE_OFF=1`.
 - Prove the result with `aval design gate`, never by claim.
 

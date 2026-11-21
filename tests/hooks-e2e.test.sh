@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # Fake-agent end to end: play a scripted Claude Code session against the REAL
-# hook scripts, wired the way config/claude/settings.json wires them.
+# `aval hook ...` commands, wired the way config/claude/settings.json wires them.
 #
-# The unit suites (design-pipeline, design-shot-stop) call each script directly.
+# The unit suites (design-pipeline, design-shot-stop) call each hook directly.
 # This one proves the wiring too: the matcher in settings.json decides whether
 # a hook runs at all, the command string is executed as configured, and the
 # JSON on stdout is the exact decision Claude Code would act on. No API keys,
 # no network, no real $HOME/$XDG: everything lives in a temp dir.
 #
-# Only hooks that live in the repo (commands under "$HOME/.claude/hooks/") are
-# fired; third-party hooks in the same settings (gentle-ai, rtk) are not
-# ours to exercise and would need the network or other installs.
+# Only the design-pipeline hooks (`aval hook design-*`) are fired; third-party
+# hooks in the same settings (gentle-ai, rtk) are not ours to exercise and
+# would need the network or other installs.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETTINGS="$REPO/config/claude/settings.json"
-ACK="$REPO/shared/skills/design-pipeline/scripts/design-ack"
+. "$REPO/tests/lib/aval-bin.sh"
 
 pass=0
 fail=0
@@ -35,8 +35,8 @@ trap 'rm -rf "$TMP"' EXIT
 # --- an isolated machine -------------------------------------------------------
 FAKE_HOME="$TMP/home"
 mkdir -p "$FAKE_HOME/.claude" "$FAKE_HOME/.local/bin" "$FAKE_HOME/.cache"
-ln -s "$REPO/config/claude/hooks" "$FAKE_HOME/.claude/hooks"   # what install links
-ln -s "$ACK" "$FAKE_HOME/.local/bin/design-ack"
+build_aval "$FAKE_HOME/.local/bin" >/dev/null   # what the installer puts on PATH
+[ -x "$FAKE_HOME/.local/bin/aval" ] || { echo "  aval did not build"; exit 2; }
 export HOME="$FAKE_HOME"
 export XDG_CACHE_HOME="$FAKE_HOME/.cache"
 export PATH="$FAKE_HOME/.local/bin:$PATH"
@@ -58,7 +58,7 @@ fire() {
   local event="$1" tool="$2" payload="$3" matcher command out=""
   while IFS=$'\t' read -r matcher command; do
     [ -n "$command" ] || continue
-    case "$command" in *'$HOME/.claude/hooks/'*) ;; *) continue ;; esac
+    case "$command" in *'hook design-'*) ;; *) continue ;; esac
     # "*" stands for "no matcher" (an empty tab field would be collapsed by read).
     if [ "$matcher" != "*" ] && ! [[ $tool =~ ^($matcher)$ ]]; then continue; fi
     out+="$(cd "$PROJ" && printf '%s' "$payload" | bash -c "$command" 2>/dev/null)"
@@ -80,7 +80,7 @@ pre() { fire PreToolUse "$1" "$(pre_payload "$@")"; }
 stop() { fire Stop "" "$(stop_payload "$@")"; }
 
 deny_json() { # $1 file name  $2 why
-  jq -cn --arg r "Blocked: $1 is a UI surface and $2. Do the design pipeline (invoke the design-pipeline skill if you have not: laws of UX, direction from .agents/DESIGN.md, gates), then run \`design-ack <surface>\` and retry." \
+  jq -cn --arg r "Blocked: $1 is a UI surface and $2. Do the design pipeline (invoke the design-pipeline skill if you have not: laws of UX, direction from .agents/DESIGN.md, gates), then run \`aval design ack <surface>\` and retry." \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
 }
 compact() { [ -z "$1" ] && return; printf '%s' "$1" | jq -c . 2>/dev/null || printf '%s' "$1"; }
@@ -90,9 +90,9 @@ MAIN=s-main
 
 # --- the wiring itself ----------------------------------------------------------
 assert_eq "settings.json wires the gate on PreToolUse Edit|Write|NotebookEdit" "Edit|Write|NotebookEdit" \
-  "$(jq -r '[.hooks.PreToolUse[] | select(.hooks[].command | test("design-pipeline-gate"))][0].matcher' "$SETTINGS")"
+  "$(jq -r '[.hooks.PreToolUse[] | select(.hooks[].command | test("hook design-gate"))][0].matcher' "$SETTINGS")"
 assert_eq "settings.json wires the shot hook on Stop" "yes" \
-  "$(jq -r '[.hooks.Stop[].hooks[].command | select(test("design-shot-stop"))] | length > 0 | if . then "yes" else "no" end' "$SETTINGS")"
+  "$(jq -r '[.hooks.Stop[].hooks[].command | select(test("hook design-shot-stop"))] | length > 0 | if . then "yes" else "no" end' "$SETTINGS")"
 
 # --- turn 1: the agent edits a UI file before the pipeline ----------------------
 assert_eq "Edit of a .tsx with no design-ack is denied (exact JSON)" \
@@ -103,7 +103,7 @@ assert_eq "a Bash tool call never reaches the gate (matcher)" "" \
   "$(pre Bash "$BTN" $MAIN)"
 
 # --- the agent runs design-ack and retries --------------------------------------
-(cd "$PROJ" && design-ack pricing >/dev/null 2>&1)
+(cd "$PROJ" && aval design ack pricing >/dev/null 2>&1)
 assert_eq "design-ack wrote a marker under the temp cache" "yes" \
   "$([ -n "$(ls "$XDG_CACHE_HOME/design-gate" 2>/dev/null)" ] && echo yes || echo no)"
 assert_eq "after design-ack the same Edit is allowed (no output)" "" "$(pre Edit "$BTN" $MAIN)"
@@ -122,7 +122,7 @@ start="${EPOCHREALTIME:-}"
 if [ -n "$start" ]; then
   payload="$(pre_payload Edit "$PROJ/src/util.ts" $MAIN)"
   t0="${EPOCHREALTIME//[.,]/}"
-  for _ in 1 2 3 4 5; do printf '%s' "$payload" | "$REPO/config/claude/hooks/design-pipeline-gate.sh" >/dev/null; done
+  for _ in 1 2 3 4 5; do printf '%s' "$payload" | "$FAKE_HOME/.local/bin/aval" hook design-gate >/dev/null; done
   t1="${EPOCHREALTIME//[.,]/}"
   per=$(((10#$t1 - 10#$t0) / 5000))
   assert_eq "a non-UI edit costs under 150 ms through the gate (was ${per} ms)" "yes" \
@@ -136,7 +136,7 @@ printf '# Design\nTokens only.\nNew rule.\n' >"$PROJ/.agents/DESIGN.md"
 assert_eq "changing DESIGN.md revokes the ack (exact JSON)" \
   "$(deny_json Button.tsx '.agents/DESIGN.md changed since the last design-ack')" \
   "$(compact "$(pre Edit "$BTN" $MAIN)")"
-(cd "$PROJ" && design-ack pricing >/dev/null 2>&1)
+(cd "$PROJ" && aval design ack pricing >/dev/null 2>&1)
 assert_eq "a fresh design-ack allows it again" "" "$(pre Edit "$BTN" $MAIN)"
 
 # --- end of turn --------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Package designack records that the design pipeline was done for a project.
 //
 // It writes <cache>/design-gate/<sha1 of project root>, the marker the
-// PreToolUse gate (config/claude/hooks/design-pipeline-gate.sh) and the
+// PreToolUse gate (internal/designhook) and the
 // OpenCode plugin read. The format is a contract with them: three key=value
 // lines, surface, epoch and design_sha1.
 package designack

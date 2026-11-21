@@ -3,23 +3,23 @@
 #
 # Why a second implementation exists
 # ----------------------------------
-# The Claude Code gate is a PreToolUse shell hook (config/claude/hooks/
-# design-pipeline-gate.sh). OpenCode has no JSON hook system, so the shell hook
-# cannot be reused — only its contract can, and the contract is now a MARKER:
+# The Claude Code gate is a PreToolUse hook (`aval hook design-gate`).
+# OpenCode has no JSON hook system, so that hook cannot be reused — only its
+# contract can, and the contract is now a MARKER:
 #
-#   `design-ack <surface>` writes ${XDG_CACHE_HOME:-~/.cache}/design-gate/<sha1
+#   `aval design ack <surface>` writes ${XDG_CACHE_HOME:-~/.cache}/design-gate/<sha1
 #   of project root>; a UI edit is allowed while that marker is younger than
 #   DESIGN_ACK_TTL seconds (default 4 h) and .agents/DESIGN.md still hashes the
 #   same.
 #
 # This plugin reads the same file with the same rules (no in-memory checklist
-# matching, no event stream), so one `design-ack` opens both agents, and a
+# matching, no event stream), so one `aval design ack` opens both agents, and a
 # sub-agent or a post-compaction turn needs nothing special.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN="$REPO/config/opencode/plugin/design-gate.ts"
-ACK="$REPO/shared/skills/design-pipeline/scripts/design-ack"
+. "$REPO/tests/lib/aval-bin.sh"
 
 pass=0
 fail=0
@@ -40,6 +40,7 @@ fi
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+AVAL="$(build_aval "$TMP")"
 export XDG_CACHE_HOME="$TMP/cache"
 unset DESIGN_PIPELINE_OFF DESIGN_ACK_TTL
 
@@ -69,7 +70,7 @@ PROBE
 
 ui() { bun run "$REPO/tests/fixtures/opencode-gate-probe.ts" ui "$1" 2>/dev/null; }
 edit() { bun run "$REPO/tests/fixtures/opencode-gate-probe.ts" edit "$1" "$2" "${3:-}" 2>/dev/null; }
-ack() { (cd "$1" && "$ACK" "${2:-component}" >/dev/null 2>&1); }
+ack() { (cd "$1" && "$AVAL" design ack "${2:-component}" >/dev/null 2>&1); }
 marker_for() {
   local o; o="$(printf '%s' "$(cd "$1" && pwd -P)" | shasum -a 1)"
   printf '%s/design-gate/%s' "$XDG_CACHE_HOME" "${o%% *}"

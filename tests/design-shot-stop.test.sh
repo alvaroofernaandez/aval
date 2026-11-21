@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Tests for the Stop hook that asks for a render before a UI turn ends.
+# Tests for the Stop hook (`aval hook design-shot-stop`) that asks for a render
+# before a UI turn ends. The Go suites in internal/designhook cover the same cases.
 #
 # Measured over 60 days: about one user message in five was a screenshot saying
 # a "fixed" visual bug was not fixed. Verification was done by reading code, not
@@ -10,7 +11,7 @@
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HOOK="$REPO/config/claude/hooks/design-shot-stop.sh"
+. "$REPO/tests/lib/aval-bin.sh"
 SETTINGS="$REPO/config/claude/settings.json"
 
 pass=0
@@ -23,13 +24,14 @@ echo "design-shot-stop"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+AVAL="$(build_aval "$TMP")"
 export XDG_CACHE_HOME="$TMP/cache"
 unset DESIGN_PIPELINE_OFF
 GATE="$XDG_CACHE_HOME/design-gate"
 mkdir -p "$GATE"
 
-assert_eq "the stop hook exists and is executable" "yes" "$([ -x "$HOOK" ] && echo yes || echo no)"
-if [ ! -x "$HOOK" ]; then
+assert_eq "aval builds" "yes" "$([ -x "$AVAL" ] && echo yes || echo no)"
+if [ ! -x "$AVAL" ]; then
   printf '\n%d passed, %d failed\n' "$pass" "$((fail + 1))"; exit 1
 fi
 
@@ -38,7 +40,7 @@ PROJ="$TMP/proj"; mkdir -p "$PROJ/.design/shots"
 
 stop() { # $1 session  [$2 stop_hook_active]
   jq -cn --arg sid "$1" --argjson active "${2:-false}" \
-    '{session_id:$sid, hook_event_name:"Stop", stop_hook_active:$active, cwd:"/x"}' | "$HOOK" 2>/dev/null
+    '{session_id:$sid, hook_event_name:"Stop", stop_hook_active:$active, cwd:"/x"}' | "$AVAL" hook design-shot-stop 2>/dev/null
 }
 stamp() { printf '%s' "$PROJ" >"$GATE/ui-edited.$1"; touch -t "${2:-$OLD}" "$GATE/ui-edited.$1"; }
 decision() { [ -z "$1" ] && { printf none; return; }; printf '%s' "$1" | jq -r '.decision // "none"'; }
@@ -79,18 +81,17 @@ stamp s5
 assert_eq "DESIGN_PIPELINE_OFF is silent" "none" "$(decision "$(DESIGN_PIPELINE_OFF=1 stop s5)")"
 
 for bad in '' 'garbage' '{"hook_event_name":"Stop"}'; do
-  out="$(printf '%s' "$bad" | "$HOOK" 2>/dev/null; echo "rc=$?")"
+  out="$(printf '%s' "$bad" | "$AVAL" hook design-shot-stop 2>/dev/null; echo "rc=$?")"
   assert_eq "malformed stdin is silent and exits 0: ${bad:-<empty>}" "rc=0" "$out"
 done
 
-# The common case (no UI edit this session) must cost one stat: with an empty
-# PATH nothing but bash builtins can have run.
-out="$(printf '%s' '{"session_id":"s-none","stop_hook_active":false}' | PATH=/nonexistent "$(command -v bash)" "$HOOK" 2>&1; echo "rc=$?")"
-assert_eq "the no-edit path runs on bash builtins alone" "rc=0" "$out"
+# The common case (no UI edit this session) needs nothing but the binary.
+out="$(printf '%s' '{"session_id":"s-none","stop_hook_active":false}' | PATH=/nonexistent "$AVAL" hook design-shot-stop 2>&1; echo "rc=$?")"
+assert_eq "the no-edit path runs with an empty PATH" "rc=0" "$out"
 
 # --- wiring ------------------------------------------------------------------
 assert_eq "settings.json runs the stop hook on Stop" "yes" \
-  "$(jq -e '.hooks.Stop[]?.hooks[]?.command | select(test("design-shot-stop"))' "$SETTINGS" >/dev/null 2>&1 && echo yes || echo no)"
+  "$(jq -e '.hooks.Stop[]?.hooks[]?.command | select(test("hook design-shot-stop"))' "$SETTINGS" >/dev/null 2>&1 && echo yes || echo no)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -57,3 +57,65 @@ func TestRunHookUnknownHookIsAnError(t *testing.T) {
 		t.Error("an unknown hook name must be reported")
 	}
 }
+
+func TestRunHookDesignGateReadsEnvAndDenies(t *testing.T) {
+	cache, proj := t.TempDir(), t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+	t.Setenv("DESIGN_PIPELINE_OFF", "")
+	t.Setenv("DESIGN_ACK_TTL", "")
+	in := `{"session_id":"s","cwd":"` + proj + `","tool_name":"Edit","tool_input":{"file_path":"` + proj + `/Button.tsx"}}`
+
+	var out bytes.Buffer
+	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), `"permissionDecision":"deny"`) || !strings.Contains(out.String(), "`aval design ack <surface>`") {
+		t.Errorf("want a deny naming `aval design ack <surface>`, got %q", out.String())
+	}
+
+	t.Setenv("DESIGN_PIPELINE_OFF", "1")
+	out.Reset()
+	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil || out.Len() != 0 {
+		t.Errorf("DESIGN_PIPELINE_OFF must silence the gate, got %q err=%v", out.String(), err)
+	}
+}
+
+func TestRunHookDesignGateAllowsAfterAck(t *testing.T) {
+	cache, proj := t.TempDir(), t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+	t.Setenv("DESIGN_PIPELINE_OFF", "")
+	t.Setenv("DESIGN_ACK_TTL", "")
+	if err := runDesign([]string{"ack", "pricing"}, proj, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	in := `{"session_id":"s","cwd":"` + proj + `","tool_name":"Write","tool_input":{"file_path":"` + proj + `/app.css"}}`
+	var out bytes.Buffer
+	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil || out.Len() != 0 {
+		t.Errorf("an acked project must be allowed, got %q err=%v", out.String(), err)
+	}
+	if !fileExists(filepath.Join(cache, "design-gate", "ui-edited.s")) {
+		t.Error("an allowed UI edit must stamp the session")
+	}
+}
+
+func TestRunHookDesignShotStopUsesCache(t *testing.T) {
+	cache, proj := t.TempDir(), t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+	t.Setenv("DESIGN_PIPELINE_OFF", "")
+	writeFile(t, filepath.Join(cache, "design-gate", "ui-edited.s9"), proj)
+	var out bytes.Buffer
+	if err := runHook([]string{"design-shot-stop"}, strings.NewReader(`{"session_id":"s9"}`), &out); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), `"decision":"block"`) {
+		t.Errorf("want a block, got %q", out.String())
+	}
+}
+
+func TestRunHookRtkRewriteWithoutRtkIsASilentNoOp(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	var out bytes.Buffer
+	if err := runHook([]string{"rtk-rewrite"}, strings.NewReader(`{"tool_input":{"command":"git status"}}`), &out); err != nil || out.Len() != 0 {
+		t.Errorf("no rtk on PATH must pass through, got %q err=%v", out.String(), err)
+	}
+}
