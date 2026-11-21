@@ -10,7 +10,7 @@
 # step never ran.
 #
 # These gates replace the self-report with a number. They come from
-# plugin87/ux-ui-agent-skills, vendored at the commit in P87_PIN.
+# plugin87/ux-ui-agent-skills, vendored at the commit in vendor/pins/P87_PIN.
 #
 # THE BUG THIS SUITE EXISTS TO PREVENT
 # ------------------------------------
@@ -47,7 +47,7 @@ assert_eq "the design-gates skill exists" "yes" \
   "$([ -f "$GATES/SKILL.md" ] && echo yes || echo no)"
 
 assert_eq "the upstream pin is recorded" "yes" \
-  "$([ -f "$REPO/P87_PIN" ] && echo yes || echo no)"
+  "$([ -f "$REPO/vendor/pins/P87_PIN" ] && echo yes || echo no)"
 
 MISSING=""
 for s in contrast.py validate_tokens.py validate_contrast.py lint_hardcodes.py validate_theme_refs.py; do
@@ -264,7 +264,7 @@ assert_eq "ui-ux-pro-max is vendored" "yes" \
   "$([ -f "$UIUX/SKILL.md" ] && echo yes || echo no)"
 
 assert_eq "its pin is recorded" "yes" \
-  "$([ -f "$REPO/UIUX_PIN" ] && echo yes || echo no)"
+  "$([ -f "$REPO/vendor/pins/UIUX_PIN" ] && echo yes || echo no)"
 
 # The numbers, not the prose. A stale copy is caught by row counts even when the
 # SKILL.md text happens to match.

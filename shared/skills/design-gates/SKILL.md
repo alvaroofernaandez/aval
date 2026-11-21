@@ -13,7 +13,7 @@ description: >
 
 # Design gates
 
-Vendored from plugin87/ux-ui-agent-skills at the commit in `P87_PIN`. Regenerate
+Vendored from plugin87/ux-ui-agent-skills at the commit in `vendor/pins/P87_PIN`. Regenerate
 with `scripts/p87-sync.sh` — **never edit `scripts/`, `skills/` or this file by
 hand**, the next sync overwrites them.
 
