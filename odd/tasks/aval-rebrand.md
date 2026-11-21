@@ -17,4 +17,6 @@ Scope rules:
 - [x] T2 Installer: cmd/aval, binary `aval`, Go module, npm `@alvaroofernaandez/aval`, release assets, `AVAL_*` env, `~/.aval-backup`
 - [x] T3 Pins: GSTACK_PIN, P87_PIN, UIUX_PIN → pins/
 - [x] T4 Docs: README presents aval and its meaning, guide, npm README, hero
-- [ ] T5 GitHub: rename repo to aval, description and topics; full suite green; push
+- [x] T5 GitHub: rename repo to aval, description and topics; full suite green; push
+
+Done 2026-11-21: repo renamed to github.com/alvaroofernaandez/aval (old URL redirects). Full suite 625 passed; only no-proprietary fails, from uncommitted local edits outside this change. npm package and release binaries under the new name await CI (Actions disabled).
