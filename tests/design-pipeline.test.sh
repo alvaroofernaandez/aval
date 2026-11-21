@@ -319,10 +319,19 @@ SECTION="$(awk '/^## Design Architecture/{f=1} f&&/^## /&&!/^## Design Architect
 SLEN="$(printf '%s' "$SECTION" | wc -c | tr -d ' ')"
 assert_eq "the Design Architecture section stays under 850 chars (is $SLEN)" "yes" \
   "$([ "$SLEN" -le 850 ] && echo yes || echo no)"
-for needle in 'DESIGN.md' 'design-pipeline' 'design-ack <surface>' 'shot.mjs' 'not run' \
-              'lint_native_elements.py' 'components/ui' 'DESIGN_PIPELINE_OFF' 'shadcn/ui'; do
+for needle in 'DESIGN.md' 'design-pipeline' 'design-ack <surface>' 'DESIGN_PIPELINE_OFF' 'design-gates'; do
   assert_eq "the section still says: $needle" "yes" \
     "$(printf '%s' "$SECTION" | rg -qF -- "$needle" && echo yes || echo no)"
+done
+
+# The path-scoped half of the section moved to lessons (aval hook lessons), which
+# inject it when a UI file is touched instead of on every turn.
+for pair in 'ui-visual-verification:shot.mjs' 'ui-visual-verification:not run' \
+            'ui-native-elements:lint_native_elements.py' 'ui-native-elements:components/ui' \
+            'ui-native-elements:shadcn/ui'; do
+  lesson="${pair%%:*}"; needle="${pair#*:}"
+  assert_eq "lesson $lesson still says: $needle" "yes" \
+    "$(rg -qF -- "$needle" "$REPO/config/claude/lessons/$lesson.md" && echo yes || echo no)"
 done
 
 # CLAUDE.md must still point at the skill, or the move silently drops the rule

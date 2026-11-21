@@ -48,14 +48,19 @@ assert_eq "skill: forbids broad process kills" "yes" "$(has '(?i)never .*pkill' 
 
 # --- always-on rule, mirrored to OpenCode ----------------------------------------
 block="$(shared_block "$CLAUDE_MD")"
-assert_eq "CLAUDE.md: shared block names Lightpanda as default" "yes" \
-  "$(printf '%s' "$block" | rg -q 'Lightpanda' && echo yes || echo no)"
-assert_eq "CLAUDE.md: shared block keeps Chromium for pixels" "yes" \
-  "$(printf '%s' "$block" | rg -q 'Chromium' && echo yes || echo no)"
-assert_eq "CLAUDE.md: shared block points to the skill" "yes" \
-  "$(printf '%s' "$block" | rg -q 'lightpanda-browser' && echo yes || echo no)"
-assert_eq "AGENTS.md mirrors the rule" "yes" \
-  "$(shared_block "$AGENTS_MD" | rg -q 'lightpanda-browser' && echo yes || echo no)"
+# The rule moved to a lesson injected when a headless browser is about to run;
+# the shared block keeps only a pointer to the lessons directory.
+LESSON="$REPO/config/claude/lessons/headless-browser.md"
+assert_eq "headless-browser lesson names Lightpanda as default" "yes" \
+  "$(rg -q 'Lightpanda is the default' "$LESSON" && echo yes || echo no)"
+assert_eq "headless-browser lesson keeps Chromium for pixels" "yes" \
+  "$(rg -q 'Chromium' "$LESSON" && echo yes || echo no)"
+assert_eq "headless-browser lesson points to the skill" "yes" \
+  "$(rg -q 'lightpanda-browser' "$LESSON" && echo yes || echo no)"
+assert_eq "CLAUDE.md: shared block points to the lessons" "yes" \
+  "$(printf '%s' "$block" | rg -q 'headless browser' && printf '%s' "$block" | rg -q 'lessons' && echo yes || echo no)"
+assert_eq "AGENTS.md mirrors the pointer" "yes" \
+  "$(shared_block "$AGENTS_MD" | rg -q 'headless browser' && echo yes || echo no)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
