@@ -322,9 +322,9 @@ dotfiles/
 │   └── build.mjs              Arma los 7 paquetes desde los binarios
 │
 ├── 📁 docs/                   Assets del README y sus generadores
-│   ├── brand.py               Hero y muro de logos en blanco y negro
+│   ├── brand.py               Hero en blanco y negro y muro de logos
 │   ├── hero.py                Suminagashi generativo (determinista)
-│   ├── icons/                 Logos de Simple Icons (CC0), vendorizados
+│   ├── logos/                 Logos oficiales vendorizados + SOURCES.md
 │   ├── installer-demo.tape    Grabación de la TUI (VHS)
 │   └── environment.tape       Captura de tmux + yazi (VHS)
 │

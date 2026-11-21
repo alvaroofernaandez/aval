@@ -40,7 +40,7 @@ npx @alvaroofernaandez/dotfiles-installer
   <img src="docs/assets/stack-light.svg" alt="Ghostty, tmux, Zsh, Neovim, yazi, Herdr, OmniWM, Claude Code, OpenCode, Engram, RTK, gstack, Go, Node.js, npm, Bun, Python, Bash, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux y Windows" width="100%">
 </picture>
 
-<sub>Los cuadros con iniciales son herramientas sin logo publicado: mejor un monograma que un logo inventado.</sub>
+<sub>Logos oficiales de cada proyecto (<a href="docs/logos/SOURCES.md">procedencia</a>). ripgrep y delta no publican logo: llevan sus iniciales en vez de uno inventado.</sub>
 
 <br/>
 
@@ -100,6 +100,6 @@ dotfiles-installer update   # git pull + enlaza lo nuevo
 
 <div align="center">
 
-<sub>Imágenes generadas con <code>python3 docs/brand.py</code> · logos de <a href="https://simpleicons.org">Simple Icons</a> (CC0)</sub>
+<sub>Imágenes generadas con <code>python3 docs/brand.py</code> · cada logo es marca registrada de su proyecto</sub>
 
 </div>

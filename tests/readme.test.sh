@@ -39,12 +39,35 @@ for f in hero-light.svg hero-dark.svg stack-light.svg stack-dark.svg; do
   assert_eq "committed $f matches the generator" "yes" "$same"
 done
 
-# Monochrome: every colour literal must be a pure grey (#rgb with r=g=b).
-non_grey="$(rg -o --no-filename '#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b' "$out" 2>/dev/null \
+# The hero is monochrome: every colour literal must be a pure grey (r=g=b).
+# The logo wall is not — it shows each tool's real, coloured mark.
+non_grey="$(rg -o --no-filename '#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b' "$out"/hero-*.svg 2>/dev/null \
   | tr 'A-F' 'a-f' \
   | awk '{h=substr($0,2); if (length(h)==3) {r=substr(h,1,1); g=substr(h,2,1); b=substr(h,3,1)} else {r=substr(h,1,2); g=substr(h,3,2); b=substr(h,5,2)} if (r!=g || g!=b) print $0}' \
   | sort -u | tr '\n' ' ')"
-assert_eq "images use only black, white and greys" "" "$non_grey"
+assert_eq "hero uses only black, white and greys" "" "$non_grey"
+
+# Real logos, embedded, for every tool that publishes one. Embedded because a
+# README image cannot load external files: an <image href="docs/..."> inside an
+# SVG renders as a blank square on GitHub.
+nologo="$(python3 "$REPO/docs/brand.py" --no-logo 2>/dev/null | tr '\n' ' ')"
+assert_eq "only tools with no published logo lack one" "ripgrep delta " "$nologo"
+embedded="$(rg -c '<image ' "$out/stack-light.svg")"
+expected=$(( $(python3 "$REPO/docs/brand.py" --list 2>/dev/null | rg -c .) - 2 ))
+assert_eq "every other tool embeds its logo" "$expected" "${embedded:-0}"
+assert_eq "logos are not loaded from outside the SVG" "0" \
+  "$(rg -c 'href="(https?:|\.\.?/|docs/)' "$out/stack-light.svg" || echo 0)"
+size="$(rg -o 'class="logo" width="([0-9]+)"' -r '$1' "$out/stack-light.svg" | sort -n | head -1)"
+assert_eq "logos render at least 56px" "yes" "$([ "${size:-0}" -ge 56 ] && echo yes || echo no)"
+
+# Every vendored logo says where it came from.
+unsourced=""
+for f in "$REPO"/docs/logos/*.*; do
+  b="$(basename "$f")"
+  [ "$b" = "SOURCES.md" ] && continue
+  rg -qF "\`$b\`" "$REPO/docs/logos/SOURCES.md" 2>/dev/null || unsourced="$unsourced $b"
+done
+assert_eq "every logo lists its source" "" "$unsourced"
 
 # One tile per tool, and each tile is labelled so the image is not a mystery
 # to a screen reader.
