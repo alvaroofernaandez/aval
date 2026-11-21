@@ -3,21 +3,23 @@
 #
 # Why a second implementation exists
 # ----------------------------------
-# The Claude Code gate is a PreToolUse shell hook that decides by reading the
-# session transcript from disk. OpenCode has no JSON hook system and stores its
-# sessions in SQLite, not JSONL, so the shell hook cannot be reused — only its
-# contract can. This plugin reimplements that contract on OpenCode's plugin API:
-# `tool.execute.before` can throw to deny a call (upstream's own .env-protection
-# example works this way), and the `event` hook observes assistant messages so
-# the plugin can tell whether the checklist was emitted this session.
+# The Claude Code gate is a PreToolUse shell hook (config/claude/hooks/
+# design-pipeline-gate.sh). OpenCode has no JSON hook system, so the shell hook
+# cannot be reused — only its contract can, and the contract is now a MARKER:
 #
-# The logic worth testing is pure: which paths count as UI surfaces, and which
-# text counts as a real checklist rather than the template echoed back. Those
-# two predicates are the whole gate; the rest is plumbing around them.
+#   `design-ack <surface>` writes ${XDG_CACHE_HOME:-~/.cache}/design-gate/<sha1
+#   of project root>; a UI edit is allowed while that marker is younger than
+#   DESIGN_ACK_TTL seconds (default 4 h) and .agents/DESIGN.md still hashes the
+#   same.
+#
+# This plugin reads the same file with the same rules (no in-memory checklist
+# matching, no event stream), so one `design-ack` opens both agents, and a
+# sub-agent or a post-compaction turn needs nothing special.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN="$REPO/config/opencode/plugin/design-gate.ts"
+ACK="$REPO/shared/skills/design-pipeline/scripts/design-ack"
 
 pass=0
 fail=0
@@ -36,98 +38,76 @@ if ! command -v bun >/dev/null 2>&1; then
 fi
 [ -f "$PLUGIN" ] || { printf '\n%d passed, %d failed\n' "$pass" "$((fail))"; exit 1; }
 
-run() { bun run "$REPO/tests/fixtures/opencode-gate-probe.ts" "$1" 2>/dev/null; }
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+export XDG_CACHE_HOME="$TMP/cache"
+unset DESIGN_PIPELINE_OFF DESIGN_ACK_TTL
 
 mkdir -p "$REPO/tests/fixtures"
 cat > "$REPO/tests/fixtures/opencode-gate-probe.ts" <<'PROBE'
-// Exercises the gate's two pure predicates plus the deny path, so the bash
-// suite can assert on them without standing up an OpenCode session.
-import { isUISurface, matchesChecklist, DesignGate } from "../../config/opencode/plugin/design-gate.ts"
+// Exercises the gate's pure predicate plus the deny path, so the bash suite can
+// assert on them without standing up an OpenCode session.
+//   probe ui <path>                     -> isUISurface
+//   probe edit <path> <dir> [session]   -> "deny" | "allow" for an edit call
+import { isUISurface, DesignGate } from "../../config/opencode/plugin/design-gate.ts"
 
-const FILLED = `[design-pipeline]
-0. laws-of-ux    → laws: Hick (5 nav items max), Fitts (44px targets)
-1. direction     → DESIGN.md §2 tokens; Inter, 8pt scale
-2. gates         → contrast on the accent pair, hardcodes on Button.tsx`
+const [, , mode, file, dir, session] = process.argv
 
-const TEMPLATE = `[design-pipeline]
-0. laws-of-ux    → laws: <which laws govern this surface, with the number each forces>
-1. direction     → <DESIGN.md section, or ui-ux-pro-max/design-shotgun outcome>
-2. gates         → <which design-gates checks will run after the code exists>`
-
-const FIVESTEP = `[design-pipeline]
-0. laws-of-ux        → laws: Hick (5 nav items)
-1. frontend-design   → intent: editorial
-2. ui-ux-pro-max     → references: Inter
-3. impeccable        → engaged
-4. design-motion-principles → 180ms`
-
-type Emit = { text: string; role?: "assistant" | "user"; roleFirst?: boolean }
-
-// Drives the plugin the way OpenCode does: message.part.updated carries the
-// text (TextPart has messageID but NO role), message.updated carries the role.
-// `roleFirst` flips their order — the SDK guarantees no ordering between them.
-async function denies(emit: Emit | null): Promise<boolean> {
-  const hooks: any = await (DesignGate as any)({ directory: "/tmp" })
-  if (emit) {
-    const role = emit.role ?? "assistant"
-    const roleEvent = { event: { type: "message.updated",
-      properties: { info: { id: "m1", sessionID: "s1", role } } } }
-    const partEvent = { event: { type: "message.part.updated",
-      properties: { part: { type: "text", id: "p1", sessionID: "s1",
-                            messageID: "m1", text: emit.text } } } }
-    for (const e of emit.roleFirst ? [roleEvent, partEvent] : [partEvent, roleEvent]) {
-      await hooks.event(e)
-    }
-  }
+if (mode === "ui") {
+  console.log(String(isUISurface(file)))
+} else {
+  const hooks: any = await (DesignGate as any)({ directory: dir })
   try {
-    await hooks["tool.execute.before"]({ tool: "edit", sessionID: "s1", callID: "c1" },
-      { args: { filePath: "/tmp/proj/src/Button.tsx" } })
-    return false
-  } catch { return true }
+    await hooks["tool.execute.before"]({ tool: "edit", sessionID: session ?? "s1", callID: "c1" },
+      { args: { filePath: file } })
+    console.log("allow")
+  } catch (e: any) {
+    console.log("deny " + String(e?.message ?? e).split("\n").length)
+  }
 }
-
-const which = process.argv[2]
-const out: Record<string, () => Promise<string> | string> = {
-  "ui-tsx":      () => String(isUISurface("src/Button.tsx")),
-  "ui-css":      () => String(isUISurface("app/main.css")),
-  "ui-go":       () => String(isUISurface("cmd/main.go")),
-  "ui-test":     () => String(isUISurface("src/Button.test.tsx")),
-  "ck-filled":   () => String(matchesChecklist(FILLED)),
-  "ck-template": () => String(matchesChecklist(TEMPLATE)),
-  "ck-five":     () => String(matchesChecklist(FIVESTEP)),
-  "ck-prose":    () => String(matchesChecklist("we should run the [design-pipeline] first")),
-  "deny-none":   async () => String(await denies(null)),
-  "allow-ck":    async () => String(await denies({ text: FILLED })),
-  "deny-tpl":    async () => String(await denies({ text: TEMPLATE })),
-  "deny-user":   async () => String(await denies({ text: FILLED, role: "user" })),
-  "allow-rev":   async () => String(await denies({ text: FILLED, roleFirst: true })),
-}
-console.log(await out[which]())
 PROBE
 
-assert_eq "a .tsx is a UI surface"            "true"  "$(run ui-tsx)"
-assert_eq "a .css is a UI surface"            "true"  "$(run ui-css)"
-assert_eq "a .go file is not"                 "false" "$(run ui-go)"
-assert_eq "a component test is not"           "false" "$(run ui-test)"
+ui() { bun run "$REPO/tests/fixtures/opencode-gate-probe.ts" ui "$1" 2>/dev/null; }
+edit() { bun run "$REPO/tests/fixtures/opencode-gate-probe.ts" edit "$1" "$2" "${3:-}" 2>/dev/null; }
+ack() { (cd "$1" && "$ACK" "${2:-component}" >/dev/null 2>&1); }
+marker_for() {
+  local o; o="$(printf '%s' "$(cd "$1" && pwd -P)" | shasum -a 1)"
+  printf '%s/design-gate/%s' "$XDG_CACHE_HOME" "${o%% *}"
+}
 
-assert_eq "a filled three-step checklist counts"     "true"  "$(run ck-filled)"
-assert_eq "the unfilled template does not"           "false" "$(run ck-template)"
-assert_eq "the old five-step checklist does not"     "false" "$(run ck-five)"
-assert_eq "prose mentioning the marker does not"     "false" "$(run ck-prose)"
+assert_eq "a .tsx is a UI surface"  "true"  "$(ui src/Button.tsx)"
+assert_eq "a .css is a UI surface"  "true"  "$(ui app/main.css)"
+assert_eq "a .go file is not"       "false" "$(ui cmd/main.go)"
+assert_eq "a component test is not" "false" "$(ui src/Button.test.tsx)"
 
-assert_eq "a UI write with no checklist is denied"   "true"  "$(run deny-none)"
-assert_eq "a UI write after the checklist is allowed" "false" "$(run allow-ck)"
-assert_eq "the template does not open the gate"      "true"  "$(run deny-tpl)"
+P="$TMP/proj"; mkdir -p "$P/src" "$P/.agents"
+printf 'tokens v1\n' > "$P/.agents/DESIGN.md"
 
-# The discriminator. AGENTS.md reaches OpenCode as user-role context and carries
-# the checklist template verbatim (scripts/sync-agent-rules.sh puts it there),
-# so a checklist the USER wrote must not count as a run — exactly the filter the
-# bash hook needs for CLAUDE.md. TextPart carries no role, so the plugin has to
-# correlate part.messageID against the role from message.updated.
-assert_eq "a user-authored checklist does NOT open the gate" "true" "$(run deny-user)"
+assert_eq "a UI write with no marker is denied, in one line" "deny 1" "$(edit "$P/src/Button.tsx" "$P")"
 
-# The SDK guarantees no ordering between the two events.
-assert_eq "the gate opens when the role event arrives first" "false" "$(run allow-rev)"
+ack "$P"
+assert_eq "a UI write with a fresh marker is allowed"   "allow" "$(edit "$P/src/Button.tsx" "$P")"
+assert_eq "the session id is irrelevant (sub-agents)"   "allow" "$(edit "$P/src/Button.tsx" "$P" other-session)"
+
+sd '^epoch=.*$' "epoch=$(( $(date +%s) - 18000 ))" "$(marker_for "$P")"
+assert_eq "a marker older than 4 hours is denied"       "deny 1" "$(edit "$P/src/Button.tsx" "$P")"
+assert_eq "DESIGN_ACK_TTL lengthens the window" "allow" \
+  "$(DESIGN_ACK_TTL=86400 edit "$P/src/Button.tsx" "$P")"
+
+ack "$P"
+printf 'tokens v2\n' > "$P/.agents/DESIGN.md"
+assert_eq "DESIGN.md changed after the ack is denied"   "deny 1" "$(edit "$P/src/Button.tsx" "$P")"
+
+assert_eq "a non-UI write needs no marker"      "allow" "$(edit "$P/main.go" "$P")"
+assert_eq "a component test needs no marker"    "allow" "$(edit "$P/src/Button.test.tsx" "$P")"
+assert_eq "DESIGN_PIPELINE_OFF bypasses"        "allow" \
+  "$(DESIGN_PIPELINE_OFF=1 edit "$P/src/Button.tsx" "$P")"
+
+# Same marker file as the shell hook: the project root is the git toplevel found
+# by walking up from the file, so a nested file resolves to the repo's marker.
+G="$TMP/repo"; mkdir -p "$G/src/deep"; git -C "$G" init -q
+ack "$G"
+assert_eq "a nested file resolves to the git toplevel marker" "allow" "$(edit "$G/src/deep/Card.tsx" "$G/src/deep")"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -1,83 +1,58 @@
 #!/usr/bin/env bash
-# PreToolUse gate for the 4-skill design pipeline declared in ~/.claude/CLAUDE.md.
+# PreToolUse gate for the design pipeline declared in ~/.claude/CLAUDE.md.
 #
-# Why this exists
-# ---------------
-# The pipeline (laws-of-ux → direction → gates) called itself "STRICT" and
-# "BLOCKING", but nothing blocked. It was prose inside ~42 KB of always-on
-# instructions, sitting next to an orchestrator that pushes the opposite
-# way — "delegate ALL real work to sub-agents" — and sub-agents start with a
-# clean context, without the checklist. A rule with no enforcement point is a
-# reminder. This is the enforcement point.
+# Contract: an Edit/Write on a UI surface is denied until `design-ack <surface>`
+# has written a marker for the file's project (see
+# shared/skills/design-pipeline/scripts/design-ack):
 #
-# What it does
-# ------------
-# Denies Edit/Write on a UI surface until the [design-pipeline] checklist has
-# actually been emitted by the assistant in this session.
+#   ${XDG_CACHE_HOME:-~/.cache}/design-gate/<sha1 of project root>
 #
-# It used to also symlink a vendored `impeccable` into each project, because
-# that skill's SKILL.md ran a project-relative path against a global install and
-# raised "Cannot find module" in every repo. impeccable left the pipeline on
-# 2026-09-19 — it had never actually run, halting on NO_PRODUCT_MD in every
-# project — so the provisioning went with it rather than keep seeding symlinks
-# for a skill nothing invokes.
+# The marker must be younger than DESIGN_ACK_TTL seconds (default 14400 = 4 h)
+# and carry the sha1 of the project's .agents/DESIGN.md as it is NOW, so editing
+# the design contract invalidates earlier acks.
 #
-# Reading the transcript is the only way to know whether the checklist was
-# emitted, and it has one trap: CLAUDE.md carries the literal string
-# "[design-pipeline]" as a template and is fed into every session, so a naive
-# match opens the gate on turn one, forever. Two filters close that:
+# Why a marker and not a transcript scan: the old gate searched the session
+# transcript for a filled checklist. Over 60 days that denied edits 229 times in
+# 53 sessions (the checklist disappears at compaction and never exists in a
+# sub-agent transcript) and cost 20-130 ms per call, growing with the transcript.
+# A marker is per project, so sub-agents and post-compaction turns just work.
 #
-#   1. Only assistant-authored text counts (type == "assistant"). CLAUDE.md and
-#      system reminders arrive as user-role content.
-#   2. The unfilled template does not count — a block still carrying
-#      "<1 sentence direction>" is the template echoed back, not a run.
-#   3. The marker alone does not count. The gate's first version matched on it,
-#      and the prose that DIAGNOSED the broken pipeline opened the gate: writing
-#      "[design-pipeline]" in a sentence was enough. A run has to carry the
-#      checklist's structure — the marker plus all three numbered steps.
-#      Talking about the pipeline is common; running it is the rare event, and
-#      the matcher has to tell them apart or it decays back into decoration.
+# Cost: non-UI paths exit inside a bash `case`, before any subprocess. The UI
+# path spawns one hash process. stdin is parsed with bash regexes, no jq.
 #
-# Failure policy
-# --------------
-# Fails OPEN on anything it cannot determine: no jq, no transcript, unparseable
-# input. A gate that hard-fails on a missing dependency takes the session down
-# with it, and the first thing anyone does with a gate like that is delete it.
-# Set DESIGN_PIPELINE_OFF=1 to bypass deliberately.
+# On an allowed UI edit it also stamps ${cache}/ui-edited.<session_id> with the
+# project root; design-shot-stop.sh reads that stamp.
+#
+# Fails OPEN on anything it cannot determine (unparseable stdin, no hash tool).
+# DESIGN_PIPELINE_OFF=1 bypasses deliberately.
 #
 # Tests: tests/design-pipeline.test.sh
 
-set -uo pipefail
-
-# --- bypasses ----------------------------------------------------------------
-
 [ -n "${DESIGN_PIPELINE_OFF:-}" ] && exit 0
 
-if ! command -v jq >/dev/null 2>&1; then
-  echo "[design-pipeline] jq not installed — gate inactive." >&2
-  exit 0
-fi
-
-INPUT="$(cat)"
+IFS= read -r -d '' INPUT || true
 [ -n "$INPUT" ] || exit 0
 
-TOOL="$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null)"
-case "$TOOL" in
+RE_TOOL='"tool_name"[[:space:]]*:[[:space:]]*"([A-Za-z]+)"'
+RE_FILE='"file_path"[[:space:]]*:[[:space:]]*"(([^"\\]|\\.)*)"'
+RE_CWD='"cwd"[[:space:]]*:[[:space:]]*"(([^"\\]|\\.)*)"'
+RE_SID='"session_id"[[:space:]]*:[[:space:]]*"([A-Za-z0-9._-]+)"'
+
+[[ $INPUT =~ $RE_TOOL ]] || exit 0
+case "${BASH_REMATCH[1]}" in
   Edit | Write | NotebookEdit) ;;
   *) exit 0 ;;
 esac
 
-FILE="$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)"
+[[ $INPUT =~ $RE_FILE ]] || exit 0
+FILE="${BASH_REMATCH[1]}"
 [ -n "$FILE" ] || exit 0
+FILE="${FILE//\\\//\/}"
+FILE="${FILE//\\\\/\\}"
 
-CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)"
-TRANSCRIPT="$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)"
-
-# --- is this a design surface? -----------------------------------------------
-# A test asserts behaviour; it is not a design surface. Blocking it would put
-# this gate in direct conflict with the strict-TDD rule that demands the test be
-# written FIRST — before any pipeline could have run — and the two rules would
-# deadlock on the first component.
+# --- is this a design surface? (a `case`, so nothing is spawned) --------------
+# Tests assert behaviour and are not design surfaces: blocking them would
+# deadlock against strict TDD, which demands the test be written first.
 BASE="${FILE##*/}"
 case "$BASE" in
   *.test.* | *.spec.* | *.stories.test.*) exit 0 ;;
@@ -85,7 +60,6 @@ esac
 case "$FILE" in
   */__tests__/* | */node_modules/*) exit 0 ;;
 esac
-
 case "$FILE" in
   *.tsx | *.jsx | *.vue | *.svelte | *.astro) ;;
   *.css | *.scss | *.sass | *.less | *.styl) ;;
@@ -93,109 +67,83 @@ case "$FILE" in
   *) exit 0 ;;
 esac
 
-# --- has the pipeline run? ---------------------------------------------------
+# --- which project? -----------------------------------------------------------
+CWD=""
+[[ $INPUT =~ $RE_CWD ]] && CWD="${BASH_REMATCH[1]}"
+SID=""
+[[ $INPUT =~ $RE_SID ]] && SID="${BASH_REMATCH[1]}"
 
-[ -n "$TRANSCRIPT" ] && [ -r "$TRANSCRIPT" ] || {
-  echo "[design-pipeline] transcript unreadable — gate inactive for this call." >&2
-  exit 0
-}
+case "$FILE" in
+  /*) ;;
+  *) FILE="${CWD:-$PWD}/$FILE" ;;
+esac
 
-# -R + fromjson? tolerates a truncated or malformed line rather than aborting
-# the whole scan; a half-written last line is normal in a live transcript.
-#
-# Tool inputs count as well as text. Measured 2026-10-05: some assistant text
-# blocks never reach the transcript (two plain-text checklists in one session
-# were missing from the .jsonl while the text around them was saved), so a run
-# that happened read as no run. Tool calls are always persisted, and a checklist
-# the assistant writes into a tool input (a sub-agent's brief, say) is just as
-# assistant-authored. Tool results stay out: they are user-role lines.
-MATCHER='
-  fromjson? // empty
-  | select(.type == "assistant")
-  | .message.content[]?
-  | if .type == "text" then .text
-    elif .type == "tool_use" then (.input | tostring)
-    else empty end
-  | select(contains("[design-pipeline]"))
-  | select(test("0\\.\\s*laws-of-ux"))
-  | select(test("1\\.\\s*direction"))
-  | select(test("2\\.\\s*gates"))
-  | select(
-      (contains("<which laws govern this surface, with the number each forces>")
-       or contains("<DESIGN.md section, or ui-ux-pro-max/design-shotgun outcome>")
-       or contains("<which design-gates checks will run after the code exists>")) | not
-    )
-  | "EMITTED"
-'
+# Walk up from the file looking for .git (dir or worktree file); builtins only.
+ROOT=""
+d="${FILE%/*}"
+while [ -n "$d" ]; do
+  if [ -e "$d/.git" ]; then ROOT="$d"; break; fi
+  d="${d%/*}"
+done
+[ -n "$ROOT" ] || ROOT="${CWD:-${FILE%/*}}"
+# Physical path, to match design-ack's `pwd -P` / git toplevel.
+cd -P "$ROOT" 2>/dev/null && ROOT="$PWD"
 
-emitted_in() { [ -r "$1" ] && [ "$(jq -Rr "$MATCHER" "$1" 2>/dev/null | head -1)" = "EMITTED" ]; }
+# --- hash the root and DESIGN.md in one process --------------------------------
+if command -v sha1sum >/dev/null 2>&1; then SHA=(sha1sum)
+elif command -v shasum >/dev/null 2>&1; then SHA=(shasum -a 1)
+else SHA=(); fi
+[ "${#SHA[@]}" -gt 0 ] || exit 0
 
-emitted_in "$TRANSCRIPT" && exit 0
-
-# --- and the sub-agents' own transcripts -------------------------------------
-#
-# THE FALSE NEGATIVE THAT MADE THIS GATE UNRUNNABLE FOR SUB-AGENTS.
-#
-# A tool call made by a sub-agent arrives here carrying the PARENT's identity:
-# measured on 2026-09-13 by logging the raw hook input while a sub-agent wrote a
-# .css file, the payload came back with the parent's `session_id` (16d8b94c…)
-# and the parent's `transcript_path`, and the parent transcript holds ZERO
-# entries from the sub-agent — `isSidechain` lines are not written there. The
-# sub-agent's messages live in a separate file:
-#
-#   <projects>/<slug>/<session-id>/subagents/agent-<id>.jsonl
-#
-# So a sub-agent could emit a perfect checklist and this gate would still deny
-# every UI edit it attempted, forever. That is worse than not gating at all: a
-# rule that cannot be satisfied gets routed around, and it was — three writers
-# in one day reached for DESIGN_PIPELINE_OFF or edited through Bash, which this
-# hook does not intercept. Each of them declared it, which is the only reason it
-# was caught. The next one might not.
-#
-# Scanning every sub-agent transcript of this session — rather than trying to
-# guess WHICH sub-agent is calling — is deliberate, and it does not loosen the
-# rule. The gate has always been session-scoped: one checklist from the main
-# thread opens it for the rest of the session, exactly as CLAUDE.md describes
-# ("you may cache skill directives ONCE per session"). Sub-agents of that
-# session are part of the same run. The alternative — matching the calling agent
-# — is not available: the payload carries no agent id, and PreToolUse fires
-# BEFORE the call is written to any transcript, so there is nothing to correlate
-# `tool_use_id` against.
-SUBAGENTES="${TRANSCRIPT%.jsonl}/subagents"
-if [ -d "$SUBAGENTES" ]; then
-  for t in "$SUBAGENTES"/*.jsonl; do
-    emitted_in "$t" && exit 0
-  done
+DESIGN="$ROOT/.agents/DESIGN.md"
+if [ -f "$DESIGN" ]; then
+  OUT="$(printf '%s' "$ROOT" | "${SHA[@]}" - "$DESIGN" 2>/dev/null)"
+else
+  OUT="$(printf '%s' "$ROOT" | "${SHA[@]}" - 2>/dev/null)"
+fi
+KEY="${OUT%% *}"
+[ -n "$KEY" ] || exit 0
+DHASH=""
+if [ -f "$DESIGN" ]; then
+  rest="${OUT#*$'\n'}"
+  DHASH="${rest%% *}"
 fi
 
-# --- deny --------------------------------------------------------------------
-# The reason has to teach, not just refuse. A bare "denied" sends the model
-# looking for a way around the gate; naming the pipeline makes running it the
-# obvious next move.
-REASON="Blocked: $BASE is a UI surface and the design pipeline has not run in this session.
+# --- read the marker -----------------------------------------------------------
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/design-gate"
+WHY="no design-ack for this project yet"
+M_EPOCH="" M_HASH=""
+if [ -f "$CACHE/$KEY" ]; then
+  while IFS='=' read -r k v; do
+    case "$k" in
+      epoch) M_EPOCH="$v" ;;
+      design_sha1) M_HASH="$v" ;;
+    esac
+  done <"$CACHE/$KEY"
 
-Before editing it, invoke the design-pipeline skill and emit its checklist:
+  TTL="${DESIGN_ACK_TTL:-14400}"
+  case "$TTL" in '' | *[!0-9]*) TTL=14400 ;; esac
+  NOW="${EPOCHSECONDS:-}"
+  [ -n "$NOW" ] || NOW="$(date +%s)"
 
-  0. laws-of-ux    -> which of the 30 Laws of UX govern THIS surface, and the
-                      number each one forces (Hick caps the option count, Fitts
-                      the target size, Jakob whether a novel pattern is allowed).
-  1. direction     -> the .agents/DESIGN.md section that settles it, or the
-                      ui-ux-pro-max / design-shotgun outcome if it is still open.
-                      DESIGN.md outranks your default taste; read it first.
-  2. gates         -> which design-gates checks will run once the code exists.
+  case "$M_EPOCH" in
+    '' | *[!0-9]*) WHY="the design-ack marker is unreadable" ;;
+    *)
+      if [ $((NOW - M_EPOCH)) -gt "$TTL" ]; then
+        WHY="the last design-ack is older than $((TTL / 60)) min"
+      elif [ "$M_HASH" != "$DHASH" ]; then
+        WHY=".agents/DESIGN.md changed since the last design-ack"
+      else
+        # Allowed. Stamp the session so the Stop hook knows a UI file changed.
+        [ -n "$SID" ] && printf '%s' "$ROOT" >"$CACHE/ui-edited.$SID" 2>/dev/null
+        exit 0
+      fi
+      ;;
+  esac
+fi
 
-Name real content in each line. The skill names alone do not count, and the
-template placeholders are rejected.
-
-After the edit, run the gates and report their real output as [design-audit].
-A gate you did not run is reported as not run, never as a pass.
-
-To bypass deliberately, set DESIGN_PIPELINE_OFF=1."
-
-jq -n --arg reason "$REASON" '{
-  hookSpecificOutput: {
-    hookEventName: "PreToolUse",
-    permissionDecision: "deny",
-    permissionDecisionReason: $reason
-  }
-}'
+# --- deny ----------------------------------------------------------------------
+# One line, and it teaches: a bare "denied" sends the model looking for a way
+# around the gate; naming the next command makes running it the obvious move.
+NAME="${BASE//[\"\\]/_}"
+printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Blocked: %s is a UI surface and %s. Do the design pipeline (invoke the design-pipeline skill if you have not: laws of UX, direction from .agents/DESIGN.md, gates), then run `design-ack <surface>` and retry."}}\n' "$NAME" "$WHY"

@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# design-ack <surface> — record that the design pipeline was done for this project.
+#
+# Writes ${XDG_CACHE_HOME:-~/.cache}/design-gate/<sha1 of project root>, which the
+# PreToolUse gate (config/claude/hooks/design-pipeline-gate.sh) and the OpenCode
+# plugin read: a UI edit is allowed while the marker is younger than
+# DESIGN_ACK_TTL seconds (default 4 h) and .agents/DESIGN.md still hashes the same.
+# Project root = git toplevel of cwd, else cwd (physical path).
+#
+# Tests: tests/design-pipeline.test.sh
+set -euo pipefail
+
+surface="${1:-}"
+if [ -z "$surface" ]; then
+  echo "usage: design-ack <surface>   e.g. design-ack pricing-table" >&2
+  exit 2
+fi
+
+root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+[ -n "$root" ] || root="$(pwd -P)"
+root="$(cd "$root" && pwd -P)"
+
+sha1() {
+  if command -v sha1sum >/dev/null 2>&1; then sha1sum
+  elif command -v shasum >/dev/null 2>&1; then shasum -a 1
+  else openssl sha1 -r; fi
+}
+first() { local o; o="$(sha1)"; printf '%s' "${o%% *}"; }
+
+key="$(printf '%s' "$root" | first)"
+design="$root/.agents/DESIGN.md"
+dhash=""
+[ -f "$design" ] && dhash="$(first <"$design")"
+
+dir="${XDG_CACHE_HOME:-$HOME/.cache}/design-gate"
+mkdir -p "$dir"
+{
+  printf 'surface=%s\n' "$surface"
+  printf 'epoch=%s\n' "$(date +%s)"
+  printf 'design_sha1=%s\n' "$dhash"
+} >"$dir/$key"
+
+if [ -n "$dhash" ]; then dnote=".agents/DESIGN.md (hash locked in)"; else dnote="no .agents/DESIGN.md yet - create it with the first decision"; fi
+ttl="${DESIGN_ACK_TTL:-14400}"
+cat <<MSG
+design-ack: $surface recorded for $root (valid $((ttl / 60)) min, until DESIGN.md changes)
+Pipeline, in order:
+  1. laws       - which Laws of UX govern this surface and the number each forces (laws-of-ux)
+  2. direction  - $dnote; it outranks default taste
+  3. gates      - after the code: design-gates (contrast, hardcodes, overflow) and
+                  shot.mjs for 390/768/1440 renders; quote real output, unrun = "not run"
+MSG

@@ -1,28 +1,22 @@
 #!/usr/bin/env bash
-# Tests for the design-pipeline gate.
+# Tests for the design-pipeline gate and its `design-ack` marker.
 #
-# The 4-skill design pipeline in config/claude/CLAUDE.md declares itself "STRICT"
-# and "BLOCKING", but for months nothing blocked: it was prose inside ~42 KB of
-# always-on instructions, competing with an orchestrator that pushes the
-# opposite way ("delegate ALL real work to sub-agents" — and sub-agents start
-# with a clean context, without the checklist). A rule that cannot deny an edit
-# is a reminder, not a gate.
+# History: the gate used to scan the session transcript for a filled
+# [design-pipeline] checklist. Measured over 60 days that denied edits 229
+# times in 53 sessions: the checklist vanished after compaction and never
+# existed in a sub-agent transcript, and every call paid for a jq scan of a
+# transcript that grows (20 ms for a non-UI edit, 130 ms for a UI edit).
 #
-# This suite covers the piece that turns it into a real gate: a PreToolUse hook
-# that denies Edit/Write on a UI surface until the [design-pipeline] checklist
-# has actually been emitted in the session.
-#
-# The discriminator is the interesting part. CLAUDE.md itself contains the
-# literal string "[design-pipeline]" as a template, and CLAUDE.md is fed into
-# every session — so a naive grep over the transcript matches on turn one and
-# the gate is open forever. The hook therefore reads ONLY assistant-authored
-# text (type=="assistant") and rejects the unfilled template. Tests 8 and 9
-# below are that claim; if they ever go green for the wrong reason, the gate is
-# decorative again.
+# The gate now reads a MARKER instead: `design-ack <surface>` writes
+# ${XDG_CACHE_HOME:-~/.cache}/design-gate/<sha1 of project root> after the
+# pipeline has been done, and the hook allows a UI edit while that marker is
+# fresh (4 h) and .agents/DESIGN.md still hashes the same. The marker is per
+# project, so sub-agents and post-compaction turns work with no transcript.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOOK="$REPO/config/claude/hooks/design-pipeline-gate.sh"
+ACK="$REPO/shared/skills/design-pipeline/scripts/design-ack"
 SETTINGS="$REPO/config/claude/settings.json"
 
 pass=0
@@ -38,237 +32,175 @@ TMP="$(mktemp -d)"
 cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT
 
-# --- fixtures ----------------------------------------------------------------
+export XDG_CACHE_HOME="$TMP/cache"
+unset DESIGN_PIPELINE_OFF DESIGN_ACK_TTL
 
-# A transcript line carrying assistant-authored text.
-assistant_line() {
-  jq -cn --arg t "$1" \
-    '{type:"assistant", message:{role:"assistant", content:[{type:"text", text:$t}]}}'
-}
+# --- helpers -----------------------------------------------------------------
 
-# A transcript line carrying user-authored text. CLAUDE.md and system reminders
-# reach the transcript this way, which is exactly what must NOT open the gate.
-user_line() {
-  jq -cn --arg t "$1" \
-    '{type:"user", message:{role:"user", content:[{type:"text", text:$t}]}}'
-}
+sha_of() { local o; o="$(printf '%s' "$1" | shasum -a 1)"; printf '%s' "${o%% *}"; }
 
-FILLED_CHECKLIST='[design-pipeline]
-0. laws-of-ux    → laws: Hick (5 nav items max), Fitts (44px targets), Von Restorff (one accent)
-1. direction     → DESIGN.md §2 tokens; Inter/Fraunces, 8pt scale, bento grid
-2. gates         → contrast on the new accent pair, hardcodes on Button.tsx'
+# Marker path for a project, computed independently of the code under test.
+marker_for() { printf '%s/design-gate/%s' "$XDG_CACHE_HOME" "$(sha_of "$(cd "$1" && pwd -P)")"; }
 
-# The unfilled template, verbatim from CLAUDE.md. Must never count as a run.
-TEMPLATE_CHECKLIST='[design-pipeline]
-0. laws-of-ux    → laws: <which laws govern this surface, with the number each forces>
-1. direction     → <DESIGN.md section, or ui-ux-pro-max/design-shotgun outcome>
-2. gates         → <which design-gates checks will run after the code exists>'
-
-mk_transcript() { # $1 = out path, rest = jsonl lines
-  local out="$1"; shift
-  : >"$out"
-  for line in "$@"; do printf '%s\n' "$line" >>"$out"; done
-}
+ack() { (cd "$1" && "$ACK" "${2:-component}" >/dev/null 2>&1); }
 
 # Feed the hook a PreToolUse payload and print its stdout.
-run_hook() { # $1 = tool_name, $2 = file_path, $3 = transcript_path, $4 = cwd
-  jq -cn \
-    --arg tool "$1" --arg fp "$2" --arg tp "$3" --arg cwd "$4" \
-    '{session_id:"test", transcript_path:$tp, cwd:$cwd,
+run_hook() { # $1 tool  $2 file  $3 cwd  [$4 transcript]  [$5 session]
+  jq -cn --arg tool "$1" --arg fp "$2" --arg cwd "$3" \
+    --arg tp "${4:-$TMP/transcript.jsonl}" --arg sid "${5:-sess-1}" \
+    '{session_id:$sid, transcript_path:$tp, cwd:$cwd,
       hook_event_name:"PreToolUse", tool_name:$tool, tool_input:{file_path:$fp}}' \
     | "$HOOK" 2>/dev/null
 }
 
-decision() { # reads hook stdout, prints the permission decision or "none"
-  local out="$1"
-  [ -z "$out" ] && { printf 'none'; return; }
-  printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "none"' 2>/dev/null || printf 'none'
+decision() {
+  [ -z "$1" ] && { printf 'none'; return; }
+  printf '%s' "$1" | jq -r '.hookSpecificOutput.permissionDecision // "none"' 2>/dev/null || printf 'none'
 }
 
-# --- the hook exists ---------------------------------------------------------
+# --- the pieces exist --------------------------------------------------------
 
 assert_eq "gate hook exists" "yes" "$([ -f "$HOOK" ] && echo yes || echo no)"
 assert_eq "gate hook is executable" "yes" "$([ -x "$HOOK" ] && echo yes || echo no)"
+assert_eq "design-ack exists" "yes" "$([ -f "$ACK" ] && echo yes || echo no)"
+assert_eq "design-ack is executable" "yes" "$([ -x "$ACK" ] && echo yes || echo no)"
 
 if [ ! -x "$HOOK" ]; then
   printf '\n%d passed, %d failed\n' "$pass" "$((fail + 1))"
   exit 1
 fi
 
-# --- why there is no provisioning block here any more ----------------------
-# This suite used to assert that the hook symlinked a vendored `impeccable` into
-# each project, because that skill invoked `node .agents/skills/impeccable/
-# scripts/context.mjs` — a project-relative path against a global install — and
-# so raised "Cannot find module" in every repo.
-#
-# impeccable left the pipeline on 2026-09-19. The reason is worth keeping: a
-# search of the whole machine found zero PRODUCT.md files, and impeccable halts
-# on NO_PRODUCT_MD, so step 3 of five had aborted in every project for as long
-# as it was installed and nothing surfaced it. That is the failure mode of a
-# pipeline built on self-report — it has no way to report that a step never ran.
-# The gates in tests/design-gates.test.sh replace it with something that exits
-# non-zero.
+# --- design-ack --------------------------------------------------------------
 
-PROJ="$TMP/proj"
-mkdir -p "$PROJ"
+P1="$TMP/p1"; mkdir -p "$P1/src" "$P1/.agents"
+printf '# DESIGN\n' >"$P1/.agents/DESIGN.md"
+ACK_OUT="$(cd "$P1" && "$ACK" dashboard 2>&1)"
+M1="$(marker_for "$P1")"
+
+assert_eq "design-ack writes the project marker" "yes" "$([ -f "$M1" ] && echo yes || echo no)"
+assert_eq "marker records the surface" "yes" \
+  "$(rg -q '^surface=dashboard$' "$M1" 2>/dev/null && echo yes || echo no)"
+assert_eq "marker records an epoch time" "yes" \
+  "$(rg -q '^epoch=[0-9]{10}$' "$M1" 2>/dev/null && echo yes || echo no)"
+assert_eq "marker records the DESIGN.md sha1" "$(sha_of_file() { local o; o="$(shasum -a 1 "$1")"; printf '%s' "${o%% *}"; }; sha_of_file "$P1/.agents/DESIGN.md")" \
+  "$(rg -o '^design_sha1=([0-9a-f]{40})$' -r '$1' "$M1" 2>/dev/null)"
+for word in laws direction gates; do
+  assert_eq "design-ack reminder names $word" "yes" \
+    "$(printf '%s' "$ACK_OUT" | rg -qi -- "$word" && echo yes || echo no)"
+done
+assert_eq "design-ack without a surface fails" "yes" \
+  "$( (cd "$P1" && "$ACK" >/dev/null 2>&1) && echo no || echo yes)"
+
+# The project root is the git toplevel of cwd, not cwd itself.
+P2="$TMP/p2"; mkdir -p "$P2/src/deep"
+git -C "$P2" init -q
+(cd "$P2/src/deep" && "$ACK" card >/dev/null 2>&1)
+assert_eq "design-ack from a subdirectory marks the git toplevel" "yes" \
+  "$([ -f "$(marker_for "$(git -C "$P2" rev-parse --show-toplevel)")" ] && echo yes || echo no)"
 
 # --- enforcement -------------------------------------------------------------
 
-EMPTY="$TMP/empty.jsonl"
-mk_transcript "$EMPTY" "$(assistant_line 'just talking about the weather')"
+P3="$TMP/p3"; mkdir -p "$P3/src"
 
-GREEN="$TMP/green.jsonl"
-mk_transcript "$GREEN" "$(assistant_line "$FILLED_CHECKLIST")"
+assert_eq "UI file with no marker is denied" "deny" \
+  "$(decision "$(run_hook Edit "$P3/src/Button.tsx" "$P3")")"
 
-USERONLY="$TMP/useronly.jsonl"
-mk_transcript "$USERONLY" "$(user_line "$FILLED_CHECKLIST")"
+ack "$P3"
+assert_eq "UI file with a fresh marker is allowed" "none" \
+  "$(decision "$(run_hook Edit "$P3/src/Button.tsx" "$P3")")"
+assert_eq "a stylesheet is covered by the same marker" "none" \
+  "$(decision "$(run_hook Write "$P3/src/app.css" "$P3")")"
 
-TEMPLATE="$TMP/template.jsonl"
-mk_transcript "$TEMPLATE" "$(assistant_line "$TEMPLATE_CHECKLIST")"
+# stale: rewrite the epoch to five hours ago (TTL default is four).
+M3="$(marker_for "$P3")"
+now="$(date +%s)"
+sd '^epoch=.*$' "epoch=$((now - 18000))" "$M3"
+assert_eq "a marker older than 4 hours is denied" "deny" \
+  "$(decision "$(run_hook Edit "$P3/src/Button.tsx" "$P3")")"
+assert_eq "DESIGN_ACK_TTL can lengthen the window" "none" \
+  "$(DESIGN_ACK_TTL=86400 decision "$(DESIGN_ACK_TTL=86400 run_hook Edit "$P3/src/Button.tsx" "$P3")")"
+sd '^epoch=.*$' "epoch=$((now - 30))" "$M3"
+assert_eq "DESIGN_ACK_TTL can shorten the window" "deny" \
+  "$(decision "$(DESIGN_ACK_TTL=5 run_hook Edit "$P3/src/Button.tsx" "$P3")")"
 
-assert_eq "UI file with no checklist is denied" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$EMPTY" "$PROJ")")"
+# DESIGN.md edited after the ack means the direction changed under the code.
+P4="$TMP/p4"; mkdir -p "$P4/src" "$P4/.agents"
+printf 'tokens v1\n' >"$P4/.agents/DESIGN.md"
+ack "$P4"
+assert_eq "an unchanged DESIGN.md keeps the marker valid" "none" \
+  "$(decision "$(run_hook Edit "$P4/src/Button.tsx" "$P4")")"
+printf 'tokens v2\n' >"$P4/.agents/DESIGN.md"
+assert_eq "DESIGN.md changed after the ack is denied" "deny" \
+  "$(decision "$(run_hook Edit "$P4/src/Button.tsx" "$P4")")"
+ack "$P4"
+assert_eq "re-running design-ack reopens the gate" "none" \
+  "$(decision "$(run_hook Edit "$P4/src/Button.tsx" "$P4")")"
 
-assert_eq "UI file with an emitted checklist is allowed" "none" \
-  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$GREEN" "$PROJ")")"
+# The marker is per project: acking p3 says nothing about p5.
+P5="$TMP/p5"; mkdir -p "$P5/src"
+sd '^epoch=.*$' "epoch=$(date +%s)" "$M3"
+assert_eq "another project's marker does not open this one" "deny" \
+  "$(decision "$(run_hook Edit "$P5/src/Button.tsx" "$P5")")"
 
-# The discriminator. CLAUDE.md reaches the transcript as user-role content, so
-# matching on it would open the gate on turn one of every session.
-assert_eq "checklist in a USER message does not open the gate" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$USERONLY" "$PROJ")")"
+# A sub-agent call carries another transcript (or none at all); the marker is
+# all that matters, which is why sub-agents work with no special case.
+assert_eq "a sub-agent style call with another transcript is allowed" "none" \
+  "$(decision "$(run_hook Edit "$P3/src/Button.tsx" "$P3" "$TMP/agent-xyz/subagents/agent-1.jsonl" other-session)")"
+assert_eq "a call with a missing transcript is allowed too" "none" \
+  "$(decision "$(run_hook Edit "$P3/src/Button.tsx" "$P3" "/nonexistent/t.jsonl")")"
 
-# Echoing the template back with its <placeholders> intact is not a run.
-assert_eq "the unfilled CLAUDE.md template does not open the gate" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$TEMPLATE" "$PROJ")")"
+# --- what is not a design surface --------------------------------------------
 
-assert_eq "a stylesheet is a UI surface" "deny" \
-  "$(decision "$(run_hook Write "$PROJ/src/app.css" "$EMPTY" "$PROJ")")"
-
-# Caught live, against this repo's own transcript: the first version of the gate
-# matched on the marker alone, so the DIAGNOSTIC PROSE that explained why the
-# pipeline was broken opened it. Talking about the pipeline is not running it —
-# and talking about it is common, which makes this the likeliest way the gate
-# rots back into decoration. A run must carry the checklist's STRUCTURE: the
-# marker plus all four numbered skill lines.
-PROSE="$(cat <<'EOF'
-The [design-pipeline] block is what CLAUDE.md asks for. It chains
-frontend-design, then ui-ux-pro-max, then impeccable, and finally
-design-motion-principles. Nothing enforced it, so it never ran.
-EOF
-)"
-PROSEJSONL="$TMP/prose.jsonl"
-mk_transcript "$PROSEJSONL" "$(assistant_line "$PROSE")"
-assert_eq "prose ABOUT the pipeline does not count as running it" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$PROSEJSONL" "$PROJ")")"
-
-# A checklist missing a step is not a completed pipeline either.
-PARTIAL="$(cat <<'EOF'
-[design-pipeline]
-1. frontend-design   → intent: editorial, high-contrast
-2. ui-ux-pro-max     → references: Inter/Fraunces, 8pt scale
-EOF
-)"
-PARTIALJSONL="$TMP/partial.jsonl"
-mk_transcript "$PARTIALJSONL" "$(assistant_line "$PARTIAL")"
-assert_eq "a checklist missing steps 3 and 4 is denied" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$PARTIALJSONL" "$PROJ")")"
-
-# --- step 0: the Laws of UX ---------------------------------------------------
-# The 30 laws at lawsofux.com are constraints, not inspiration, so they are
-# resolved BEFORE art direction rather than checked afterwards: Hick's Law caps
-# how many nav items the direction may propose, Fitts's Law sets the minimum
-# target size, Jakob's Law decides whether a novel pattern is even allowed.
-# Running them after step 1 means discovering the direction was illegal once it
-# already exists — which is when it stops getting fixed.
-#
-# A four-line checklist is therefore the PRE-laws pipeline, and it has to be
-# denied, or every checklist written before this change keeps opening the gate
-# and step 0 is decoration on arrival.
-LEGACY="$(cat <<'EOF'
-[design-pipeline]
-1. frontend-design   → intent: editorial, high-contrast, no gradients
-2. ui-ux-pro-max     → references: Inter/Fraunces, 8pt scale, bento grid
-2.5 design-shotgun   → direction already set in DESIGN.md
-3. impeccable        → output director engaged
-4. design-motion-principles → motion plan: 180ms ease-out on hover only
-EOF
-)"
-
-# The five-step advisory form is legacy too: impeccable and frontend-design are
-# no longer in the pipeline, so a checklist naming them describes a run that
-# cannot have happened.
-FIVESTEP="$(cat <<'EOF'
-[design-pipeline]
-0. laws-of-ux        → laws: Hick (5 nav items), Fitts (44px)
-1. frontend-design   → intent: editorial, high-contrast
-2. ui-ux-pro-max     → references: Inter, 8pt scale
-3. impeccable        → output director engaged
-4. design-motion-principles → motion plan: 180ms ease-out
-EOF
-)"
-FIVEJSONL="$TMP/fivestep.jsonl"
-mk_transcript "$FIVEJSONL" "$(assistant_line "$FIVESTEP")"
-assert_eq "the old five-step checklist no longer opens the gate" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$FIVEJSONL" "$PROJ")")"
-LEGACYJSONL="$TMP/legacy.jsonl"
-mk_transcript "$LEGACYJSONL" "$(assistant_line "$LEGACY")"
-assert_eq "a checklist without step 0 laws-of-ux is denied" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$LEGACYJSONL" "$PROJ")")"
-
-# The placeholder must be rejected for step 0 exactly as it is for steps 1, 2
-# and 4 — naming the step without naming the laws is the template echoed back.
-LAWS_TPL="$(cat <<'EOF'
-[design-pipeline]
-0. laws-of-ux    → laws: <which laws govern this surface, with the number each forces>
-1. direction     → DESIGN.md §2 tokens
-2. gates         → contrast on the accent pair
-EOF
-)"
-LAWSTPLJSONL="$TMP/laws-template.jsonl"
-mk_transcript "$LAWSTPLJSONL" "$(assistant_line "$LAWS_TPL")"
-assert_eq "an unfilled step 0 does not open the gate" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$LAWSTPLJSONL" "$PROJ")")"
-
-assert_eq "non-UI source is untouched" "none" \
-  "$(decision "$(run_hook Edit "$PROJ/main.go" "$EMPTY" "$PROJ")")"
-
-# A .test.tsx asserts behaviour; it is not a design surface, and blocking it
-# would put the gate in direct conflict with the strict-TDD rule that demands
-# the test be written FIRST — before any pipeline has run.
-assert_eq "component tests are not design surfaces" "none" \
-  "$(decision "$(run_hook Write "$PROJ/src/Button.test.tsx" "$EMPTY" "$PROJ")")"
-
-assert_eq "spec files are not design surfaces" "none" \
-  "$(decision "$(run_hook Write "$PROJ/src/Button.spec.tsx" "$EMPTY" "$PROJ")")"
-
-assert_eq "tools other than Edit/Write pass through" "none" \
-  "$(decision "$(run_hook Bash "$PROJ/src/Button.tsx" "$EMPTY" "$PROJ")")"
-
-# --- fail-open paths ---------------------------------------------------------
-# A gate that hard-fails when its inputs are missing takes the whole session
-# down with it. Missing transcript means "cannot know", not "deny".
-
-assert_eq "a missing transcript fails open" "none" \
-  "$(decision "$(run_hook Edit "$PROJ/src/Button.tsx" "$TMP/does-not-exist.jsonl" "$PROJ")")"
-
-assert_eq "an override env var fails open" "none" \
-  "$(DESIGN_PIPELINE_OFF=1 decision "$(DESIGN_PIPELINE_OFF=1 run_hook Edit "$PROJ/src/Button.tsx" "$EMPTY" "$PROJ")")"
-
-# --- the denial has to teach ------------------------------------------------
-# A bare "denied" sends the model looking for a way around the gate. The reason
-# has to name the pipeline so the next action is to run it.
-DENY_REASON="$(run_hook Edit "$PROJ/src/Button.tsx" "$EMPTY" "$PROJ" \
-  | jq -r '.hookSpecificOutput.permissionDecisionReason // ""')"
-for skill in laws-of-ux design-gates DESIGN.md; do
-  assert_eq "denial reason names $skill" "yes" \
-    "$(printf '%s' "$DENY_REASON" | rg -q -- "$skill" && echo yes || echo no)"
+assert_eq "non-UI source with no marker is allowed" "none" \
+  "$(decision "$(run_hook Edit "$P5/main.go" "$P5")")"
+for f in src/Button.test.tsx src/Button.spec.tsx src/__tests__/Button.tsx node_modules/x/y.css; do
+  assert_eq "exempt path $f is allowed with no marker" "none" \
+    "$(decision "$(run_hook Write "$P5/$f" "$P5")")"
 done
-assert_eq "denial reason names the override" "yes" \
-  "$(printf '%s' "$DENY_REASON" | rg -q -- 'DESIGN_PIPELINE_OFF' && echo yes || echo no)"
+assert_eq "tools other than Edit/Write pass through" "none" \
+  "$(decision "$(run_hook Bash "$P5/src/Button.tsx" "$P5")")"
+
+# A non-UI edit must exit before spawning anything: with an empty PATH there is
+# no jq, no git, no hash tool, so only bash builtins can have run.
+NONUI_JSON="$(jq -cn --arg fp "$P5/main.go" '{tool_name:"Edit",tool_input:{file_path:$fp},cwd:"/x"}')"
+EMPTY_PATH_OUT="$(printf '%s' "$NONUI_JSON" | PATH=/nonexistent "$(command -v bash)" "$HOOK" 2>&1; echo "rc=$?")"
+assert_eq "a non-UI edit runs on bash builtins alone" "rc=0" "$EMPTY_PATH_OUT"
+
+# --- bypass and fail-open ----------------------------------------------------
+
+assert_eq "DESIGN_PIPELINE_OFF bypasses the gate" "none" \
+  "$(decision "$(DESIGN_PIPELINE_OFF=1 run_hook Edit "$P5/src/Button.tsx" "$P5")")"
+
+for bad in '' 'not json at all' '{"tool_name":"Edit","tool_input":{"file_path":' '{"tool_name":"Edit"}' '{}'; do
+  out="$(printf '%s' "$bad" | "$HOOK" 2>/dev/null; echo "rc=$?")"
+  assert_eq "malformed stdin fails open: ${bad:-<empty>}" "rc=0" "$out"
+done
+
+# --- the ui-edited stamp the Stop hook reads ---------------------------------
+
+STAMP="$XDG_CACHE_HOME/design-gate/ui-edited.sess-stamp"
+rm -f "$STAMP"
+run_hook Edit "$P5/src/Button.tsx" "$P5" "" sess-stamp >/dev/null
+assert_eq "a denied UI edit leaves no stamp" "no" "$([ -e "$STAMP" ] && echo yes || echo no)"
+run_hook Edit "$P5/main.go" "$P5" "" sess-stamp >/dev/null
+assert_eq "a non-UI edit leaves no stamp" "no" "$([ -e "$STAMP" ] && echo yes || echo no)"
+run_hook Edit "$P3/src/Button.tsx" "$P3" "" sess-stamp >/dev/null
+assert_eq "an allowed UI edit stamps the session" "yes" "$([ -e "$STAMP" ] && echo yes || echo no)"
+assert_eq "the stamp names the project root" "$(cd "$P3" && pwd -P)" "$(<"$STAMP")"
+
+# --- the denial has to teach, in one line ------------------------------------
+
+DENY="$(run_hook Edit "$P5/src/Button.tsx" "$P5")"
+REASON="$(printf '%s' "$DENY" | jq -r '.hookSpecificOutput.permissionDecisionReason // ""')"
+assert_eq "denial reason names design-ack" "yes" \
+  "$(printf '%s' "$REASON" | rg -q -- 'design-ack <surface>' && echo yes || echo no)"
+assert_eq "denial reason names the design-pipeline skill" "yes" \
+  "$(printf '%s' "$REASON" | rg -q -- 'design-pipeline' && echo yes || echo no)"
+assert_eq "denial reason is a single line" "1" "$(printf '%s\n' "$REASON" | wc -l | tr -d ' ')"
 
 # --- wiring ------------------------------------------------------------------
-# The hook is inert unless settings.json calls it. This is the assertion that
-# would have caught the original bug: the pipeline was declared but never wired.
+# The hook is inert unless settings.json calls it, and design-ack is inert
+# unless the installer links it onto PATH.
 
 assert_eq "settings.json wires the gate as a PreToolUse hook" "yes" \
   "$(jq -e '.hooks.PreToolUse[]?.hooks[]?.command | select(test("design-pipeline-gate"))' \
@@ -279,115 +211,18 @@ assert_eq "the gate matches Edit and Write" "yes" \
             | .matcher | select(test("Edit") and test("Write"))' \
       "$SETTINGS" >/dev/null 2>&1 && echo yes || echo no)"
 
+assert_eq "install.manifest links design-ack onto PATH" "yes" \
+  "$(rg -q '^shared/skills/design-pipeline/scripts/design-ack\s+\.local/bin/design-ack$' "$REPO/install.manifest" \
+      && echo yes || echo no)"
+
 # --- the colliding plugin ----------------------------------------------------
 # bencium-innovative-ux-designer ships a description that is a word-for-word
-# subset of frontend-design's. Two skills competing for step 1 of the pipeline
-# make the step ambiguous by construction, which is the same failure mode the
-# gstack section of CLAUDE.md rejects nine other skill families for.
+# subset of frontend-design's. Two skills competing for one pipeline step make
+# the step ambiguous by construction.
 
 assert_eq "the bencium UX plugin is not enabled" "no" \
   "$(jq -r '.enabledPlugins["bencium-innovative-ux-designer@bencium-marketplace"] // false' \
       "$SETTINGS" | rg -q '^true$' && echo yes || echo no)"
-
-# --- sub-agents ---------------------------------------------------------------
-# The false negative that made this gate unrunnable for exactly the population
-# it was written for.
-#
-# CLAUDE.md's own rationale for the gate names sub-agents as the reason it
-# exists: "sub-agents start with a clean context, without the checklist". But a
-# tool call made by a sub-agent arrives at the hook carrying the PARENT's
-# identity — measured 2026-09-13 by logging the raw payload while a sub-agent
-# wrote a .css file: parent `session_id`, parent `transcript_path`. And the
-# parent transcript holds none of the sub-agent's messages; those live in
-# <transcript-without-.jsonl>/subagents/agent-<id>.jsonl.
-#
-# So a sub-agent that ran the pipeline perfectly was denied anyway, every time,
-# forever. Three writers in one day hit it; each reached for DESIGN_PIPELINE_OFF
-# or edited through Bash (which this hook does not intercept) and declared it in
-# their report. Declaring it is the only reason it surfaced. A gate that cannot
-# be satisfied does not enforce a rule — it teaches people to route around it.
-#
-# These four tests are that claim. If the first goes red, the gate is back to
-# denying every sub-agent; if the last goes red, it has stopped discriminating
-# and any transcript on disk opens it.
-
-PROJ5="$TMP/proj5"
-mkdir -p "$PROJ5/src"
-SESION="$TMP/sesion-con-subagentes.jsonl"
-SUBS="$TMP/sesion-con-subagentes/subagents"
-mkdir -p "$SUBS"
-
-# The parent did NOT run the pipeline; only the sub-agent doing the UI work did.
-mk_transcript "$SESION" "$(user_line 'sube el contraste de los botones')"
-mk_transcript "$SUBS/agent-aaa.jsonl" "$(assistant_line "$FILLED_CHECKLIST")"
-
-assert_eq "a sub-agent's checklist opens the gate" "none" \
-  "$(decision "$(run_hook Edit "$PROJ5/src/Button.tsx" "$SESION" "$PROJ5")")"
-
-# Same shape, but the sub-agent only echoed the template back.
-SESION2="$TMP/sesion-plantilla.jsonl"
-SUBS2="$TMP/sesion-plantilla/subagents"
-mkdir -p "$SUBS2"
-mk_transcript "$SESION2" "$(user_line 'sube el contraste de los botones')"
-mk_transcript "$SUBS2/agent-bbb.jsonl" "$(assistant_line "$TEMPLATE_CHECKLIST")"
-
-assert_eq "a sub-agent echoing the template does NOT open the gate" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ5/src/Button.tsx" "$SESION2" "$PROJ5")")"
-
-# And user-role content inside a sub-agent transcript is still not a run:
-# CLAUDE.md reaches sub-agents too, carrying the literal marker.
-SESION3="$TMP/sesion-usuario.jsonl"
-SUBS3="$TMP/sesion-usuario/subagents"
-mkdir -p "$SUBS3"
-mk_transcript "$SESION3" "$(user_line 'sube el contraste')"
-mk_transcript "$SUBS3/agent-ccc.jsonl" "$(user_line "$FILLED_CHECKLIST")"
-
-assert_eq "user-role text in a sub-agent transcript does NOT open the gate" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ5/src/Button.tsx" "$SESION3" "$PROJ5")")"
-
-# A session with no sub-agents at all must behave exactly as before: the
-# lookup is a fallback, not a new way in.
-SESION4="$TMP/sesion-sin-subagentes.jsonl"
-mk_transcript "$SESION4" "$(user_line 'sube el contraste')"
-
-assert_eq "no subagents directory leaves the gate denying" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ5/src/Button.tsx" "$SESION4" "$PROJ5")")"
-
-# --- checklists carried inside tool calls -------------------------------------
-# Measured 2026-10-05: some assistant text blocks never reach the transcript
-# (two checklists emitted as plain text in one session were absent from the
-# .jsonl while the text around them was saved), so a run that happened looked
-# like no run. Tool calls are always persisted, and a checklist the assistant
-# writes into a tool input (the brief of a sub-agent, for instance) is just as
-# assistant-authored. These tests pin both sides: the filled checklist inside a
-# tool_use input opens the gate; the template, or the same text in a
-# user-role tool_result, does not.
-
-tool_use_line() {
-  jq -cn --arg t "$1" \
-    '{type:"assistant", message:{role:"assistant", content:[{type:"tool_use", name:"Agent", input:{prompt:$t}}]}}'
-}
-tool_result_line() {
-  jq -cn --arg t "$1" \
-    '{type:"user", message:{role:"user", content:[{type:"tool_result", content:$t}]}}'
-}
-
-PROJ6="$TMP/proj6"
-mkdir -p "$PROJ6/src"
-TOOLUSE="$TMP/tooluse.jsonl"
-mk_transcript "$TOOLUSE" "$(tool_use_line "Brief for the writer. $FILLED_CHECKLIST")"
-assert_eq "a filled checklist inside a tool_use input opens the gate" "none" \
-  "$(decision "$(run_hook Edit "$PROJ6/src/Button.tsx" "$TOOLUSE" "$PROJ6")")"
-
-TOOLUSE_TPL="$TMP/tooluse-template.jsonl"
-mk_transcript "$TOOLUSE_TPL" "$(tool_use_line "$TEMPLATE_CHECKLIST")"
-assert_eq "the template inside a tool_use input does not open the gate" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ6/src/Button.tsx" "$TOOLUSE_TPL" "$PROJ6")")"
-
-TOOLRESULT="$TMP/toolresult.jsonl"
-mk_transcript "$TOOLRESULT" "$(tool_result_line "$FILLED_CHECKLIST")"
-assert_eq "a checklist in a tool_result (user role) does not open the gate" "deny" \
-  "$(decision "$(run_hook Edit "$PROJ6/src/Button.tsx" "$TOOLRESULT" "$PROJ6")")"
 
 # --- the skill step 0 invokes -------------------------------------------------
 # The gate can demand the line; only the skill makes the line mean something.
