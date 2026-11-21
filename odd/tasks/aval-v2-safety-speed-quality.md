@@ -17,6 +17,6 @@ and others (2026-11-21). Three parallel worktrees, merged by the coordinator.
 
 ## C — guarantees (branch feat/quality)
 - [x] `aval sync --check` wired into the pre-push hook
-- [ ] `aval doctor --security`: broad permissions, remote-exec hooks, inline MCP tokens
-- [ ] Fake-agent E2E for the hooks (no API keys)
-- [ ] `aval update --dry-run` + sha256 verification of downloaded binaries
+- [x] `aval doctor --security`: broad permissions, remote-exec hooks, inline MCP tokens
+- [x] Fake-agent E2E for the hooks (no API keys)
+- [x] `aval update --dry-run` + sha256 verification of downloaded binaries

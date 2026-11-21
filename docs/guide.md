@@ -116,7 +116,12 @@ instalación**: detecta el sistema, muestra solo lo que aplica y deja elegir qu�
 
 ```sh
 aval update
+aval update --dry-run   # fetch + qué rutas gestionadas y entradas del manifiesto cambiarían; no toca nada
 ```
+
+Con un árbol sucio, `update` (también con `--dry-run`) se niega y lo dice.
+El script de arranque por `curl` verifica el binario descargado contra el `SHA256SUMS` de la release
+antes de instalarlo o ejecutarlo; si no coincide, falta o no lista el binario, aborta sin instalar nada.
 
 Como los configs son **symlinks al repo**, el `git pull` ya actualiza todo lo enlazado.
 El re-enlazado posterior solo existe para lo que aún no tiene enlace: entradas nuevas del
@@ -164,7 +169,18 @@ aval doctor --json     # lo mismo como array JSON
 aval doctor --fix      # borra enlaces rotos y ejecuta sync
 aval sync --dry-run    # muestra qué claves cambiarían, no escribe nada
 aval sync              # aplica el cambio (copia previa en ~/.aval-backup/<fecha>/)
+aval sync --check      # solo lectura: sale con 1 e imprime qué ha derivado (claves, bloques de reglas)
+aval doctor --security # chequeos extra (también en --json), ver abajo
 ```
+
+`aval sync --check` se enlaza en `.githooks/pre-push` como **aviso** cuando el binario `aval` está
+disponible (no bloquea: otra máquina tiene otro `~/.claude`). `AVAL_PREPUSH_STRICT=1` lo vuelve bloqueante.
+
+`aval doctor --security` (apagado por defecto) falla o avisa con: `permissions.allow` demasiado amplio
+(`*`, `Bash`, `Bash(*)`), hooks que descargan y ejecutan código remoto (`curl ... | sh`; `npx -y pkg@latest` avisa),
+hooks que apuntan a scripts fuera del repo y de `~/.claude/hooks`, y servidores MCP (`~/.claude.json`, `.mcp.json`)
+con secretos literales en `env`/`args` (solo se imprime servidor y clave, nunca el valor). Para silenciar un chequeo:
+`aval doctor --security --allow <id>[:<sujeto>]` o una línea por id en `~/.config/aval/private/doctor-allow`.
 
 `doctor` es offline y de solo lectura: enlaces del manifiesto, enlaces rotos en los directorios de
 agentes, hooks del `settings.json` vivo (que existan, que no sean comandos retirados, que coincidan con el repo),
