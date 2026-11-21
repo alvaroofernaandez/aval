@@ -72,7 +72,7 @@ func run() error {
 		showVer   = flag.Bool("version", false, "print the version and exit")
 		forceCopy = flag.Bool("copy", false, "copy files instead of symlinking them")
 	)
-	flag.Parse()
+	_ = flag.CommandLine.Parse(hoistRepo(os.Args[1:])) // ExitOnError: never returns an error
 
 	if *showVer {
 		fmt.Print(currentBuild().text(runtime.GOOS, runtime.GOARCH))
