@@ -455,3 +455,12 @@ func syncLinks(opt Options) ([]LinkResult, error) {
 	}
 	return out, nil
 }
+
+// PrivateDir is where the private overlay lives: $AVAL_PRIVATE_DIR, else
+// ~/.config/aval/private. It is deliberately outside the repo.
+func PrivateDir(home string) string {
+	if d := os.Getenv("AVAL_PRIVATE_DIR"); d != "" {
+		return d
+	}
+	return filepath.Join(home, ".config", "aval", "private")
+}

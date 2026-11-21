@@ -401,3 +401,14 @@ func TestRunErrorsOnMissingLinkSource(t *testing.T) {
 		t.Error("expected an error for a link whose source is missing")
 	}
 }
+
+func TestPrivateDir(t *testing.T) {
+	t.Setenv("AVAL_PRIVATE_DIR", "")
+	if got, want := PrivateDir("/h"), filepath.Join("/h", ".config", "aval", "private"); got != want {
+		t.Errorf("default = %q, want %q", got, want)
+	}
+	t.Setenv("AVAL_PRIVATE_DIR", "/elsewhere")
+	if got := PrivateDir("/h"); got != "/elsewhere" {
+		t.Errorf("override = %q", got)
+	}
+}

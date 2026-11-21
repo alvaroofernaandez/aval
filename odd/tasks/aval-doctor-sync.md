@@ -6,10 +6,10 @@ without SKILL.md, live settings drifting from the repo, SDD leftovers in Codex
 and Gemini instructions, employer material that can't live in the public repo.
 
 ## T1 — `aval doctor [--fix] [--json]` (Go, < 1 s, offline)
-- [ ] Checks: manifest links, broken links in agent dirs, live hooks resolvable
+- [x] Checks: manifest links, broken links in agent dirs, live hooks resolvable
       and not retired, live hooks == repo hooks, agent model aliases, skills
       without SKILL.md / frontmatter, enabled plugins that are not installed
-- [ ] `--fix`: remove broken links, run sync; exit 1 on any failure
+- [x] `--fix`: remove broken links, run sync; exit 1 on any failure
 
 ## T2 — `aval sync [--dry-run]`
 - [x] Merge repo-managed keys into ~/.claude/settings.json, keep personal keys,

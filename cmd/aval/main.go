@@ -4,6 +4,8 @@
 //	aval            interactive TUI
 //	aval --dry-run  show what would happen, change nothing
 //	aval update     pull the repo, then re-apply
+//	aval doctor     check this machine against the repo (--fix, --json)
+//	aval sync       merge repo-managed settings into the live config (--dry-run)
 //	aval --version  print the version
 //
 // The non-interactive paths matter as much as the TUI: --yes makes it usable
@@ -13,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -37,7 +40,9 @@ var version = "dev"
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
+		if !errors.Is(err, errChecksFailed) {
+			fmt.Fprintln(os.Stderr, "error:", err)
+		}
 		os.Exit(1)
 	}
 }
@@ -64,6 +69,15 @@ func run() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("cannot determine home directory: %w", err)
+	}
+
+	// doctor and sync are offline and local, so they dispatch before the
+	// update notice: a health check must not wait on the network.
+	switch flag.Arg(0) {
+	case "doctor":
+		return runDoctor(repo, home, flag.Args()[1:], os.Stdout)
+	case "sync":
+		return runSync(repo, home, flag.Args()[1:], *dryRun, os.Stdout)
 	}
 
 	if flag.Arg(0) == "update" {
