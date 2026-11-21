@@ -51,10 +51,58 @@ if [ "${RESOLVE_ONLY:-}" = "1" ]; then
   exit 0
 fi
 
+# Platform and clipboard backend. PASTE_OS is a test seam; otherwise uname.
+OS="${PASTE_OS:-$(uname -s 2>/dev/null)}"
+
+# Which tool reads the clipboard. macOS has pbpaste in /usr/bin. On Linux the
+# session decides: Wayland (WAYLAND_DISPLAY set) wants wl-paste, because xclip
+# under XWayland only sees clipboards owned by X clients; X11 uses xclip, then
+# xsel. Nothing installed is reported as "none" and handled quietly.
+pick_backend() {
+  if [ "$OS" = "Darwin" ]; then
+    command -v pbpaste >/dev/null 2>&1 && { echo pbpaste; return; }
+    echo none; return
+  fi
+  if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wl-paste >/dev/null 2>&1; then
+    echo wl-paste; return
+  fi
+  command -v xclip >/dev/null 2>&1 && { echo xclip; return; }
+  command -v xsel  >/dev/null 2>&1 && { echo xsel;  return; }
+  echo none
+}
+BACKEND="$(pick_backend)"
+
+if [ "${CLIPBOARD_BACKEND_ONLY:-}" = "1" ]; then
+  printf '%s\n' "$BACKEND"
+  exit 0
+fi
+
+clip_read() {
+  case "$BACKEND" in
+    pbpaste)  pbpaste ;;
+    wl-paste) wl-paste --no-newline ;;
+    xclip)    xclip -selection clipboard -o ;;
+    xsel)     xsel -b -o ;;
+  esac
+}
+
+# The flavours the clipboard advertises. macOS: osascript's `clipboard info`.
+# Linux: the MIME/target list. xsel cannot list targets, so with xsel only the
+# text route is possible, which is also the safe default.
+clip_types() {
+  case "$BACKEND" in
+    wl-paste) wl-paste --list-types ;;
+    xclip)    xclip -selection clipboard -t TARGETS -o ;;
+    *)        : ;;
+  esac
+}
+
 if [ -n "${CLIPBOARD_INFO+x}" ]; then
   info="$CLIPBOARD_INFO"
-else
+elif [ "$OS" = "Darwin" ]; then
   info="$(osascript -e 'clipboard info' 2>/dev/null)"
+else
+  info="$(clip_types 2>/dev/null)"
 fi
 
 # Plain text wins whenever it is present. Copying from a browser or a word
@@ -63,9 +111,16 @@ fi
 # quoted-insert in zsh, so guessing "image" for ordinary text corrupts the
 # prompt line. Only a clipboard with no text at all — a screenshot — takes the
 # image path.
-if printf '%s' "$info" | grep -q 'class utxt'; then
+if [ "$OS" = "Darwin" ]; then
+  text_re='class utxt'
+  image_re='class PNGf|TIFF picture|GIF picture|JPEG picture|class BMP'
+else
+  text_re='^(text/|UTF8_STRING|STRING|TEXT)'
+  image_re='^image/'
+fi
+if printf '%s' "$info" | grep -qE "$text_re"; then
   route=text
-elif printf '%s' "$info" | grep -qE 'class PNGf|TIFF picture|GIF picture|JPEG picture|class BMP'; then
+elif printf '%s' "$info" | grep -qE "$image_re"; then
   route=image
 else
   route=text
@@ -85,6 +140,9 @@ if [ "$route" = "image" ]; then
   "$TMUX_RESOLVED" send-keys ${target:+-t "$target"} 0x16
 else
   # paste-buffer honours bracketed paste, which a raw send-keys would not.
-  "$TMUX_RESOLVED" set-buffer -- "$(pbpaste)" 2>/dev/null
+  # No clipboard tool (bare Linux box): do nothing, quietly, rather than paste
+  # an empty buffer over the user's tmux buffer or spam the pane with errors.
+  [ "$BACKEND" = "none" ] && exit 0
+  "$TMUX_RESOLVED" set-buffer -- "$(clip_read 2>/dev/null)" 2>/dev/null
   "$TMUX_RESOLVED" paste-buffer ${target:+-t "$target"} -p
 fi

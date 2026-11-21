@@ -104,5 +104,43 @@ assert_eq "resolves a real tmux when PATH does not provide one" "yes" \
   "$(bin="$(env -i PATH="$MINIMAL_PATH" HOME="$HOME" RESOLVE_ONLY=1 sh "$ROUTER" 2>/dev/null)"; \
      [ -n "$bin" ] && [ -x "$bin" ] && echo yes || echo no)"
 
+# --- Linux clipboard backend selection ---------------------------------------
+# CLIPBOARD_BACKEND_ONLY=1 prints the backend the router would use. Fake
+# binaries on a private PATH decide which tools "exist"; PASTE_OS and
+# WAYLAND_DISPLAY are injected so this runs on macOS.
+mkbin() { # mkbin <dir> <tool>...
+  d="$1"; shift; mkdir -p "$d"
+  for t in "$@"; do printf '#!/bin/sh\nexit 0\n' >"$d/$t"; chmod +x "$d/$t"; done
+}
+backend_for() { # backend_for <os> <wayland|""> <tool>...
+  os="$1"; wl="$2"; shift 2
+  bd="$(mktemp -d)"; mkbin "$bd" "$@"
+  env -i PATH="$bd:/usr/bin:/bin" HOME="$HOME" PASTE_OS="$os" \
+    ${wl:+WAYLAND_DISPLAY="$wl"} CLIPBOARD_BACKEND_ONLY=1 sh "$ROUTER" 2>/dev/null
+  rm -rf "$bd"
+}
+assert_eq "macOS uses pbpaste"                       "pbpaste"  "$(backend_for Darwin "" pbpaste wl-paste xclip)"
+assert_eq "linux+wayland prefers wl-paste"           "wl-paste" "$(backend_for Linux wayland-0 wl-paste xclip xsel)"
+assert_eq "linux without wayland skips wl-paste"     "xclip"    "$(backend_for Linux "" wl-paste xclip xsel)"
+assert_eq "linux falls back to xsel when no xclip"   "xsel"     "$(backend_for Linux "" xsel)"
+assert_eq "wayland session without wl-paste uses xclip" "xclip" "$(backend_for Linux wayland-0 xclip)"
+assert_eq "linux with no clipboard tool reports none" "none"    "$(backend_for Linux "" )"
+
+# Without a backend the text path must fail quietly: no stderr into the pane.
+nb="$(mktemp -d)"
+err="$(env -i PATH="$nb:/usr/bin:/bin" HOME="$HOME" PASTE_OS=Linux TMUX_BIN="$STUB" \
+  CLIPBOARD_INFO='' sh "$ROUTER" 2>&1 >/dev/null)"
+assert_eq "no clipboard tool: no error output" "" "$err"
+rm -rf "$nb"
+
+# Linux image detection comes from the advertised MIME types.
+img_route() { # CLIPBOARD_INFO substitutes the probe, as on macOS
+  CLIPBOARD_INFO="$1" PASTE_OS=Linux ROUTE_ONLY=1 sh "$ROUTER" 2>/dev/null; }
+assert_eq "linux: image/png alone routes to image"   "image" "$(img_route 'image/png')"
+assert_eq "linux: text/plain wins over image/png"    "text"  "$(img_route 'text/plain;charset=utf-8
+image/png')"
+assert_eq "linux: UTF8_STRING wins over image"       "text"  "$(img_route 'UTF8_STRING
+image/png')"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
