@@ -35,6 +35,6 @@ Decisions
       docker/design-refactor helpers), `docs/*.py`.
 - [x] T7 Shell test suite (`tests/*.test.sh`, `config/tmux/tests`) → `go test`;
       CI runs `go test ./...` only.
-- [ ] T8 Layout: final folder tree, root cleanup, README/docs updated.
+- [x] T8 Layout: final folder tree, root cleanup, README/docs updated.
 
 Each task: strict TDD, `go test ./...` green, one conventional commit. Never push.

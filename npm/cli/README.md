@@ -34,11 +34,17 @@ Existing files are never deleted. Anything in the way is moved to `~/.aval-backu
 
 ## Commands
 
+`aval` looks for `install.manifest`: run it inside a clone of the repository or pass `--repo <path>`.
+
 ```sh
 aval              # interactive TUI
 aval --dry-run    # show what would happen, change nothing
 aval --yes        # install everything applicable, no TUI
 aval update       # pull the repo and re-link what is new
+aval doctor       # check links, hooks, agents and settings (--fix, --json)
+aval sync         # merge repo-managed settings into ~/.claude/settings.json
+aval restore      # undo an install or sync from ~/.aval-backup
+aval uninstall    # remove aval's links and give back what they displaced
 aval --version
 ```
 
