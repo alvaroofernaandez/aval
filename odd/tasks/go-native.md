@@ -23,7 +23,7 @@ Decisions
 - [x] T2 OSS hygiene: `LICENSE` (MIT), `CONTRIBUTING.md`, `SECURITY.md`,
       `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/*`,
       `.github/PULL_REQUEST_TEMPLATE.md`, `.gitattributes`.
-- [ ] T3 `aval design gate` (contrast, hardcodes, tokens) in Go, replacing the
+- [x] T3 `aval design gate` (contrast, hardcodes, tokens) in Go, replacing the
       deleted design-gates scripts; `design-ack` as `aval design ack`.
 - [ ] T4 Claude hooks (`config/claude/hooks/*.sh`) → `aval hook <name>`;
       settings.json points at the binary.
