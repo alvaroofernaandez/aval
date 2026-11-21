@@ -188,32 +188,50 @@ def main():
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    images = {}
     for theme in THEMES:
-        (out / f"hero-{theme}.svg").write_text(hero.build(theme) + "\n")
-        (out / f"stack-{theme}.svg").write_text(stack(theme))
-        (out / f"mark-{theme}.svg").write_text(logo.mark(theme))
-        (out / f"wordmark-{theme}.svg").write_text(logo.wordmark(theme))
+        images[f"hero-{theme}"] = hero.build(theme) + "\n"
+        images[f"stack-{theme}"] = stack(theme)
+        images[f"mark-{theme}"] = logo.mark(theme)
+        images[f"wordmark-{theme}"] = logo.wordmark(theme)
+    names = write_assets(out, images)
 
     # Only the committed assets are referenced by the README.
     if out.resolve() == (HERE / "assets").resolve():
-        version_readme(HERE.parent / "README.md", out)
+        version_readme(HERE.parent / "README.md", names)
 
 
-def version_readme(readme, assets):
-    """Stamp every README asset URL with ?v=<sha256[:8]> of the file.
+def content_name(name, svg):
+    """<name>.<sha256[:8]>.svg — the hash is part of the path.
 
     GitHub serves README images with max-age=300, so an image regenerated
-    under an unchanged URL keeps showing the old version. Tying the URL to
-    the content makes a new image a new URL.
+    under an unchanged URL keeps showing the old version. A query string does
+    not help: github.com/<repo>/raw/... 302-redirects to raw.githubusercontent
+    and drops it. A content hash in the file name survives the redirect.
     """
+    return f"{name}.{hashlib.sha256(svg.encode()).hexdigest()[:8]}.svg"
+
+
+def write_assets(out, images):
+    """Write each image under its content name and delete its older versions."""
+    names = {}
+    for name, svg in images.items():
+        for old in list(out.glob(f"{name}.*.svg")) + [out / f"{name}.svg"]:
+            if old.exists():
+                old.unlink()
+        fname = content_name(name, svg)
+        (out / fname).write_text(svg)
+        names[name] = fname
+    return names
+
+
+def version_readme(readme, names):
+    """Point every README image URL at the current content-addressed file."""
     text = readme.read_text()
-
-    def stamp(match):
-        name = match.group(1)
-        digest = hashlib.sha256((assets / f"{name}.svg").read_bytes()).hexdigest()[:8]
-        return f"docs/assets/{name}.svg?v={digest}"
-
-    new = re.sub(r"docs/assets/([a-z-]+)\.svg(?:\?v=[0-9a-f]+)?", stamp, text)
+    pattern = r"docs/assets/(%s)(?:\.[0-9a-f]{8})?\.svg(?:\?v=[0-9a-f]+)?" % "|".join(
+        re.escape(n) for n in names
+    )
+    new = re.sub(pattern, lambda m: f"docs/assets/{names[m.group(1)]}", text)
     if new != text:
         readme.write_text(new)
 

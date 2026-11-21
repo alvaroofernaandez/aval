@@ -28,37 +28,49 @@ gen_status=0
 python3 "$REPO/docs/brand.py" --out "$out" >/dev/null 2>&1 || gen_status=$?
 assert_eq "docs/brand.py runs" "0" "$gen_status"
 
-IMAGES="hero-light.svg hero-dark.svg stack-light.svg stack-dark.svg
-mark-light.svg mark-dark.svg wordmark-light.svg wordmark-dark.svg"
+# Generated images are content-addressed: <name>.<sha256[:8]>.svg. The hash
+# is in the file name, not a query string, because github.com/<repo>/raw/...
+# 302-redirects to raw.githubusercontent.com and DROPS the query, so ?v=
+# never reached the browser cache and an updated image kept showing the old
+# one under the same URL.
+NAMES="hero-light hero-dark stack-light stack-dark mark-light mark-dark wordmark-light wordmark-dark"
 
-for f in $IMAGES; do
-  assert_eq "generator emits $f" "yes" "$([ -s "$out/$f" ] && echo yes || echo no)"
+# asset <dir> <name> — the one content-addressed file for <name> in <dir>.
+asset() { fd -g "$2.*.svg" "$1" --max-depth 1 2>/dev/null | head -1; }
+
+for n in $NAMES; do
+  f="$(asset "$out" "$n")"
+  assert_eq "generator emits $n" "yes" "$([ -n "$f" ] && [ -s "$f" ] && echo yes || echo no)"
+  if [ -n "$f" ]; then
+    want="$(shasum -a 256 "$f" | cut -c1-8)"
+    assert_eq "$n is named by its content hash" "$n.$want.svg" "$(basename "$f")"
+  fi
 done
 
 # The brand is drawn, not typeset: a wordmark set in a font renders in whatever
 # fallback the viewer has, so the logo would change from machine to machine.
 assert_eq "wordmark is drawn with paths, not text" "0" \
-  "$(rg -c '<text' "$out/wordmark-light.svg" || echo 0)"
+  "$(rg -c '<text' "$(asset "$out" wordmark-light)" || echo 0)"
 assert_eq "hero carries the aval wordmark" "yes" \
-  "$(rg -q 'aria-label="aval' "$out/hero-light.svg" && echo yes || echo no)"
+  "$(rg -q 'aria-label="aval' "$(asset "$out" hero-light)" && echo yes || echo no)"
 # The hero draws the isotype as a matrix of tiny checks: the mark is built
 # out of passed checks. Inked cells must actually trace the shape.
 assert_eq "hero builds the mark from a check matrix" "yes" \
-  "$(rg -q 'data-part="matrix"' "$out/hero-light.svg" && echo yes || echo no)"
-inked="$(rg -c 'class="ck on"' "$out/hero-light.svg" || echo 0)"
+  "$(rg -q 'data-part="matrix"' "$(asset "$out" hero-light)" && echo yes || echo no)"
+inked="$(rg -c 'class="ck on"' "$(asset "$out" hero-light)" || echo 0)"
 assert_eq "the matrix inks enough cells to trace the mark" "yes" \
   "$([ "$inked" -ge 25 ] && echo yes || echo no)"
 # Presented as a brand, not as a document: a claim, no labelled fields.
 assert_eq "hero carries the brand claim" "yes" \
-  "$(rg -q 'Nada sin pruebas\.' "$out/hero-light.svg" && echo yes || echo no)"
+  "$(rg -q 'Nada sin pruebas\.' "$(asset "$out" hero-light)" && echo yes || echo no)"
 assert_eq "hero has no document labels" "0" \
-  "$(rg -c 'DEFINICIÓN|TESIS|>PARA<|NOMBRE MASCULINO' "$out/hero-light.svg" || echo 0)"
+  "$(rg -c 'DEFINICIÓN|TESIS|>PARA<|NOMBRE MASCULINO' "$(asset "$out" hero-light)" || echo 0)"
 assert_eq "hero drops the old guilloché and suminagashi" "0" \
-  "$(rg -c -i 'guilloche|suminagashi|id="vig"' "$out/hero-light.svg" || echo 0)"
+  "$(rg -c -i 'guilloche|suminagashi|id="vig"' "$(asset "$out" hero-light)" || echo 0)"
 assert_eq "hero no longer says Dotfiles" "0" \
-  "$(rg -c -i 'dotfiles' "$out/hero-light.svg" || echo 0)"
+  "$(rg -c -i 'dotfiles' "$(asset "$out" hero-light)" || echo 0)"
 # Legible as a 16px favicon: the stroke must be at least 1/8 of the canvas.
-stroke_ok="$(python3 - "$out/mark-light.svg" <<'PY'
+stroke_ok="$(python3 - "$(asset "$out" mark-light)" <<'PY'
 import re, sys
 s = open(sys.argv[1]).read()
 w = float(re.search(r'viewBox="0 0 ([\d.]+)', s).group(1))
@@ -70,9 +82,10 @@ assert_eq "mark strokes survive a 16px favicon" "yes" "$stroke_ok"
 
 # Committed images must be exactly what the generator produces, or the README
 # shows something no command can rebuild.
-for f in $IMAGES; do
+for n in $NAMES; do
+  f="$(basename "$(asset "$out" "$n")")"
   same="$(cmp -s "$out/$f" "$REPO/docs/assets/$f" && echo yes || echo no)"
-  assert_eq "committed $f matches the generator" "yes" "$same"
+  assert_eq "committed $n matches the generator" "yes" "$same"
 done
 
 # The hero is monochrome: every colour literal must be a pure grey (r=g=b).
@@ -88,12 +101,12 @@ assert_eq "hero uses only black, white and greys" "" "$non_grey"
 # SVG renders as a blank square on GitHub.
 nologo="$(python3 "$REPO/docs/brand.py" --no-logo 2>/dev/null | tr '\n' ' ')"
 assert_eq "only tools with no published logo lack one" "ripgrep delta " "$nologo"
-embedded="$(rg -c '<image ' "$out/stack-light.svg")"
+embedded="$(rg -c '<image ' "$(asset "$out" stack-light)")"
 expected=$(( $(python3 "$REPO/docs/brand.py" --list 2>/dev/null | rg -c .) - 2 ))
 assert_eq "every other tool embeds its logo" "$expected" "${embedded:-0}"
 assert_eq "logos are not loaded from outside the SVG" "0" \
-  "$(rg -c 'href="(https?:|\.\.?/|docs/)' "$out/stack-light.svg" || echo 0)"
-size="$(rg -o 'class="logo" width="([0-9]+)"' -r '$1' "$out/stack-light.svg" | sort -n | head -1)"
+  "$(rg -c 'href="(https?:|\.\.?/|docs/)' "$(asset "$out" stack-light)" || echo 0)"
+size="$(rg -o 'class="logo" width="([0-9]+)"' -r '$1' "$(asset "$out" stack-light)" | sort -n | head -1)"
 assert_eq "logos render at least 56px" "yes" "$([ "${size:-0}" -ge 56 ] && echo yes || echo no)"
 
 # Every vendored logo says where it came from.
@@ -113,16 +126,16 @@ assert_eq "generator lists at least 20 tools" "yes" "$([ "${tool_count:-0}" -ge 
 missing=""
 while IFS= read -r t; do
   [ -n "$t" ] || continue
-  rg -qF ">$t<" "$out/stack-light.svg" || missing="$missing $t"
+  rg -qF ">$t<" "$(asset "$out" stack-light)" || missing="$missing $t"
 done <<<"$tools"
 assert_eq "every tool has a labelled tile" "" "$missing"
 
 # --- README ------------------------------------------------------------------
 for theme in light dark; do
   assert_eq "README shows hero-$theme" "yes" \
-    "$(rg -qF "docs/assets/hero-$theme.svg" "$README" && echo yes || echo no)"
+    "$(rg -q "docs/assets/hero-$theme\.[0-9a-f]{8}\.svg" "$README" && echo yes || echo no)"
   assert_eq "README shows stack-$theme" "yes" \
-    "$(rg -qF "docs/assets/stack-$theme.svg" "$README" && echo yes || echo no)"
+    "$(rg -q "docs/assets/stack-$theme\.[0-9a-f]{8}\.svg" "$README" && echo yes || echo no)"
 done
 assert_eq "README switches images with the GitHub theme" "yes" \
   "$(rg -qF 'prefers-color-scheme: dark' "$README" && echo yes || echo no)"
@@ -133,7 +146,7 @@ assert_eq "the full guide exists" "yes" "$([ -s "$GUIDE" ] && echo yes || echo n
 # The brand: the README introduces aval, says what the word means, and the
 # old installer name is gone everywhere a reader would copy a command from.
 assert_eq "README shows the aval mark" "yes" \
-  "$(rg -qF 'docs/assets/mark-dark.svg' "$README" && rg -qF 'docs/assets/mark-light.svg' "$README" && echo yes || echo no)"
+  "$(rg -q 'docs/assets/mark-dark\.[0-9a-f]{8}\.svg' "$README" && rg -q 'docs/assets/mark-light\.[0-9a-f]{8}\.svg' "$README" && echo yes || echo no)"
 assert_eq "README explains what aval means" "yes" \
   "$(rg -qi 'garant' "$README" && echo yes || echo no)"
 for doc in "$README" "$GUIDE" "$REPO/npm/cli/README.md"; do
@@ -141,18 +154,19 @@ for doc in "$README" "$GUIDE" "$REPO/npm/cli/README.md"; do
     "$(rg -c 'dotfiles-installer|\.dotfiles-backup|DOTFILES_' "$doc" || echo 0)"
 done
 
-# Cache busting: GitHub serves README images with max-age=300, so an image
-# regenerated under the same URL keeps showing the old version. Every asset
-# URL carries ?v=<first 8 hex of its sha256>, rewritten by docs/brand.py.
+# Cache busting: every generated image the README shows is the current
+# content-addressed file, and no stale or query-versioned URL remains.
 stale=""
-while IFS= read -r ref; do
-  file="${ref%%\?*}"; v="${ref#*\?v=}"
-  want="$(shasum -a 256 "$REPO/$file" 2>/dev/null | cut -c1-8)"
-  [ "$v" = "$want" ] || stale="$stale $file"
-done < <(rg -o --no-filename 'docs/assets/[a-z-]+\.svg\?v=[0-9a-f]+' "$README")
-assert_eq "README image URLs carry their content hash" "" "$stale"
-unversioned="$(rg -o 'docs/assets/[a-z-]+\.svg"' "$README" | tr '\n' ' ')"
-assert_eq "no README image URL lacks a version" "" "$unversioned"
+for n in $NAMES; do
+  cur="$(basename "$(asset "$REPO/docs/assets" "$n")")"
+  rg -q "docs/assets/$n\.[0-9a-f]{8}\.svg" "$README" || continue
+  rg -qF "docs/assets/$cur" "$README" || stale="$stale $n"
+done
+assert_eq "README points at the current image of each name" "" "$stale"
+assert_eq "README uses no query-string versions" "0" \
+  "$(rg -c 'docs/assets/[^"]*\?v=' "$README" || echo 0)"
+extra="$(for n in $NAMES; do c=$(fd -g "$n.*.svg" "$REPO/docs/assets" --max-depth 1 | wc -l | tr -d ' '); [ "$c" -gt 1 ] && echo "$n"; [ -e "$REPO/docs/assets/$n.svg" ] && echo "$n.svg"; done | tr '\n' ' ')"
+assert_eq "no stale image versions are committed" "" "$extra"
 
 # Every relative link and image in the README resolves to a real file.
 broken=""
