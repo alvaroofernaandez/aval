@@ -39,8 +39,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "code-review-graph update --skip-flows",
-            "timeout": 5000
+            "command": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then code-review-graph update --skip-flows; fi",
+            "timeout": 60,
+            "async": true
           }
         ]
       }
@@ -53,16 +54,6 @@
             "type": "command",
             "command": "\"$HOME/.claude/hooks/design-pipeline-gate.sh\"",
             "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "gentle-ai sdd-preflight-hook --agent claude-code",
-            "timeout": 30
           }
         ]
       }
@@ -149,15 +140,6 @@
       }
     ],
     "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "gentle-ai skill-registry refresh --quiet --no-gitignore --cwd \"${CLAUDE_PROJECT_DIR:-$PWD}\" || true"
-          }
-        ]
-      },
       {
         "hooks": [
           {
