@@ -66,7 +66,7 @@ This section carries only tooling and workflow directives — it does not restat
 - Before editing a visible surface: run the `design-pipeline` skill (laws,
   direction, gates), then `design-ack <surface>`. The PreToolUse gate denies UI
   edits without a fresh ack. Bypass: `DESIGN_PIPELINE_OFF=1`.
-- Prove the result with the `design-gates` skill, never by claim.
+- Prove the result with `aval design gate`, never by claim.
 
 ## Strict TDD (MANDATORY for ALL projects — frontend AND backend)
 
@@ -100,7 +100,7 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 
 ## Scoped lessons
 
-UI verification and native elements, Docker/Kiri, gstack, headless browser,
+UI verification and native elements, Docker/Kiri, headless browser,
 Herdr and commit attribution live in `~/.claude/lessons/*.md`;
 `aval hook lessons` injects the matching one before an edit or command.
 

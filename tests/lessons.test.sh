@@ -116,7 +116,7 @@ MAXC=3000
 assert_eq "the shared always-on block stays under ${MAXC} chars (is ${#block})" "yes" \
   "$([ "${#block}" -le "$MAXC" ] && echo yes || echo no)"
 leaked=""
-for needle in 'lint_native_elements' 'shot.mjs' 'BUILDX_BUILDER' 'OrbStack' 'GSTACK_PIN'; do
+for needle in 'lint_native_elements' 'shot.mjs' 'BUILDX_BUILDER' 'OrbStack'; do
   printf '%s' "$block" | rg -qF -- "$needle" && leaked="$leaked $needle"
 done
 assert_eq "path-scoped rules left the always-on block" "" "$leaked"

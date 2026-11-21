@@ -234,7 +234,7 @@ cubra una denegación se descarta con un aviso.
 ### 🪶 Menos tokens, más rápido: lessons, budget y review
 
 **Lessons** (`aval hook lessons`). Las reglas que solo importan junto a ciertos archivos o comandos
-(UI, Docker/Kiri, gstack, navegador headless, Herdr, atribución de commits) ya no viajan en
+(UI, Docker/Kiri, navegador headless, Herdr, atribución de commits) ya no viajan en
 `CLAUDE.md` en cada turno: viven en `config/claude/lessons/*.md` (enlazado a `~/.claude/lessons`) y el
 hook PreToolUse (`Edit|Write|NotebookEdit|Bash`) las inyecta como `additionalContext` cuando coinciden.
 
@@ -309,10 +309,9 @@ Los backups viven fuera de cualquier árbol escaneado, y hay un test que lo veri
 | `config/ghostty` | `~/.config/ghostty` | Terminal: tema, tipografía, arranque |
 | `home/*` | `~/.tmux.conf`, `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.p10k.zsh` | Configuración de shell y git |
 | `config/atuin`, `gh`, `git` | `~/.config/...` | Herramientas con fichero propio |
-| `shared/skills` | 3 destinos a la vez | Skills propias y las adoptadas de gstack |
+| `shared/skills` | 3 destinos a la vez | Skills propias |
 | `config/claude/*` | `~/.claude/*` | Claude Code, **ruta por ruta** |
 | `config/opencode/*` | `~/.config/opencode/*` | OpenCode, **ruta por ruta** |
-| `third_party/gstack` | `~/.gstack` | Runtime de gstack. Lo crea `gstack-sync.sh`, **no** el manifiesto |
 
 > [!WARNING]
 > **Los directorios de agentes se enlazan ruta por ruta, nunca completos.**
@@ -382,17 +381,6 @@ nada.
 brew install tmux yazi neovim bat fd ripgrep sd eza gitleaks
 ```
 
-Las skills de gstack que abren un navegador (`/browse`, `/land-and-deploy`) necesitan además **Bun**, que compila su
-runtime:
-
-```bash
-brew install oven-sh/bun/bun
-./scripts/gstack-sync.sh          # clona el pin, compila y regenera las skills
-```
-
-Sin ese paso las tres skills quedan instaladas pero inertes. El resto de la
-configuración funciona igual.
-
 ---
 
 ## 🗺️ Mapa del repositorio
@@ -400,7 +388,7 @@ configuración funciona igual.
 ```
 aval/
 │
-├── 📁 shared/skills/          Skills propias y las tres adoptadas de gstack
+├── 📁 shared/skills/          Skills propias
 │
 ├── 📁 config/
 │   ├── 🖥️  ghostty/            Tema Tokyo Night, tipografía, arranque
@@ -444,12 +432,8 @@ aval/
 │   └── environment.tape       Captura de tmux + yazi (VHS)
 │
 ├── 📁 scripts/
-│   ├── install.sh             Arranque de un comando (curl | sh)
-│   ├── gstack-patch.sh        Quita de un SKILL.md lo que choca con CLAUDE.md
-│   └── gstack-sync.sh         Clona gstack al pin, compila y regenera las skills
+│   └── install.sh             Arranque de un comando (curl | sh)
 │
-├── 📁 third_party/gstack/     ⛔ No versionado. Runtime de gstack, 42 MB
-├── 📌 pins/            Commit exacto de gstack, plugin87 y ui-ux-pro-max
 ├── 📋 install.manifest        Qué se instala y dónde — fuente única
 ├── ⚙️  install.sh              Instalador shell: lee el mismo manifiesto
 └── 🧪 tests/                  10 suites transversales
@@ -754,75 +738,8 @@ sola vez.
 | 🧭 `readme-portal` | README visual con tarjetas de imagen, centro de docs, READMEs de carpeta y unidades versionadas |
 | 🚢 `ship` | De árbol de trabajo a PR publicada |
 
-**Adoptadas de [gstack](https://github.com/garrytan/gstack)**, tres de sus cincuenta y
-cuatro, y parcheadas (ver más abajo):
-
-| Skill | Función |
-| :--- | :--- |
-| 🌐 `browse` | Chromium headless, ~100 ms por orden, con defensa antiinyección local |
-| 🚀 `land-and-deploy` | Merge → CI → despliegue → verificación en producción |
-| 🎨 `design-shotgun` | Cuatro a seis variantes en paralelo con tablero de comparación |
-
 Las skills de marketplaces y packs de terceros **no se versionan**: cada herramienta las
 reinstala por su cuenta.
-
-<details>
-<summary><b>Por qué las de gstack están parcheadas y no copiadas</b></summary>
-
-<br/>
-
-Toda skill de gstack por encima del nivel 2 arrastra unos **31 KB de preámbulo común**
-—el 72 % del fichero en `canary`, el 70 % en `investigate`—. Ese preámbulo no es
-instrucción de tarea: trae su propia voz, su propia disciplina de commits, su propio
-formato de preguntas y su propio sistema de memoria. Esta configuración ya tiene los
-cuatro, y no coinciden:
-
-| Sección | Choca con |
-| :--- | :--- |
-| `Voice` | La persona definida en `CLAUDE.md` |
-| `Continuous Checkpoint Mode` | `work-unit-commits` (hace auto-commits `WIP:`) |
-| `Question Tuning` · `AskUserQuestion Format` | La regla de una pregunta cada vez |
-| `Brain Context` · `Artifacts Sync` | **engram**, que es la memoria persistente aquí |
-
-Cargar una skill sin parchear mete dos doctrinas en el mismo contexto y deja que el
-modelo elija. No es cuestión de estilo: es un problema de corrección.
-
-Un segundo grupo se elimina por otro motivo — en una instalación vendorizada es **código
-muerto**. `AskUserQuestion Format` es la sección más pesada de todas (10,9 KB de 40 KB en
-`canary`) y cada byte resuelve Conductor, `plan-tune` y `question-log`, que aquí no
-existen. `Preamble` ejecuta `gstack-skill-start` desde una ruta que esta instalación
-nunca crea, así que falla en cada invocación.
-
-Resultado: **450 KB → 255 KB, un 43 % menos**. Los ficheros generados llevan cabecera de
-procedencia y **no se editan a mano**: el siguiente `gstack-sync.sh` descarta el cambio.
-Se toca el parche o se mueve el pin.
-
-</details>
-
-<details>
-<summary><b>Lo que de gstack se descartó a propósito</b></summary>
-
-<br/>
-
-Más de la mitad de gstack duplica algo que ya existe aquí, y dos skills compitiendo por
-el mismo disparador es peor que cualquiera de las dos por separado:
-
-| Descartado | Porque ya lo cubre |
-| :--- | :--- |
-| `/office-hours`, `/plan-*`, `/autoplan`, `/spec` | El modo plan nativo y los ficheros `odd/tasks` — la planificación se queda en el hilo principal, sin otra skill compitiendo por el mismo disparador |
-| `/design-consultation`, `/design-review`, `/design-html` | `frontend-design` + `ui-ux-pro-max` + `impeccable` + `DESIGN.md` |
-| `/learn`, `/context-save`, `/context-restore`, GBrain | **engram** |
-| `/document-generate`, `/document-release` | `docs-guardian`, `readme-guardian`, `cognitive-doc-design` |
-| `/cso` | `claude-security` + `owasp-security` |
-| `/make-pdf` | `pdf-report` |
-| El `/ship` de gstack | El `/ship` propio, que tiene presupuesto de revisión y PRs encadenadas |
-| `/scrape`, `/qa`, `/qa-only`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/investigate`, `/diagram`, `/canary`, `/benchmark`, `/retro` | Nunca se usaron; retiradas el 2026-11-02 |
-
-Por eso **nunca se ejecuta el `./setup` de gstack**: planta el repositorio entero en
-`~/.claude/skills/gstack`, registra 54 comandos y cuatro familias de hooks, y devolvería
-todo lo anterior más un `/ship` que taparía al propio.
-
-</details>
 
 <details>
 <summary><b>La duplicación ya había divergido</b></summary>
@@ -857,7 +774,7 @@ distintos. Son la **capa de adaptación** entre cada herramienta y las skills co
 
 | Ruta | Contenido |
 | :--- | :--- |
-| `claude/CLAUDE.md` | Instrucciones globales: persona, TDD estricto, pipeline de diseño, adopción de gstack |
+| `claude/CLAUDE.md` | Instrucciones globales: persona, TDD estricto, pipeline de diseño |
 | `claude/settings.json` | Permisos, hooks, plugins y marketplaces |
 | `claude/agents/`, `commands/`, `hooks/` | Subagentes, comandos y hooks |
 | `claude/themes/` | Temas de color propios, referenciados como `custom:<fichero>` |
@@ -964,7 +881,6 @@ escaneo informó «sin credenciales».
 | `~/.local/share/opencode/opencode.db` | 💾 4,5 GB |
 | `~/.claude/settings.local.json` | 💻 Permisos de una máquina concreta |
 | `.agents/` | 📓 Notas de diseño, solo locales |
-| `third_party/gstack/` | ♻️ 42 MB reproducibles desde `pins/GSTACK_PIN` |
 | `node_modules`, `*.bak` | ♻️ Regenerables |
 
 ---
@@ -984,8 +900,8 @@ shell-hygiene          11 passed        status-style            7 passed
 install                40 passed        keybindings            11 passed
 launch                 17 passed        sidebar-button         10 passed
 ghostty-keys           13 passed        close-file              8 passed
-gstack-patch           42 passed        sidebar-follow         11 passed
-gstack-skills           9 passed        sidebar-watch           7 passed
+                                        sidebar-follow         11 passed
+                                        sidebar-watch           7 passed
 wait-helpers           16 passed        paste-router           12 passed
                                         go                6 packages passed
                                         npm-packaging          13 passed

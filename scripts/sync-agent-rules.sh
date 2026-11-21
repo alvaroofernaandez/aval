@@ -6,7 +6,7 @@
 # appending them if AGENTS.md does not have them yet.
 #
 # Only the BLOCKING SUMMARY is shared. The detail — the pipeline procedure, the
-# TDD scope, the gstack policy — lives in skills, and the manifest fanout
+# TDD scope, the skill policies — live in skills, and the manifest fanout
 # already carries those to OpenCode. Copying detail into two instruction files
 # is how the two drift; copying the part that must hold before a skill can load
 # is what keeps them honest.

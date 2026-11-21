@@ -47,6 +47,6 @@ design-ack: $surface recorded for $root (valid $((ttl / 60)) min, until DESIGN.m
 Pipeline, in order:
   1. laws       - which Laws of UX govern this surface and the number each forces (laws-of-ux)
   2. direction  - $dnote; it outranks default taste
-  3. gates      - after the code: design-gates (contrast, hardcodes, overflow) and
+  3. gates      - after the code: `aval design gate` (contrast, hardcodes, overflow) and
                   shot.mjs for 390/768/1440 renders; quote real output, unrun = "not run"
 MSG

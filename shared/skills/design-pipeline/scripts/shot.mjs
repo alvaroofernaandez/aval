@@ -8,7 +8,7 @@
  * code. Before claiming a visual fix or a finished screen, run this and quote
  * what it prints.
  *
- *   node ~/.claude/skills/design-gates/scripts/shot.mjs <url | file.html> [--widths=390,768,1440] [--out=dir]
+ *   node ~/.claude/skills/design-pipeline/scripts/shot.mjs <url | file.html> [--widths=390,768,1440] [--out=dir]
  *
  * Screenshots land in `.design/shots/` of the project (git toplevel of cwd, else
  * cwd) as `<name>-<width>.png`; keep `.design/` in .gitignore. The audit is
@@ -31,7 +31,7 @@ const target = argv.find(a => !a.startsWith('--'));
 const opt = (name, dflt) => (argv.find(a => a.startsWith(`--${name}=`)) || '').split('=').slice(1).join('=') || dflt;
 
 if (!target) {
-  console.log('usage: node ~/.claude/skills/design-gates/scripts/shot.mjs <url | file.html> [--widths=390,768,1440] [--out=dir]');
+  console.log('usage: node ~/.claude/skills/design-pipeline/scripts/shot.mjs <url | file.html> [--widths=390,768,1440] [--out=dir]');
   process.exit(1);
 }
 const widths = opt('widths', '390,768,1440').split(',').map(Number).filter(Boolean);

@@ -9,9 +9,7 @@ Each skill's own `SKILL.md` frontmatter carries the authoritative `license:`
 and `author:` fields — never strip them. `tests/provenance.test.sh` fails if a
 licensed skill is missing from the table below.
 
-Skills with no licence line are this repo's own work, or are vendored under a
-pin with its own provenance header (`gstack-sync.sh`, `p87-sync.sh`,
-`uiux-sync.sh`).
+Skills with no licence line are this repo's own work.
 
 | Skill | Licence | Author |
 | ----- | ------- | ------ |

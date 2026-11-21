@@ -9,7 +9,7 @@
 # no network, no real $HOME/$XDG: everything lives in a temp dir.
 #
 # Only hooks that live in the repo (commands under "$HOME/.claude/hooks/") are
-# fired; third-party hooks in the same settings (gentle-ai, gstack, rtk) are not
+# fired; third-party hooks in the same settings (gentle-ai, rtk) are not
 # ours to exercise and would need the network or other installs.
 set -uo pipefail
 
@@ -140,7 +140,7 @@ assert_eq "changing DESIGN.md revokes the ack (exact JSON)" \
 assert_eq "a fresh design-ack allows it again" "" "$(pre Edit "$BTN" $MAIN)"
 
 # --- end of turn --------------------------------------------------------------------
-STOP_BLOCK='{"decision":"block","reason":"UI files were edited this session but .design/shots has no render newer than the last edit. Run `node ~/.claude/skills/design-gates/scripts/shot.mjs <url|file.html>` and quote its paths and numbers, or say \"not visually verified\" in your reply."}'
+STOP_BLOCK='{"decision":"block","reason":"UI files were edited this session but .design/shots has no render newer than the last edit. Run `node ~/.claude/skills/design-pipeline/scripts/shot.mjs <url|file.html>` and quote its paths and numbers, or say \"not visually verified\" in your reply."}'
 assert_eq "Stop after a UI edit with no shots blocks (exact JSON)" \
   "$(printf '%s' "$STOP_BLOCK" | jq -c .)" "$(compact "$(stop $MAIN)")"
 assert_eq "the second Stop is allowed (blocks once)" "" "$(stop $MAIN)"

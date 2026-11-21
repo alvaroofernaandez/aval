@@ -61,8 +61,8 @@ la **v** del logotipo es un check.
 ## Stack
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.49b8b937.svg">
-  <img src="docs/assets/stack-light.5a7a65d3.svg" alt="Ghostty, tmux, Zsh, Neovim, yazi, Herdr, Claude Code, OpenCode, Engram, RTK, gstack, Go, Node.js, npm, Bun, Python, Bash, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux y Windows" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.7407df20.svg">
+  <img src="docs/assets/stack-light.4d5b5ad7.svg" alt="Ghostty, tmux, Zsh, Neovim, yazi, Herdr, Claude Code, OpenCode, Engram, RTK, Go, Node.js, npm, Bun, Python, Bash, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux y Windows" width="100%">
 </picture>
 
 <sub>Logos oficiales de cada proyecto (<a href="docs/logos/SOURCES.md">procedencia</a>). ripgrep y delta no publican logo: llevan sus iniciales en vez de uno inventado.</sub>
@@ -113,7 +113,6 @@ Lo privado (nombres de empresa, skills de cliente) vive fuera del repo, en `~/.c
 | `home/` | zsh, p10k, git | [Shell](docs/guide.md#-shell-y-herramientas) |
 | `cmd/aval` · `internal/` · `npm/` | Instalador TUI en Go | [Instalación](docs/guide.md#-instalación) |
 | `install.manifest` | Qué se instala y dónde: fuente única | [Mapa](docs/guide.md#️-mapa-del-repositorio) |
-| `pins/` | Commit exacto de cada skill de terceros | [Agentes](docs/guide.md#-agentes) |
 | `tests/` | Shell, Go y npm en una sola orden: `./tests/run-all.sh` | [Tests](docs/guide.md#-tests) |
 
 <br/>

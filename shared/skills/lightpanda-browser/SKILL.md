@@ -21,7 +21,7 @@ visual check or HTML-to-PDF render.
   *text-only* render (verified: a centered 26em page comes out full-width,
   CJK glyphs missing). Never present that output as a screenshot.
 - **Chromium only when pixels matter**: real screenshots, visual regression,
-  `design-gates` render gates (contrast, overflow, target size, responsive,
+  `aval design gate` render gates (contrast, overflow, target size, responsive,
   reduced motion), `design-taste-frontend` look-and-fix loop, HTML-to-PDF
   (`pdf-report` and any branded PDF/manual skill), and
   anything reading `getBoundingClientRect`/computed layout.
@@ -96,7 +96,7 @@ visual check or HTML-to-PDF render.
 - Keep one Chromium headless shell per pinned Playwright revision, only for the
   pixel tasks above. Before pruning `~/Library/Caches/ms-playwright`, list which
   `playwright-core/browsers.json` pin each revision — a revision still pinned by a
-  project (or gstack `/browse`) is in use, not a duplicate.
+  project is in use, not a duplicate.
 
 ## Benchmark (2026-11-04, local page, fill + click + read, 20 runs)
 

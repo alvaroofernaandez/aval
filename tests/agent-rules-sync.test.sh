@@ -10,7 +10,7 @@
 # something else. Rules drift the same way, only more quietly, because nobody
 # diffs their instruction files.
 #
-# The detail no longer needs copying — Design, TDD and gstack moved to skills on
+# The detail no longer needs copying — Design and TDD moved to skills on
 # 2026-09-19, and the manifest fanout carries skills to OpenCode already. What
 # still has to exist in both is the blocking summary: the part that must hold
 # BEFORE any skill can load. So that block is delimited by markers in CLAUDE.md
@@ -49,7 +49,7 @@ assert_eq "both agents carry byte-identical blocking rules" "yes" \
 
 # The rules that must survive in both, whatever else changes.
 MISSING=""
-for rule in 'design-pipeline' 'design-gates' 'DESIGN_PIPELINE_OFF' 'tdd-gate' 'RED' 'strict-tdd'; do
+for rule in 'design-pipeline' 'aval design gate' 'DESIGN_PIPELINE_OFF' 'tdd-gate' 'RED' 'strict-tdd'; do
   printf '%s' "$C" | rg -qF -- "$rule" || MISSING="$MISSING $rule"
 done
 assert_eq "the shared block keeps every blocking rule" "" "$MISSING"

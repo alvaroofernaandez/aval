@@ -191,7 +191,7 @@ func TestExecutables(t *testing.T) {
 		{`"$HOME/.claude/hooks/x.sh"`, []string{"/h/.claude/hooks/x.sh"}},
 		{`code-review-graph status`, []string{"code-review-graph"}},
 		{`if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then code-review-graph update --skip-flows; fi`, []string{"git", "code-review-graph"}},
-		{`[ -x "$HOME/.gstack/bin/g" ] && "$HOME/.gstack/bin/g" || true`, nil},
+		{`[ -x "$HOME/.tool/bin/g" ] && "$HOME/.tool/bin/g" || true`, nil},
 		{`rm -f /tmp/dk_* /tmp/.dk_* 2>/dev/null`, []string{"rm"}},
 		{`gentle-ai telemetry runtime claude --json`, []string{"gentle-ai"}},
 		{`~/bin/tool --x && other | third`, []string{"/h/bin/tool", "other", "third"}},

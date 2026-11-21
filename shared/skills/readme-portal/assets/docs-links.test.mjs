@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Adjust: folders whose Markdown is not part of the portal (vendored, generated, scratch).
-const EXCLUDED = /(^|\/)(node_modules|third_party|vendor)\//;
+const EXCLUDED = /(^|\/)(node_modules|vendor)\//;
 
 const markdownFiles = execFileSync("git", ["ls-files", "-z", "--", "*.md"], { cwd: ROOT, encoding: "utf8" })
   .split("\0")

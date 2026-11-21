@@ -31,7 +31,6 @@ to at most 192 px so the generated SVGs stay small.
 | `herdr.svg` | herdrdev/herdr — `assets/logo.svg` |
 | `engram.png` | Gentleman-Programming/engram — `assets/branding/engram-logo-only.png` |
 | `rtk.png` | rtk-ai — GitHub organization avatar |
-| `gstack.png` | garrytan/gstack — `extension/icons/icon-128.png` |
 | `kiri.svg` | libracoder/kiri — `brand/logo/kiri-favicon.svg` |
 | `lightpanda.png` | lightpanda-io/browser — README logo, `cdn.lightpanda.io/assets/images/logo/lpd-logo.png` |
 | `gitleaks.png` | gitleaks/gitleaks — README logo image |

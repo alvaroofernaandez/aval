@@ -41,5 +41,5 @@ for f in "$ROOT"/.design/shots/*; do
 done
 
 : >"$BLOCKED" 2>/dev/null
-printf '%s\n' '{"decision":"block","reason":"UI files were edited this session but .design/shots has no render newer than the last edit. Run `node ~/.claude/skills/design-gates/scripts/shot.mjs <url|file.html>` and quote its paths and numbers, or say \"not visually verified\" in your reply."}'
+printf '%s\n' '{"decision":"block","reason":"UI files were edited this session but .design/shots has no render newer than the last edit. Run `node ~/.claude/skills/design-pipeline/scripts/shot.mjs <url|file.html>` and quote its paths and numbers, or say \"not visually verified\" in your reply."}'
 exit 0
