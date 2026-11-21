@@ -65,10 +65,17 @@ assert_eq "old Orca snapshot is gone" "no" "$([ -e "$REPO/config/orca" ] && echo
 
 # --- always-on rule, mirrored to OpenCode ----------------------------------------
 block="$(shared_block "$CLAUDE_MD")"
-assert_eq "CLAUDE.md: shared block points to the herdr skill" "yes" \
-  "$(printf '%s' "$block" | rg -q '`herdr`' && echo yes || echo no)"
-assert_eq "AGENTS.md mirrors the rule" "yes" \
-  "$(shared_block "$AGENTS_MD" | rg -q '`herdr`' && echo yes || echo no)"
+# The rule is path/command-scoped, so it lives in a lesson (injected when `hc` or
+# `herdr-app` runs) and the shared block only points at the lessons directory.
+LESSON="$REPO/config/claude/lessons/herdr-workspace.md"
+assert_eq "the herdr lesson points to the herdr skill" "yes" \
+  "$(rg -q '`herdr`' "$LESSON" && echo yes || echo no)"
+assert_eq "the herdr lesson triggers on hc and herdr-app" "yes" \
+  "$(rg -q "commands:" "$LESSON" && rg -q 'hc\|herdr-app' "$LESSON" && echo yes || echo no)"
+assert_eq "CLAUDE.md: shared block points to the lessons" "yes" \
+  "$(printf '%s' "$block" | rg -q 'Herdr' && printf '%s' "$block" | rg -q 'lessons' && echo yes || echo no)"
+assert_eq "AGENTS.md mirrors the pointer" "yes" \
+  "$(shared_block "$AGENTS_MD" | rg -q 'Herdr' && echo yes || echo no)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

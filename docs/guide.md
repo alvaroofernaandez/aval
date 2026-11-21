@@ -231,6 +231,43 @@ y `.env`/`.env.*` (incluye `.env.example`: Claude da prioridad a deny sobre allo
 solo puede **añadir** denegaciones (el resultado es repo ∪ vivo ∪ overlay); un `allow` del overlay que
 cubra una denegación se descarta con un aviso.
 
+### 🪶 Menos tokens, más rápido: lessons, budget y review
+
+**Lessons** (`aval hook lessons`). Las reglas que solo importan junto a ciertos archivos o comandos
+(UI, Docker/Kiri, gstack, navegador headless, Herdr, atribución de commits) ya no viajan en
+`CLAUDE.md` en cada turno: viven en `config/claude/lessons/*.md` (enlazado a `~/.claude/lessons`) y el
+hook PreToolUse (`Edit|Write|NotebookEdit|Bash`) las inyecta como `additionalContext` cuando coinciden.
+
+```markdown
+---
+triggers:            # globs de ruta, contra tool_input.file_path
+  - "**/Dockerfile*"
+commands:            # regex, contra tool_input.command de Bash
+  - '(^|[;&|(] *)docker( |$)'
+---
+Cuerpo de la lección, como mucho 600 caracteres.
+```
+
+Una lección sale una sola vez por sesión (`${XDG_STATE_HOME:-~/.local/state}/aval/lessons/<sesión>.seen`),
+sin coincidencia no imprime nada, nunca bloquea y tarda ~3 ms. El hook usa `~/.local/bin/aval` o, si no
+está, el `aval` del `PATH` (`npm i -g` o el instalador); sin binario es un no-op silencioso. OpenCode no
+tiene este hook: lee las lecciones a mano.
+
+**Budget** (`aval budget [--json] [--skip-hooks] [--runs N]`). Tabla del contexto siempre activo:
+Claude (`CLAUDE.md`, `@imports`, skills visibles según `skillOverrides`, agentes y comandos) y OpenCode
+(`AGENTS.md` y skills), en caracteres y ≈tokens (chars/4, aproximado). Después ejecuta cada hook del
+`settings.json` vivo 5 veces con un payload representativo (timeout 2 s) y compara p50/p95 con el
+presupuesto: 20 ms para los hooks síncronos PreToolUse/PostToolUse; los asíncronos se muestran pero no
+cuentan. Sale con 1 si alguno se pasa. Ojo: ejecuta los hooks de verdad; `--skip-hooks` mide solo contexto.
+
+**Review** (`aval review assess [--base <ref>] [--json]`). Nivel de riesgo determinista, solo con git
+(cambios confirmados, preparados, sin preparar y sin seguimiento frente al merge-base): `high` si toca
+hooks, settings, `install.manifest`, instaladores, auth, migraciones, pagos, `.github/workflows` o
+permisos, o más de 400 líneas de producción; `medium` si hay código sin cambios de tests (o más de 100
+líneas); `low` si solo hay docs/tests o un cambio pequeño con tests. Devuelve el nivel, los motivos y los
+revisores: ninguno, `review-reliability`, o los cuatro (`review-risk`, `review-resilience`,
+`review-reliability`, `review-readability`). La skill `ship` lo usa para dimensionar la auto-revisión.
+
 ### Sin binario: el instalador de siempre
 
 ```bash

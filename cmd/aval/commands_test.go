@@ -163,6 +163,13 @@ func writeFile(t *testing.T, path, content string) {
 	}
 }
 
+func chmodX(t *testing.T, path string) {
+	t.Helper()
+	if err := os.Chmod(path, 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // fakeMachine is a repo and a HOME that never touch the real ones.
 func fakeMachine(t *testing.T) (repo, home string) {
 	t.Helper()

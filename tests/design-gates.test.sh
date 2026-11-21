@@ -243,10 +243,14 @@ GOOD
 fi
 
 # The rule has to be stated where both agents read it, not only in the gate.
-assert_eq "CLAUDE.md states the no-native-components rule" "yes" \
-  "$(rg -qi 'never.{0,40}native' "$REPO/config/claude/CLAUDE.md" && echo yes || echo no)"
-assert_eq "AGENTS.md carries it too" "yes" \
-  "$(rg -qi 'never.{0,40}native' "$REPO/config/opencode/AGENTS.md" && echo yes || echo no)"
+# It moved from the always-on text to a lesson that is injected when a UI file is
+# touched; CLAUDE.md and AGENTS.md keep a pointer to it.
+assert_eq "the ui-native-elements lesson states the no-native-components rule" "yes" \
+  "$(rg -qi 'never.{0,40}native' "$REPO/config/claude/lessons/ui-native-elements.md" && echo yes || echo no)"
+assert_eq "CLAUDE.md points at the native-elements lesson" "yes" \
+  "$(rg -qUi '(?s)native elements.{0,200}lessons' "$REPO/config/claude/CLAUDE.md" && echo yes || echo no)"
+assert_eq "AGENTS.md carries the pointer too" "yes" \
+  "$(rg -qUi '(?s)native elements.{0,200}lessons' "$REPO/config/opencode/AGENTS.md" && echo yes || echo no)"
 
 # --- the design reference skill ---------------------------------------------
 # ui-ux-pro-max is the reference oracle the pipeline's "direction" step reads.

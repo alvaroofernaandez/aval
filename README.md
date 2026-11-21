@@ -87,9 +87,13 @@ aval sync     # vuelca lo que gestiona el repo en ~/.claude/settings.json y en C
 aval restore  # --list | latest | <id> | --pin <id>: deshace cualquier instalación o sync desde ~/.aval-backup
 aval uninstall --dry-run   # quita solo los enlaces que apuntan a este repo y devuelve lo que desplazaron
 aval sync --check / aval doctor --security / aval update --dry-run   # drift (sale 1), chequeos de seguridad, vista previa sin cambios
+aval budget   # contexto siempre activo por agente (chars, ≈tokens) y latencia de cada hook; sale con 1 si se pasa (--json)
+aval review assess  # nivel de riesgo del diff solo con git (low/medium/high) y qué revisores lanzar (--base, --json)
 ```
 
 `sync` es transaccional: copia de seguridad, aplica, comprueba con `doctor` y, si algo falla, restaura sola y sale con 1.
+`aval hook lessons` es el hook PreToolUse que inyecta una lección de `~/.claude/lessons` solo cuando la edición o el
+comando la activan (0 tokens si no hay coincidencia, ~3 ms). Funciona con `aval` en `~/.local/bin` o en el `PATH`; sin él, no hace nada.
 
 Lo privado (nombres de empresa, skills de cliente) vive fuera del repo, en `~/.config/aval/private`
 (o `$AVAL_PRIVATE_DIR`): un `settings.json` que `aval sync` fusiona encima y un `links.manifest` que enlaza.
