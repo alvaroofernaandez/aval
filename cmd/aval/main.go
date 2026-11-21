@@ -5,6 +5,7 @@
 //	aval --dry-run  show what would happen, change nothing
 //	aval update     pull the repo, then re-apply
 //	aval doctor     check this machine against the repo (--fix, --json)
+//	aval update --dry-run  preview what update would change
 //	aval sync       merge repo-managed settings into the live config (--dry-run)
 //	aval --version  print the version
 //
@@ -18,6 +19,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -81,7 +83,7 @@ func run() error {
 	}
 
 	if flag.Arg(0) == "update" {
-		return runUpdate(repo, home, *dryRun, *forceCopy)
+		return runUpdate(repo, home, *dryRun, *forceCopy, os.Stdout)
 	}
 
 	notifyIfOutdated()
@@ -264,11 +266,14 @@ func runHeadless(p *plan.Plan, pf platform.Platform, runner *install.Runner, sym
 // they change the instant the working tree does. What pulling misses is new
 // manifest entries and newly added skills, which have no link yet — hence the
 // re-apply, which is a no-op for everything already in place.
-func runUpdate(repo, home string, dryRun, forceCopy bool) error {
+func runUpdate(repo, home string, dryRun, forceCopy bool, out io.Writer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), update.DefaultTimeout)
 	defer cancel()
 
 	git := update.NewGit(repo)
+	if dryRun {
+		return previewUpdate(ctx, git, repo, out)
+	}
 	status, err := update.Pull(ctx, git)
 	if err != nil {
 		return err
@@ -276,9 +281,9 @@ func runUpdate(repo, home string, dryRun, forceCopy bool) error {
 
 	switch {
 	case status.Updated:
-		fmt.Printf("Updated %s → %s (%d commit(s))\n", status.Current, status.Latest, status.Behind)
+		fmt.Fprintf(out, "Updated %s → %s (%d commit(s))\n", status.Current, status.Latest, status.Behind)
 	default:
-		fmt.Printf("Already up to date (%s)\n", status.Current)
+		fmt.Fprintf(out, "Already up to date (%s)\n", status.Current)
 	}
 
 	// Re-apply regardless of whether anything was pulled: a previous run may
@@ -299,16 +304,61 @@ func runUpdate(repo, home string, dryRun, forceCopy bool) error {
 			continue
 		}
 		if res.Status != install.StatusAlready {
-			fmt.Printf("  %-44s %s\n", a.Label, res.Status)
+			fmt.Fprintf(out, "  %-44s %s\n", a.Label, res.Status)
 			changed++
 		}
 	}
 
 	if changed == 0 && failed == 0 {
-		fmt.Println("Everything already linked.")
+		fmt.Fprintln(out, "Everything already linked.")
 	}
 	if failed > 0 {
 		return fmt.Errorf("%d action(s) failed", failed)
 	}
+	return nil
+}
+
+// previewUpdate is `aval update --dry-run`: what the pull would bring in, and
+// which manifest entries it would add or remove, with nothing changed. Like
+// the real update it refuses a dirty tree.
+func previewUpdate(ctx context.Context, g update.Git, repo string, out io.Writer) error {
+	paths := []string{"install.manifest"}
+	if m, err := manifest.Load(filepath.Join(repo, "install.manifest")); err == nil {
+		seen := map[string]bool{"install.manifest": true}
+		for _, grp := range m.Groups {
+			srcs := []string{grp.FanoutSource}
+			for _, e := range grp.Entries {
+				srcs = append(srcs, e.Source)
+			}
+			for _, s := range srcs {
+				if s != "" && !seen[s] {
+					seen[s] = true
+					paths = append(paths, s)
+				}
+			}
+		}
+	}
+
+	p, err := update.DryRun(ctx, g, paths)
+	if err != nil {
+		return err
+	}
+	if p.Behind == 0 {
+		fmt.Fprintf(out, "Already up to date (%s)\n\nDry run — nothing was changed.\n", p.Current)
+		return nil
+	}
+	fmt.Fprintf(out, "Would update %s → %s (%d commit(s))\n", p.Current, p.Latest, p.Behind)
+	if p.Stat != "" {
+		fmt.Fprintf(out, "\nManaged paths that change:\n%s\n", p.Stat)
+	} else {
+		fmt.Fprintln(out, "\nNo managed path changes.")
+	}
+	for _, a := range p.Added {
+		fmt.Fprintf(out, "  + manifest entry %s\n", a)
+	}
+	for _, r := range p.Removed {
+		fmt.Fprintf(out, "  - manifest entry %s\n", r)
+	}
+	fmt.Fprintln(out, "\nDry run — nothing was changed.")
 	return nil
 }
