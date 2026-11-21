@@ -1,0 +1,41 @@
+# Run by .github/workflows/release.yml with a pinned, checksum-verified binary.
+# Local dry run (builds all six targets into dist/, publishes nothing):
+#   goreleaser release --snapshot --clean --skip=publish
+# The targets must match npm/cli/lib/resolve.js; tests/workflows_test.go checks it.
+version: 2
+project_name: aval
+
+builds:
+  - main: ./cmd/aval
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .ShortCommit }} -X main.date={{ .Date }}
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files: [LICENSE, README.md]
+
+checksum:
+  name_template: SHA256SUMS
+
+release:
+  prerelease: auto # vX.Y.Z-rc.N and -beta.N become GitHub prereleases
+  replace_existing_artifacts: true # a re-run replaces assets instead of failing
+
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^(docs|test|ci|chore|build|style)(\\(.+\\))?:", "^Merge "]
+  groups:
+    - {title: Breaking changes, regexp: '^[a-z]+(\(.+\))?!:', order: 0}
+    - {title: Features, regexp: '^feat(\(.+\))?:', order: 1}
+    - {title: Fixes, regexp: '^fix(\(.+\))?:', order: 2}
+    - {title: Performance, regexp: '^perf(\(.+\))?:', order: 3}
+    - {title: Other changes, order: 999}

@@ -1,5 +1,5 @@
-# Keeps the SHA-pinned GitHub Actions current: Dependabot opens a PR with the
-# new commit SHA (and the version in a comment); CI runs on it before merge.
+# Keeps dependencies current: Dependabot opens one weekly PR per ecosystem
+# (SHA-pinned GitHub Actions, Go modules, npm); CI runs on it before merge.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -8,4 +8,20 @@ updates:
       interval: weekly
     groups:
       actions:
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      go:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /npm/cli
+    schedule:
+      interval: weekly
+    groups:
+      npm:
         patterns: ["*"]

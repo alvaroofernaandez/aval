@@ -15,7 +15,8 @@
 //	aval hook ...   agent hooks and the git pre-push gate
 //	aval restore    list or restore backup runs (--list, latest, <id>, --pin <id>)
 //	aval uninstall  remove aval's links and restore what they displaced (--dry-run, --yes)
-//	aval --version  print the version
+//	aval version    version, commit, build date and channel (--version: same)
+//	aval release    cut a release: status, next, patch|minor|major|rc|beta|promote
 //
 // The non-interactive paths matter as much as the TUI: --yes makes it usable
 // from a provisioning script, and update is what a cron job or a shell hook
@@ -41,13 +42,18 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
 	"github.com/alvaroofernaandez/aval/internal/core/platform"
 	"github.com/alvaroofernaandez/aval/internal/core/update"
+	"github.com/alvaroofernaandez/aval/internal/release"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 )
 
-// version is stamped at build time:
+// Stamped at build time by GoReleaser (see .goreleaser.yaml):
 //
-//	go build -ldflags "-X main.version=$(git describe --tags --always)"
-var version = "dev"
+//	go build -ldflags "-X main.version=0.1.0 -X main.commit=$(git rev-parse --short HEAD) -X main.date=$(date -u +%FT%TZ)"
+var (
+	version = "dev"
+	commit  = ""
+	date    = ""
+)
 
 func main() {
 	if err := run(); err != nil {
@@ -69,8 +75,22 @@ func run() error {
 	flag.Parse()
 
 	if *showVer {
-		fmt.Printf("aval %s (%s/%s)\n", version, runtime.GOOS, runtime.GOARCH)
+		fmt.Print(currentBuild().text(runtime.GOOS, runtime.GOARCH))
 		return nil
+	}
+
+	// version and release need no aval repository: release works on the
+	// repository in the current directory.
+	if flag.Arg(0) == "version" {
+		fmt.Print(currentBuild().text(runtime.GOOS, runtime.GOARCH))
+		return nil
+	}
+	if flag.Arg(0) == "release" {
+		wd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		return runRelease(wd, flag.Args()[1:], os.Stdin, os.Stdout)
 	}
 
 	// The status line refreshes constantly: no repo lookup, no network.
@@ -171,7 +191,8 @@ func run() error {
 // AVAL_NO_UPDATE_CHECK, and silent on every failure — being offline must
 // not stop anyone installing their dotfiles.
 func notifyIfOutdated() {
-	if version == "dev" || !update.ShouldCheck(time.Now()) {
+	v := currentBuild().Version
+	if release.Channel(v) == release.ChannelDev || !update.ShouldCheck(time.Now()) {
 		return
 	}
 
@@ -180,7 +201,7 @@ func notifyIfOutdated() {
 
 	// Printed to stderr so it never contaminates the output of --dry-run when
 	// that is piped somewhere.
-	if notice := update.CheckLatest(ctx, version).String(); notice != "" {
+	if notice := update.CheckLatest(ctx, v).String(); notice != "" {
 		fmt.Fprintf(os.Stderr, "\n%s\n\n", notice)
 	}
 }
