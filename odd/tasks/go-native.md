@@ -25,7 +25,7 @@ Decisions
       `.github/PULL_REQUEST_TEMPLATE.md`, `.gitattributes`.
 - [x] T3 `aval design gate` (contrast, hardcodes, tokens) in Go, replacing the
       deleted design-gates scripts; `design-ack` as `aval design ack`.
-- [ ] T4 Claude hooks (`config/claude/hooks/*.sh`) → `aval hook <name>`;
+- [x] T4 Claude hooks (`config/claude/hooks/*.sh`) → `aval hook <name>`;
       settings.json points at the binary.
 - [ ] T5 tmux helpers (`config/tmux/*.sh`) → `aval tmux <name>`; tmux.conf
       calls the binary.
