@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/design/ack"
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 var epoch0 = time.Unix(1_700_000_000, 0)
@@ -213,12 +214,22 @@ func TestGateResolvesRelativePathsAndGitRoot(t *testing.T) {
 func TestGateDenialIsOneLineAndNamesTheFile(t *testing.T) {
 	e := newEnv(t)
 	p := project(t, "")
-	got := e.gate(edit("Edit", filepath.Join(p, `src/we"ird\.tsx`), p, "s"))
+	got := e.gate(edit("Edit", filepath.Join(p, `src/we"ird.tsx`), p, "s"))
 	if strings.Count(got, "\n") != 1 || !json.Valid([]byte(got)) {
 		t.Fatalf("denial must be one valid JSON line, got %q", got)
 	}
-	if !strings.Contains(got, "we_ird_.tsx is a UI surface") {
-		t.Errorf("quotes and backslashes in the name become _, got %q", got)
+	if !strings.Contains(got, "we_ird.tsx is a UI surface") {
+		t.Errorf("quotes in the name become _, got %q", got)
+	}
+}
+
+func TestGateDenialReplacesBackslashesInTheName(t *testing.T) {
+	testenv.SkipWindows(t, "a backslash is a path separator there, so it can never be part of a file name")
+	e := newEnv(t)
+	p := project(t, "")
+	got := e.gate(edit("Edit", filepath.Join(p, `src/we\ird.tsx`), p, "s"))
+	if !json.Valid([]byte(got)) || !strings.Contains(got, "we_ird.tsx is a UI surface") {
+		t.Errorf("backslashes in the name become _, got %q", got)
 	}
 }
 

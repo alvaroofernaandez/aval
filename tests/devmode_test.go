@@ -39,6 +39,7 @@ func newDevMachine(t *testing.T) devMachine {
 	gopath := run("", nil, "", "go", "env", "GOPATH").Stdout
 	goenv := run("", nil, "", "go", "env", "GOENV").Stdout
 	env := isoEnv(home,
+		withHookTools(t),
 		"XDG_CACHE_HOME="+filepath.Join(home, ".cache"),
 		"GIT_CONFIG_GLOBAL="+filepath.Join(home, ".gitconfig"),
 		"GOCACHE="+strings.TrimSpace(gocache), "GOMODCACHE="+strings.TrimSpace(gomod), "GOPATH="+strings.TrimSpace(gopath),

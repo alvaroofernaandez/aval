@@ -90,7 +90,7 @@ func TestPrePushRealGitPushThroughTheHook(t *testing.T) {
 		git(t, clone, "commit", "-qm", msg)
 	}
 	push := func(kv ...string) result {
-		return run(clone, env(kv...), "", "git", "push", "-q", "scratch", "HEAD:main")
+		return run(clone, env(kv...), "", "git", "push", "-q", "scratch", "HEAD:refs/heads/main")
 	}
 
 	// Positive control: a clean commit must go through, or a hook that always

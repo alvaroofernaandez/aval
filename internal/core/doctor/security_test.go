@@ -126,7 +126,8 @@ func TestHookScriptsOutsideRepoWarn(t *testing.T) {
 	opt := secMachine(t)
 	liveSettings(t, opt, hookSettings(`/opt/evil/run.sh`))
 	r := find(checkSecurity(opt), "sec-hooks-outside")
-	if r.Status != Warn || !strings.Contains(r.Message, "/opt/evil/run.sh") {
+	// The finding names the cleaned, OS-native path.
+	if r.Status != Warn || !strings.Contains(r.Message, filepath.FromSlash("/opt/evil/run.sh")) {
 		t.Errorf("want a warn naming the script: %s %s", r.Status, r.Message)
 	}
 }
