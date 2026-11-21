@@ -38,6 +38,7 @@ SUITES=(
   "$REPO/tests/design-gates.test.sh"
   "$REPO/tests/design-shot-stop.test.sh"
   "$REPO/tests/hooks-e2e.test.sh"
+  "$REPO/tests/bootstrap-verify.test.sh"
   "$REPO/tests/provenance.test.sh"
   "$REPO/tests/context-budget.test.sh"
   "$REPO/tests/agent-rules-sync.test.sh"

@@ -84,6 +84,40 @@ clone_or_update() {
   ok "Repository ready"
 }
 
+# sha256 of a file, from whichever tool this platform has.
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  else
+    return 1
+  fi
+}
+
+# Check a downloaded file against the release's SHA256SUMS. Removes the file
+# and exits on any doubt: no sums, no entry for this asset, no hashing tool, or
+# a different hash.
+verify_checksum() { # $1 file  $2 asset name
+  sums="$1.sums"
+  if ! curl -fsSL "$RELEASE_BASE/SHA256SUMS" -o "$sums" 2>/dev/null; then
+    rm -f "$1" "$sums"
+    die "cannot verify the download: $RELEASE_BASE/SHA256SUMS is not available"
+  fi
+  want="$(awk -v a="$2" '{ f = $2; sub(/^\*/, "", f); if (f == a) { print $1; exit } }' "$sums")"
+  rm -f "$sums"
+  if [ -z "$want" ]; then
+    rm -f "$1"
+    die "cannot verify the download: SHA256SUMS has no entry for $2"
+  fi
+  got="$(sha256_of "$1")" || { rm -f "$1"; die "cannot verify the download: no sha256sum or shasum available"; }
+  if [ "$got" != "$want" ]; then
+    rm -f "$1"
+    die "checksum mismatch for $2 (expected $want, got $got); nothing was installed"
+  fi
+  ok "Checksum verified"
+}
+
 fetch_binary() {
   BIN="$REPO_DIR/bin/aval$EXT"
   mkdir -p "$REPO_DIR/bin"
@@ -92,6 +126,11 @@ fetch_binary() {
   step "Fetching installer for $OS/$ARCH"
 
   if curl -fsSL "$RELEASE_BASE/$asset" -o "$BIN.tmp" 2>/dev/null; then
+    # Verified BEFORE it is made executable or moved into place: this binary is
+    # about to run with the user's privileges. A mismatch is fatal and never
+    # falls back to a source build, because "the download was altered" is not
+    # the same situation as "no binary was published".
+    verify_checksum "$BIN.tmp" "$asset"
     chmod +x "$BIN.tmp"
     mv "$BIN.tmp" "$BIN"
     ok "Installer downloaded"
