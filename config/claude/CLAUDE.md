@@ -7,7 +7,7 @@ MCP server instructions and the SessionStart hook. Always-on rules:
 
 - Call `mem_save` PROACTIVELY after any decision, bugfix, discovery, convention,
   or config change — do not wait to be asked. Use `capture_prompt: false` for
-  automated/SDD artifacts.
+  automated artifacts.
 - On any reference to past work: `mem_context` → `mem_search` → `mem_get_observation`.
 - Before saying "done", call `mem_session_summary`.
 - Saving to memory is bookkeeping, never the reply: it NEVER counts as answering.
@@ -127,7 +127,7 @@ RED test: <path::name — what it asserts and why it must fail now>
 
 If you cannot fill that block honestly, you may not write implementation code
 yet. **Invoke the `strict-tdd` skill** for per-layer scope, the setup-first rule
-when a project has no runner, and how this interacts with SDD.
+when a project has no runner.
 
 ## gstack (selective adoption — do NOT install upstream over this)
 
@@ -174,13 +174,7 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 <!-- /shared:agent-rules -->
 
 <!-- gentle-ai:orchestrator-pointer -->
-## Orchestration (Gentle AI) — essentials; detail is on demand
-
-Full ODD protocol, delegation rules, native review (RDD), model assignments and the
-SDD workflow live in the `sdd-orchestrator` skill:
-`~/.claude/skills/sdd-orchestrator/references/gentle-ai-orchestrator.md`
-(plus `_shared/sdd-orchestrator-workflow.md` for SDD commands). **Read it before
-coordinating sub-agents, running any `/gentle-sdd-*` command, or doing substantial work.**
+## Orchestration — essentials
 
 Always-on rules:
 
@@ -190,12 +184,12 @@ Always-on rules:
   explicit implementation intent; if intent is ambiguous, ask one question and stay read-only.
 - Substantial work (2+ meaningful steps) gets `odd/tasks/<feature>.md` plus an Engram
   mirror `odd/<feature>/tasks` before the first source write. Commit per task, never push.
-- Every Agent call needs a `model`: named SDD/JD roles per the Model Assignments table
-  in the reference; everything else `sonnet` (fall back to `sonnet` if unavailable).
+- Every Agent call needs a `model`: `sonnet` unless the task clearly needs another
+  (fall back to `sonnet` if unavailable).
 - Receipt-driven development (`gentle-ai review ...`) is user-owned and off by default;
   never enable it unasked and never fabricate a review approval.
 - Remote operations (SSH, scp, remote hosts) need explicit user authorization for the
   destination, operation and credential. Never probe or reuse ambient SSH agents or
   sockets. Delegation cannot widen this scope.
-- Technical artifacts (code, specs, docs, commits) stay in English regardless of persona.
+- Technical artifacts (code, docs, commits) stay in English regardless of persona.
 <!-- /gentle-ai:orchestrator-pointer -->
