@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -45,6 +46,8 @@ type SettingsResult struct {
 	Created bool
 	Written bool
 	Backup  string
+	// Warnings are overlay entries sync refused to apply.
+	Warnings []string
 }
 
 // RulesResult describes one agent-rules target.
@@ -71,6 +74,183 @@ var mergeKeys = []string{"env", "enabledPlugins", "skillOverrides", "extraKnownM
 // MergeSettings merges repo and then overlay into live and returns the result
 // plus the sorted top-level keys whose value changed. Inputs are not mutated.
 func MergeSettings(repo, live, overlay map[string]any) (map[string]any, []string) {
+	out, changed, _ := MergeSettingsWarn(repo, live, overlay)
+	return out, changed
+}
+
+// MergeSettingsWarn is MergeSettings plus the warnings it raised.
+//
+// permissions.deny is a safety floor, not a preference: the result is the union
+// of the repo's denies, the live file's own and the overlay's, so the overlay
+// can add denies but never remove or replace one. Overlay permissions.allow
+// entries are added to the live ones, except those a deny covers: those are
+// dropped with a warning instead of silently widening access.
+func MergeSettingsWarn(repo, live, overlay map[string]any) (map[string]any, []string, []string) {
+	rest, overlayDeny, overlayAllow := splitOverlayPermissions(overlay)
+	out, _ := mergeSettings(repo, live, rest)
+	warnings := mergePermissions(out, repo, overlayDeny, overlayAllow)
+
+	var changed []string
+	for k, v := range out {
+		if old, ok := live[k]; !ok || !reflect.DeepEqual(old, v) {
+			changed = append(changed, k)
+		}
+	}
+	sort.Strings(changed)
+	return out, changed, warnings
+}
+
+// splitOverlayPermissions returns the overlay without permissions.deny and
+// permissions.allow (which merge by union, not by replacement) plus those two
+// lists. The input is not mutated.
+func splitOverlayPermissions(overlay map[string]any) (map[string]any, []string, []string) {
+	perms, ok := overlay["permissions"].(map[string]any)
+	if !ok {
+		return overlay, nil, nil
+	}
+	rest := cloneMap(overlay)
+	rp := rest["permissions"].(map[string]any)
+	deny, allow := stringList(perms["deny"]), stringList(perms["allow"])
+	delete(rp, "deny")
+	delete(rp, "allow")
+	if len(rp) == 0 {
+		delete(rest, "permissions")
+	}
+	return rest, deny, allow
+}
+
+func stringList(v any) []string {
+	var out []string
+	l, _ := v.([]any)
+	for _, x := range l {
+		if s, ok := x.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+func union(lists ...[]string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, l := range lists {
+		for _, s := range l {
+			if !seen[s] {
+				seen[s] = true
+				out = append(out, s)
+			}
+		}
+	}
+	return out
+}
+
+func toAny(l []string) []any {
+	out := make([]any, len(l))
+	for i, s := range l {
+		out[i] = s
+	}
+	return out
+}
+
+func mergePermissions(out, repo map[string]any, overlayDeny, overlayAllow []string) []string {
+	var repoDeny []string
+	if rp, ok := repo["permissions"].(map[string]any); ok {
+		repoDeny = stringList(rp["deny"])
+	}
+	if len(repoDeny) == 0 && len(overlayDeny) == 0 && len(overlayAllow) == 0 {
+		return nil
+	}
+	perms, _ := out["permissions"].(map[string]any)
+	if perms == nil {
+		perms = map[string]any{}
+	}
+	deny := union(repoDeny, stringList(perms["deny"]), overlayDeny)
+	if len(deny) > 0 {
+		perms["deny"] = toAny(deny)
+	}
+
+	var warnings []string
+	if len(overlayAllow) > 0 {
+		var add []string
+		for _, a := range overlayAllow {
+			if d, hit := coveredByDeny(a, deny); hit {
+				warnings = append(warnings, fmt.Sprintf("permissions: overlay allow %q dropped, denied by %q", a, d))
+				continue
+			}
+			add = append(add, a)
+		}
+		if merged := union(stringList(perms["allow"]), add); len(merged) > 0 {
+			perms["allow"] = toAny(merged)
+		}
+	}
+	if len(perms) > 0 {
+		out["permissions"] = perms
+	}
+	return warnings
+}
+
+// coveredByDeny reports whether a deny rule matches the allow rule: the same
+// rule, a bare tool name denying every use of it, or a deny glob that matches
+// the allow rule's argument ("Read(~/.ssh/**)" covers "Read(~/.ssh/id_rsa)").
+func coveredByDeny(allow string, deny []string) (string, bool) {
+	at, aa := splitRule(allow)
+	for _, d := range deny {
+		if d == allow {
+			return d, true
+		}
+		dt, da := splitRule(d)
+		if dt != at {
+			continue
+		}
+		if da == "" {
+			return d, true
+		}
+		if aa != "" && ruleGlob(at, da).MatchString(aa) {
+			return d, true
+		}
+	}
+	return "", false
+}
+
+// splitRule splits "Tool(arg)" into "Tool" and "arg"; a bare "Tool" has no arg.
+func splitRule(r string) (tool, arg string) {
+	tool, rest, ok := strings.Cut(r, "(")
+	if !ok {
+		return r, ""
+	}
+	arg = strings.TrimSuffix(rest, ")")
+	return tool, strings.TrimPrefix(arg, "./")
+}
+
+// ruleGlob compiles a permission glob: ** crosses directories, "**/" also
+// matches none, and * stops at "/" for file tools but not for Bash commands.
+func ruleGlob(tool, pattern string) *regexp.Regexp {
+	pattern = strings.TrimPrefix(pattern, "./")
+	star := "[^/]*"
+	if tool == "Bash" {
+		star = ".*"
+	}
+	var b strings.Builder
+	b.WriteString("^")
+	for i := 0; i < len(pattern); i++ {
+		switch {
+		case strings.HasPrefix(pattern[i:], "**/"):
+			b.WriteString("(?:.*/)?")
+			i += 2
+		case strings.HasPrefix(pattern[i:], "**"):
+			b.WriteString(".*")
+			i++
+		case pattern[i] == '*':
+			b.WriteString(star)
+		default:
+			b.WriteString(regexp.QuoteMeta(string(pattern[i])))
+		}
+	}
+	b.WriteString("$")
+	return regexp.MustCompile(b.String())
+}
+
+func mergeSettings(repo, live, overlay map[string]any) (map[string]any, []string) {
 	out := cloneMap(live)
 	for _, k := range replaceKeys {
 		if v, ok := repo[k]; ok {
@@ -176,24 +356,24 @@ func encode(m map[string]any) ([]byte, error) {
 }
 
 // planSettings computes the merged settings without writing anything.
-func planSettings(opt Options) (merged map[string]any, changed []string, old []byte, exists bool, err error) {
+func planSettings(opt Options) (merged map[string]any, changed []string, old []byte, exists bool, warnings []string, err error) {
 	repo, _, err := readJSONFile(filepath.Join(opt.Repo, "config", "claude", "settings.json"))
 	if err != nil {
-		return nil, nil, nil, false, fmt.Errorf("sync: repo settings: %w", err)
+		return nil, nil, nil, false, nil, fmt.Errorf("sync: repo settings: %w", err)
 	}
 	live := map[string]any{}
 	livePath := filepath.Join(opt.Home, ".claude", "settings.json")
 	if m, b, rerr := readJSONFile(livePath); rerr == nil {
 		live, old, exists = m, b, true
 	} else if !os.IsNotExist(unwrapPathErr(rerr)) {
-		return nil, nil, nil, false, fmt.Errorf("sync: live settings: %w", rerr)
+		return nil, nil, nil, false, nil, fmt.Errorf("sync: live settings: %w", rerr)
 	}
 	overlay, err := overlaySettings(opt)
 	if err != nil {
-		return nil, nil, nil, false, err
+		return nil, nil, nil, false, nil, err
 	}
-	merged, changed = MergeSettings(repo, live, overlay)
-	return merged, changed, old, exists, nil
+	merged, changed, warnings = MergeSettingsWarn(repo, live, overlay)
+	return merged, changed, old, exists, warnings, nil
 }
 
 func unwrapPathErr(err error) error {
@@ -223,17 +403,18 @@ func overlaySettings(opt Options) (map[string]any, error) {
 
 // SettingsDrift lists the top-level keys sync would change, writing nothing.
 func SettingsDrift(opt Options) ([]string, error) {
-	_, changed, _, _, err := planSettings(opt)
+	_, changed, _, _, _, err := planSettings(opt)
 	return changed, err
 }
 
 func syncSettings(opt Options, rec *backup.Recorder) (SettingsResult, error) {
 	var res SettingsResult
-	merged, changed, _, exists, err := planSettings(opt)
+	merged, changed, _, exists, warnings, err := planSettings(opt)
 	if err != nil {
 		return res, err
 	}
 	res.Changed = changed
+	res.Warnings = warnings
 	res.Created = !exists
 	if len(changed) == 0 && exists {
 		return res, nil

@@ -248,6 +248,9 @@ func printSync(out io.Writer, home string, rep *avalsync.Report, dry bool) {
 			fmt.Fprintf(out, "          previous file saved to %s\n", short(home, s.Backup))
 		}
 	}
+	for _, w := range s.Warnings {
+		fmt.Fprintf(out, "warning   %s\n", w)
+	}
 	for _, r := range rep.Rules {
 		switch {
 		case r.Skipped:
