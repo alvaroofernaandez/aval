@@ -74,8 +74,13 @@ func runDoctor(repo, home string, args []string, out io.Writer) error {
 func runSync(repo, home string, args []string, dryRun bool, out io.Writer) error {
 	fs := newFlagSet("sync", out)
 	dry := fs.Bool("dry-run", dryRun, "show what would change, write nothing")
+	check := fs.Bool("check", false, "read-only: exit 1 if sync would change anything")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	if *check {
+		return checkSync(repo, home, out)
 	}
 
 	rep, err := avalsync.Run(avalsync.Options{
@@ -118,4 +123,42 @@ func printSync(out io.Writer, home string, rep *avalsync.Report, dry bool) {
 	if dry {
 		fmt.Fprintln(out, "\nDry run — nothing was written.")
 	}
+}
+
+// checkSync is `aval sync --check`: a forced dry run that prints only what
+// drifted and fails when anything did.
+func checkSync(repo, home string, out io.Writer) error {
+	rep, err := avalsync.Run(avalsync.Options{
+		Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), DryRun: true,
+	})
+	if err != nil {
+		return err
+	}
+	var drift []string
+	if s := rep.Settings; s.Created || len(s.Changed) > 0 {
+		keys := strings.Join(s.Changed, ", ")
+		if s.Created {
+			keys = "file missing; " + keys
+		}
+		drift = append(drift, "settings  ~/.claude/settings.json would change: "+keys)
+	}
+	for _, r := range rep.Rules {
+		if !r.Skipped && r.Changed {
+			drift = append(drift, "rules     "+short(home, r.Path)+" is out of date")
+		}
+	}
+	for _, l := range rep.Links {
+		if l.Status == "would link" {
+			drift = append(drift, "overlay   "+short(home, l.Dest)+" is not linked")
+		}
+	}
+	if len(drift) == 0 {
+		fmt.Fprintln(out, "sync: no drift")
+		return nil
+	}
+	for _, d := range drift {
+		fmt.Fprintln(out, "drift  "+d)
+	}
+	fmt.Fprintln(out, "\nRun `aval sync` to apply.")
+	return errChecksFailed
 }

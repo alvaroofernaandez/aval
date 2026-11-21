@@ -38,5 +38,20 @@ while read -r _lref lsha _rref rsha; do
   fi
 done
 
+# Drift between the repo and the live agent config. A WARNING by default: a dev
+# pushing from another machine has a different ~/.claude and must not be
+# blocked by it. AVAL_PREPUSH_STRICT=1 makes it blocking. Skipped silently when
+# the aval binary is not available. AVAL_BIN overrides the binary (tests).
+aval_bin="${AVAL_BIN:-aval}"
+if command -v "$aval_bin" >/dev/null 2>&1; then
+  if ! drift="$("$aval_bin" --repo "$REPO" sync --check 2>&1)"; then
+    printf 'pre-push: warning: aval sync --check found drift between the repo and your live config:\n%s\n' "$drift" >&2
+    if [ "${AVAL_PREPUSH_STRICT:-0}" = "1" ]; then
+      echo "pre-push: AVAL_PREPUSH_STRICT=1, so this blocks the push (run aval sync)." >&2
+      status=1
+    fi
+  fi
+fi
+
 [ "$status" -eq 0 ] || echo "pre-push: push refused. Fix the commits, or bypass deliberately with --no-verify." >&2
 exit "$status"

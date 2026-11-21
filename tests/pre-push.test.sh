@@ -55,5 +55,44 @@ git -C "$work/clone" push -q scratch HEAD:main >/dev/null 2>&1
 assert_eq "a push carrying employer material is refused" "1" \
   "$([ "$?" -ne 0 ] && echo 1 || echo 0)"
 
+# aval sync --check: a WARNING by default (another machine's ~/.claude must not
+# block a push), blocking only with AVAL_PREPUSH_STRICT=1, silent when the
+# binary is absent. A stub stands in for the real binary.
+git -C "$work/clone" reset -q --hard HEAD~1   # drop the refused leak commit
+# reset restores the committed hook files; put the working copies back
+cp "$HOOK" "$work/clone/.githooks/pre-push"
+cp "$REPO/tests/lib/proprietary-patterns.sh" "$work/clone/tests/lib/"
+stub="$work/aval-drift"
+printf '#!/bin/sh\necho "drift  settings  hooks"\nexit 1\n' > "$stub"
+chmod +x "$stub"
+okstub="$work/aval-ok"
+printf '#!/bin/sh\nexit 0\n' > "$okstub"
+chmod +x "$okstub"
+
+printf 'second clean note\n' > "$work/clone/clean2.md"
+git -C "$work/clone" add clean2.md
+git -C "$work/clone" -c user.name=t -c user.email=t@t commit -qm "test: clean 2"
+
+err="$(AVAL_BIN="$stub" git -C "$work/clone" push scratch HEAD:main 2>&1 >/dev/null)"
+assert_eq "sync drift only warns: the push goes through" "0" "$?"
+assert_eq "sync drift is reported as a warning" "yes" \
+  "$(printf '%s' "$err" | rg -q 'warning.*aval sync --check' && echo yes || echo no)"
+
+printf 'third clean note\n' > "$work/clone/clean3.md"
+git -C "$work/clone" add clean3.md
+git -C "$work/clone" -c user.name=t -c user.email=t@t commit -qm "test: clean 3"
+AVAL_PREPUSH_STRICT=1 AVAL_BIN="$stub" git -C "$work/clone" push -q scratch HEAD:main >/dev/null 2>&1
+assert_eq "AVAL_PREPUSH_STRICT=1 makes sync drift block the push" "1" \
+  "$([ "$?" -ne 0 ] && echo 1 || echo 0)"
+
+AVAL_PREPUSH_STRICT=1 AVAL_BIN="$okstub" git -C "$work/clone" push -q scratch HEAD:main >/dev/null 2>&1
+assert_eq "strict mode with no drift pushes" "0" "$?"
+
+printf 'fourth clean note\n' > "$work/clone/clean4.md"
+git -C "$work/clone" add clean4.md
+git -C "$work/clone" -c user.name=t -c user.email=t@t commit -qm "test: clean 4"
+AVAL_PREPUSH_STRICT=1 AVAL_BIN="$work/does-not-exist" git -C "$work/clone" push -q scratch HEAD:main >/dev/null 2>&1
+assert_eq "no aval binary: nothing to check, even in strict mode" "0" "$?"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
