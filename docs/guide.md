@@ -304,13 +304,13 @@ Los backups viven fuera de cualquier árbol escaneado, y hay un test que lo veri
 
 | Origen en el repo | Destino | Función |
 | :--- | :--- | :--- |
-| `config/tmux` | `~/.config/tmux` | Scripts del sidebar y la barra de estado |
+| `home/tmux.conf` | `~/.tmux.conf` | Configuración de tmux (sidebar y barra de estado: `aval tmux`) |
 | `config/yazi` | `~/.config/yazi` | Gestor de archivos, uso general |
 | `config/yazi-sidebar` | `~/.config/yazi-sidebar` | Variante estrecha para el panel lateral |
 | `config/ghostty` | `~/.config/ghostty` | Terminal: tema, tipografía, arranque |
 | `home/*` | `~/.tmux.conf`, `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.p10k.zsh` | Configuración de shell y git |
 | `config/atuin`, `gh`, `git` | `~/.config/...` | Herramientas con fichero propio |
-| `shared/skills` | 3 destinos a la vez | Skills propias |
+| `skills` | 3 destinos a la vez | Skills propias |
 | `config/claude/*` | `~/.claude/*` | Claude Code, **ruta por ruta** |
 | `config/opencode/*` | `~/.config/opencode/*` | OpenCode, **ruta por ruta** |
 
@@ -389,7 +389,7 @@ brew install tmux yazi bat fd ripgrep sd eza gitleaks
 ```
 aval/
 │
-├── 📁 shared/skills/          Skills propias
+├── 📁 skills/          Skills propias
 │
 ├── 📁 config/
 │   ├── 🖥️  ghostty/            Tema Tokyo Night, tipografía, arranque
@@ -723,7 +723,7 @@ direccional sirve cuando ya sabes dónde está.
 
 ### 🧩 Skills compartidas
 
-`shared/skills` se enlaza a los tres destinos a la vez, así que cada skill existe una
+`skills` se enlaza a los tres destinos a la vez, así que cada skill existe una
 sola vez.
 
 **Propias:**
@@ -885,7 +885,7 @@ escaneo informó «sin credenciales».
 ## 🧪 Tests
 
 ```bash
-./tests/run-all.sh
+go test ./...
 ```
 
 ```
@@ -906,7 +906,7 @@ wait-helpers           16 passed        paste-router           12 passed
 353 passed, 0 failed
 ```
 
-Una sola orden cubre **shell, Go y npm**: si están los toolchains, `run-all.sh` ejecuta
+Una sola orden cubre Go; con los toolchains, `go test ./...` más `node --test` cubren Go y npm. (Sección pendiente de reescritura.) Antes `run-all.sh` ejecutaba
 también `go test ./...` y `node --test` y los suma al total. Si falta alguno, lo salta sin
 fallar.
 

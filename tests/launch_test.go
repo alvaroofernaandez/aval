@@ -12,7 +12,7 @@ import (
 // `aval tmux launch`, the Ghostty launch command. Ghostty starts it with
 // launchd's minimal PATH, so a bare `tmux` is not found; these cases pin that
 // down against the real binary. Hermetic variants (fake tmux, no server) live
-// in internal/tmux; the cases here use the real tmux where it matters.
+// in internal/term/tmux; the cases here use the real tmux where it matters.
 
 const minimalPath = "/usr/bin:/bin:/usr/sbin:/sbin"
 

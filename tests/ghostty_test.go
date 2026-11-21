@@ -84,11 +84,11 @@ func TestGhosttyAcceptsTheConfig(t *testing.T) {
 // Ghostty starts its command through `/usr/bin/login -flp <user> /bin/bash`,
 // which inherits launchd's minimal PATH: a bare `tmux` is not found and the
 // window dies with "exec: tmux: not found". The config must not reintroduce one.
-func TestGhosttyLaunchCommandIsAbsoluteAndNotPathDependent(t *testing.T) {
+func TestGhosttyLaunchCommandIsAnchoredAndNotPathDependent(t *testing.T) {
 	cmds := regexp.MustCompile(`(?m)^\s*command\s*=.*$`).FindAllString(ghosttyConf(t), -1)
 	isTrue(t, "ghostty config sets a command", len(cmds) > 0)
 	for _, c := range cmds {
-		mustHave(t, `=\s*/`, c, "ghostty command uses an absolute path")
+		mustHave(t, `=\s*(shell:)?(/|\$HOME/)`, c, "ghostty command uses an absolute or $HOME-anchored path")
 		mustNotHave(t, `=\s*tmux\b`, c, "ghostty command relies on PATH for tmux")
 	}
 }

@@ -12,7 +12,7 @@ import (
 
 // End-to-end tests of the Go installer (`aval --yes`). Every run happens
 // inside a throwaway $HOME, so the real dotfiles of whoever runs the suite are
-// never touched. Unit-level cases live in internal/install and cmd/aval.
+// never touched. Unit-level cases live in internal/core/install and cmd/aval.
 
 const backupRootName = ".aval-backup"
 
@@ -185,7 +185,7 @@ func TestInstallAgentConfigsAreLinkedPerPathNeverWholesale(t *testing.T) {
 	s.put(".claude/projects/session.jsonl", "log\n")
 	s.put(".claude/skills/some-vendor-skill/SKILL.md", "vendor\n")
 
-	skills := subdirs(t, "shared/skills")
+	skills := subdirs(t, "skills")
 	var firstOwn string // a real skill (not the _shared helper dir)
 	for _, d := range skills {
 		if !strings.HasPrefix(d, "_") {
@@ -201,7 +201,7 @@ func TestInstallAgentConfigsAreLinkedPerPathNeverWholesale(t *testing.T) {
 
 	for _, root := range []string{".claude/skills", ".config/opencode/skills", ".opencode/skills"} {
 		for _, name := range []string{skills[0], firstOwn} {
-			eq(t, "links own skill "+name+" into ~/"+root, p("shared/skills", name), s.readlink(root+"/"+name))
+			eq(t, "links own skill "+name+" into ~/"+root, p("skills", name), s.readlink(root+"/"+name))
 		}
 	}
 

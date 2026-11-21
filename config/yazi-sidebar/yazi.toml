@@ -7,7 +7,7 @@
 #
 # yazi does NOT merge this directory with ~/.config/yazi: it replaces it. The
 # opener and show_hidden below are therefore duplicated on purpose, and
-# tests/yazi-sidebar-config.test.sh fails if they ever drift apart.
+# the yazi-sidebar config test (internal/term/tmux/e2e/config_test.go) fails if they ever drift apart.
 
 [mgr]
 # [parent, current, preview] — 0 hides a column; at least one must be non-zero.

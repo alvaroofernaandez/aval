@@ -12,13 +12,13 @@ import (
 )
 
 // Guards against publishing an employer's material from a personal dotfiles
-// repo. The skills under shared/skills are the risk surface: prose accumulates
+// repo. The skills under skills are the risk surface: prose accumulates
 // the pricing matrix, client names and demo credentials that gitleaks cannot
 // see. Two scopes are checked; the history one matters, because deleting files
 // leaves every earlier commit intact.
 
 // proprietaryPatterns come from the Go binary, assembled from fragments there
-// (internal/prepush): a scanner whose source spells the words it forbids
+// (internal/agent/prepush): a scanner whose source spells the words it forbids
 // matches itself.
 func proprietaryPatterns(t *testing.T) []*regexp.Regexp {
 	t.Helper()
@@ -110,13 +110,13 @@ func TestNoProprietaryMaterialInAnyCommit(t *testing.T) {
 // Deleting the skills would pass both scans while destroying the tooling.
 func TestNoProprietaryGenericSkillsReplacedTheDeletedOnes(t *testing.T) {
 	for _, skill := range []string{"pdf-report", "repo-prep"} {
-		isTrue(t, "the generic "+skill+" skill exists", exists(p("shared/skills", skill, "SKILL.md")))
+		isTrue(t, "the generic "+skill+" skill exists", exists(p("skills", skill, "SKILL.md")))
 	}
 }
 
 // A skill that reads generic but defaults to a brand directory under $HOME.
 func TestNoProprietaryNoDefaultBrandDirectoryUnderHome(t *testing.T) {
-	src := read(t, "internal/pdfreport/assets.go") // missing file fails, not passes
+	src := read(t, "internal/docs/pdfreport/assets.go") // missing file fails, not passes
 	mustNotHave(t, `UserHomeDir|Getenv\("HOME"\)`, src, "assets.go must not default to a brand dir under $HOME")
 }
 

@@ -17,8 +17,8 @@ import (
 // (`aval design ack`) and the Stop hook (`aval hook design-shot-stop`),
 // exercised through the real binary.
 //
-// The same decision tables are unit-tested in internal/designhook and
-// internal/designack; what only an end-to-end run proves is the process
+// The same decision tables are unit-tested in internal/hook and
+// internal/ack; what only an end-to-end run proves is the process
 // boundary: stdin parsing, exit codes, fail-open, a binary that runs with an
 // empty PATH, and a marker path computed independently of the code under test.
 //

@@ -14,7 +14,7 @@ import (
 // pushed without running the suite. Both times the check existed and was simply
 // not run; a hook makes it unskippable by default.
 //
-// The scanning itself is unit-tested in internal/prepush and cmd/aval; what is
+// The scanning itself is unit-tested in internal/agent/prepush and cmd/aval; what is
 // pinned here is the shim and a real `git push` through it.
 
 func TestPrePushHookShim(t *testing.T) {

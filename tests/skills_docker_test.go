@@ -8,10 +8,10 @@ import (
 )
 
 // The Kiri-only Docker skills. The cleanup command itself is covered by Go
-// tests (internal/dockerclean). Kiri replaced OrbStack (which replaced Colima)
+// tests (internal/devops/dockerclean). Kiri replaced OrbStack (which replaced Colima)
 // on 2026-11-17: no skill may instruct starting either of them.
 
-func skill(t *testing.T, name string) string { return read(t, "shared/skills/"+name+"/SKILL.md") }
+func skill(t *testing.T, name string) string { return read(t, "skills/"+name+"/SKILL.md") }
 
 func TestDockerSkillsHaveValidFrontmatterAndNameNoRetiredRuntime(t *testing.T) {
 	for _, s := range []string{"kiri-docker", "docker-space-optimizer", "kiri-health", "docker-build-optimized"} {
@@ -29,8 +29,8 @@ func TestDockerSkillsHaveValidFrontmatterAndNameNoRetiredRuntime(t *testing.T) {
 }
 
 func TestDockerSkillsContent(t *testing.T) {
-	isTrue(t, "old orbstack-docker skill is gone", !exists(p("shared/skills/orbstack-docker")))
-	isTrue(t, "old orbstack-health skill is gone", !exists(p("shared/skills/orbstack-health")))
+	isTrue(t, "old orbstack-docker skill is gone", !exists(p("skills/orbstack-docker")))
+	isTrue(t, "old orbstack-health skill is gone", !exists(p("skills/orbstack-health")))
 	mustHave(t, `com\.docker\.socket`, skill(t, "kiri-health"),
 		"kiri-health detects Docker Desktop's socket helper hijacking /var/run/docker.sock")
 	mustContain(t, skill(t, "kiri-docker"), "BUILDX_BUILDER=multiarch", "kiri-docker documents BUILDX_BUILDER=multiarch")
@@ -41,7 +41,7 @@ func TestDockerSkillsContent(t *testing.T) {
 
 	var scripts []string
 	for _, s := range []string{"kiri-docker", "docker-space-optimizer"} {
-		_ = filepath.WalkDir(p("shared/skills", s), func(path string, d os.DirEntry, err error) error {
+		_ = filepath.WalkDir(p("skills", s), func(path string, d os.DirEntry, err error) error {
 			if err == nil && !d.IsDir() && strings.HasSuffix(path, ".sh") {
 				scripts = append(scripts, path)
 			}

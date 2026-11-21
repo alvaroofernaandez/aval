@@ -6,9 +6,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/alvaroofernaandez/aval/internal/install"
-	"github.com/alvaroofernaandez/aval/internal/plan"
-	"github.com/alvaroofernaandez/aval/internal/platform"
+	"github.com/alvaroofernaandez/aval/internal/core/install"
+	"github.com/alvaroofernaandez/aval/internal/core/plan"
+	"github.com/alvaroofernaandez/aval/internal/core/platform"
 )
 
 // Screen is which of the three views is showing.

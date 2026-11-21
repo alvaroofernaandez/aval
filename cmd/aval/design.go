@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alvaroofernaandez/aval/internal/designack"
-	"github.com/alvaroofernaandez/aval/internal/designgate"
+	"github.com/alvaroofernaandez/aval/internal/design/ack"
+	"github.com/alvaroofernaandez/aval/internal/design/gate"
 )
 
 const designUsage = `usage:
@@ -33,12 +33,12 @@ func runDesign(args []string, cwd string, out io.Writer) error {
 		if len(args) != 2 {
 			return errors.New(designUsage)
 		}
-		cache, err := designack.CacheDir()
+		cache, err := ack.CacheDir()
 		if err != nil {
 			return err
 		}
-		return designack.Ack(out, designack.Options{
-			Surface: args[1], Dir: cwd, Cache: cache, Now: time.Now(), TTL: designack.TTLFromEnv(),
+		return ack.Ack(out, ack.Options{
+			Surface: args[1], Dir: cwd, Cache: cache, Now: time.Now(), TTL: ack.TTLFromEnv(),
 		})
 	case "gate":
 		return runDesignGate(args[1:], out)
@@ -82,19 +82,19 @@ func runDesignGate(args []string, out io.Writer) error {
 		if len(pos) != 2 {
 			return errors.New(designUsage)
 		}
-		code = designgate.Contrast(out, pos[0], pos[1], has("--large"))
+		code = gate.Contrast(out, pos[0], pos[1], has("--large"))
 	case "tokens":
-		code = designgate.Tokens(out, pos)
+		code = gate.Tokens(out, pos)
 	case "pairs":
 		if len(pos) != 1 {
 			return errors.New(designUsage)
 		}
-		code = designgate.Pairs(out, pos[0], has("--aaa"))
+		code = gate.Pairs(out, pos[0], has("--aaa"))
 	case "hardcodes":
 		if len(pos) == 0 {
 			return errors.New(designUsage)
 		}
-		o := designgate.HardcodeOpts{Tailwind: !has("--no-tw") && !has("--no-tailwind")}
+		o := gate.HardcodeOpts{Tailwind: !has("--no-tw") && !has("--no-tailwind")}
 		if exts := flags["--ext"]; len(exts) > 0 {
 			o.Exts = map[string]bool{}
 			for _, e := range strings.Split(exts[len(exts)-1], ",") {
@@ -103,24 +103,24 @@ func runDesignGate(args []string, out io.Writer) error {
 				}
 			}
 		}
-		code = designgate.Hardcodes(out, pos, o)
+		code = gate.Hardcodes(out, pos, o)
 	case "theme-refs":
 		themes := flags["--theme"]
 		if len(themes) == 0 && len(pos) >= 2 {
 			// The two-argument form: the first path is the theme.
 			themes, pos = pos[:1], pos[1:]
 		}
-		code = designgate.ThemeRefs(out, themes, pos)
+		code = gate.ThemeRefs(out, themes, pos)
 	case "component":
 		root := "."
 		if r := flags["--root"]; len(r) > 0 {
 			root = r[len(r)-1]
 		}
-		code = designgate.Component(out, root)
+		code = gate.Component(out, root)
 	case "emoji":
-		code = designgate.Emoji(out, pos)
+		code = gate.Emoji(out, pos)
 	case "native":
-		code = designgate.Native(out, pos)
+		code = gate.Native(out, pos)
 	default:
 		return fmt.Errorf("unknown gate %q\n%s", args[0], designUsage)
 	}

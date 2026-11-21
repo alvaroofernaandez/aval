@@ -16,7 +16,7 @@ import (
 
 func TestContextBudgetNoOrchestratorImport(t *testing.T) {
 	mustNotHave(t, `^@[a-z-]*orchestrator\.md`, read(t, "config/claude/CLAUDE.md"), "CLAUDE.md @imports an orchestrator")
-	isTrue(t, "the retired SDD orchestrator skill is gone", !exists(p("shared/skills/sdd-orchestrator")))
+	isTrue(t, "the retired SDD orchestrator skill is gone", !exists(p("skills/sdd-orchestrator")))
 }
 
 // Set where the file actually lands, not at an aspirational number, so it fails

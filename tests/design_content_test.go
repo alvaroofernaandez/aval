@@ -14,7 +14,7 @@ import (
 
 func TestDesignPipelineBashGateAndDesignAckAreGone(t *testing.T) {
 	isTrue(t, "config/claude/hooks/design-pipeline-gate.sh is gone", !exists(p("config/claude/hooks/design-pipeline-gate.sh")))
-	isTrue(t, "the design-ack script is gone", !exists(p("shared/skills/design-pipeline/scripts/design-ack")))
+	isTrue(t, "the design-ack script is gone", !exists(p("skills/design-pipeline/scripts/design-ack")))
 }
 
 // The hook is inert unless settings.json calls it.
@@ -54,7 +54,7 @@ func TestDesignPipelineCollidingPluginIsNotEnabled(t *testing.T) {
 
 // The gate can demand the line; only the skill makes the line mean something.
 func TestDesignPipelineLawsOfUXSkillCarriesAll30Laws(t *testing.T) {
-	skill := read(t, "shared/skills/laws-of-ux/SKILL.md")
+	skill := read(t, "skills/laws-of-ux/SKILL.md")
 	mustHave(t, `^name: laws-of-ux$`, skill, "the skill declares frontmatter name")
 	mustHave(t, `^description:`, skill, "the skill declares frontmatter description")
 	// A skill that quietly drops half of them drops the unglamorous ones (Postel,
@@ -80,14 +80,14 @@ func TestDesignPipelineLawsOfUXSkillCarriesAll30Laws(t *testing.T) {
 // checklist the marker gate no longer reads. The always-on part stays small;
 // detail (the DESIGN.md schema) lives in references/.
 func TestDesignPipelineTextDiet(t *testing.T) {
-	skill := read(t, "shared/skills/design-pipeline/SKILL.md")
+	skill := read(t, "skills/design-pipeline/SKILL.md")
 	isTrue(t, "design-pipeline SKILL.md stays under 2500 chars (is "+strconv.Itoa(len(skill))+")", len(skill) < 2500)
 	isTrue(t, "the skill names the three steps",
 		strings.Contains(skill, "laws-of-ux") && strings.Contains(skill, "direction") && strings.Contains(skill, "gates"))
 	mustContain(t, skill, "aval design ack <surface>", "the skill tells the model to run design-ack")
 	mustHave(t, `shot\.mjs`, skill, "the skill points at shot.mjs for render evidence")
 	isTrue(t, "the skill says .design/ belongs in .gitignore", strings.Contains(skill, ".design/") && strings.Contains(skill, "gitignore"))
-	schema := read(t, "shared/skills/design-pipeline/references/design-md-schema.md")
+	schema := read(t, "skills/design-pipeline/references/design-md-schema.md")
 	isTrue(t, "the DESIGN.md schema moved to references/",
 		strings.Contains(schema, "Intent & North Star") && strings.Contains(schema, "Decision Log"))
 	mustHave(t, `references/design-md-schema\.md`, skill, "the skill links the schema")
@@ -121,7 +121,7 @@ func descLen(text string) int {
 // Skills this repo owns keep their trigger words in <= 220 chars.
 func TestDesignPipelineOwnSkillDescriptionsStayShort(t *testing.T) {
 	for _, sk := range []string{"laws-of-ux", "design-refactor", "design-pipeline"} {
-		n := descLen(read(t, "shared/skills/"+sk+"/SKILL.md"))
+		n := descLen(read(t, "skills/"+sk+"/SKILL.md"))
 		isTrue(t, sk+" description stays under 220 chars (is "+strconv.Itoa(n)+")", n > 0 && n <= 220)
 	}
 }
@@ -167,7 +167,7 @@ func TestDesignPipelineAlwaysOnSection(t *testing.T) {
 // Chromium at 390/768/1440, writes screenshots into .design/shots/, runs the
 // overflow audit and never passes silently when it cannot render.
 func TestDesignPipelineShotMjs(t *testing.T) {
-	shot := p("shared/skills/design-pipeline/scripts/shot.mjs")
+	shot := p("skills/design-pipeline/scripts/shot.mjs")
 	isTrue(t, "shot.mjs exists", exists(shot))
 	needTool(t, "node", "git")
 	env := isoEnv(t.TempDir())

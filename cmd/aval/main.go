@@ -35,13 +35,13 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/alvaroofernaandez/aval/internal/install"
-	"github.com/alvaroofernaandez/aval/internal/manifest"
-	"github.com/alvaroofernaandez/aval/internal/plan"
-	"github.com/alvaroofernaandez/aval/internal/platform"
-	"github.com/alvaroofernaandez/aval/internal/statusline"
+	"github.com/alvaroofernaandez/aval/internal/agent/statusline"
+	"github.com/alvaroofernaandez/aval/internal/core/install"
+	"github.com/alvaroofernaandez/aval/internal/core/manifest"
+	"github.com/alvaroofernaandez/aval/internal/core/plan"
+	"github.com/alvaroofernaandez/aval/internal/core/platform"
+	"github.com/alvaroofernaandez/aval/internal/core/update"
 	"github.com/alvaroofernaandez/aval/internal/ui"
-	"github.com/alvaroofernaandez/aval/internal/update"
 )
 
 // version is stamped at build time:

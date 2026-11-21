@@ -109,8 +109,8 @@ Lo privado (nombres de empresa, skills de cliente) vive fuera del repo, en `~/.c
 | | Qué | Detalle |
 | :--- | :--- | :--- |
 | `config/claude` · `config/opencode` | Instrucciones, agentes, hooks, comandos | [Agentes](docs/guide.md#-agentes) |
-| `shared/skills` | Skills compartidas por todos los agentes | [Skills](docs/guide.md#-skills-compartidas) |
-| `config/ghostty` · `config/tmux` | Terminal, barra de estado de ~32 ms, sidebar de yazi | [Barra](docs/guide.md#-barra-de-estado) · [Sidebar](docs/guide.md#-barra-lateral-de-archivos) |
+| `skills` | Skills compartidas por todos los agentes | [Skills](docs/guide.md#-skills-compartidas) |
+| `config/ghostty` · `home/tmux.conf` | Terminal, barra de estado de ~32 ms, sidebar de yazi | [Barra](docs/guide.md#-barra-de-estado) · [Sidebar](docs/guide.md#-barra-lateral-de-archivos) |
 | `home/` | zsh, p10k, git | [Shell](docs/guide.md#-shell-y-herramientas) |
 | `cmd/aval` · `internal/` · `npm/` | Instalador TUI en Go | [Instalación](docs/guide.md#-instalación) |
 | `install.manifest` | Qué se instala y dónde: fuente única | [Mapa](docs/guide.md#️-mapa-del-repositorio) |

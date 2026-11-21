@@ -92,5 +92,5 @@ platforms = all
 # Commands and agents are deliberately not shared this way: OpenCode's carry
 # their own frontmatter (agent:, subtask:) and tool-specific paths, so each
 # tool keeps its own copy above.
-fanout-source = shared/skills
+fanout-source = skills
 fanout-dests = .claude/skills .config/opencode/skills .opencode/skills

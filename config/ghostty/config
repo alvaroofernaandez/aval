@@ -59,7 +59,10 @@ mouse-hide-while-typing = true
 # Attach to the shared tmux session, creating it only if absent. The tmux server
 # outlives Ghostty, so this costs ~970ms once after a reboot and ~9ms on every
 # window afterwards. Escape hatch: `ghostty -e zsh` for a plain shell.
-command = /Users/alvaroofernaandez/.local/bin/aval tmux launch
+# `shell:` forces /bin/sh -c (Ghostty >= 1.2), which expands $HOME, so the line
+# is portable across users. A bare `aval` would need PATH, which Ghostty's
+# launchd-minimal environment lacks.
+command = shell:$HOME/.local/bin/aval tmux launch
 
 # --- Behavior ----------------------------------------------------------------
 copy-on-select = clipboard

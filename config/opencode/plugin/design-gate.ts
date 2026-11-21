@@ -7,7 +7,7 @@ import { homedir } from "node:os"
 /**
  * The OpenCode half of the design-pipeline gate.
  *
- * Same contract as `aval hook design-gate` (internal/designhook), same marker
+ * Same contract as `aval hook design-gate` (internal/design/hook), same marker
  * file: `aval design ack <surface>` writes
  *
  *   ${XDG_CACHE_HOME:-~/.cache}/design-gate/<sha1 of project root>

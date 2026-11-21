@@ -22,7 +22,7 @@ func TestNoSDDLeftovers(t *testing.T) {
 	var found []string
 	for _, f := range trackedAndUntracked(t) {
 		underRoot := false
-		for _, r := range []string{"shared/skills/", "config/claude/", "config/opencode/"} {
+		for _, r := range []string{"skills/", "config/claude/", "config/opencode/"} {
 			underRoot = underRoot || strings.HasPrefix(f, r)
 		}
 		if !underRoot {
@@ -39,7 +39,7 @@ func TestNoSDDLeftovers(t *testing.T) {
 
 	var shared []string
 	for _, f := range trackedAndUntracked(t) {
-		if strings.HasPrefix(f, "shared/skills/_shared/") &&
+		if strings.HasPrefix(f, "skills/_shared/") &&
 			regexp.MustCompile(`(?i)^(sdd-|openspec-)`).MatchString(path.Base(f)) {
 			shared = append(shared, f)
 		}
@@ -50,7 +50,7 @@ func TestNoSDDLeftovers(t *testing.T) {
 // Active instructions, skills, hooks, plugins and scripts must not mention it.
 func TestNoSDDMentionsInActiveFiles(t *testing.T) {
 	re := regexp.MustCompile(`(?i)\bsdd\b|sdd-|openspec|skill-registry`)
-	roots := []string{"config/", "shared/skills/", "scripts/", "docs/"}
+	roots := []string{"config/", "skills/", "docs/"}
 	exact := map[string]bool{"install.manifest": true, "README.md": true}
 	var hits []string
 	for _, f := range trackedAndUntracked(t) {
@@ -58,7 +58,7 @@ func TestNoSDDMentionsInActiveFiles(t *testing.T) {
 		for _, r := range roots {
 			in = in || strings.HasPrefix(f, r)
 		}
-		if !in || strings.HasPrefix(f, "shared/skills-retired/") || regexp.MustCompile(`\.bak-`).MatchString(f) {
+		if !in || strings.HasPrefix(f, "skills-retired/") || regexp.MustCompile(`\.bak-`).MatchString(f) {
 			continue
 		}
 		hidden := false // ripgrep skips dot-files and dot-dirs by default
