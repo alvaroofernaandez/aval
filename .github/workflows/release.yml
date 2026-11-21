@@ -1,8 +1,18 @@
-# Builds aval for every platform and publishes a GitHub release — only for a
-# version tag (v*) or a manual run, and only after the owner approves the
-# "release" environment. No rolling releases on push: a push to main runs ci.yml
-# and nothing else. Binaries ship with SHA256SUMS and a build-provenance
-# attestation (`gh attestation verify <file> --repo alvaroofernaandez/aval`).
+# Publishes a release for a version tag (vX.Y.Z, vX.Y.Z-rc.N, vX.Y.Z-beta.N) or a
+# manual run, in four steps, each a job:
+#
+#   preflight  read-only: the tag is annotated, on main, CI passed on that exact
+#              commit, and the GoReleaser config builds (a snapshot dry run)
+#   publish    owner approval ("release" environment): GoReleaser builds the
+#              archives and the GitHub release; the archives get a provenance
+#              attestation
+#   verify     read-only: downloads what was published and checks SHA256SUMS,
+#              the attestations and the stamped version
+#   npm        owner approval: publishes the npm packages from those same
+#              verified archives (dist-tag `next` for prereleases, else `latest`)
+#
+# Cut a tag with `aval release` — see docs/releasing.md. A push to main runs
+# ci.yml and nothing else.
 name: release
 
 on:
@@ -17,83 +27,235 @@ on:
 permissions:
   contents: read
 
+# GoReleaser is downloaded from a version-pinned URL and its sha256 is checked
+# before it runs (a third-party action is not allowed in this repo). To bump:
+# pick a release, take the Linux_x86_64 line from its checksums.txt.
+env:
+  GORELEASER_VERSION: v2.20.2
+  GORELEASER_SHA256: f3d24969a7389a46613875711d15a96d8f6ef1553d84c6ace09d69ac1e7d44c0
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
-  build:
-    name: build ${{ matrix.os }}/${{ matrix.arch }}
+  preflight:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: darwin, arch: amd64 }
-          - { os: darwin, arch: arm64 }
-          - { os: linux, arch: amd64 }
-          - { os: linux, arch: arm64 }
-          - { os: windows, arch: amd64, ext: ".exe" }
-          - { os: windows, arch: arm64, ext: ".exe" }
+    permissions:
+      contents: read
+      actions: read # read ci.yml's conclusion for the tagged commit
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+      npm_tag: ${{ steps.tag.outputs.npm_tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0 # git describe needs the tags
+          fetch-depth: 0
+          fetch-tags: true # the annotated-tag check needs the tag object
           ref: ${{ inputs.tag || github.ref }}
+
+      - name: tag is a release tag, annotated, and on main
+        id: tag
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-(rc|beta)\.[0-9]+)?$ ]] \
+            || { echo "::error::$TAG is not vX.Y.Z, vX.Y.Z-rc.N or vX.Y.Z-beta.N"; exit 1; }
+          [ "$(git cat-file -t "refs/tags/$TAG")" = tag ] \
+            || { echo "::error::$TAG is a lightweight tag; create it with git tag -a"; exit 1; }
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$TAG^{commit}" origin/main \
+            || { echo "::error::$TAG is not reachable from origin/main"; exit 1; }
+          version="${TAG#v}"
+          npm_tag=latest
+          [[ "$version" == *-* ]] && npm_tag=next
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "npm_tag=${npm_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: ci.yml passed on the tagged commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse "$TAG^{commit}")"
+          ok="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${sha}&per_page=50" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")] | length')"
+          [ "$ok" -gt 0 ] || { echo "::error::no successful ci.yml run for ${sha}"; exit 1; }
 
       - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: "1.25"
 
-      - name: test
+      - name: install goreleaser
         run: |
-          go vet ./...
-          go test ./...
+          set -euo pipefail
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/goreleaser.tar.gz" "https://github.com/goreleaser/goreleaser/releases/download/${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz"
+          echo "${GORELEASER_SHA256}  $RUNNER_TEMP/goreleaser.tar.gz" > "$RUNNER_TEMP/goreleaser.sha256"
+          sha256sum -c "$RUNNER_TEMP/goreleaser.sha256"
+          mkdir "$RUNNER_TEMP/bin"
+          tar -xzf "$RUNNER_TEMP/goreleaser.tar.gz" -C "$RUNNER_TEMP/bin" goreleaser
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
-      - name: build
-        env:
-          GOOS: ${{ matrix.os }}
-          GOARCH: ${{ matrix.arch }}
-          OUT: dist/aval-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+      - name: dry run
         run: |
-          version="$(git describe --tags --always)"
-          # -trimpath keeps absolute build paths out of the binary; -s -w drops
-          # the symbol table, which roughly halves the download.
-          go build -trimpath -ldflags "-s -w -X main.version=${version}" -o "$OUT" ./cmd/aval
-
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: aval-${{ matrix.os }}-${{ matrix.arch }}
-          path: dist/*
+          goreleaser check
+          goreleaser release --snapshot --clean --skip=publish
 
   publish:
-    name: publish
-    needs: build
+    needs: preflight
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     environment: release
     permissions:
       contents: write # create the release
       id-token: write # sign the provenance attestation
       attestations: write
     steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: dist
-          merge-multiple: true
+          persist-credentials: false
+          fetch-depth: 0 # GoReleaser builds the changelog from history
+          fetch-tags: true
+          ref: ${{ inputs.tag || github.ref }}
 
-      - name: checksums
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version: "1.25"
+
+      - name: install goreleaser
         run: |
-          cd dist
-          sha256sum aval-* > SHA256SUMS
-          cat SHA256SUMS
+          set -euo pipefail
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/goreleaser.tar.gz" "https://github.com/goreleaser/goreleaser/releases/download/${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz"
+          echo "${GORELEASER_SHA256}  $RUNNER_TEMP/goreleaser.tar.gz" > "$RUNNER_TEMP/goreleaser.sha256"
+          sha256sum -c "$RUNNER_TEMP/goreleaser.sha256"
+          mkdir "$RUNNER_TEMP/bin"
+          tar -xzf "$RUNNER_TEMP/goreleaser.tar.gz" -C "$RUNNER_TEMP/bin" goreleaser
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: build and publish the release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: goreleaser release --clean
 
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: dist/aval-*
+          subject-path: |
+            dist/aval_*.tar.gz
+            dist/aval_*.zip
+            dist/SHA256SUMS
 
-      - name: publish release
+  verify:
+    needs: [preflight, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: download what was published
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" \
-            --verify-tag --generate-notes --title "$TAG"
+          set -euo pipefail
+          mkdir release && cd release
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'aval_*' --pattern SHA256SUMS
+          set -- aval_*
+          [ "$#" -eq 6 ] || { echo "::error::expected 6 archives, found $#"; exit 1; }
+
+      - name: checksums
+        working-directory: release
+        run: sha256sum -c SHA256SUMS
+
+      - name: attestations
+        working-directory: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for f in aval_*; do
+            gh attestation verify "$f" --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
+          done
+
+      - name: the binary reports the tag's version
+        working-directory: release
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          set -euo pipefail
+          tar -xzf "aval_${VERSION}_linux_amd64.tar.gz" aval
+          ./aval version | tee /dev/stderr | head -1 | grep -qF "aval ${VERSION} "
+
+  npm:
+    needs: [preflight, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release # holds NPM_TOKEN
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      # The binaries are the verified release archives, not a second build.
+      - name: unpack the release archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir archives dist
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'aval_*' --pattern SHA256SUMS --dir archives
+          (cd archives && sha256sum -c SHA256SUMS)
+          for target in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64; do
+            os="${target%%/*}"; arch="${target##*/}"
+            tar -xzf "archives/aval_${VERSION}_${os}_${arch}.tar.gz" -C archives aval
+            mv archives/aval "dist/aval-${os}-${arch}"
+          done
+          for arch in amd64 arm64; do
+            unzip -o -j "archives/aval_${VERSION}_windows_${arch}.zip" aval.exe -d archives
+            mv archives/aval.exe "dist/aval-windows-${arch}.exe"
+          done
+
+      - name: test the installer package
+        run: node --test npm/cli/lib/*.test.js
+
+      - name: assemble npm packages
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: node npm/build.mjs --version "$VERSION" --dist dist --out dist-npm
+
+      # Platform packages go first: the CLI names them as optionalDependencies,
+      # and publishing it before they exist leaves a window with no binary.
+      # Paths start with "./" so npm does not read "dist-npm/cli" as owner/repo.
+      - name: publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TAG: ${{ needs.preflight.outputs.npm_tag }}
+        run: |
+          set -euo pipefail
+
+          publish_dir() {
+            local dir="$1" name version
+            name="$(node -p "require('${dir}/package.json').name")"
+            version="$(node -p "require('${dir}/package.json').version")"
+            # Idempotent: a re-run skips what already went out.
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "already published: ${name}@${version}"
+              return 0
+            fi
+            npm publish "${dir}" --access public --provenance --tag "$NPM_TAG"
+          }
+
+          for dir in ./dist-npm/aval-*/; do
+            publish_dir "${dir%/}"
+          done
+          publish_dir ./dist-npm/cli
