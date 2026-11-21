@@ -38,7 +38,7 @@ test("package names are unique and derived from the target", () => {
 
 test("packageFor finds the current platform", () => {
   const pkg = packageFor("darwin", "arm64");
-  assert.equal(pkg, "@alvaroofernaandez/dotfiles-installer-darwin-arm64");
+  assert.equal(pkg, "@alvaroofernaandez/aval-darwin-arm64");
 });
 
 test("packageFor returns null for an unsupported platform", () => {
@@ -49,9 +49,9 @@ test("packageFor returns null for an unsupported platform", () => {
 });
 
 test("binaryName carries .exe only on Windows", () => {
-  assert.equal(binaryName("darwin"), "dotfiles-installer");
-  assert.equal(binaryName("linux"), "dotfiles-installer");
-  assert.equal(binaryName("win32"), "dotfiles-installer.exe");
+  assert.equal(binaryName("darwin"), "aval");
+  assert.equal(binaryName("linux"), "aval");
+  assert.equal(binaryName("win32"), "aval.exe");
 });
 
 test("the unsupported message names the platform and offers a way out", () => {

@@ -1,7 +1,7 @@
 # Single source of truth for what gets installed and where.
 #
 # Two installers read this file: install.sh (Unix) and the cross-platform TUI
-# under cmd/dotfiles-installer. Keeping the list in one place is the whole
+# under cmd/aval. Keeping the list in one place is the whole
 # point — a second copy diverges the first time an entry is added to one and
 # not the other, and the failure is silent: the config just never gets linked.
 # tests/manifest.test.sh fails the build if the two ever disagree.

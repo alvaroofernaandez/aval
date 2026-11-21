@@ -38,7 +38,7 @@ function resolveBinary() {
 
   console.error(
     [
-      `dotfiles-installer: the binary for ${process.platform}/${process.arch} is missing.`,
+      `aval: the binary for ${process.platform}/${process.arch} is missing.`,
       ``,
       `This usually means the optional dependency was skipped. Reinstall with:`,
       `  npm install ${CLI_PACKAGE} --force`,
@@ -63,7 +63,7 @@ for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
 }
 
 child.on("error", (err) => {
-  console.error(`dotfiles-installer: could not run ${binary}: ${err.message}`);
+  console.error(`aval: could not run ${binary}: ${err.message}`);
   process.exit(1);
 });
 

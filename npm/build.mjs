@@ -37,9 +37,9 @@ const common = {
   license: "MIT",
   repository: {
     type: "git",
-    url: "git+https://github.com/alvaroofernaandez/dotfiles.git",
+    url: "git+https://github.com/alvaroofernaandez/aval.git",
   },
-  homepage: "https://github.com/alvaroofernaandez/dotfiles#readme",
+  homepage: "https://github.com/alvaroofernaandez/aval#readme",
   publishConfig: { access: "public" },
 };
 
@@ -50,7 +50,7 @@ const built = [];
 
 for (const target of TARGETS) {
   const file = binaryName(target.platform);
-  const source = path.join(distDir, `dotfiles-installer-${target.goos}-${target.goarch}${target.platform === "win32" ? ".exe" : ""}`);
+  const source = path.join(distDir, `aval-${target.goos}-${target.goarch}${target.platform === "win32" ? ".exe" : ""}`);
 
   if (!existsSync(source)) {
     // Skipping rather than failing: a partial matrix (one runner down) should
@@ -70,7 +70,7 @@ for (const target of TARGETS) {
       {
         name: target.pkg,
         ...common,
-        description: `dotfiles-installer binary for ${target.platform} ${target.arch}`,
+        description: `aval binary for ${target.platform} ${target.arch}`,
         // These two fields are the whole mechanism: npm consults them and skips
         // the package entirely on any other machine.
         os: [target.platform],
@@ -96,8 +96,8 @@ await mkdir(path.join(cliDir, "bin"), { recursive: true });
 await mkdir(path.join(cliDir, "lib"), { recursive: true });
 
 await copyFile(
-  path.join(repoRoot, "npm/cli/bin/dotfiles-installer.js"),
-  path.join(cliDir, "bin/dotfiles-installer.js"),
+  path.join(repoRoot, "npm/cli/bin/aval.js"),
+  path.join(cliDir, "bin/aval.js"),
 );
 await copyFile(
   path.join(repoRoot, "npm/cli/lib/resolve.js"),
@@ -112,10 +112,10 @@ await writeFile(
       name: CLI_PACKAGE,
       ...common,
       description:
-        "Cross-platform installer for alvaroofernaandez's dotfiles — macOS, Linux and Windows",
-      keywords: ["dotfiles", "installer", "tui", "tmux", "yazi", "ghostty", "claude-code"],
+        "aval — a personal agent harness: terminal, AI agents and evidence. macOS, Linux and Windows",
+      keywords: ["aval", "harness", "dotfiles", "installer", "tui", "tmux", "yazi", "ghostty", "claude-code"],
       type: "module",
-      bin: { "dotfiles-installer": "bin/dotfiles-installer.js" },
+      bin: { "aval": "bin/aval.js" },
       files: ["bin", "lib", "README.md"],
       engines: { node: ">=18" },
       // optionalDependencies, not dependencies: npm must be free to skip the

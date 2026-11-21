@@ -1,7 +1,7 @@
 # Builds the installer for every supported platform and publishes it.
 #
 # This is what makes the installer self-updating in practice: every push to
-# main republishes the "latest" release, so `dotfiles-installer update` and the
+# main republishes the "latest" release, so `aval update` and the
 # bootstrap script both pick up changes without anyone cutting a version by
 # hand. Tagged pushes additionally produce a permanent, versioned release.
 name: release
@@ -133,12 +133,12 @@ jobs:
           # the symbol table, which roughly halves the download.
           go build -trimpath \
             -ldflags "-s -w -X main.version=${version}" \
-            -o "dist/dotfiles-installer-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}" \
-            ./cmd/dotfiles-installer
+            -o "dist/aval-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}" \
+            ./cmd/aval
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dotfiles-installer-${{ matrix.os }}-${{ matrix.arch }}
+          name: aval-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/*
 
   publish:
@@ -156,7 +156,7 @@ jobs:
       - name: checksums
         run: |
           cd dist
-          sha256sum dotfiles-installer-* > SHA256SUMS
+          sha256sum aval-* > SHA256SUMS
           cat SHA256SUMS
 
       # A rolling "latest" tag is what the bootstrap script and `update` point

@@ -6,9 +6,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/alvaroofernaandez/dotfiles/internal/install"
-	"github.com/alvaroofernaandez/dotfiles/internal/plan"
-	"github.com/alvaroofernaandez/dotfiles/internal/platform"
+	"github.com/alvaroofernaandez/aval/internal/install"
+	"github.com/alvaroofernaandez/aval/internal/plan"
+	"github.com/alvaroofernaandez/aval/internal/platform"
 )
 
 // Screen is which of the three views is showing.
@@ -203,7 +203,7 @@ func (m Model) View() string {
 
 func (m Model) header() string {
 	var b strings.Builder
-	b.WriteString(m.theme.Title.Render("dotfiles installer"))
+	b.WriteString(m.theme.Title.Render("aval"))
 	b.WriteString("\n")
 	b.WriteString(m.theme.Subtitle.Render(m.platform.Display()))
 	if m.DryRun {

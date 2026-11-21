@@ -3,7 +3,7 @@
 # installed and where.
 #
 # The manifest exists because there are now two installers: install.sh for
-# Unix, and the cross-platform TUI under cmd/dotfiles-installer. A second copy
+# Unix, and the cross-platform TUI under cmd/aval. A second copy
 # of the link list diverges the first time someone adds an entry to one and not
 # the other, and the failure is silent: the config simply never gets linked.
 #
@@ -98,8 +98,8 @@ assert_eq "the count is non-trivial" "yes" \
 # here means a machine installed with the TUI differs from one installed with
 # the script, which is precisely the bug the manifest exists to prevent.
 if command -v go >/dev/null 2>&1; then
-  bin="$(mktemp -d)/dotfiles-installer"
-  if (cd "$REPO" && go build -o "$bin" ./cmd/dotfiles-installer 2>/dev/null); then
+  bin="$(mktemp -d)/aval"
+  if (cd "$REPO" && go build -o "$bin" ./cmd/aval 2>/dev/null); then
     ok "the Go installer builds"
     go_dests="$("$bin" --yes --dry-run --repo "$REPO" 2>/dev/null \
       | rg -o '~/\S+' | sed 's|^~/||' | sort -u)"

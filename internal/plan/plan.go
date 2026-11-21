@@ -13,7 +13,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alvaroofernaandez/dotfiles/internal/manifest"
+	"github.com/alvaroofernaandez/aval/internal/manifest"
 )
 
 // Action is a single install step, with both paths already absolute. The

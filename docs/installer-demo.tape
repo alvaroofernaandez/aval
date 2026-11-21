@@ -26,16 +26,16 @@ Hide
 # A throwaway HOME so the install is real but harmless: the recording shows
 # genuine "linked" results and cannot touch the machine it runs on.
 #
-# The binary is invoked as `dotfiles-installer`, which is what someone who
+# The binary is invoked as `aval`, which is what someone who
 # installed it globally types. npx is not used here because its package cache
 # lives in the real HOME, and replacing HOME turns the first frame into an
 # "Ok to proceed?" prompt.
-Type "export DOTFILES_NO_UPDATE_CHECK=1 DOTFILES_REPO=$PWD" Enter
-Type "export PATH=/private/tmp/claude-501/-Users-alvaroofernaandez-dotfiles/7907223f-9ab6-4eaf-aa7f-fcd3528a0807/scratchpad/demobin:$PATH HOME=$(mktemp -d)" Enter
+Type "export AVAL_NO_UPDATE_CHECK=1 AVAL_REPO=$PWD" Enter
+Type "D=$(mktemp -d) && go build -o $D/aval ./cmd/aval && export PATH=$D:$PATH HOME=$(mktemp -d)" Enter
 Type "clear" Enter
 Show
 
-Type "dotfiles-installer"
+Type "aval"
 Sleep 700ms
 Enter
 Sleep 3s

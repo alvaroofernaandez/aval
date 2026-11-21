@@ -15,7 +15,7 @@ import (
 // the right source even for a curl-installed binary: it is the same version
 // stream, it is CDN-backed, and it needs no authentication or rate-limit token
 // the way the GitHub API does.
-const LatestURL = "https://registry.npmjs.org/@alvaroofernaandez/dotfiles-installer/latest"
+const LatestURL = "https://registry.npmjs.org/@alvaroofernaandez/aval/latest"
 
 // checkInterval bounds how often the network is touched. An installer that
 // phones home on every invocation is an installer people stop running.
@@ -83,7 +83,7 @@ func checkAt(ctx context.Context, url, current string) Notice {
 func updateCommand() string {
 	exe, err := os.Executable()
 	if err != nil {
-		return "dotfiles-installer update"
+		return "aval update"
 	}
 	return commandFor(exe)
 }
@@ -91,9 +91,9 @@ func updateCommand() string {
 // commandFor picks the update command from where the binary lives.
 func commandFor(exe string) string {
 	if strings.Contains(filepath.ToSlash(exe), "/node_modules/") {
-		return "npm update -g @alvaroofernaandez/dotfiles-installer"
+		return "npm update -g @alvaroofernaandez/aval"
 	}
-	return "dotfiles-installer update"
+	return "aval update"
 }
 
 // ShouldCheck reports whether enough time has passed since the last check, and
@@ -103,7 +103,7 @@ func commandFor(exe string) string {
 func ShouldCheck(now time.Time) bool {
 	// An explicit opt-out, honoured before anything else. Some people do not
 	// want a tool touching the network, and that is a legitimate position.
-	if os.Getenv("DOTFILES_NO_UPDATE_CHECK") != "" {
+	if os.Getenv("AVAL_NO_UPDATE_CHECK") != "" {
 		return false
 	}
 
@@ -111,7 +111,7 @@ func ShouldCheck(now time.Time) bool {
 	if err != nil {
 		return true
 	}
-	stamp := filepath.Join(cache, "dotfiles-installer", "last-update-check")
+	stamp := filepath.Join(cache, "aval", "last-update-check")
 
 	if info, err := os.Stat(stamp); err == nil {
 		if now.Sub(info.ModTime()) < checkInterval {

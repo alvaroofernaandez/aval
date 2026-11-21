@@ -82,8 +82,8 @@ func (p Platform) InstallStyle(symlinks bool) string {
 // The probe cleans up after itself; a leftover would collide on the next call
 // and report a false negative.
 func (p Platform) SupportsSymlinks(dir string) bool {
-	target := filepath.Join(dir, ".dotfiles-symlink-probe-target")
-	link := filepath.Join(dir, ".dotfiles-symlink-probe-link")
+	target := filepath.Join(dir, ".aval-symlink-probe-target")
+	link := filepath.Join(dir, ".aval-symlink-probe-link")
 
 	// Both are removed up front too: a probe interrupted mid-run (Ctrl-C, a
 	// crash) would otherwise poison every later attempt.

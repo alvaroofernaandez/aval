@@ -103,9 +103,9 @@ func TestCheckLatestHonoursContextCancellation(t *testing.T) {
 func TestShouldCheckHonoursTheOptOut(t *testing.T) {
 	// Some people do not want a tool touching the network. That is legitimate
 	// and must be honoured before anything else, including the cache.
-	t.Setenv("DOTFILES_NO_UPDATE_CHECK", "1")
+	t.Setenv("AVAL_NO_UPDATE_CHECK", "1")
 	if ShouldCheck(time.Now()) {
-		t.Error("DOTFILES_NO_UPDATE_CHECK was ignored")
+		t.Error("AVAL_NO_UPDATE_CHECK was ignored")
 	}
 }
 
@@ -150,7 +150,7 @@ func TestUpdateCommandMatchesTheInstallMethod(t *testing.T) {
 	if got := commandFor("/usr/local/lib/node_modules/@scope/pkg/bin/x"); !strings.Contains(got, "npm") {
 		t.Errorf("a node_modules path should suggest npm, got %q", got)
 	}
-	if got := commandFor("/Users/x/.dotfiles/bin/dotfiles-installer"); strings.Contains(got, "npm") {
+	if got := commandFor("/Users/x/.aval/bin/aval"); strings.Contains(got, "npm") {
 		t.Errorf("a repo path should not suggest npm, got %q", got)
 	}
 }

@@ -8,9 +8,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/alvaroofernaandez/dotfiles/internal/install"
-	"github.com/alvaroofernaandez/dotfiles/internal/plan"
-	"github.com/alvaroofernaandez/dotfiles/internal/platform"
+	"github.com/alvaroofernaandez/aval/internal/install"
+	"github.com/alvaroofernaandez/aval/internal/plan"
+	"github.com/alvaroofernaandez/aval/internal/platform"
 )
 
 func testModel(t *testing.T) Model {
@@ -246,7 +246,7 @@ func TestDoneViewNamesTheBackupDirectory(t *testing.T) {
 	if !strings.Contains(v, "moved to") {
 		t.Error("the summary must say that existing files were moved")
 	}
-	if !strings.Contains(v, ".dotfiles-backup") {
+	if !strings.Contains(v, ".aval-backup") {
 		t.Error("the summary must name the backup directory")
 	}
 }

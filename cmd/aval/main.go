@@ -1,10 +1,10 @@
-// Command dotfiles-installer installs this repository's configs on macOS,
+// Command aval installs this repository's configs on macOS,
 // Linux and Windows.
 //
-//	dotfiles-installer            interactive TUI
-//	dotfiles-installer --dry-run  show what would happen, change nothing
-//	dotfiles-installer update     pull the repo, then re-apply
-//	dotfiles-installer --version  print the version
+//	aval            interactive TUI
+//	aval --dry-run  show what would happen, change nothing
+//	aval update     pull the repo, then re-apply
+//	aval --version  print the version
 //
 // The non-interactive paths matter as much as the TUI: --yes makes it usable
 // from a provisioning script, and update is what a cron job or a shell hook
@@ -22,12 +22,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/alvaroofernaandez/dotfiles/internal/install"
-	"github.com/alvaroofernaandez/dotfiles/internal/manifest"
-	"github.com/alvaroofernaandez/dotfiles/internal/plan"
-	"github.com/alvaroofernaandez/dotfiles/internal/platform"
-	"github.com/alvaroofernaandez/dotfiles/internal/ui"
-	"github.com/alvaroofernaandez/dotfiles/internal/update"
+	"github.com/alvaroofernaandez/aval/internal/install"
+	"github.com/alvaroofernaandez/aval/internal/manifest"
+	"github.com/alvaroofernaandez/aval/internal/plan"
+	"github.com/alvaroofernaandez/aval/internal/platform"
+	"github.com/alvaroofernaandez/aval/internal/ui"
+	"github.com/alvaroofernaandez/aval/internal/update"
 )
 
 // version is stamped at build time:
@@ -46,14 +46,14 @@ func run() error {
 	var (
 		dryRun    = flag.Bool("dry-run", false, "show what would happen, change nothing")
 		yes       = flag.Bool("yes", false, "install everything applicable without the TUI")
-		repoFlag  = flag.String("repo", "", "path to the dotfiles repository (default: the binary's repository)")
+		repoFlag  = flag.String("repo", "", "path to the aval repository (default: the binary's repository)")
 		showVer   = flag.Bool("version", false, "print the version and exit")
 		forceCopy = flag.Bool("copy", false, "copy files instead of symlinking them")
 	)
 	flag.Parse()
 
 	if *showVer {
-		fmt.Printf("dotfiles-installer %s (%s/%s)\n", version, runtime.GOOS, runtime.GOARCH)
+		fmt.Printf("aval %s (%s/%s)\n", version, runtime.GOOS, runtime.GOARCH)
 		return nil
 	}
 
@@ -80,7 +80,7 @@ func run() error {
 // npm never pushes an update to an installed package, so a globally installed
 // copy stays on whatever version it was installed at until someone acts. This
 // is that prompt. It is rate-limited to once a day, opt-out-able via
-// DOTFILES_NO_UPDATE_CHECK, and silent on every failure — being offline must
+// AVAL_NO_UPDATE_CHECK, and silent on every failure — being offline must
 // not stop anyone installing their dotfiles.
 func notifyIfOutdated() {
 	if version == "dev" || !update.ShouldCheck(time.Now()) {
@@ -212,7 +212,7 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 // runHeadless is the provisioning path: no TUI, one line per action, and a
 // non-zero exit if anything failed.
 func runHeadless(p *plan.Plan, pf platform.Platform, runner *install.Runner, symlinks, dryRun bool) error {
-	fmt.Printf("dotfiles-installer %s — %s\n", version, pf.Display())
+	fmt.Printf("aval %s — %s\n", version, pf.Display())
 	fmt.Printf("%s\n\n", pf.InstallStyle(symlinks))
 
 	var failures int

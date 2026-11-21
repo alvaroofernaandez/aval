@@ -3,7 +3,7 @@
 # This is what keeps users current. npm cannot push an update to a machine, so
 # "always up to date" means one of two things in practice:
 #
-#   - `npx @alvaroofernaandez/dotfiles-installer` resolves the latest published
+#   - `npx @alvaroofernaandez/aval-installer` resolves the latest published
 #     version every time, and this workflow makes the latest one always be the
 #     newest commit;
 #   - a globally installed copy is told, by the binary itself, that a newer
@@ -72,7 +72,7 @@ jobs:
             ext=""; [ "$os" = "windows" ] && ext=".exe"
             GOOS="$os" GOARCH="$arch" go build -trimpath \
               -ldflags "-s -w -X main.version=${VERSION}" \
-              -o "dist/dotfiles-installer-${os}-${arch}${ext}" ./cmd/dotfiles-installer
+              -o "dist/aval-${os}-${arch}${ext}" ./cmd/aval
           done
           ls -la dist
 
@@ -112,7 +112,7 @@ jobs:
             npm publish "${dir}" --access public --provenance
           }
 
-          for dir in ./dist-npm/dotfiles-installer-*/; do
+          for dir in ./dist-npm/aval-*/; do
             publish_dir "${dir%/}"
           done
 
@@ -124,7 +124,7 @@ jobs:
             echo "### Published \`${{ steps.version.outputs.version }}\`"
             echo
             echo '```sh'
-            echo 'npx @alvaroofernaandez/dotfiles-installer'
+            echo 'npx @alvaroofernaandez/aval-installer'
             echo '```'
             echo
             echo "Anyone running \`npx\` gets this build. Existing global installs are"

@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/alvaroofernaandez/dotfiles/internal/plan"
+	"github.com/alvaroofernaandez/aval/internal/plan"
 )
 
 // Status is what happened to one action.
@@ -56,7 +56,7 @@ type Options struct {
 	Symlinks bool
 	DryRun   bool
 	// BackupRoot overrides where displaced files go. Empty means
-	// ~/.dotfiles-backup/<timestamp>.
+	// ~/.aval-backup/<timestamp>.
 	BackupRoot string
 }
 
@@ -70,7 +70,7 @@ type Runner struct {
 func New(opt Options) *Runner {
 	if opt.BackupRoot == "" {
 		stamp := time.Now().Format("20060102150405")
-		opt.BackupRoot = filepath.Join(opt.Home, ".dotfiles-backup", stamp)
+		opt.BackupRoot = filepath.Join(opt.Home, ".aval-backup", stamp)
 	}
 	return &Runner{opt: opt}
 }

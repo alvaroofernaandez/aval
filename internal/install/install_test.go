@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alvaroofernaandez/dotfiles/internal/plan"
+	"github.com/alvaroofernaandez/aval/internal/plan"
 )
 
 func fixture(t *testing.T) (repo, home string, act plan.Action) {
@@ -161,7 +161,7 @@ func TestBackupsGoOutsideTheConfigDirectory(t *testing.T) {
 	if strings.HasPrefix(res.Backup, skillsDir+string(filepath.Separator)) {
 		t.Errorf("backup %q sits inside the skills directory it was displaced from", res.Backup)
 	}
-	if !strings.Contains(res.Backup, ".dotfiles-backup") {
+	if !strings.Contains(res.Backup, ".aval-backup") {
 		t.Errorf("backup %q is not in the quarantine directory", res.Backup)
 	}
 

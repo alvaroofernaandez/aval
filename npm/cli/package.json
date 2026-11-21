@@ -1,12 +1,12 @@
 {
-  "name": "@alvaroofernaandez/dotfiles-installer",
+  "name": "@alvaroofernaandez/aval",
   "version": "0.0.0",
   "type": "module",
   "private": false,
-  "description": "Cross-platform installer for alvaroofernaandez's dotfiles — macOS, Linux and Windows",
+  "description": "aval — a personal agent harness: terminal, AI agents and evidence. macOS, Linux and Windows",
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/alvaroofernaandez/dotfiles.git" },
-  "bin": { "dotfiles-installer": "bin/dotfiles-installer.js" },
+  "repository": { "type": "git", "url": "git+https://github.com/alvaroofernaandez/aval.git" },
+  "bin": { "aval": "bin/aval.js" },
   "files": ["bin", "lib", "README.md"],
   "engines": { "node": ">=18" }
 }

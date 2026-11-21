@@ -18,14 +18,14 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 let out;
 
 before(() => {
-  const work = mkdtempSync(path.join(tmpdir(), "dotfiles-npm-"));
+  const work = mkdtempSync(path.join(tmpdir(), "aval-npm-"));
   const dist = path.join(work, "dist");
   mkdirSync(dist, { recursive: true });
 
   // Stub binaries: the packaging is what is under test, not the compiler.
   for (const t of TARGETS) {
     const ext = t.platform === "win32" ? ".exe" : "";
-    writeFileSync(path.join(dist, `dotfiles-installer-${t.goos}-${t.goarch}${ext}`), "stub");
+    writeFileSync(path.join(dist, `aval-${t.goos}-${t.goarch}${ext}`), "stub");
   }
 
   out = path.join(work, "dist-npm");
@@ -57,7 +57,7 @@ test("each platform package ships exactly its own binary", () => {
     const dir = path.join(out, t.pkg.replace(/^@[^/]+\//, ""));
     const ext = t.platform === "win32" ? ".exe" : "";
     assert.ok(
-      existsSync(path.join(dir, "bin", `dotfiles-installer${ext}`)),
+      existsSync(path.join(dir, "bin", `aval${ext}`)),
       `${t.pkg} is missing its binary`,
     );
   }
@@ -88,7 +88,7 @@ test("the CLI has no install scripts", () => {
 
 test("the CLI exposes the binary and ships what it needs", () => {
   const pkg = read(path.join(out, "cli/package.json"));
-  assert.equal(pkg.bin["dotfiles-installer"], "bin/dotfiles-installer.js");
+  assert.equal(pkg.bin["aval"], "bin/aval.js");
   assert.equal(pkg.type, "module");
 
   // The launcher imports from lib/, so omitting it from files would publish a
@@ -96,7 +96,7 @@ test("the CLI exposes the binary and ships what it needs", () => {
   assert.ok(pkg.files.includes("lib"), "lib must be published");
   assert.ok(pkg.files.includes("bin"), "bin must be published");
   assert.ok(existsSync(path.join(out, "cli/lib/resolve.js")), "resolve.js not copied");
-  assert.ok(existsSync(path.join(out, "cli/bin/dotfiles-installer.js")), "launcher not copied");
+  assert.ok(existsSync(path.join(out, "cli/bin/aval.js")), "launcher not copied");
 });
 
 test("every package is public and versioned alike", () => {

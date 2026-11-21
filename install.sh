@@ -82,7 +82,7 @@ stamp="$(date +%Y%m%d%H%M%S)"
 # their config directories wholesale — Claude Code loads every entry under
 # ~/.claude/skills — so a "ship.bak.<stamp>" sitting next to "ship" would be
 # picked up as a second, duplicate skill.
-BACKUP_ROOT="$HOME/.dotfiles-backup/$stamp"
+BACKUP_ROOT="$HOME/.aval-backup/$stamp"
 
 failed=0
 
@@ -121,7 +121,7 @@ for entry in "${LINKS[@]}"; do
     backup="$BACKUP_ROOT/$name"
     mkdir -p "$(dirname "$backup")"
     mv "$dest" "$backup"
-    say "$name" "backed up -> ~/.dotfiles-backup/$stamp/$name"
+    say "$name" "backed up -> ~/.aval-backup/$stamp/$name"
   fi
 
   ln -s "$src" "$dest"

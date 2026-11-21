@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
-# Bootstrap the dotfiles installer.
+# Bootstrap the aval installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/dotfiles/main/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/aval/main/scripts/install.sh | sh
 #
 # Clones (or updates) the repository, fetches the installer binary for this
 # platform, and hands over to its TUI.
@@ -12,9 +12,9 @@
 # only the fallback.
 set -eu
 
-REPO_URL="${DOTFILES_REPO_URL:-https://github.com/alvaroofernaandez/dotfiles.git}"
-REPO_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
-RELEASE_BASE="${DOTFILES_RELEASE_BASE:-https://github.com/alvaroofernaandez/dotfiles/releases/latest/download}"
+REPO_URL="${AVAL_REPO_URL:-https://github.com/alvaroofernaandez/aval.git}"
+REPO_DIR="${AVAL_DIR:-$HOME/.aval}"
+RELEASE_BASE="${AVAL_RELEASE_BASE:-https://github.com/alvaroofernaandez/aval/releases/latest/download}"
 
 # Tokyo Night, degraded to plain text when stdout is not a terminal — piping
 # this script into a log should not fill it with escape sequences.
@@ -35,7 +35,7 @@ ok()   { printf "%b✓%b %s\n" "$C_GREEN" "$C_OFF" "$1"; }
 die()  { printf "%b✗%b %s\n" "$C_RED" "$C_OFF" "$1" >&2; exit 1; }
 
 banner() {
-  printf "\n%b  dotfiles%b %b· installer%b\n" "$C_CYAN" "$C_OFF" "$C_DIM" "$C_OFF"
+  printf "\n%b  aval%b %b· installer%b\n" "$C_CYAN" "$C_OFF" "$C_DIM" "$C_OFF"
   printf "%b  ────────────────────────%b\n\n" "$C_DIM" "$C_OFF"
 }
 
@@ -85,10 +85,10 @@ clone_or_update() {
 }
 
 fetch_binary() {
-  BIN="$REPO_DIR/bin/dotfiles-installer$EXT"
+  BIN="$REPO_DIR/bin/aval$EXT"
   mkdir -p "$REPO_DIR/bin"
 
-  asset="dotfiles-installer-$OS-$ARCH$EXT"
+  asset="aval-$OS-$ARCH$EXT"
   step "Fetching installer for $OS/$ARCH"
 
   if curl -fsSL "$RELEASE_BASE/$asset" -o "$BIN.tmp" 2>/dev/null; then
@@ -107,7 +107,7 @@ fetch_binary() {
     step "Building from source"
     (cd "$REPO_DIR" && go build -trimpath \
       -ldflags "-s -w -X main.version=$(git -C "$REPO_DIR" describe --tags --always 2>/dev/null || echo dev)" \
-      -o "$BIN" ./cmd/dotfiles-installer) || die "build failed"
+      -o "$BIN" ./cmd/aval) || die "build failed"
     ok "Installer built"
     return 0
   fi

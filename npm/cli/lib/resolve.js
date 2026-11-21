@@ -6,7 +6,7 @@
 // rather than computed, and a test pins it against the CI build matrix.
 
 export const SCOPE = "@alvaroofernaandez";
-export const CLI_PACKAGE = `${SCOPE}/dotfiles-installer`;
+export const CLI_PACKAGE = `${SCOPE}/aval`;
 
 /**
  * Every platform we ship. `platform`/`arch` are Node's names (process.platform,
@@ -29,7 +29,7 @@ export function packageFor(platform, arch) {
 
 /** The binary's filename on this platform. */
 export function binaryName(platform) {
-  return platform === "win32" ? "dotfiles-installer.exe" : "dotfiles-installer";
+  return platform === "win32" ? "aval.exe" : "aval";
 }
 
 /**
@@ -40,12 +40,12 @@ export function binaryName(platform) {
 export function describeUnsupported(platform, arch) {
   const supported = TARGETS.map((t) => `${t.platform}/${t.arch}`).join(", ");
   return [
-    `dotfiles-installer has no prebuilt binary for ${platform}/${arch}.`,
+    `aval has no prebuilt binary for ${platform}/${arch}.`,
     ``,
     `Supported: ${supported}`,
     ``,
     `Install from source instead:`,
-    `  git clone https://github.com/alvaroofernaandez/dotfiles.git ~/.dotfiles`,
-    `  ~/.dotfiles/install.sh`,
+    `  git clone https://github.com/alvaroofernaandez/aval.git ~/.aval`,
+    `  ~/.aval/install.sh`,
   ].join("\n");
 }

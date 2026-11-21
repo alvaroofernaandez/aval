@@ -1,4 +1,4 @@
-module github.com/alvaroofernaandez/dotfiles
+module github.com/alvaroofernaandez/aval
 
 go 1.25
 

@@ -25,7 +25,7 @@ fresh_home() {
 run_install() { HOME="$SANDBOX" bash "$INSTALL" "$@" 2>&1; }
 
 # Backups live in a quarantine directory, never beside the original.
-BACKUP_ROOT_NAME=".dotfiles-backup"
+BACKUP_ROOT_NAME=".aval-backup"
 count_backups() {
   [ -d "$SANDBOX/$BACKUP_ROOT_NAME" ] || { echo 0; return; }
   find "$SANDBOX/$BACKUP_ROOT_NAME" -mindepth 2 -maxdepth 4 \( -type f -o -type d \) 2>/dev/null \

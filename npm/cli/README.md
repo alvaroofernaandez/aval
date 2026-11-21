@@ -1,11 +1,11 @@
-# dotfiles-installer
+# aval
 
-Cross-platform installer for [alvaroofernaandez/dotfiles](https://github.com/alvaroofernaandez/dotfiles) — a terminal environment (tmux, yazi, Ghostty, zsh) plus Claude Code and OpenCode configuration.
+Cross-platform installer for [alvaroofernaandez/aval](https://github.com/alvaroofernaandez/aval) — a terminal environment (tmux, yazi, Ghostty, zsh) plus Claude Code and OpenCode configuration.
 
 ## Use it
 
 ```sh
-npx @alvaroofernaandez/dotfiles-installer
+npx @alvaroofernaandez/aval
 ```
 
 `npx` always resolves the latest published version, so this is the way to stay current: every push to `main` publishes a new build.
@@ -13,14 +13,14 @@ npx @alvaroofernaandez/dotfiles-installer
 ## Or install it
 
 ```sh
-npm install -g @alvaroofernaandez/dotfiles-installer
-dotfiles-installer
+npm install -g @alvaroofernaandez/aval
+aval
 ```
 
 A globally installed copy does **not** update itself — npm never pushes updates to a machine. The binary checks for a newer version when it starts and tells you when there is one:
 
 ```sh
-npm update -g @alvaroofernaandez/dotfiles-installer
+npm update -g @alvaroofernaandez/aval
 ```
 
 ## What it does
@@ -30,16 +30,16 @@ Opens a TUI that detects your platform and offers only what applies to it:
 - **macOS / Linux** — everything, symlinked into `$HOME`.
 - **Windows** — Claude Code, OpenCode and git natively; the terminal environment is shown greyed out with the reason, and installed in full if WSL is detected.
 
-Existing files are never deleted. Anything in the way is moved to `~/.dotfiles-backup/<timestamp>/` first, and re-running is a no-op for everything already linked.
+Existing files are never deleted. Anything in the way is moved to `~/.aval-backup/<timestamp>/` first, and re-running is a no-op for everything already linked.
 
 ## Commands
 
 ```sh
-dotfiles-installer              # interactive TUI
-dotfiles-installer --dry-run    # show what would happen, change nothing
-dotfiles-installer --yes        # install everything applicable, no TUI
-dotfiles-installer update       # pull the repo and re-link what is new
-dotfiles-installer --version
+aval              # interactive TUI
+aval --dry-run    # show what would happen, change nothing
+aval --yes        # install everything applicable, no TUI
+aval update       # pull the repo and re-link what is new
+aval --version
 ```
 
 ## How the binary is delivered
@@ -51,7 +51,7 @@ There is **no postinstall script**. Nothing executes at install time, so this wo
 ## Without Node
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/dotfiles/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/aval/main/scripts/install.sh | sh
 ```
 
 ## License

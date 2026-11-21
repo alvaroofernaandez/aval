@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alvaroofernaandez/dotfiles/internal/manifest"
+	"github.com/alvaroofernaandez/aval/internal/manifest"
 )
 
 func testManifest(t *testing.T, repo string) *manifest.Manifest {
