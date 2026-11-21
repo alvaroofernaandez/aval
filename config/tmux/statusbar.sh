@@ -48,7 +48,23 @@ rest="${now#*|}"
 clock="${rest%%|*}"
 today="${rest#*|}"
 
-mtime="$(stat -f %m "$CACHE" 2>/dev/null || echo 0)"
+# Platform is read once from $OSTYPE (a bash variable: no process, so the macOS
+# path pays nothing). STATUSBAR_OS and STATUSBAR_PROC_DIR are test seams that
+# let the Linux branch run against fixture files on any host.
+case "${STATUSBAR_OS:-$OSTYPE}" in
+  [Ll]inux*) PLATFORM=linux ;;
+  *)         PLATFORM=darwin ;;
+esac
+PROC_DIR="${STATUSBAR_PROC_DIR:-/proc}"
+
+# BSD stat takes -f, GNU stat takes -c (and -f means "filesystem" there, with
+# exit 0 and unrelated output), so each platform is asked in its own dialect.
+if [ "$PLATFORM" = linux ]; then
+  mtime="$(stat -c %Y "$CACHE" 2>/dev/null || echo 0)"
+else
+  mtime="$(stat -f %m "$CACHE" 2>/dev/null || echo 0)"
+fi
+case "$mtime" in ''|*[!0-9]*) mtime=0 ;; esac
 age=$(( epoch - mtime ))
 
 if [ -s "$CACHE" ] && [ "$age" -ge 0 ] && [ "$age" -lt "$CACHE_TTL" ]; then
@@ -63,17 +79,54 @@ if [ -s "$CACHE" ] && [ "$age" -ge 0 ] && [ "$age" -lt "$CACHE_TTL" ]; then
   fi
 fi
 
-sysctl_out="$(sysctl -n vm.loadavg hw.logicalcpu hw.memsize 2>/dev/null)"
-vm_out="$(vm_stat 2>/dev/null)"
-# "Device Utilization %" is exposed unprivileged; absent on Intel Macs, in which
-# case the GPU segment reports 0 rather than breaking the row.
-gpu_util="$(ioreg -r -d 1 -w 0 -c AGXAccelerator 2>/dev/null \
-  | rg -o '"Device Utilization %"=[0-9]+' | head -1 | rg -o '[0-9]+$')"
+used_override=-1   # >= 0: RAM used in bytes, already measured (Linux)
+show_gpu=1
+
+if [ "$PLATFORM" = linux ]; then
+  # /proc is read with shell builtins only, so this branch forks nothing.
+  # GPU is omitted, not faked: Linux has no unprivileged, vendor-neutral
+  # utilisation counter (nvidia-smi, rocm-smi and intel_gpu_top are each a
+  # separate tool, most cost tens of ms and some need privileges). Printing
+  # a zero would be a lie, so the segment is dropped (DESIGN.md §7).
+  show_gpu=0
+  load1=0; ncpu=0; mem_total=0; mem_avail=0
+  [ -r "$PROC_DIR/loadavg" ] && read -r load1 _ < "$PROC_DIR/loadavg"
+  if [ -r "$PROC_DIR/cpuinfo" ]; then
+    while IFS= read -r line; do
+      case "$line" in processor*) ncpu=$((ncpu + 1)) ;; esac
+    done < "$PROC_DIR/cpuinfo"
+  fi
+  if [ -r "$PROC_DIR/meminfo" ]; then
+    while read -r key val _; do
+      case "$key" in
+        MemTotal:)     mem_total=$val ;;
+        MemAvailable:) mem_avail=$val; break ;;
+      esac
+    done < "$PROC_DIR/meminfo"
+  fi
+  [ "$ncpu" -gt 0 ] || ncpu=1
+  case "$load1" in ''|*[!0-9.]*) load1=0 ;; esac
+  case "$mem_total" in ''|*[!0-9]*) mem_total=0 ;; esac
+  case "$mem_avail" in ''|*[!0-9]*) mem_avail=0 ;; esac
+  sysctl_out="{ $load1 0 0 }
+$ncpu
+$((mem_total * 1024))"
+  vm_out=""
+  used_override=$(( (mem_total - mem_avail) * 1024 ))
+  gpu_util=0
+else
+  sysctl_out="$(sysctl -n vm.loadavg hw.logicalcpu hw.memsize 2>/dev/null)"
+  vm_out="$(vm_stat 2>/dev/null)"
+  # "Device Utilization %" is exposed unprivileged; absent on Intel Macs, in which
+  # case the GPU segment reports 0 rather than breaking the row.
+  gpu_util="$(ioreg -r -d 1 -w 0 -c AGXAccelerator 2>/dev/null \
+    | rg -o '"Device Utilization %"=[0-9]+' | head -1 | rg -o '[0-9]+$')"
+fi
 
 printf '%s\n---\n%s\n' "$sysctl_out" "$vm_out" | awk \
   -v ink="$INK" -v c_cpu="$C_CPU" -v c_gpu="$C_GPU" -v c_ram="$C_RAM" \
   -v c_time="$C_TIME" -v c_date="$C_DATE" -v c_alert="$C_ALERT" \
-  -v alert="$ALERT_PCT" -v cache_file="$CACHE" -v gpu="${gpu_util:-0}" -v clock="$clock" -v today="$today" '
+  -v alert="$ALERT_PCT" -v cache_file="$CACHE" -v gpu="${gpu_util:-0}" -v show_gpu="$show_gpu" -v used_override="$used_override" -v clock="$clock" -v today="$today" '
   BEGIN { section = 0; page = 4096; load = 0; ncpu = 1; total = 0 }
 
   /^---$/ { section = 1; next }
@@ -98,13 +151,14 @@ printf '%s\n---\n%s\n' "$sysctl_out" "$vm_out" | awk \
 
     gb = 1073741824
     used = (active + wired + comp) * page / gb
+    if (used_override >= 0) used = used_override / gb
     tot  = total / gb
     if (tot <= 0) tot = used
     if (used > tot) used = tot
     ram_pct = tot > 0 ? used / tot * 100 : 0
 
     metrics = seg(c_cpu, sprintf("CPU %d%%", cpu + 0.5), cpu) \
-              seg(c_gpu, sprintf("GPU %d%%", gpu),       gpu) \
+              (show_gpu ? seg(c_gpu, sprintf("GPU %d%%", gpu), gpu) : "") \
               seg(c_ram, sprintf("RAM %.1f/%.1fG", used, tot), ram_pct)
     print metrics > cache_file
     close(cache_file)

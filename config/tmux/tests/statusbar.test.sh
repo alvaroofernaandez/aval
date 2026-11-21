@@ -220,6 +220,35 @@ assert_eq "an expired cache is recomputed" "yes" \
 unset STATUSBAR_CACHE
 rm -rf "$cache_dir"
 
+# --- Linux: fixture-driven, runnable on any host ------------------------------
+# STATUSBAR_OS and STATUSBAR_PROC_DIR inject the platform and a fake /proc, so
+# the Linux branch is asserted on macOS too.
+FIX="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fixtures"
+linux_bar() {
+  STATUSBAR_OS=Linux STATUSBAR_PROC_DIR="$FIX/$1" STATUSBAR_CACHE_TTL=0 \
+    STATUSBAR_CACHE="$(mktemp -u)" bash "$SCRIPT" 2>&1
+}
+lin="$(linux_bar linux-proc)"
+lin_plain="$(printf '%s' "$lin" | sd '#\[[^]]*\]' '')"
+assert_contains "linux: CPU is loadavg / cores (2.00 / 4 = 50%)" "CPU 50%" "$lin_plain"
+assert_contains "linux: RAM is MemTotal - MemAvailable" "RAM 7.8/15.6G" "$lin_plain"
+assert_eq "linux: the GPU segment is omitted" "no" \
+  "$(printf '%s' "$lin_plain" | rg -q 'GPU' && echo yes || echo no)"
+assert_eq "linux: no GPU colour is emitted" "no" \
+  "$(printf '%s' "$lin" | rg -q 'bg=colour140' && echo yes || echo no)"
+assert_eq "linux: still renders CPU RAM clock date segments" "4" \
+  "$(printf '%s' "$lin" | rg -o 'bg=colour[0-9]+' | wc -l | tr -d ' ')"
+assert_eq "linux: renders in plain ASCII" "yes" \
+  "$(LC_ALL=C rg -q '[^\x00-\x7F]' <<< "$lin" && echo no || echo yes)"
+assert_eq "linux: no stderr noise in the status line" "no" \
+  "$(printf '%s' "$lin_plain" | rg -qi 'error|not found|No such' && echo yes || echo no)"
+lin_busy="$(linux_bar linux-proc-busy)"
+assert_contains "linux: CPU is clamped to 100%" "CPU 100%" "$lin_busy"
+assert_contains "linux: a metric over threshold uses the alert colour" "bg=colour167" "$lin_busy"
+lin_missing="$(STATUSBAR_OS=Linux STATUSBAR_PROC_DIR="$FIX/does-not-exist" STATUSBAR_CACHE_TTL=0 STATUSBAR_CACHE="$(mktemp -u)" bash "$SCRIPT" 2>&1)"
+assert_eq "linux: a missing /proc still renders a row without errors" "yes" \
+  "$(printf '%s' "$lin_missing" | rg -q 'RAM' && ! printf '%s' "$lin_missing" | rg -qi 'error|No such' && echo yes || echo no)"
+
 # --- the expensive calls must stay gone --------------------------------------
 # Comments are stripped: these names appear legitimately in the rationale.
 code="$(rg -v '^\s*#' "$SCRIPT")"

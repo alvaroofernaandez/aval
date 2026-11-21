@@ -300,7 +300,7 @@ aval/
 │   │   ├── sidebar-watch.sh   Red de seguridad: sincroniza sin depender del shell
 │   │   ├── open-file.sh       Abre el archivo en una pestaña nueva
 │   │   ├── close-file.sh      La cierra sin escribir el comando del editor
-│   │   ├── statusbar.sh       CPU · GPU · RAM · hora · fecha
+│   │   ├── statusbar.sh       CPU · GPU · RAM · hora · fecha (Linux: sin GPU)
 │   │   └── tests/             12 suites, con lib/wait.sh para esperas acotadas
 │   │
 │   ├── 📂 yazi/               Config de uso general
