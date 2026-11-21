@@ -1,80 +1,27 @@
-# Builds the installer for every supported platform and publishes it.
-#
-# This is what makes the installer self-updating in practice: every push to
-# main republishes the "latest" release, so `aval update` and the release
-# binaries both pick up changes without anyone cutting a version by hand. Tagged pushes additionally produce a permanent, versioned release.
+# Builds aval for every platform and publishes a GitHub release — only for a
+# version tag (v*) or a manual run, and only after the owner approves the
+# "release" environment. No rolling releases on push: a push to main runs ci.yml
+# and nothing else. Binaries ship with SHA256SUMS and a build-provenance
+# attestation (`gh attestation verify <file> --repo alvaroofernaandez/aval`).
 name: release
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)publish, e.g. v0.2.0"
+        required: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  test:
-    name: test
-    runs-on: ubuntu-latest
-    # Bounded: the tmux e2e tests drive real servers; a hang should fail fast.
-    timeout-minutes: 12
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.25"
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      # Tools the integration tests exercise. Every Go test skips cleanly when
-      # its tool is missing, so these are what make the skips into real runs.
-      # gitleaks comes from `go install`; its upstream shell script returns 404.
-      - name: install test dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq tmux zsh
-          go install github.com/zricethezav/gitleaks/v8@latest
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-          yazi_url="https://github.com/sxyazi/yazi/releases/latest/download/yazi-x86_64-unknown-linux-gnu.zip"
-          curl -fsSL "$yazi_url" -o "$RUNNER_TEMP/yazi.zip"
-          unzip -q -o "$RUNNER_TEMP/yazi.zip" -d "$RUNNER_TEMP/yazi"
-          for b in yazi ya; do
-            p="$(find "$RUNNER_TEMP/yazi" -name "$b" -type f | head -1)"
-            [ -n "$p" ] && sudo install -m755 "$p" /usr/local/bin/"$b"
-          done
-          # The statusbar renders identically under a comma-decimal locale.
-          sudo locale-gen es_ES.UTF-8
-
-      # Same instruction the README gives a fresh machine. It also sets
-      # core.hooksPath, which the pre-push test asserts.
-      - name: install aval
-        run: |
-          mkdir -p "$HOME/.local/bin"
-          go build -o "$HOME/.local/bin/aval" ./cmd/aval
-          "$HOME/.local/bin/aval" --yes
-
-      - name: go vet
-        run: go vet ./...
-
-      - name: gofmt
-        run: test -z "$(gofmt -l .)"
-
-      - name: go test
-        timeout-minutes: 8
-        run: go test ./... -race
-
-      - name: npm tests
-        run: node --test npm/cli/lib/*.test.js
-
   build:
     name: build ${{ matrix.os }}/${{ matrix.arch }}
-    needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -86,28 +33,33 @@ jobs:
           - { os: windows, arch: amd64, ext: ".exe" }
           - { os: windows, arch: arm64, ext: ".exe" }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0 # git describe needs the tags
+          ref: ${{ inputs.tag || github.ref }}
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: "1.25"
+
+      - name: test
+        run: |
+          go vet ./...
+          go test ./...
 
       - name: build
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
+          OUT: dist/aval-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
         run: |
-          version="$(git describe --tags --always --dirty 2>/dev/null || echo dev)"
+          version="$(git describe --tags --always)"
           # -trimpath keeps absolute build paths out of the binary; -s -w drops
           # the symbol table, which roughly halves the download.
-          go build -trimpath \
-            -ldflags "-s -w -X main.version=${version}" \
-            -o "dist/aval-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}" \
-            ./cmd/aval
+          go build -trimpath -ldflags "-s -w -X main.version=${version}" -o "$OUT" ./cmd/aval
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: aval-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/*
@@ -116,10 +68,14 @@ jobs:
     name: publish
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: write # create the release
+      id-token: write # sign the provenance attestation
+      attestations: write
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: dist
           merge-multiple: true
@@ -130,31 +86,14 @@ jobs:
           sha256sum aval-* > SHA256SUMS
           cat SHA256SUMS
 
-      # A rolling "latest" tag is what `update` and the binary downloads point
-      # at, so every push to main is immediately installable.
-      - name: publish rolling latest
-        if: startsWith(github.ref, 'refs/tags/') == false
-        uses: softprops/action-gh-release@v2
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          tag_name: latest
-          name: Latest build
-          body: |
-            Rolling build from `main` (${{ github.sha }}).
+          subject-path: dist/aval-*
 
-            Install or update:
-
-            ```sh
-            go install github.com/${{ github.repository }}/cmd/aval@latest
-            ```
-
-            or `npm install -g` the npm package, or download the binary for your
-            platform below (checksums in `SHA256SUMS`) and run `aval`.
-          prerelease: true
-          files: dist/*
-
-      - name: publish tagged release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: dist/*
+      - name: publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --generate-notes --title "$TAG"
