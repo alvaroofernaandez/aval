@@ -314,6 +314,16 @@ func TestSkillThroughASymlinkIsFollowed(t *testing.T) {
 	expect(t, Run(o), "skills", OK, false)
 }
 
+// _shared is a support dir by convention (leading underscore) and synced is
+// Claude Code's own state for claude.ai-synced skills: neither is a skill, and a
+// doctor that always warns is a doctor nobody reads.
+func TestSkillsIgnoresSupportDirs(t *testing.T) {
+	o := healthy(t)
+	w(t, filepath.Join(o.Home, ".claude/skills/_shared/README.md"), "support")
+	w(t, filepath.Join(o.Home, ".claude/skills/synced/state"), "x")
+	expect(t, Run(o), "skills", OK, false)
+}
+
 func TestPlugins(t *testing.T) {
 	o := healthy(t)
 	repo := `{"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "\"$HOME/.claude/hooks/ok.sh\""}]}]},

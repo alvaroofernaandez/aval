@@ -454,6 +454,11 @@ func checkSkills(opt Options) Result {
 	var bad []string
 	n := 0
 	for _, e := range entries {
+		// Not skills: "_name" support dirs, and Claude Code's state for
+		// claude.ai-synced skills.
+		if strings.HasPrefix(e.Name(), "_") || e.Name() == "synced" {
+			continue
+		}
 		p := filepath.Join(dir, e.Name())
 		fi, err := os.Stat(p) // follows links; dangling ones are the broken-links check's job
 		if err != nil || !fi.IsDir() {
