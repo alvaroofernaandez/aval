@@ -22,7 +22,6 @@ pin with its own provenance header (`gstack-sync.sh`, `p87-sync.sh`,
 | `chained-pr` | Apache-2.0 | gentleman-programming |
 | `cognitive-doc-design` | Apache-2.0 | gentleman-programming |
 | `issue-creation-pro` | Apache-2.0 | gentleman-programming |
-| `judgment-day` | Apache-2.0 | gentleman-programming |
 | `prs-pro` | Apache-2.0 | alvaroofernaandez |
 | `react-19` | Apache-2.0 | gentleman-programming |
 | `readme-guardian` | Apache-2.0 | gentleman-programming |

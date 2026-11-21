@@ -1,14 +1,6 @@
 ---
 name: prs-pro
-description: >
-  Creates extraordinary quality GitHub PR descriptions with rich Mermaid diagrams,
-  deep technical analysis, commit-by-commit breakdown, before/after comparisons,
-  architecture overviews, and comprehensive test plans.
-  A PR description is DOCUMENTATION — it must be self-contained, explain WHY every
-  change exists, and give any engineer enough context to review it in isolation.
-  Trigger: When user asks to create or edit a PR, update a PR description, or document
-  a pull request — especially "PR bien documentada", "edita la PR", "documenta la PR",
-  "PR con diagramas", "prs-pro", or similar.
+description: "Write rich GitHub PR descriptions with Mermaid diagrams, commit breakdown, before/after and test plan. Use when asked to create, edit or document a PR ('PR bien documentada', 'prs-pro')."
 license: Apache-2.0
 metadata:
   author: alvaroofernaandez

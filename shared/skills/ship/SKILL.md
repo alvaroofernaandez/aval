@@ -1,13 +1,6 @@
 ---
 name: ship
-description: >
-  End-to-end delivery of a working diff: group changes into reviewable work units,
-  commit them with conventional messages, split into chained PRs when the diff exceeds
-  the review budget, self-review before publishing, and open a fully documented PR.
-  Orchestrates work-unit-commits, chained-pr, prs-pro and pr-review in one pass so the
-  decision of "which skill do I invoke now" disappears.
-  Trigger: when the user says "ship it", "sube esto", "haz el PR", "commit y PR",
-  "prepara esto para review", or asks to take finished work from working tree to open PR.
+description: "Take finished work from working tree to open PR: group commits, split chained PRs, self-review, documented PR. Use for 'ship it', 'sube esto', 'haz el PR', 'commit y PR'."
 ---
 
 # ship — working tree to reviewed PR, in one pass
@@ -74,7 +67,7 @@ says what. Stage per work unit (`git add <paths>`), never `git add -A` blindly.
 
 Re-read your own diff as a hostile reviewer. Invoke `pr-review` against the branch diff.
 For high-risk changes (auth, payments, migrations, deletions, anything touching money
-or user data) escalate to `judgment-day` for adversarial dual review.
+or user data) run `/code-review high` for a deeper adversarial pass.
 
 Fix what the review confirms, then re-run. Only proceed when it comes back clean.
 **Publishing a PR you have not reviewed yourself is how you waste a reviewer's time.**

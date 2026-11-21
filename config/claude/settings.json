@@ -24,7 +24,6 @@
   },
   "model": "opus",
   "skillOverrides": {
-    "judgment-day": "off",
     "hallmark": "off",
     "design-shotgun": "off",
     "ai-sdk-5": "off",
@@ -40,7 +39,9 @@
     "browse": "off",
     "clerk-backend-api": "off",
     "land-and-deploy": "off",
-    "repo-prep": "off"
+    "repo-prep": "off",
+    "high-end-visual-design": "off",
+    "anthropic-skills:skill-creator": "off"
   },
   "hooks": {
     "PostToolUse": [
@@ -161,7 +162,8 @@
     "quick-peek@better-claude": true,
     "image-preview@better-claude": true,
     "sub-meter@better-claude": true,
-    "context-meter@better-claude": true
+    "context-meter@better-claude": true,
+    "alvaro-dev-references@synced": false
   },
   "extraKnownMarketplaces": {
     "bencium-marketplace": {

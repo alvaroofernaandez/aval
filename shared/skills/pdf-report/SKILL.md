@@ -1,6 +1,6 @@
 ---
 name: pdf-report
-description: "Build print-grade A4 PDF documents of any kind: reports, technical analyses, dossiers, manuals, guides, memos, whitepapers, one-pagers and internal documentation. Renders HTML to PDF via headless Chromium with embedded fonts, Lucide icons and automated layout guards (overflow, orphan paragraphs, WCAG contrast). Trigger: when the user asks for an informe, documento, dossier, análisis, memoria, manual or guía in PDF, says 'hazme un PDF como el de X', 'PDF bonito/presentable', 'documento imprimible', or wants to update an existing document built with this system."
+description: "Generic print-grade A4 PDF documents (reports, analyses, manuals, memos) via headless Chromium with layout guards. Use for 'hazme un PDF', 'documento imprimible'."
 version: "1.0.0"
 ---
 

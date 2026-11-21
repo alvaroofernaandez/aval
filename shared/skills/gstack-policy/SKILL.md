@@ -1,11 +1,6 @@
 ---
 name: gstack-policy
-description: >
-  Which gstack skills this setup adopted and which it deliberately rejected,
-  why the vendored copies are patched rather than upstream, and the standing
-  rule never to run upstream's ./setup. Invoke before installing, syncing,
-  updating or reaching for any gstack skill, or when a gstack command appears
-  to duplicate something already installed.
+description: "Policy for the vendored gstack skills (adopted/rejected, pins, sync). Load before installing, syncing or running any gstack command."
 ---
 
 ## gstack (selective adoption — do NOT install upstream over this)
