@@ -207,13 +207,17 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 	runner := install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: dryRun})
 
 	if yes {
-		return runHeadless(p, pf, runner, symlinks, dryRun)
+		err := runHeadless(p, pf, runner, symlinks, dryRun)
+		return finish(runner, err)
 	}
 
 	model := ui.NewModel(p, pf, runner, symlinks, dryRun)
 	model.Unavailable = unavailableGroups(m)
 
 	final, err := tea.NewProgram(model, tea.WithAltScreen()).Run()
+	if ferr := runner.Finish(); err == nil {
+		err = ferr
+	}
 	if err != nil {
 		return err
 	}
@@ -221,6 +225,14 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 		return fmt.Errorf("%d action(s) failed", len(fm.Errs()))
 	}
 	return nil
+}
+
+// finish closes the runner's backup run without hiding the original error.
+func finish(r *install.Runner, err error) error {
+	if ferr := r.Finish(); err == nil {
+		return ferr
+	}
+	return err
 }
 
 // runHeadless is the provisioning path: no TUI, one line per action, and a
@@ -304,6 +316,9 @@ func runUpdate(repo, home string, dryRun, forceCopy bool) error {
 		}
 	}
 
+	if ferr := runner.Finish(); ferr != nil {
+		return ferr
+	}
 	if changed == 0 && failed == 0 {
 		fmt.Println("Everything already linked.")
 	}

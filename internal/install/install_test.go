@@ -1,14 +1,117 @@
 package install
 
 import (
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/alvaroofernaandez/aval/internal/backup"
 	"github.com/alvaroofernaandez/aval/internal/plan"
 )
+
+func fixedClock() func() time.Time {
+	t0 := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	return func() time.Time { return t0 }
+}
+
+// treeOf describes a directory byte for byte, ignoring the backup store.
+func treeOf(t *testing.T, root string) string {
+	t.Helper()
+	var lines []string
+	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(root, p)
+		if rel == "." {
+			return nil
+		}
+		if rel == ".aval-backup" {
+			return filepath.SkipDir
+		}
+		fi, _ := os.Lstat(p)
+		switch {
+		case fi.Mode()&os.ModeSymlink != 0:
+			tg, _ := os.Readlink(p)
+			lines = append(lines, fmt.Sprintf("L %s -> %s", rel, tg))
+		case fi.IsDir():
+			lines = append(lines, fmt.Sprintf("D %s %o", rel, fi.Mode().Perm()))
+		default:
+			b, _ := os.ReadFile(p)
+			lines = append(lines, fmt.Sprintf("F %s %o %q", rel, fi.Mode().Perm(), b))
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Strings(lines)
+	return strings.Join(lines, "\n")
+}
+
+func TestInstallThenMutateThenRestoreIsByteIdentical(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation needs Developer Mode on Windows")
+	}
+	repo, home := t.TempDir(), t.TempDir()
+	mk := func(p, c string) {
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(c), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mk(filepath.Join(repo, "zshrc"), "repo zshrc")
+	mk(filepath.Join(repo, "tmux/tmux.conf"), "repo tmux")
+	mk(filepath.Join(repo, "ghostty"), "repo ghostty")
+	mk(filepath.Join(home, ".zshrc"), "my zshrc\n")
+	mk(filepath.Join(home, ".config/tmux/tmux.conf"), "my tmux\n")
+	if err := os.Symlink("/elsewhere", filepath.Join(home, ".gitconfig")); err != nil {
+		t.Fatal(err)
+	}
+	before := treeOf(t, home)
+
+	actions := []plan.Action{
+		{Source: filepath.Join(repo, "zshrc"), Dest: filepath.Join(home, ".zshrc"), Label: ".zshrc"},
+		{Source: filepath.Join(repo, "tmux"), Dest: filepath.Join(home, ".config/tmux"), Label: "tmux"},
+		{Source: filepath.Join(repo, "zshrc"), Dest: filepath.Join(home, ".gitconfig"), Label: "git"},
+		{Source: filepath.Join(repo, "ghostty"), Dest: filepath.Join(home, ".config/deep/er/ghostty"), Label: "ghostty"},
+	}
+	r := New(Options{Home: home, Symlinks: true, Now: fixedClock()})
+	for _, a := range actions {
+		if _, err := r.Apply(a); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := r.Finish(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Mutate: the user swaps one installed link for a file of their own.
+	_ = os.Remove(actions[0].Dest)
+	if err := os.WriteFile(actions[0].Dest, []byte("post-install edit"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	store := backup.NewStore(home)
+	run, err := store.Resolve("latest")
+	if err != nil {
+		t.Fatalf("no backup run after install: %v", err)
+	}
+	if _, err := store.Restore(run, backup.RestoreOptions{Repo: repo}); err != nil {
+		t.Fatal(err)
+	}
+	if after := treeOf(t, home); after != before {
+		t.Errorf("home differs after restore\nbefore:\n%s\nafter:\n%s", before, after)
+	}
+}
 
 func fixture(t *testing.T) (repo, home string, act plan.Action) {
 	t.Helper()
