@@ -65,9 +65,24 @@ says what. Stage per work unit (`git add <paths>`), never `git add -A` blindly.
 
 ### 4. Self-review BEFORE publishing — this is the gate that earns its keep
 
+Size the review first, from git alone (deterministic, no model):
+
+```bash
+aval review assess --base <base> --json   # tier, reasons, lenses
+```
+
+- **low** (docs/tests only, or a small tested change) → re-read your own diff; no reviewer agents.
+- **medium** (source without test changes, or > 100 production lines) → run `review-reliability`.
+- **high** (hooks, settings, `install.manifest`, installers, auth, migrations, payments,
+  `.github/workflows`, permissions, or > 400 production lines) → run every lens it lists:
+  `review-risk`, `review-resilience`, `review-reliability`, `review-readability`.
+
+Announce the tier and the lenses before running them. If `aval` is not installed, treat
+the change as medium and say so.
+
 Re-read your own diff as a hostile reviewer. Invoke `pr-review` against the branch diff.
 For high-risk changes (auth, payments, migrations, deletions, anything touching money
-or user data) run `/code-review high` for a deeper adversarial pass.
+or user data) also run `/code-review high` for a deeper adversarial pass.
 
 Fix what the review confirms, then re-run. Only proceed when it comes back clean.
 **Publishing a PR you have not reviewed yourself is how you waste a reviewer's time.**

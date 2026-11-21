@@ -12,6 +12,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/budget"
 	"github.com/alvaroofernaandez/aval/internal/doctor"
+	"github.com/alvaroofernaandez/aval/internal/review"
 	avalsync "github.com/alvaroofernaandez/aval/internal/sync"
 )
 
@@ -152,5 +153,29 @@ func runBudget(home string, args []string, out io.Writer) error {
 	if rep.Over {
 		return errChecksFailed
 	}
+	return nil
+}
+
+// runReview is `aval review assess [--base <ref>] [--json]`: a git-only risk
+// tier and the reviewer lenses worth running for it. It always exits 0 when
+// it can assess; the tier is information, not a gate.
+func runReview(dir string, args []string, out io.Writer) error {
+	if len(args) == 0 || args[0] != "assess" {
+		return fmt.Errorf("usage: aval review assess [--base <ref>] [--json]")
+	}
+	fs := newFlagSet("review assess", out)
+	base := fs.String("base", "", "ref to compare against (default: main, master, origin/main, origin/master, else HEAD)")
+	asJSON := fs.Bool("json", false, "print the result as JSON")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+	res, err := review.Assess(dir, *base)
+	if err != nil {
+		return err
+	}
+	if *asJSON {
+		return review.RenderJSON(out, res)
+	}
+	review.Render(out, res)
 	return nil
 }

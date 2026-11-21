@@ -6,6 +6,7 @@
 //	aval update     pull the repo, then re-apply
 //	aval doctor     check this machine against the repo (--fix, --json)
 //	aval budget     always-on context per agent and hook latency (--json)
+//	aval review assess  git-only risk tier and reviewer lenses (--base, --json)
 //	aval sync       merge repo-managed settings into the live config (--dry-run)
 //	aval --version  print the version
 //
@@ -66,6 +67,15 @@ func run() error {
 	// Agent hooks run on every tool call: no repo lookup, no network.
 	if flag.Arg(0) == "hook" {
 		return runHook(flag.Args()[1:], os.Stdin, os.Stdout)
+	}
+
+	// review works on the repository in the current directory, not on aval's.
+	if flag.Arg(0) == "review" {
+		wd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		return runReview(wd, flag.Args()[1:], os.Stdout)
 	}
 
 	repo, err := resolveRepo(*repoFlag)
