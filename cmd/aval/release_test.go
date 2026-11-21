@@ -67,64 +67,30 @@ func release1(t *testing.T, work, input string, args ...string) (string, error) 
 	return out.String(), err
 }
 
-func TestReleaseNextPrintsVersionAndNotes(t *testing.T) {
-	work, _ := releaseRepo(t)
+func TestReleaseDryRunShowsVersionAndNotes(t *testing.T) {
+	work, remote := releaseRepo(t)
 	commitIn(t, work, "chore: init")
 	relGit(t, work, "tag", "-a", "v0.1.0", "-m", "v0.1.0")
 	commitIn(t, work, "feat(tui): picker")
 	commitIn(t, work, "fix: crash")
 	commitIn(t, work, "docs: readme")
+	relGit(t, work, "push", "-u", "origin", "main")
+	fakeGate(t, nil)
 
-	out, err := release1(t, work, "", "next")
+	out, err := release1(t, work, "", "minor", "--dry-run")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("%v\n%s", err, out)
 	}
 	for _, want := range []string{"v0.2.0", "### Features", "picker", "### Fixes", "crash"} {
 		if !strings.Contains(out, want) {
-			t.Errorf("next output missing %q:\n%s", want, out)
+			t.Errorf("dry run missing %q:\n%s", want, out)
 		}
 	}
 	if strings.Contains(out, "readme") {
 		t.Errorf("docs commits must not appear:\n%s", out)
 	}
-
-	out, err = release1(t, work, "", "next", "--pre", "rc")
-	if err != nil || !strings.Contains(out, "v0.2.0-rc.1") {
-		t.Errorf("next --pre rc = %q, %v", out, err)
-	}
-	if _, err := release1(t, work, "", "next", "--pre", "alpha"); err == nil {
-		t.Error("--pre alpha must be rejected")
-	}
-}
-
-func TestReleaseNextWithNothingToRelease(t *testing.T) {
-	work, _ := releaseRepo(t)
-	commitIn(t, work, "feat: a")
-	relGit(t, work, "tag", "-a", "v0.1.0", "-m", "v0.1.0")
-	commitIn(t, work, "chore: tidy")
-	if _, err := release1(t, work, "", "next"); !errors.Is(err, release.ErrNothingToRelease) {
-		t.Errorf("err = %v, want ErrNothingToRelease", err)
-	}
-}
-
-func TestReleaseTagIsLocalOnly(t *testing.T) {
-	work, remote := releaseRepo(t)
-	commitIn(t, work, "feat: a")
-	relGit(t, work, "push", "-u", "origin", "main")
-	fakeGate(t, nil)
-
-	out, err := release1(t, work, "", "tag", "--pre", "rc")
-	if err != nil {
-		t.Fatalf("%v\n%s", err, out)
-	}
-	if relGit(t, work, "cat-file", "-t", "v0.1.0-rc.1") != "tag" {
-		t.Error("tag must be annotated")
-	}
-	if relGit(t, remote, "tag", "--list") != "" {
-		t.Error("`release tag` must never push")
-	}
-	if !strings.Contains(out, "git push origin v0.1.0-rc.1") {
-		t.Errorf("must print the push command:\n%s", out)
+	if relGit(t, work, "tag", "--list") != "v0.1.0" || relGit(t, remote, "tag", "--list") != "" {
+		t.Error("--dry-run must not tag or push")
 	}
 }
 

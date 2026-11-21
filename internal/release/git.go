@@ -117,14 +117,12 @@ type Proposal struct {
 	Target  string // commit to tag
 }
 
-// Resolve turns a kind (auto, rc, beta, patch, minor, major, promote) into a
+// Resolve turns a kind (rc, beta, patch, minor, major, promote) into a
 // concrete proposal.
 func Resolve(g Git, st State, kind string) (Proposal, error) {
 	p := Proposal{Kind: kind, Target: st.Head, Commits: st.Unreleased}
 	var err error
 	switch kind {
-	case "auto":
-		p.Version, err = Next(st.Tags, st.Unreleased, "")
 	case "rc", "beta":
 		p.Version, err = Next(st.Tags, st.Unreleased, kind)
 	case "patch", "minor", "major":
@@ -271,7 +269,6 @@ type CutOptions struct {
 	Kind   string
 	Yes    bool
 	DryRun bool
-	NoPush bool
 	In     io.Reader
 	Out    io.Writer
 	Gate   Gate
@@ -327,11 +324,7 @@ func Cut(g Git, o CutOptions) error {
 	}
 
 	if !o.Yes {
-		action := "Create and push"
-		if o.NoPush {
-			action = "Create"
-		}
-		fmt.Fprintf(w, "\n%s annotated tag %s? [y/N] ", action, p.Version.Tag())
+		fmt.Fprintf(w, "\nCreate and push annotated tag %s? [y/N] ", p.Version.Tag())
 		line, _ := bufio.NewReader(o.In).ReadString('\n')
 		if a := strings.ToLower(strings.TrimSpace(line)); a != "y" && a != "yes" {
 			fmt.Fprintln(w)
@@ -353,10 +346,6 @@ func Cut(g Git, o CutOptions) error {
 	}
 	fmt.Fprintf(w, "\nTagged %s (annotated).\n", tag)
 
-	if o.NoPush {
-		fmt.Fprintf(w, "Publish it with:\n  git push %s %s\n", o.Remote, tag)
-		return nil
-	}
 	if _, err := g.Run("push", o.Remote, tag); err != nil {
 		fmt.Fprintf(w, "Push failed; the tag exists locally. Retry with `git push %s %s` or remove it with `git tag -d %s`.\n", o.Remote, tag, tag)
 		return err

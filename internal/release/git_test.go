@@ -133,7 +133,6 @@ func TestResolve(t *testing.T) {
 		kind, want string
 		err        bool
 	}{
-		{"auto", "0.2.0", false},
 		{"rc", "0.2.0-rc.2", false},
 		{"beta", "", true}, // beta after rc
 		{"patch", "0.1.1", false},
@@ -160,7 +159,7 @@ func TestResolve(t *testing.T) {
 	if !strings.Contains(rc.Notes, "b") || strings.Contains(rc.Notes, "- a ") {
 		t.Errorf("an rc's notes cover commits since the last tag only:\n%s", rc.Notes)
 	}
-	stable, _ := Resolve(f.g, st, "auto")
+	stable, _ := Resolve(f.g, st, "minor")
 	if !strings.Contains(stable.Notes, "a") || !strings.Contains(stable.Notes, "b") {
 		t.Errorf("a stable's notes cover everything since the last stable:\n%s", stable.Notes)
 	}
@@ -182,7 +181,7 @@ func TestResolveNothingToRelease(t *testing.T) {
 	f.tag("v0.1.0")
 	f.commit("docs: b")
 	st, _ := Inspect(f.g)
-	if _, err := Resolve(f.g, st, "auto"); !errors.Is(err, ErrNothingToRelease) {
+	if _, err := Resolve(f.g, st, "rc"); !errors.Is(err, ErrNothingToRelease) {
 		t.Errorf("err = %v, want ErrNothingToRelease", err)
 	}
 }
@@ -287,7 +286,7 @@ func TestCutDeclineChangesNothing(t *testing.T) {
 	}
 }
 
-func TestCutDryRunAndNoPush(t *testing.T) {
+func TestCutDryRun(t *testing.T) {
 	f := newFixture(t)
 	f.commit("feat: a")
 	f.push()
@@ -302,18 +301,6 @@ func TestCutDryRunAndNoPush(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "0.1.0-rc.1") {
 		t.Errorf("dry run must still show the version:\n%s", out)
-	}
-
-	o, out = f.opts("rc", "")
-	o.Yes, o.NoPush = true, true
-	if err := Cut(f.g, o); err != nil {
-		t.Fatal(err)
-	}
-	if git(t, f.work, "tag", "--list") != "v0.1.0-rc.1" || f.remoteTags() != "" {
-		t.Error("--no-push must tag locally and not push")
-	}
-	if !strings.Contains(out.String(), "git push origin v0.1.0-rc.1") {
-		t.Errorf("must print the push command:\n%s", out)
 	}
 }
 
