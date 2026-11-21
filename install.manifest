@@ -52,7 +52,7 @@ config/git/ignore                  .config/git/ignore
 
 [claude]
 label = Claude Code
-detail = Instructions, agents, commands, hooks, prompts and themes
+detail = Instructions, agents, commands, hooks and themes
 platforms = all
 
 config/claude/CLAUDE.md            .claude/CLAUDE.md
@@ -62,7 +62,6 @@ config/claude/settings.json        .claude/settings.json
 config/claude/agents               .claude/agents
 config/claude/commands             .claude/commands
 config/claude/hooks                .claude/hooks
-config/claude/prompts              .claude/prompts
 config/claude/themes               .claude/themes
 
 [opencode]

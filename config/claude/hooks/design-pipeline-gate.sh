@@ -5,7 +5,7 @@
 # ---------------
 # The pipeline (laws-of-ux → direction → gates) called itself "STRICT" and
 # "BLOCKING", but nothing blocked. It was prose inside ~42 KB of always-on
-# instructions, sitting next to an SDD orchestrator that pushes the opposite
+# instructions, sitting next to an orchestrator that pushes the opposite
 # way — "delegate ALL real work to sub-agents" — and sub-agents start with a
 # clean context, without the checklist. A rule with no enforcement point is a
 # reminder. This is the enforcement point.

@@ -6,7 +6,7 @@
 # Upstream's own ./setup plants the whole repo in ~/.claude/skills/gstack, adds
 # 54 slash commands, and registers four families of hooks. More than half of
 # those skills duplicate something this configuration already has — planning
-# (SDD), the design system, memory (engram), docs, security, PDF, release — and
+# (plan mode, ODD task files), the design system, memory (engram), docs, security, PDF, release — and
 # two skills competing for one trigger is worse than either alone.
 #
 # So this takes three skills and three binaries, and nothing else.

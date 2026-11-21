@@ -697,7 +697,7 @@ el mismo disparador es peor que cualquiera de las dos por separado:
 
 | Descartado | Porque ya lo cubre |
 | :--- | :--- |
-| `/office-hours`, `/plan-*`, `/autoplan`, `/spec` | La cadena SDD — 15,7 KB en siete subagentes con contexto aislado, frente a 401 KB ejecutándose en el hilo principal |
+| `/office-hours`, `/plan-*`, `/autoplan`, `/spec` | El modo plan nativo y los ficheros `odd/tasks` — la planificación se queda en el hilo principal, sin otra skill compitiendo por el mismo disparador |
 | `/design-consultation`, `/design-review`, `/design-html` | `frontend-design` + `ui-ux-pro-max` + `impeccable` + `DESIGN.md` |
 | `/learn`, `/context-save`, `/context-restore`, GBrain | **engram** |
 | `/document-generate`, `/document-release` | `docs-guardian`, `readme-guardian`, `cognitive-doc-design` |
@@ -736,18 +736,7 @@ una fuente única elimina.
 <br/>
 
 Los `commands/` y `agents/` son específicos de cada herramienta. No es duplicación
-accidental:
-
-```yaml
-# config/claude/commands/sdd-apply.md    # config/opencode/commands/sdd-apply.md
----                                      ---
-description: Implement SDD tasks         description: Implement SDD tasks
----                                      agent: gentle-orchestrator
-                                         subtask: true
-                                         ---
-```
-
-`agent:` y `subtask:` son sintaxis propia de OpenCode, y las rutas apuntan a sitios
+accidental: `agent:` y `subtask:` son sintaxis propia de OpenCode, y las rutas apuntan a sitios
 distintos. Son la **capa de adaptación** entre cada herramienta y las skills compartidas.
 
 </details>
@@ -757,9 +746,8 @@ distintos. Son la **capa de adaptación** entre cada herramienta y las skills co
 | Ruta | Contenido |
 | :--- | :--- |
 | `claude/CLAUDE.md` | Instrucciones globales: persona, TDD estricto, pipeline de diseño, adopción de gstack |
-| `shared/skills/sdd-orchestrator/` | Reglas de orquestación y delegación SDD — skill, no `@import`: 19 KB que antes se cargaban en cada turno |
 | `claude/settings.json` | Permisos, hooks, plugins y marketplaces |
-| `claude/agents/`, `commands/`, `hooks/`, `prompts/` | Subagentes, comandos y hooks |
+| `claude/agents/`, `commands/`, `hooks/` | Subagentes, comandos y hooks |
 | `claude/themes/` | Temas de color propios, referenciados como `custom:<fichero>` |
 | `opencode/opencode.json`, `AGENTS.md` | Configuración e instrucciones globales |
 | `opencode/agents/`, `plugin/`, `profiles/` | Adaptadores y extensiones |

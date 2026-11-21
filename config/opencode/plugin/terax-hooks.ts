@@ -66,10 +66,6 @@ export const TeraxHooks: Plugin = async ({ $, directory }) => {
           const info = (event.properties as { info?: { id?: string; role?: string } })?.info
           if (info?.role !== "user" || !info.id || seenPrompts.has(info.id)) return
           seenPrompts.add(info.id)
-          await $`gentle-ai skill-registry refresh --quiet --no-gitignore --cwd ${directory}`
-            .quiet()
-            .nothrow()
-            .catch(() => {})
           await teraxNotify("working")
           break
         }
