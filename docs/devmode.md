@@ -1,38 +1,38 @@
-# Modo dev
+# Dev mode
 
-`aval dev` prueba aval sin tocar tu máquina: ni tu `HOME`, ni `~/.claude`, ni tu config, ni tus proyectos. Compila **este** checkout dentro de un sandbox y ejecuta todo allí.
+`aval dev` lets you try aval without touching your machine: not your `HOME`, not `~/.claude`, not your config, not your projects. It builds **this** checkout inside a sandbox and runs everything there.
 
-## Cinco órdenes
+## Five commands
 
-| Orden | Qué hace |
+| Command | What it does |
 | :--- | :--- |
-| `aval dev` | Abre tu `$SHELL` dentro del sandbox (prompt `[aval dev:default]`). La primera vez hace `aval --yes` y `aval sync` allí. |
-| `aval dev run -- <cmd>` | Un solo comando en el mismo entorno: `aval dev run -- aval doctor`. Devuelve su código de salida. |
-| `aval dev diff` | Qué cambiarían `aval --yes` y `aval sync` en tu máquina **real**. Solo lectura: es la puerta de "funciona en dev" a "es seguro aplicar". |
-| `aval dev project <ruta>` | Clona un proyecto real dentro del sandbox para probar hooks y comandos con código de verdad. |
-| `aval dev ls` · `reset` · `rm` | Lista, recrea desde cero o borra sandboxes. |
+| `aval dev` | Opens your `$SHELL` inside the sandbox (prompt `[aval dev:default]`). The first time, it runs `aval --yes` and `aval sync` there. |
+| `aval dev run -- <cmd>` | A single command in the same environment: `aval dev run -- aval doctor`. Returns its exit code. |
+| `aval dev diff` | What `aval --yes` and `aval sync` would change on your **real** machine. Read-only: it is the gate between "works in dev" and "safe to apply". |
+| `aval dev project <path>` | Clones a real project into the sandbox so you can test hooks and commands against real code. |
+| `aval dev ls` · `reset` · `rm` | Lists, recreates from scratch, or deletes sandboxes. |
 
-`--name N` elige otro sandbox (por defecto `default`). Viven en `${XDG_CACHE_HOME:-~/.cache}/aval/dev/<nombre>`.
+`--name N` picks a different sandbox (default: `default`). They live in `${XDG_CACHE_HOME:-~/.cache}/aval/dev/<name>`.
 
-## Qué queda aislado
+## What is isolated
 
-Dentro del sandbox, cada una de estas variables apunta a una carpeta del sandbox:
+Inside the sandbox, each of these variables points to a folder in the sandbox:
 
-`HOME` (y `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` en Windows) · `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME`, `XDG_CACHE_HOME` · `CLAUDE_CONFIG_DIR` · `CODEX_HOME` · `GEMINI_CLI_HOME` · `AVAL_PRIVATE_DIR` · `ENGRAM_DATA_DIR` (y un `ENGRAM_PORT` propio) · `GIT_CONFIG_GLOBAL` (solo `user.name` y `user.email`) · `TMPDIR` y `TMUX_TMPDIR` · `ZDOTDIR`.
+`HOME` (and `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` on Windows) · `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME`, `XDG_CACHE_HOME` · `CLAUDE_CONFIG_DIR` · `CODEX_HOME` · `GEMINI_CLI_HOME` · `AVAL_PRIVATE_DIR` · `ENGRAM_DATA_DIR` (and its own `ENGRAM_PORT`) · `GIT_CONFIG_GLOBAL` (only `user.name` and `user.email`) · `TMPDIR` and `TMUX_TMPDIR` · `ZDOTDIR`.
 
-Además se quitan `TMUX`, `GIT_DIR`, `GIT_WORK_TREE`, todo `AVAL_*` y todo `ENGRAM_*` (incluido el token de la nube), y `PATH` empieza por el `bin` del sandbox. `AVAL_DEV=1` marca que estás dentro.
+In addition, `TMUX`, `GIT_DIR`, `GIT_WORK_TREE`, every `AVAL_*` and every `ENGRAM_*` variable (including the cloud token) are removed, and `PATH` starts with the sandbox's `bin`. `AVAL_DEV=1` marks that you are inside.
 
-El sandbox instala desde una **copia** del repo (sin `.git`), así que los enlaces (symlinks) apuntan al sandbox y nada puede escribir en tu checkout. Las cachés de Go se comparten a propósito (son por contenido).
+The sandbox installs from a **copy** of the repo (without `.git`), so the symlinks point into the sandbox and nothing can write to your checkout. Go caches are shared on purpose (they are content-addressed).
 
-## Garantías
+## Guarantees
 
-- Se niega a crear el sandbox si su ruta cae dentro de `~/.claude`, `~/.ssh`, `~/.gnupg`, `~/.codex`, `~/.gemini`, `~/.engram`, `~/.aval-backup` o `~/.config/aval/private`, o si contiene tu `HOME`.
-- Antes de lanzar nada comprueba que todas las variables aisladas apuntan dentro del sandbox.
-- `aval dev` dentro de un shell dev se rechaza; `--nested` lo permite.
-- `dev project` usa `git clone --local --no-hardlinks`, solo lee el original y quita el remoto del clon. No copia cambios sin confirmar.
+- It refuses to create the sandbox if its path falls inside `~/.claude`, `~/.ssh`, `~/.gnupg`, `~/.codex`, `~/.gemini`, `~/.engram`, `~/.aval-backup` or `~/.config/aval/private`, or if it contains your `HOME`.
+- Before launching anything, it checks that every isolated variable points inside the sandbox.
+- `aval dev` inside a dev shell is rejected; `--nested` allows it.
+- `dev project` uses `git clone --local --no-hardlinks`, only reads the original, and removes the remote from the clone. It does not copy uncommitted changes.
 
-## Límites
+## Limits
 
-- La red no se bloquea: `git fetch`, `npm`, `gh` y los hooks que llamen fuera siguen saliendo. Los tokens del entorno (`GH_TOKEN`, `SSH_AUTH_SOCK`) se heredan.
-- El sandbox no tiene `.git`: `aval update` no funciona dentro. Recompila con cada entrada; el repo se vuelve a copiar, pero lo ya instalado se actualiza con `aval --yes` o `aval dev reset`.
-- No se aíslan Docker, Homebrew, el Keychain de macOS ni los LaunchAgents.
+- The network is not blocked: `git fetch`, `npm`, `gh` and hooks that call out still go out. Environment tokens (`GH_TOKEN`, `SSH_AUTH_SOCK`) are inherited.
+- The sandbox has no `.git`: `aval update` does not work inside it. It rebuilds on every entry; the repo is copied again, but what is already installed is updated with `aval --yes` or `aval dev reset`.
+- Docker, Homebrew, the macOS Keychain and LaunchAgents are not isolated.

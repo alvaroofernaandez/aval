@@ -1,62 +1,62 @@
-# Cómo publicar una versión
+# How to publish a release
 
-aval usa [SemVer](https://semver.org): `vX.Y.Z` para estables y `vX.Y.Z-rc.N` / `vX.Y.Z-beta.N`
-para prereleases. Una versión es un **tag anotado** en `main`; al empujarlo, `release.yml` hace
-el resto. El historial resumido está en [CHANGELOG.md](../CHANGELOG.md); desde la primera versión,
-las notas salen de la release de GitHub.
+aval uses [SemVer](https://semver.org): `vX.Y.Z` for stable releases and `vX.Y.Z-rc.N` / `vX.Y.Z-beta.N`
+for prereleases. A release is an **annotated tag** on `main`; pushing it makes `release.yml` do
+the rest. A summarised history is in [CHANGELOG.md](../CHANGELOG.md); from the first release on,
+the notes come from the GitHub release.
 
-## El flujo (3 comandos)
+## The flow (3 commands)
 
 ```sh
-aval release status    # último tag, commits sin publicar, versión sugerida
-aval release rc        # tag v0.2.0-rc.1 (la siguiente rc suma 1)
-aval release promote   # la rc se convierte en v0.2.0, sobre el mismo commit
+aval release status    # latest tag, unpublished commits, suggested version
+aval release rc        # tag v0.2.0-rc.1 (the next rc adds 1)
+aval release promote   # the rc becomes v0.2.0, on the same commit
 ```
 
-Cada comando de corte (`rc`, `beta`, `patch`, `minor`, `major`, `promote`):
+Each cutting command (`rc`, `beta`, `patch`, `minor`, `major`, `promote`):
 
-1. comprueba: árbol limpio, rama `main`, al día con `origin/main`, `go test ./...` y CI verde en
-   `HEAD` (esto último solo si `gh` está disponible);
-2. enseña la versión, los commits y las notas agrupadas (Breaking, Features, Fixes, Performance;
-   `docs`, `test`, `ci` y `chore` no aparecen);
-3. pregunta `y/N` (`--yes` lo salta; `--dry-run` solo enseña y no toca nada);
-4. crea el tag anotado y lo empuja con `git push origin <tag>`;
-5. imprime la URL del workflow: **falta aprobar el entorno `release`** (solo el dueño puede).
+1. checks: clean tree, `main` branch, up to date with `origin/main`, `go test ./...` and green CI on
+   `HEAD` (the latter only if `gh` is available);
+2. shows the version, the commits and the grouped notes (Breaking, Features, Fixes, Performance;
+   `docs`, `test`, `ci` and `chore` do not appear);
+3. asks `y/N` (`--yes` skips it; `--dry-run` only shows and touches nothing);
+4. creates the annotated tag and pushes it with `git push origin <tag>`;
+5. prints the workflow URL: **the `release` environment still needs approval** (only the owner can do it).
 
-Atajos: `aval release patch|minor|major` publica una estable sin pasar por rc.
+Shortcuts: `aval release patch|minor|major` publishes a stable release without going through an rc.
 
-### Qué versión sale
+### Which version comes out
 
-Antes de 1.0: `feat` y cambio incompatible (`!` o `BREAKING CHANGE:`) suben el minor;
-`fix` y `perf`, el patch. Desde 1.0 es SemVer estándar. `docs`, `test`, `ci`, `chore` no
-justifican versión: si solo hay eso, `aval release` dice que no hay nada que publicar.
+Before 1.0: `feat` and a breaking change (`!` or `BREAKING CHANGE:`) bump the minor;
+`fix` and `perf` bump the patch. From 1.0 it is standard SemVer. `docs`, `test`, `ci` and `chore` do not
+justify a version: if that is all there is, `aval release` says there is nothing to publish.
 
-`promote` solo etiqueta el commit de la rc, así que el binario estable es el que ya probaste.
-Si `main` avanzó desde la rc, se niega: saca otra rc.
+`promote` only tags the rc's commit, so the stable binary is the one you already tested.
+If `main` has moved on since the rc, it refuses: cut another rc.
 
-## Qué hace cada job
+## What each job does
 
-| Job | Permisos | Comprueba / hace |
+| Job | Permissions | Checks / does |
 | :--- | :--- | :--- |
-| `preflight` | solo lectura | el tag tiene forma `vX.Y.Z[-rc.N\|-beta.N]`, es anotado y está en `origin/main`; `ci.yml` terminó en éxito sobre ese commit; `goreleaser check` y un `release --snapshot` compilan los 6 destinos |
-| `publish` | `contents: write`, `id-token`, `attestations`; **entorno `release`** | GoReleaser compila, crea la release (prerelease si lleva `-`) y sube archivos + `SHA256SUMS`; atestación de procedencia sobre cada archivo |
-| `verify` | solo lectura | baja lo publicado: `sha256sum -c SHA256SUMS`, `gh attestation verify` de cada archivo, y que el binario imprima la versión del tag |
-| `npm` | **entorno `release`**, `id-token` | reutiliza los mismos binarios ya verificados; publica con `--tag next` si la versión lleva `-`, `latest` si no |
+| `preflight` | read-only | the tag has the form `vX.Y.Z[-rc.N\|-beta.N]`, is annotated and is on `origin/main`; `ci.yml` finished successfully on that commit; `goreleaser check` and a `release --snapshot` build all 6 targets |
+| `publish` | `contents: write`, `id-token`, `attestations`; **`release` environment** | GoReleaser builds, creates the release (a prerelease if it contains `-`) and uploads archives + `SHA256SUMS`; provenance attestation on each archive |
+| `verify` | read-only | downloads what was published: `sha256sum -c SHA256SUMS`, `gh attestation verify` on each archive, and that the binary prints the tag's version |
+| `npm` | **`release` environment**, `id-token` | reuses the same already-verified binaries; publishes with `--tag next` if the version contains `-`, `latest` otherwise |
 
-Los commits en `main` solo ejecutan `ci.yml`; nunca publican.
+Commits on `main` only run `ci.yml`; they never publish.
 
-## Probar una rc
+## Trying an rc
 
 ```sh
-npx @alvaroofernaandez/aval@next version     # desde npm
+npx @alvaroofernaandez/aval@next version     # from npm
 gh release download v0.2.0-rc.1 -R alvaroofernaandez/aval --pattern '*linux_amd64*'
 ```
 
-Los builds estables avisan de novedades en `latest`; los de prerelease, en `next` (y en
-`latest`, para enterarse de que su estable salió). Un build de desarrollo (`dev`) nunca avisa.
-`AVAL_NO_UPDATE_CHECK=1` lo desactiva.
+Stable builds notify about news on `latest`; prerelease builds, on `next` (and on
+`latest`, to learn that their stable release is out). A development build (`dev`) never notifies.
+`AVAL_NO_UPDATE_CHECK=1` disables it.
 
-## Verificar lo que descargas
+## Verifying what you download
 
 ```sh
 gh release download v0.2.0 -R alvaroofernaandez/aval
@@ -65,17 +65,17 @@ gh attestation verify aval_0.2.0_linux_amd64.tar.gz --repo alvaroofernaandez/ava
 tar -xzf aval_0.2.0_linux_amd64.tar.gz && ./aval version
 ```
 
-## Si algo falla
+## If something fails
 
-- **El tag está mal y aún no se aprobó nada:** `git push origin :refs/tags/<tag>` y `git tag -d <tag>`.
-- **Falló `verify` o `npm`:** vuelve a lanzar el workflow desde Actions (*Run workflow* con el tag);
-  la subida de assets reemplaza los existentes y `npm` se salta lo ya publicado.
-- **Subir GoReleaser:** cambia `GORELEASER_VERSION` y `GORELEASER_SHA256` en `release.yml` (el hash
-  está en el `checksums.txt` de su release, línea `goreleaser_Linux_x86_64.tar.gz`) y prueba con
+- **The tag is wrong and nothing has been approved yet:** `git push origin :refs/tags/<tag>` and `git tag -d <tag>`.
+- **`verify` or `npm` failed:** re-run the workflow from Actions (*Run workflow* with the tag);
+  the asset upload replaces existing ones and `npm` skips what is already published.
+- **Upgrading GoReleaser:** change `GORELEASER_VERSION` and `GORELEASER_SHA256` in `release.yml` (the hash
+  is in the `checksums.txt` of its release, line `goreleaser_Linux_x86_64.tar.gz`) and test with
   `goreleaser release --snapshot --clean --skip=publish`.
 
-## Requisitos únicos
+## One-time requirements
 
-Entorno `release` con aprobación del dueño y el secreto `NPM_TOKEN` (token de automatización con
-permiso de publicación en `@alvaroofernaandez`). El tag móvil `latest` y la release «Latest build»
-anteriores a este sistema no se usan: bórralos cuando salga la primera versión.
+A `release` environment with owner approval and the `NPM_TOKEN` secret (an automation token with
+publish permission on `@alvaroofernaandez`). The moving `latest` tag and the "Latest build" release
+that predate this system are not used: delete them once the first release is out.

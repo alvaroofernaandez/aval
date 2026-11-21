@@ -120,7 +120,7 @@ edited by hand after that point; the section below is the history before version
 - **design:** scan tool inputs for the design-pipeline checklist
 - **claude:** restore owner rules and move gentle-ai orchestration on demand
 - **design:** close the user-authored checklist hole and un-rot ui-ux-pro-max
-- **claude:** la puerta de diseno tambien mira los transcripts de los subagentes
+- **claude:** the design gate also scans subagent transcripts
 - **claude:** disable the UX plugin that collides with frontend-design
 - **tests:** give the tmux e2e blocks their own socket, not a killed one
 - **tmux:** only set the Homebrew shell when that binary exists

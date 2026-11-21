@@ -1,851 +1,848 @@
 <div align="center">
 
-# Guía completa de aval
+# aval: the complete guide
 
-<sub><a href="../README.md">← volver al README</a></sub>
+<sub><a href="../README.md">← back to the README</a></sub>
 
-El harness por dentro: un único binario de Go que instala, sincroniza y verifica la
-configuración de **Claude Code** y **OpenCode** y un entorno de terminal (**tmux**, **yazi**, **Ghostty**).<br/>
-Cada pieza está documentada y toda la lógica propia está cubierta por tests.
+The harness from the inside: a single Go binary that installs, syncs and verifies the
+configuration of **Claude Code** and **OpenCode** plus a terminal environment (**tmux**, **yazi**, **Ghostty**).<br/>
+Every piece is documented and all of the project's own logic is covered by tests.
 
 <br/>
 
-**[⚡ Instalación](#-instalación)** ·
-**[⌨️ Comandos](#️-comandos)** ·
-**[🗺️ Mapa](#️-mapa-del-repositorio)** ·
-**[📊 Barra de estado](#-barra-de-estado)** ·
-**[📂 Barra lateral](#-barra-lateral-de-archivos)** ·
-**[🤖 Agentes](#-agentes)** ·
-**[🔐 Secretos](#-secretos)** ·
+**[⚡ Installation](#-installation)** ·
+**[⌨️ Commands](#️-commands)** ·
+**[🗺️ Map](#️-repository-map)** ·
+**[📊 Status bar](#-status-bar)** ·
+**[📂 Sidebar](#-file-sidebar)** ·
+**[🤖 Agents](#-agents)** ·
+**[🔐 Secrets](#-secrets)** ·
 **[🧪 Tests](#-tests)**
 
 </div>
 
 ---
 
-## 🎯 En una pantalla
+## 🎯 At a glance
 
 <div align="center">
-<img src="assets/environment.png" alt="tmux con la barra lateral de yazi abierta junto al panel de trabajo, y la barra de estado con CPU, GPU, RAM, hora y fecha" width="100%">
+<img src="assets/environment.png" alt="tmux with the yazi sidebar open next to the work pane, and the status bar showing CPU, GPU, RAM, time and date" width="100%">
 </div>
 
 <br/>
 
-A la izquierda, el árbol de **yazi**; a la derecha, tu shell. Arriba, la barra con
-CPU · GPU · RAM · hora · fecha, y el botón **`[FILES]`**, que es clicable.
-**El árbol sigue tu directorio**: cambias con `cd` o `z` y el panel se mueve solo.
+On the left, the **yazi** tree; on the right, your shell. At the top, the bar with
+CPU · GPU · RAM · time · date, and the **`[FILES]`** button, which is clickable.
+**The tree follows your directory**: switch with `cd` or `z` and the pane moves on its own.
 
-| Quiero… | Pulso |
+| I want to… | Press |
 | :--- | :--- |
-| 📂 Abrir o cerrar el árbol | `Alt+t` · `prefix`+`e` · clic en **`[FILES]`** |
-| 📄 Abrir un archivo | `Enter` sobre él (se abre en una ventana nueva) |
-| ❌ Cerrar ese archivo | `Ctrl+X` · `Alt+w` · `prefix`+`k` |
-| 🪟 Panel scratch flotante | `Alt+g` |
-| ↔️ Moverme entre splits | `Cmd+Alt+H/J/K/L` · `Cmd+[` · `Cmd+]` |
+| 📂 Open or close the tree | `Alt+t` · `prefix`+`e` · click **`[FILES]`** |
+| 📄 Open a file | `Enter` on it (opens in a new window) |
+| ❌ Close that file | `Ctrl+X` · `Alt+w` · `prefix`+`k` |
+| 🪟 Floating scratch pane | `Alt+g` |
+| ↔️ Move between splits | `Cmd+Alt+H/J/K/L` · `Cmd+[` · `Cmd+]` |
 
 ---
 
-## ⚡ Instalación
+## ⚡ Installation
 
-Tres formas de obtener el binario; el resto es igual.
+Three ways to get the binary; everything else is the same.
 
-| Vía | Comando |
+| Route | Command |
 | :--- | :--- |
 | Go | `go install github.com/alvaroofernaandez/aval/cmd/aval@latest` |
-| npm | `npx @alvaroofernaandez/aval` (o `npm i -g @alvaroofernaandez/aval`) |
-| Binario | La página de Releases, con `SHA256SUMS` |
+| npm | `npx @alvaroofernaandez/aval` (or `npm i -g @alvaroofernaandez/aval`) |
+| Binary | The Releases page, with `SHA256SUMS` |
 
 > [!NOTE]
-> El paquete npm con el nombre `aval` y los binarios precompilados los publica CI y aún no
-> están disponibles con el nombre nuevo.
+> The npm package named `aval` and the prebuilt binaries are published by CI and are not yet
+> available under the new name.
 
-Después, desde un clon del repo (`aval` busca `install.manifest` en el directorio actual, junto al
-binario o en `--repo <ruta>`):
+Then, from a clone of the repo (`aval` looks for `install.manifest` in the current directory, next to the
+binary, or at `--repo <path>`):
 
 ```sh
 git clone https://github.com/alvaroofernaandez/aval.git ~/aval && cd ~/aval
 
-aval                   # TUI: detecta el sistema y deja elegir qué instalar
-aval --yes --dry-run   # sin TUI: muestra qué haría, no toca nada
-aval --yes             # sin TUI: enlaza de verdad
-aval --yes --copy      # copia en vez de enlazar
+aval                   # TUI: detects your system and lets you choose what to install
+aval --yes --dry-run   # no TUI: shows what it would do, touches nothing
+aval --yes             # no TUI: actually links everything
+aval --yes --copy      # copy instead of linking
 ```
 
 <div align="center">
-<img src="assets/installer.gif" alt="La TUI del instalador: selección de grupos, instalación y resumen" width="100%">
+<img src="assets/installer.gif" alt="The installer TUI: group selection, installation and summary" width="100%">
 </div>
 
 <br/>
 
 | | |
 | :--- | :--- |
-| **Tema** | Tokyo Night, la misma paleta que el resto del entorno |
-| **Personalizado por SO** | En Windows nativo se ofrecen los agentes IA y git; el entorno de terminal aparece en gris con el motivo, y se instala completo si detecta WSL |
-| **Enlaza o copia** | Symlink donde se puede; en Windows sin Developer Mode **copia**, porque lo comprueba en vez de suponerlo |
-| **Una sola lista** | TUI y `--yes` leen **el mismo `install.manifest`** |
+| **Theme** | Tokyo Night, the same palette as the rest of the environment |
+| **Tailored to your OS** | On native Windows it offers the AI agents and git; the terminal environment is greyed out with the reason, and installs in full if it detects WSL |
+| **Link or copy** | Symlinks wherever possible; on Windows without Developer Mode it **copies**, because it checks instead of assuming |
+| **A single list** | The TUI and `--yes` read **the same `install.manifest`** |
 
 > [!IMPORTANT]
-> **`aval` nunca borra nada.** Si ya tienes configuración en el destino, la mueve a
-> `~/.aval-backup/<timestamp>/` antes de enlazar. Volver a ejecutarlo es seguro: los
-> enlaces que ya apuntan aquí se dejan intactos.
+> **`aval` never deletes anything.** If you already have configuration at the destination, it moves it to
+> `~/.aval-backup/<timestamp>/` before linking. Running it again is safe: links that already point here
+> are left untouched.
 
 > [!NOTE]
-> El GIF es una instalación real grabada con [VHS](https://github.com/charmbracelet/vhs)
-> contra un `$HOME` desechable. Se regenera con `vhs docs/installer-demo.tape`, la captura de
-> arriba con `vhs docs/environment.tape` y el hero con `go run ./tools/brand`.
+> The GIF is a real installation recorded with [VHS](https://github.com/charmbracelet/vhs)
+> against a throwaway `$HOME`. Regenerate it with `vhs docs/installer-demo.tape`, the screenshot
+> above with `vhs docs/environment.tape`, and the hero with `go run ./tools/brand`.
 
-### Actualizar
+### Updating
 
 ```sh
-aval update             # git pull + enlaza lo nuevo (idempotente)
-aval update --dry-run   # fetch + qué rutas y entradas del manifiesto cambiarían; no toca nada
+aval update             # git pull + link anything new (idempotent)
+aval update --dry-run   # fetch + which paths and manifest entries would change; touches nothing
 ```
 
-Con un árbol sucio, `update` (también con `--dry-run`) se niega y lo dice. Como los configs son
-**symlinks al repo**, el `git pull` ya actualiza todo lo enlazado; el re-enlazado solo cubre entradas
-nuevas del manifiesto y skills recién añadidas.
+With a dirty tree, `update` (also with `--dry-run`) refuses and says so. Because the configs are
+**symlinks into the repo**, `git pull` already updates everything that is linked; re-linking only covers new
+manifest entries and newly added skills.
 
 <details>
-<summary><b>¿Y si lo instalo global con npm? ¿Se actualiza solo?</b></summary>
+<summary><b>What if I install it globally with npm? Does it update itself?</b></summary>
 
 <br/>
 
-**No, y ninguna herramienta de npm lo hace.** npm no puede empujar una actualización a una
-máquina; lo contrario sería ejecución remota de código en equipos ajenos. Lo que sí hace el
-binario es **avisar**: al arrancar comprueba el registry (como mucho una vez al día, en 3 s, en
-silencio si no hay red) y, si hay versión nueva, dice cuál es y el comando exacto:
+**No, and no npm tool does.** npm cannot push an update to a machine; the alternative would be remote code
+execution on other people's computers. What the binary does do is **tell you**: on startup it checks the
+registry (at most once a day, with a 3 s timeout, silently if there is no network) and, if there is a newer
+version, it prints which one and the exact command:
 
 ```
 A newer version is available: 0.1.42 → 0.1.51
 Update with: npm update -g @alvaroofernaandez/aval
 ```
 
-Se desactiva con `AVAL_NO_UPDATE_CHECK=1`. La forma de estar al día sin pensar es `npx`.
+Disable it with `AVAL_NO_UPDATE_CHECK=1`. The way to stay current without thinking about it is `npx`.
 
 </details>
 
 <details>
-<summary><b>Cómo se entrega el binario por npm</b></summary>
+<summary><b>How the binary is delivered through npm</b></summary>
 
 <br/>
 
-Cada plataforma va en **su propio paquete**, referenciado como `optionalDependencies` con
-campos `os` y `cpu` — el patrón de esbuild. npm descarga **solo** el que corresponde a la máquina.
+Each platform ships in **its own package**, referenced as `optionalDependencies` with `os` and `cpu`
+fields, the esbuild pattern. npm downloads **only** the one that matches the machine.
 
 ```
-@alvaroofernaandez/aval          ← el que instalas
+@alvaroofernaandez/aval          ← the one you install
 ├── …-darwin-arm64 · …-darwin-x64
 ├── …-linux-arm64  · …-linux-x64
 └── …-win32-arm64  · …-win32-x64
 ```
 
-**No hay script de `postinstall`**: nada se ejecuta al instalar, así que funciona con
-`npm ci --ignore-scripts`. Son `optionalDependencies` y no `dependencies` a propósito: como
-dependencias duras la instalación fallaría en **todas** las máquinas, porque cinco de las seis
-nunca se pueden satisfacer. Cada push a `main` publica en npm y compila los binarios de las 6
-plataformas (`.github/workflows/npm.yml`, solo si pasa toda la suite).
+**There is no `postinstall` script**: nothing runs at install time, so it works with
+`npm ci --ignore-scripts`. They are `optionalDependencies` and not `dependencies` on purpose: as hard
+dependencies the install would fail on **every** machine, because five of the six can never be satisfied.
+Every push to `main` publishes to npm and builds the binaries for all 6 platforms
+(`.github/workflows/npm.yml`, only if the whole suite passes).
 
 </details>
 
 <details>
-<summary><b>¿Por qué los backups van a un directorio aparte y no junto al original?</b></summary>
+<summary><b>Why do backups go to a separate directory instead of next to the original?</b></summary>
 
 <br/>
 
-Porque las herramientas escanean sus carpetas de configuración **enteras**. Un
-`ship.bak.20260811` dentro de `~/.claude/skills` se cargaría como una **segunda skill
-duplicada**, y de hecho pasó: aparecieron cuatro skills fantasma en la sesión. Los backups viven
-fuera de cualquier árbol escaneado, y hay un test que lo verifica.
+Because tools scan their configuration folders **in full**. A `ship.bak.20260811` inside
+`~/.claude/skills` would be loaded as a **second, duplicate skill**, and that actually happened: four
+phantom skills showed up in the session. Backups live outside any scanned tree, and a test verifies it.
 
 </details>
 
-### 🔗 Qué enlaza
+### 🔗 What gets linked
 
-Lo define `install.manifest`, agrupado en `terminal`, `git`, `claude`, `opencode` y `skills`.
+Defined by `install.manifest`, grouped into `terminal`, `git`, `claude`, `opencode` and `skills`.
 
-| Origen en el repo | Destino | Función |
+| Source in the repo | Destination | Purpose |
 | :--- | :--- | :--- |
-| `home/{zshrc,zprofile,p10k.zsh,tmux.conf}` | `~/.zshrc`, `~/.zprofile`, `~/.p10k.zsh`, `~/.tmux.conf` | Shell y tmux |
-| `home/gitconfig`, `config/git/ignore`, `config/gh/config.yml` | `~/.gitconfig`, `~/.config/git`, `~/.config/gh` | Git y GitHub CLI |
-| `config/yazi`, `config/yazi-sidebar` | `~/.config/yazi`, `~/.config/yazi-sidebar` | Gestor de archivos y variante estrecha del panel |
-| `config/ghostty`, `config/atuin/config.toml` | `~/.config/...` | Terminal e historial |
+| `home/{zshrc,zprofile,p10k.zsh,tmux.conf}` | `~/.zshrc`, `~/.zprofile`, `~/.p10k.zsh`, `~/.tmux.conf` | Shell and tmux |
+| `home/gitconfig`, `config/git/ignore`, `config/gh/config.yml` | `~/.gitconfig`, `~/.config/git`, `~/.config/gh` | Git and GitHub CLI |
+| `config/yazi`, `config/yazi-sidebar` | `~/.config/yazi`, `~/.config/yazi-sidebar` | File manager and the narrow pane variant |
+| `config/ghostty`, `config/atuin/config.toml` | `~/.config/...` | Terminal and history |
 | `config/herdr-core/templates`, `config/herdr-app/{keys.json,mods/diff-review}` | `~/.config/herdr-*` | Herdr |
-| `config/claude/*` | `~/.claude/*` | Claude Code, **ruta por ruta** |
-| `config/opencode/*` | `~/.config/opencode/*` | OpenCode, **ruta por ruta** |
-| `skills/<cada una>` | `~/.claude/skills`, `~/.config/opencode/skills`, `~/.opencode/skills` | Skills, **una a una** en los tres destinos |
+| `config/claude/*` | `~/.claude/*` | Claude Code, **path by path** |
+| `config/opencode/*` | `~/.config/opencode/*` | OpenCode, **path by path** |
+| `skills/<each one>` | `~/.claude/skills`, `~/.config/opencode/skills`, `~/.opencode/skills` | Skills, **one by one** into all three destinations |
 
 > [!WARNING]
-> **Los directorios de agentes se enlazan ruta por ruta, nunca completos.**
-> `~/.claude` contiene además `.credentials.json` y **1,6 GB** de historial de sesiones;
-> `~/.config/opencode` contiene `node_modules`. Enlazar el directorio entero desplazaría todo
-> eso. Hay tests que verifican que `~/.claude` sigue siendo un directorio real y que las
-> credenciales sobreviven a la instalación. `settings.json` de Claude tampoco se enlaza: lo
-> gestiona `aval sync`.
+> **Agent directories are linked path by path, never as a whole.**
+> `~/.claude` also holds `.credentials.json` and **1.6 GB** of session history;
+> `~/.config/opencode` holds `node_modules`. Linking the whole directory would displace all of
+> that. Tests verify that `~/.claude` remains a real directory and that the
+> credentials survive installation. Claude's `settings.json` is not linked either: it is
+> managed by `aval sync`.
 
-### 🚀 Arranque
+### 🚀 Startup
 
-Ghostty ejecuta `aval tmux launch`, que resuelve tmux **por ruta absoluta** y adjunta cada
-pestaña a **una sesión propia** (reutilizando una libre si la hay). Si tmux no estuviera, cae a
-una shell de login: un multiplexor ausente no puede dejarte sin terminal.
+Ghostty runs `aval tmux launch`, which resolves tmux **by absolute path** and attaches each
+tab to **its own session** (reusing a free one if there is one). If tmux is missing, it falls back to
+a login shell: an absent multiplexer must not leave you without a terminal.
 
 <details>
-<summary><b>¿Por qué rutas absolutas en todas partes?</b> (la lección que más veces mordió)</summary>
+<summary><b>Why absolute paths everywhere?</b> (the lesson that bit the most times)</summary>
 
 <br/>
 
-Ghostty lanza su comando así:
+Ghostty launches its command like this:
 
 ```bash
-/usr/bin/login -flp <usuario> /bin/bash --noprofile --norc -c <comando>
+/usr/bin/login -flp <user> /bin/bash --noprofile --norc -c <command>
 ```
 
-`--noprofile --norc` significa que **no se lee ningún rc de shell**, y una aplicación lanzada
-desde el Dock hereda el `PATH` de **launchd**: `/usr/bin:/bin:/usr/sbin:/sbin`. Ahí no está
-`/opt/homebrew/bin`. Esto rompió el entorno **tres veces seguidas**, cada vez con un síntoma
-distinto:
+`--noprofile --norc` means **no shell rc file is read**, and an application launched from the Dock
+inherits **launchd's** `PATH`: `/usr/bin:/bin:/usr/sbin:/sbin`. `/opt/homebrew/bin` is not in it.
+This broke the environment **three times in a row**, each time with a different symptom:
 
-| Dónde faltaba la ruta absoluta | Cómo se manifestó |
+| Where the absolute path was missing | How it showed up |
 | :--- | :--- |
-| `command` de Ghostty | `exec: tmux: not found` — sin terminal |
-| `tmux` dentro de los helpers | `returned 127` — la tecla no hacía nada |
-| Comando pasado a `split-window` | El panel parpadeaba y moría |
+| Ghostty's `command` | `exec: tmux: not found` — no terminal |
+| `tmux` inside the helpers | `returned 127` — the key did nothing |
+| Command passed to `split-window` | The pane flashed and died |
 
-Un panel muerto se cierra **en silencio**, y ejecutar el helper desde una shell interactiva
-funcionaba porque ahí el `PATH` viene heredado: la comprobación pasaba mientras el uso real
-fallaba. Los tests ejecutan con el `PATH` mínimo de launchd, el entorno real de producción.
+A dead pane closes **silently**, and running the helper from an interactive shell worked because there
+the `PATH` is inherited: the check passed while real usage failed. The tests run with launchd's minimal
+`PATH`, the real production environment.
 
 </details>
 
 <details>
-<summary><b>¿Por qué <code>allow-passthrough on</code> en tmux?</b></summary>
+<summary><b>Why <code>allow-passthrough on</code> in tmux?</b></summary>
 
 <br/>
 
-yazi envía sondas `DA1`/`DSR` al arrancar para detectar las capacidades del terminal. Sin
-passthrough, tmux las bloquea y yazi muestra **«Terminal response timeout»** durante varios
-segundos antes de dibujar nada.
+yazi sends `DA1`/`DSR` probes at startup to detect the terminal's capabilities. Without
+passthrough, tmux blocks them and yazi shows **"Terminal response timeout"** for several
+seconds before drawing anything.
 
 </details>
 
-### 📦 Dependencias
+### 📦 Dependencies
 
-Todo lo instalado a propósito con Homebrew está en el `Brewfile`: `brew bundle --file=Brewfile`.
+Everything deliberately installed with Homebrew is in the `Brewfile`: `brew bundle --file=Brewfile`.
 
 ---
 
-## ⌨️ Comandos
+## ⌨️ Commands
 
-Referencia completa. `aval --help` lista las banderas globales (`--dry-run`, `--yes`, `--repo`, `--copy`, `--version`).
+Full reference. `aval --help` lists the global flags (`--dry-run`, `--yes`, `--repo`, `--copy`, `--version`).
 
-| Orden | Qué hace | Necesita el repo |
+| Command | What it does | Needs the repo |
 | :--- | :--- | :---: |
-| `aval` · `--yes` · `--dry-run` · `--copy` | Instala (TUI o sin ella) | sí |
-| `aval update [--dry-run]` | `git pull` + enlaza lo nuevo | sí |
-| `aval doctor [--fix] [--json] [--security]` | Revisa la máquina frente al repo | sí |
-| `aval sync [--dry-run] [--check]` | Vuelca ajustes gestionados en el `settings.json` vivo y en Codex/Gemini | sí |
-| `aval rules sync [--check]` | Replica reglas compartidas de `CLAUDE.md` y lecciones en el `AGENTS.md` de OpenCode | sí |
-| `aval restore [--list] [latest\|<id>] [--pin <id>]` | Deshace una instalación o sync | sí |
-| `aval uninstall [--dry-run] [--yes]` | Quita los enlaces de este repo y devuelve lo desplazado | sí |
-| `aval budget [--json] [--skip-hooks] [--runs N]` | Contexto siempre activo y latencia de hooks | no |
-| `aval review assess [--base <ref>] [--json]` | Nivel de riesgo del diff y revisores | no |
-| `aval hook <nombre>` | Hooks de agente (JSON por stdin): `lessons`, `design-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push` | no |
-| `aval statusline` | Línea de estado de Claude Code | no |
-| `aval design ack <superficie>` | Ack del pipeline de diseño (lo exige el hook `design-gate`) | no |
+| `aval` · `--yes` · `--dry-run` · `--copy` | Installs (with or without the TUI) | yes |
+| `aval update [--dry-run]` | `git pull` + link anything new | yes |
+| `aval doctor [--fix] [--json] [--security]` | Checks the machine against the repo | yes |
+| `aval sync [--dry-run] [--check]` | Pushes managed settings into the live `settings.json` and into Codex/Gemini | yes |
+| `aval rules sync [--check]` | Replicates shared `CLAUDE.md` rules and lessons into OpenCode's `AGENTS.md` | yes |
+| `aval restore [--list] [latest\|<id>] [--pin <id>]` | Undoes an install or sync | yes |
+| `aval uninstall [--dry-run] [--yes]` | Removes this repo's links and returns what was displaced | yes |
+| `aval budget [--json] [--skip-hooks] [--runs N]` | Always-on context and hook latency | no |
+| `aval review assess [--base <ref>] [--json]` | Risk level of the diff and reviewers | no |
+| `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `design-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push` | no |
+| `aval statusline` | Claude Code status line | no |
+| `aval design ack <surface>` | Design pipeline ack (required by the `design-gate` hook) | no |
 | `aval design gate <gate> …` | `contrast <fg> <bg> [--large]` · `tokens` · `pairs <colors.json> [--aaa]` · `hardcodes [--ext] [--no-tw]` · `theme-refs --theme` · `component [--root]` · `emoji` · `native` | no |
-| `aval tmux <nombre>` | `sidebar-toggle` · `sidebar-follow` · `sidebar-watch` · `open-file` · `close-file` · `paste-router` · `statusbar` · `launch` | no |
+| `aval tmux <name>` | `sidebar-toggle` · `sidebar-follow` · `sidebar-watch` · `open-file` · `close-file` · `paste-router` · `statusbar` · `launch` | no |
 | `aval macos <…>` | `defaults` · `screenshot-clipboard install` · `screenshot-clipboard copy` | no |
-| `aval kiri up` | Deja Docker listo sobre Kiri (idempotente, no borra nada) | no |
-| `aval docker cleanup [--dry-run]` | Prunes seguros, solo sobre el contexto `kiri` | no |
-| `aval pdf init <dir>` · `aval pdf assets [dir]` | Proyecto de informe PDF · `assets/brand.css` | no |
-| `aval reap-orphan-tests [--min-age s] [--dry-run]` | Termina procesos de test huérfanos (lo lanza un LaunchAgent) | no |
-| `aval dev [shell\|run\|diff\|project\|ls\|reset\|rm]` | Prueba aval en un sandbox sin tocar tu máquina ([modo dev](devmode.md)) | sí |
+| `aval kiri up` | Gets Docker ready on Kiri (idempotent, deletes nothing) | no |
+| `aval docker cleanup [--dry-run]` | Safe prunes, only against the `kiri` context | no |
+| `aval pdf init <dir>` · `aval pdf assets [dir]` | PDF report project · `assets/brand.css` | no |
+| `aval reap-orphan-tests [--min-age s] [--dry-run]` | Terminates orphaned test processes (launched by a LaunchAgent) | no |
+| `aval dev [shell\|run\|diff\|project\|ls\|reset\|rm]` | Tries aval in a sandbox without touching your machine ([dev mode](devmode.md)) | yes |
 
-### 🩺 Doctor, sync y la capa privada
-
-```sh
-aval doctor            # tabla STATUS · CHECK · MESSAGE; sale con 1 si algo falla
-aval doctor --json     # lo mismo como array JSON
-aval doctor --fix      # borra enlaces rotos y ejecuta sync
-aval doctor --security # chequeos extra, ver abajo
-aval sync --dry-run    # muestra qué claves cambiarían, no escribe nada
-aval sync              # aplica (copia previa en ~/.aval-backup/<fecha>/)
-aval sync --check      # solo lectura: sale con 1 e imprime qué ha derivado
-```
-
-`doctor` es offline y de solo lectura: enlaces del manifiesto, enlaces rotos en los directorios de
-agentes, hooks del `settings.json` vivo (que existan, que no sean comandos retirados, que coincidan con
-el repo), `model:` de cada agente, `SKILL.md` de cada skill y plugins activos sin instalar.
-
-`aval doctor --security` (apagado por defecto) falla o avisa con: `permissions.allow` demasiado amplio
-(`*`, `Bash`, `Bash(*)`), hooks que descargan y ejecutan código remoto (`curl ... | sh`; `npx -y pkg@latest`
-avisa), hooks que apuntan a scripts fuera del repo y de `~/.claude/hooks`, y servidores MCP con secretos
-literales en `env`/`args` (solo se imprime servidor y clave, nunca el valor). Para silenciar un chequeo:
-`--allow <id>[:<sujeto>]` o una línea por id en `~/.config/aval/private/doctor-allow`.
-
-`sync` mantiene `~/.claude/settings.json` como archivo real (lo reescriben otras herramientas y guarda
-claves personales): **reemplaza** `hooks`, `attribution`, `worktree`, `spinnerTipsEnabled` y
-`subagentPromptCacheTtl`, **fusiona** `env`, `enabledPlugins`, `skillOverrides` y
-`extraKnownMarketplaces` (gana el repo, se conservan las claves solo-vivas) y no toca nada más. Además
-copia el bloque `shared:agent-rules` de `CLAUDE.md` a `~/.codex/AGENTS.md` y `~/.gemini/GEMINI.md`,
-solo entre sus marcadores `aval:agent-rules`. `aval rules sync` hace lo propio con el `AGENTS.md` de
-OpenCode; si cambias `config/claude/CLAUDE.md`, ejecútalo.
-
-`.githooks/pre-push` es un shim de 3 líneas que llama a `aval hook pre-push`: rechaza material de empresa y
-secretos en los commits salientes y avisa (no bloquea) de drift con `aval sync --check`.
-`AVAL_PREPUSH_STRICT=1` lo vuelve bloqueante. El instalador activa `core.hooksPath`.
-
-**Capa privada**: `~/.config/aval/private` (o `$AVAL_PRIVATE_DIR`), fuera del repo y opcional.
-`settings.json` es un fragmento que se fusiona al final (gana sobre el repo); `links.manifest` tiene
-líneas `<origen relativo a la carpeta privada>  <destino relativo a $HOME>` y `sync` las enlaza,
-guardando antes lo que hubiera en el destino.
-
-### ↩️ Restaurar, desinstalar y sync transaccional
-
-Todo lo que aval mueve o sobrescribe (instalador, `sync`, `uninstall`) se anota en una **ejecución de
-copia** `~/.aval-backup/<AAAAMMDD-HHMMSS>[-n]/` con un `manifest.json` (ruta absoluta, si existía, tipo,
-destino del enlace, sha256) y las copias guardadas. Una ejecución idéntica a la anterior no se crea; se
-conservan las 5 últimas sin fijar, y una con marcador `PINNED` no se borra nunca.
+### 🩺 Doctor, sync and the private layer
 
 ```sh
-aval restore --list          # id, fecha, entradas, fijada, estado
-aval restore latest          # o un <id> (basta un prefijo único); --dry-run para ver qué haría
-aval restore --pin <id>      # protege una copia de la poda (--unpin la suelta)
-aval uninstall --dry-run     # qué quitaría; sin --dry-run pide confirmación (--yes la salta)
+aval doctor            # STATUS · CHECK · MESSAGE table; exits 1 if anything fails
+aval doctor --json     # the same as a JSON array
+aval doctor --fix      # removes broken links and runs sync
+aval doctor --security # extra checks, see below
+aval sync --dry-run    # shows which keys would change, writes nothing
+aval sync              # applies (with a prior copy in ~/.aval-backup/<date>/)
+aval sync --check      # read-only: exits 1 and prints what has drifted
 ```
 
-`restore` es atómico por archivo (temporal + rename) y recrea enlaces. Lo que la ejecución **creó** solo se
-borra si es un enlace que apunta al repo o un archivo cuyo sha256 es el que aval escribió; el contenido
-editado después se aparta a `.displaced/` dentro de la copia, nunca se pierde. `uninstall` quita únicamente
-los destinos del manifiesto que son enlaces hacia este repo, devuelve lo que había antes, borra el bloque
-`aval:agent-rules` de Codex y Gemini (solo el bloque) y los directorios que creó el instalador si quedan
-vacíos. `aval restore latest` deshace el propio uninstall.
+`doctor` is offline and read-only: manifest links, broken links in the agent directories, hooks in the
+live `settings.json` (that they exist, that they are not retired commands, that they match the repo), each
+agent's `model:`, each skill's `SKILL.md`, and enabled plugins that are not installed.
 
-**`aval sync` es transaccional**: marcador `PENDING` → copia → aplica → comprueba `settings-drift`,
-`hooks-resolve`, `hooks-retired`, `hooks-drift` y `overlay`. Si alguna da FAIL, restaura esa copia, la marca
-`FAILED` con el motivo y sale con 1; un solo intento. Si un sync anterior murió a medias, el siguiente lo
-avisa y lo restaura antes de seguir.
+`aval doctor --security` (off by default) fails or warns on: an overly broad `permissions.allow`
+(`*`, `Bash`, `Bash(*)`), hooks that download and execute remote code (`curl ... | sh`; `npx -y pkg@latest`
+warns), hooks that point to scripts outside the repo and `~/.claude/hooks`, and MCP servers with literal
+secrets in `env`/`args` (only the server and key are printed, never the value). To silence a check:
+`--allow <id>[:<subject>]` or one line per id in `~/.config/aval/private/doctor-allow`.
 
-**Denegaciones**: `permissions.deny` del repo prohíbe leer `~/.ssh/**`, `~/.aws/**`, `.credentials.json` y
-`.env`/`.env.*` (Claude da prioridad a deny sobre allow). El overlay privado solo puede **añadir**
-denegaciones; un `allow` del overlay que cubra una denegación se descarta con un aviso.
+`sync` keeps `~/.claude/settings.json` as a real file (other tools rewrite it and it holds personal
+keys): it **replaces** `hooks`, `attribution`, `worktree`, `spinnerTipsEnabled` and
+`subagentPromptCacheTtl`, **merges** `env`, `enabledPlugins`, `skillOverrides` and
+`extraKnownMarketplaces` (the repo wins, live-only keys are kept) and touches nothing else. It also
+copies the `shared:agent-rules` block from `CLAUDE.md` into `~/.codex/AGENTS.md` and `~/.gemini/GEMINI.md`,
+only between their `aval:agent-rules` markers. `aval rules sync` does the same for OpenCode's
+`AGENTS.md`; if you change `config/claude/CLAUDE.md`, run it.
 
-### 🪶 Menos tokens, más rápido: lessons, budget y review
+`.githooks/pre-push` is a 3-line shim that calls `aval hook pre-push`: it rejects company material and
+secrets in outgoing commits and warns (without blocking) about drift via `aval sync --check`.
+`AVAL_PREPUSH_STRICT=1` makes it blocking. The installer enables `core.hooksPath`.
 
-**Lessons** (`aval hook lessons`). Las reglas que solo importan junto a ciertos archivos o comandos (UI,
-Docker/Kiri, navegador headless, Herdr, atribución de commits) no viajan en `CLAUDE.md` en cada turno: viven
-en `config/claude/lessons/*.md` (enlazado a `~/.claude/lessons`) y el hook PreToolUse
-(`Edit|Write|NotebookEdit|Bash`) las inyecta como `additionalContext` cuando coinciden.
+**Private layer**: `~/.config/aval/private` (or `$AVAL_PRIVATE_DIR`), outside the repo and optional.
+`settings.json` is a fragment that is merged last (it wins over the repo); `links.manifest` holds
+lines of `<source relative to the private folder>  <destination relative to $HOME>` and `sync` links them,
+first saving whatever was at the destination.
+
+### ↩️ Restore, uninstall and transactional sync
+
+Everything aval moves or overwrites (installer, `sync`, `uninstall`) is recorded in a **backup run**
+`~/.aval-backup/<YYYYMMDD-HHMMSS>[-n]/` with a `manifest.json` (absolute path, whether it existed, type,
+link target, sha256) and the saved copies. A run identical to the previous one is not created; the 5 most
+recent unpinned ones are kept, and one with a `PINNED` marker is never deleted.
+
+```sh
+aval restore --list          # id, date, entries, pinned, status
+aval restore latest          # or an <id> (a unique prefix is enough); --dry-run to see what it would do
+aval restore --pin <id>      # protects a backup from pruning (--unpin releases it)
+aval uninstall --dry-run     # what it would remove; without --dry-run it asks for confirmation (--yes skips it)
+```
+
+`restore` is atomic per file (temp file + rename) and recreates links. What the run **created** is only
+deleted if it is a link that points to the repo or a file whose sha256 is the one aval wrote; content
+edited afterwards is set aside in `.displaced/` inside the backup, never lost. `uninstall` removes only
+the manifest destinations that are links to this repo, returns what was there before, deletes the
+`aval:agent-rules` block from Codex and Gemini (only the block), and any directories the installer created
+if they are left empty. `aval restore latest` undoes the uninstall itself.
+
+**`aval sync` is transactional**: `PENDING` marker → backup → apply → check `settings-drift`,
+`hooks-resolve`, `hooks-retired`, `hooks-drift` and `overlay`. If any reports FAIL, it restores that backup,
+marks it `FAILED` with the reason and exits 1; a single attempt. If an earlier sync died halfway, the next
+one warns about it and restores it before continuing.
+
+**Denials**: the repo's `permissions.deny` forbids reading `~/.ssh/**`, `~/.aws/**`, `.credentials.json` and
+`.env`/`.env.*` (Claude gives deny priority over allow). The private overlay can only **add**
+denials; an overlay `allow` that covers a denial is discarded with a warning.
+
+### 🪶 Fewer tokens, faster: lessons, budget and review
+
+**Lessons** (`aval hook lessons`). Rules that only matter alongside certain files or commands (UI,
+Docker/Kiri, headless browser, Herdr, commit attribution) do not travel in `CLAUDE.md` on every turn: they live
+in `config/claude/lessons/*.md` (linked to `~/.claude/lessons`) and the PreToolUse hook
+(`Edit|Write|NotebookEdit|Bash`) injects them as `additionalContext` when they match.
 
 ```markdown
 ---
-triggers:            # globs de ruta, contra tool_input.file_path
+triggers:            # path globs, matched against tool_input.file_path
   - "**/Dockerfile*"
-commands:            # regex, contra tool_input.command de Bash
+commands:            # regex, matched against Bash's tool_input.command
   - '(^|[;&|(] *)docker( |$)'
 ---
-Cuerpo de la lección, como mucho 600 caracteres.
+Body of the lesson, at most 600 characters.
 ```
 
-Una lección sale una sola vez por sesión, sin coincidencia no imprime nada, nunca bloquea y tarda ~3 ms. El
-hook usa `~/.local/bin/aval` o, si no está, el `aval` del `PATH`; sin binario es un no-op silencioso.
-OpenCode no tiene este hook: lee las lecciones a mano.
+A lesson fires only once per session, prints nothing when there is no match, never blocks, and takes ~3 ms.
+The hook uses `~/.local/bin/aval` or, if absent, the `aval` on `PATH`; without a binary it is a silent no-op.
+OpenCode has no such hook: it reads the lessons by hand.
 
-**Budget** (`aval budget`). Tabla del contexto siempre activo: Claude (`CLAUDE.md`, `@imports`, skills
-visibles según `skillOverrides`, agentes y comandos) y OpenCode (`AGENTS.md` y skills), en caracteres y
-≈tokens (chars/4). Después ejecuta cada hook del `settings.json` vivo 5 veces (timeout 2 s) y compara
-p50/p95 con el presupuesto: 20 ms para los hooks síncronos PreToolUse/PostToolUse. Sale con 1 si alguno se
-pasa. Ejecuta los hooks de verdad; `--skip-hooks` mide solo contexto.
+**Budget** (`aval budget`). A table of the always-on context: Claude (`CLAUDE.md`, `@imports`, skills
+visible according to `skillOverrides`, agents and commands) and OpenCode (`AGENTS.md` and skills), in characters and
+≈tokens (chars/4). It then runs each hook in the live `settings.json` 5 times (2 s timeout) and compares
+p50/p95 against the budget: 20 ms for the synchronous PreToolUse/PostToolUse hooks. Exits 1 if any goes
+over. It really executes the hooks; `--skip-hooks` measures context only.
 
-**Review** (`aval review assess`). Nivel de riesgo determinista, solo con git: `high` si toca hooks,
-settings, `install.manifest`, instaladores, auth, migraciones, pagos, `.github/workflows` o permisos, o más
-de 400 líneas de producción; `medium` si hay código sin cambios de tests (o más de 100 líneas); `low` si solo
-hay docs/tests o un cambio pequeño con tests. Devuelve nivel, motivos y revisores: ninguno,
-`review-reliability`, o los cuatro. La skill `ship` lo usa para dimensionar la auto-revisión.
+**Review** (`aval review assess`). A deterministic risk level, using git only: `high` if it touches hooks,
+settings, `install.manifest`, installers, auth, migrations, payments, `.github/workflows` or permissions, or more
+than 400 production lines; `medium` if there is code without test changes (or more than 100 lines); `low` if there
+are only docs/tests or a small change with tests. It returns the level, the reasons and the reviewers: none,
+`review-reliability`, or all four. The `ship` skill uses it to size the self-review.
 
 ---
 
-## 🗺️ Mapa del repositorio
+## 🗺️ Repository map
 
 ```
 aval/
-├── cmd/aval/            Dispatch de comandos (un fichero por dominio) y sus tests
+├── cmd/aval/            Command dispatch (one file per domain) and its tests
 ├── internal/
 │   ├── core/            backup · doctor · install · manifest · plan · platform · sync · txsync · uninstall · update
 │   ├── agent/           budget · lessons · prepush · repoprofile · review · rtkhook · rules · statusline
-│   ├── design/          ack · gate · hook          (pipeline de diseño y sus gates medidos)
-│   ├── term/            tmux · macos               (sidebar, barra de estado, arranque, defaults)
+│   ├── design/          ack · gate · hook          (design pipeline and its measured gates)
+│   ├── term/            tmux · macos               (sidebar, status bar, startup, defaults)
 │   ├── devops/          dockerclean · kiri · reaper
 │   ├── docs/            pdfreport
 │   ├── herdr/           mods                       (diff-review)
-│   └── ui/              Tema Tokyo Night y las pantallas de la TUI
+│   └── ui/              Tokyo Night theme and the TUI screens
 │
-├── skills/              Skills compartidas por todos los agentes
+├── skills/              Skills shared by all agents
 ├── config/              claude · opencode · ghostty · yazi · yazi-sidebar · herdr-core · herdr-app · atuin · gh · git
 ├── home/                zshrc · zprofile · p10k.zsh · tmux.conf · gitconfig
-├── tools/brand/         Generador de las imágenes del README (go run ./tools/brand)
-├── npm/                 cli/ (launcher + resolutor) · platform/ · build.mjs
-├── docs/                guide.md · assets · logos · cintas VHS
-├── tests/               Tests de integración (un paquete de Go)
-├── odd/                 Planes y tareas de trabajo
-├── .githooks/pre-push   Shim de 3 líneas: exec aval hook pre-push
-├── install.manifest     Qué se instala y dónde — fuente única
+├── tools/brand/         Generator for the README images (go run ./tools/brand)
+├── npm/                 cli/ (launcher + resolver) · platform/ · build.mjs
+├── docs/                guide.md · assets · logos · VHS tapes
+├── tests/               Integration tests (a single Go package)
+├── odd/                 Work plans and tasks
+├── .githooks/pre-push   3-line shim: exec aval hook pre-push
+├── install.manifest     What gets installed and where — single source of truth
 └── LICENSE · CONTRIBUTING.md · SECURITY.md · CODE_OF_CONDUCT.md
 ```
 
 > [!IMPORTANT]
-> **`install.manifest` es la fuente única.** La TUI, `--yes`, `update`, `doctor` y `uninstall` lo leen; nada
-> más lleva su propia lista. `tests/manifest_test.go` compila el binario y compara sus destinos con los del
-> manifiesto, así que una divergencia rompe el build.
+> **`install.manifest` is the single source of truth.** The TUI, `--yes`, `update`, `doctor` and `uninstall` read it; nothing
+> else keeps its own list. `tests/manifest_test.go` builds the binary and compares its destinations with those of the
+> manifest, so any divergence breaks the build.
 
 ---
 
-## 📊 Barra de estado
+## 📊 Status bar
 
-Fila superior, cada dato en su propio bloque de color, producido por `aval tmux statusbar`:
+Top row, each datum in its own colour block, produced by `aval tmux statusbar`:
 
 ```
  [FILES] main 1:zsh        CPU 18%   GPU 6%   RAM 9.1/16.0G   16:22   11 Aug
 ```
 
-| Segmento | Color Kanagawa | De dónde sale el dato |
+| Segment | Kanagawa colour | Where the data comes from |
 | :--- | :--- | :--- |
-| 🔵 **CPU** | crystalBlue | load average ÷ núcleos (`sysctl`; en Linux, `/proc/loadavg`) |
+| 🔵 **CPU** | crystalBlue | load average ÷ cores (`sysctl`; on Linux, `/proc/loadavg`) |
 | 🟣 **GPU** | oniViolet | `ioreg -c AGXAccelerator` → `Device Utilization %` (macOS) |
 | 🟢 **RAM** | springGreen | `vm_stat`: active + wired + compressed (Linux: `/proc/meminfo`) |
-| 🟡 **Hora** · 🌸 **Fecha** | carpYellow · sakuraPink | reloj del sistema |
+| 🟡 **Time** · 🌸 **Date** | carpYellow · sakuraPink | system clock |
 
-**Coste medido: ~3 ms por refresco** (`hyperfine`, macOS). Las lecturas de `sysctl`, `vm_stat` e `ioreg`
-se lanzan en paralelo y por ruta absoluta.
+**Measured cost: ~3 ms per refresh** (`hyperfine`, macOS). The `sysctl`, `vm_stat` and `ioreg` reads
+are launched in parallel and by absolute path.
 
 <details>
-<summary><b>🔥 La historia: la barra costaba 5,3 segundos por refresco</b></summary>
+<summary><b>🔥 The story: the bar cost 5.3 seconds per refresh</b></summary>
 
 <br/>
 
-Al medir el consumo, esto es lo que pasaba **cada 5 segundos**:
+When consumption was measured, this is what happened **every 5 seconds**:
 
-| Script | Coste |
+| Script | Cost |
 | :--- | ---: |
-| `cpu_info.sh` (tema kanagawa) | **5064 ms** |
-| script propio de métricas | 226 ms |
-| `ram_info.sh` (tema kanagawa) | 39 ms |
+| `cpu_info.sh` (kanagawa theme) | **5064 ms** |
+| custom metrics script | 226 ms |
+| `ram_info.sh` (kanagawa theme) | 39 ms |
 | **Total** | **~5329 ms** |
 
-El script de CPU de kanagawa contiene un `sleep` para muestrear un delta: tardaba **más que el propio
-intervalo de refresco**, así que la barra nunca terminaba antes del siguiente ciclo. Aproximadamente **un
-core al 100 % de forma permanente** para dibujar una línea de texto, y duplicado: kanagawa y el script
-propio calculaban lo mismo.
+The kanagawa CPU script contains a `sleep` to sample a delta: it took **longer than the refresh
+interval itself**, so the bar never finished before the next cycle. Roughly **one
+core pinned at 100 %** to draw one line of text, and duplicated: kanagawa and the custom
+script computed the same thing.
 
-**Decisiones que lo arreglaron:**
+**Decisions that fixed it:**
 
-- ❌ Fuera los plugins `cpu-usage` y `ram-usage` del tema (`home/tmux.conf` lo deja anotado).
-- ❌ Fuera `top -l 1` (208 ms: recorre toda la tabla de procesos).
-- ✅ La CPU sale del **load average**, no de utilización muestreada: muestrear exige dos lecturas separadas
-  por un `sleep`, que es exactamente lo que costaba segundos.
-- ✅ GPU por `ioreg`, porque `powermetrics` **exige superusuario**.
-- ✅ Después, el cálculo pasó a Go: sin intérprete ni shell que arrancar por refresco.
+- ❌ Dropped the theme's `cpu-usage` and `ram-usage` plugins (`home/tmux.conf` leaves a note about it).
+- ❌ Dropped `top -l 1` (208 ms: it walks the whole process table).
+- ✅ CPU comes from the **load average**, not sampled utilisation: sampling requires two reads separated
+  by a `sleep`, which is exactly what cost seconds.
+- ✅ GPU via `ioreg`, because `powermetrics` **requires superuser**.
+- ✅ Afterwards, the computation moved to Go: no interpreter or shell to start on every refresh.
 
 </details>
 
 <details>
-<summary><b>🎨 Reglas de diseño de la barra</b></summary>
+<summary><b>🎨 Bar design rules</b></summary>
 
 <br/>
 
-- **El color identifica la métrica, nunca es el único portador de información.** Cada bloque lleva su
-  etiqueta y su valor: funciona en monocromo, en capturas y con daltonismo.
-- **Contraste verificado numéricamente**, no a ojo (`aval design gate contrast`).
-- **Umbral en rojo solo para valores.** Un dato por encima del 85 % pasa a `autumnRed`; el color de alerta
-  se reserva para lo que de verdad es una alerta.
-- **Sin glifos de Nerd Font.** Solo ASCII, así que la fila no se rompe sin tipografía parcheada.
-- **Sin fondo propio.** `status-style bg=default` hereda el del terminal, así que la transparencia de
-  Ghostty se mantiene.
+- **Colour identifies the metric; it is never the only carrier of information.** Every block carries its
+  label and its value: it works in monochrome, in screenshots and for colour-blind users.
+- **Contrast verified numerically**, not by eye (`aval design gate contrast`).
+- **Red threshold for values only.** A value above 85 % switches to `autumnRed`; the alert colour
+  is reserved for what is genuinely an alert.
+- **No Nerd Font glyphs.** ASCII only, so the row does not break without a patched typeface.
+- **No background of its own.** `status-style bg=default` inherits the terminal's, so Ghostty's
+  transparency is preserved.
 
-Las reglas completas están en `.agents/DESIGN.md`, que se mantiene en local.
+The full rules live in `.agents/DESIGN.md`, which is kept local.
 
 </details>
 
 ---
 
-## 📂 Barra lateral de archivos
+## 📂 File sidebar
 
-Un panel de **yazi** al 30 % a la izquierda, que hereda el directorio de la ventana. Atajos en la tabla
-de arriba; los tres accesos existen por una razón (ver más abajo).
+A **yazi** pane at 30 % on the left, which inherits the window's directory. Shortcuts are in the table
+above; the three ways in exist for a reason (see below).
 
-### 🪟 Cada pestaña, su propio proyecto
+### 🪟 Each tab, its own project
 
-Cada pestaña de Ghostty abre **su propia sesión de tmux**: dos proyectos en paralelo sin que se
-interfieran, cada uno con su sidebar, su directorio y su historial.
+Each Ghostty tab opens **its own tmux session**: two projects in parallel without interfering with each
+other, each with its own sidebar, directory and history.
 
 > [!NOTE]
-> Si al arrancar hay una sesión **sin ningún cliente adjunto**, se reutiliza: por eso cerrar una pestaña
-> no pierde su trabajo. Solo se crea una sesión nueva cuando todas están en uso.
+> If at startup there is a session **with no attached client**, it is reused: that is why closing a tab
+> does not lose its work. A new session is only created when all of them are in use.
 
 <details>
-<summary><b>El bug que llevó a esto: dos pestañas eran la misma</b></summary>
+<summary><b>The bug that led to this: two tabs were the same tab</b></summary>
 
 <br/>
 
-El arranque hacía `tmux new-session -A -s main`, y ese `-A` significa «adjúntate si ya existe». Cada
-pestaña era un **cliente** distinto, pero las dos se adjuntaban a la misma sesión y **dibujaban la misma
-ventana**: un `z japan-2027` en una movía el árbol de la otra. No eran dos entornos, era uno renderizado
-dos veces. La pista estaba en la propia barra: `main 1:zsh*` idéntico en ambas.
+Startup ran `tmux new-session -A -s main`, and that `-A` means "attach if it already exists". Each
+tab was a different **client**, but both attached to the same session and **drew the same
+window**: a `z japan-2027` in one moved the tree in the other. They were not two environments, they were one rendered
+twice. The clue was in the bar itself: `main 1:zsh*` identical in both.
 
 </details>
 
-### 🔄 El árbol sigue tu directorio
+### 🔄 The tree follows your directory
 
-Dos mecanismos, a propósito:
+Two mechanisms, on purpose:
 
 ```mermaid
 flowchart LR
-    A["cd / z"] --> B["Hook chpwd de zsh"]
-    B -->|instantáneo| D["ya emit-to · cd"]
-    C["aval tmux sidebar-watch<br/>sondeo cada 2 s"] -->|red de seguridad| D
-    D --> E["🌳 El árbol se mueve"]
+    A["cd / z"] --> B["zsh chpwd hook"]
+    B -->|instant| D["ya emit-to · cd"]
+    C["aval tmux sidebar-watch<br/>polls every 2 s"] -->|safety net| D
+    D --> E["🌳 The tree moves"]
     style B fill:#98BB6C,color:#1F1F28
     style C fill:#7E9CD8,color:#1F1F28
     style E fill:#E6C384,color:#1F1F28
 ```
 
-| Mecanismo | Latencia | Cubre |
+| Mechanism | Latency | Covers |
 | :--- | :--- | :--- |
-| Hook `chpwd` de zsh (`aval tmux sidebar-follow`) | Instantánea | Shells abiertos **después** de instalarlo |
-| `aval tmux sidebar-watch` | ≤ 2 s | **Todo lo demás** |
+| zsh `chpwd` hook (`aval tmux sidebar-follow`) | Instant | Shells opened **after** installing it |
+| `aval tmux sidebar-watch` | ≤ 2 s | **Everything else** |
 
 > [!NOTE]
-> El vigilante existe porque los hooks de zsh **se registran al arrancar el shell**: un shell abierto antes
-> de instalar el hook no lo tiene y dejaría de sincronizar en silencio. Solo vive mientras vive el sidebar:
-> muere en cuanto el panel, la marca o el servidor de tmux desaparecen.
+> The watcher exists because zsh hooks are **registered when the shell starts**: a shell opened before
+> the hook was installed does not have it and would silently stop syncing. It only lives as long as the sidebar:
+> it dies as soon as the pane, the marker or the tmux server disappears.
 
-### 📄 Abrir archivos
+### 📄 Opening files
 
-Al pulsar `Enter`, `aval tmux open-file` abre el archivo en una **ventana nueva de tmux** con **nano**.
+On `Enter`, `aval tmux open-file` opens the file in a **new tmux window** with **nano**.
 
 <details>
-<summary><b>¿Por qué una ventana nueva y no el panel de trabajo?</b></summary>
+<summary><b>Why a new window and not the work pane?</b></summary>
 
 <br/>
 
-Porque lo que tengas corriendo donde estabas —un build, un REPL, un editor con cambios sin guardar— **no se
-toca**: no recibe pulsaciones ni pierde el foco. Al cerrar el editor, la ventana desaparece y vuelves
-exactamente donde estabas. El diseño anterior escribía en el panel de trabajo con `send-keys` y necesitaba
-decidir entre tres ramas; toda esa complejidad existía **solo** porque escribía en un panel que podías estar
-usando.
+Because whatever you have running where you were — a build, a REPL, an editor with unsaved changes — is **left
+alone**: it receives no keystrokes and does not lose focus. When you close the editor, the window disappears and you are back
+exactly where you were. The earlier design typed into the work pane with `send-keys` and had to
+choose between three branches; all that complexity existed **only** because it wrote into a pane you might be
+using.
 
 </details>
 
 <details>
-<summary><b>¿Por qué nano y no <code>$EDITOR</code>?</b></summary>
+<summary><b>Why nano and not <code>$EDITOR</code>?</b></summary>
 
 <br/>
 
-Porque el requisito era **cerrar con `Ctrl+X`**, que es literalmente la tecla de salida de nano. Y si el
-archivo tiene cambios sin guardar, nano pregunta *«Save modified buffer?»*: la protección viene incluida.
-Se puede cambiar con `FILE_EDITOR`.
+Because the requirement was to **close with `Ctrl+X`**, which is literally nano's exit key. And if the
+file has unsaved changes, nano asks *"Save modified buffer?"*: the protection comes built in.
+You can change it with `FILE_EDITOR`.
 
-> ⚠️ **Detalle de macOS:** `/usr/bin/nano` es la build **PICO** de Apple, y tmux reporta el proceso como
-> `pico`, no `nano`. `aval tmux close-file` acepta ambos nombres; si solo contemplara `nano`, `Alt+w`
-> mataría el editor sin preguntar por los cambios.
+> ⚠️ **macOS detail:** `/usr/bin/nano` is Apple's **PICO** build, and tmux reports the process as
+> `pico`, not `nano`. `aval tmux close-file` accepts both names; if it only handled `nano`, `Alt+w`
+> would kill the editor without asking about changes.
 
 </details>
 
 <details>
-<summary><b>Cómo se cierra un archivo sin perder trabajo</b></summary>
+<summary><b>How a file is closed without losing work</b></summary>
 
 <br/>
 
-1. **Solo cierra lo que abrió el sidebar.** `open-file` marca su ventana con `@file_window`; `close-file` se
-   niega con cualquier otra. Deducirlo por el nombre de la ventana o por lo que corre dentro habría acabado
-   cerrando trabajo real.
-2. **Al editor le pide salir, no lo mata.** Con nano envía `Ctrl+X`; con vim/nvim, `:q`. Si hay cambios sin
-   guardar, el editor se niega y avisa. Descartar trabajo no guardado nunca es decisión del atajo.
+1. **It only closes what the sidebar opened.** `open-file` marks its window with `@file_window`; `close-file`
+   refuses any other. Deducing it from the window name or from what runs inside would have ended up
+   closing real work.
+2. **It asks the editor to quit, it does not kill it.** With nano it sends `Ctrl+X`; with vim, `:q`. If there are unsaved
+   changes, the editor refuses and warns. Discarding unsaved work is never the shortcut's decision.
 
 </details>
 
 <details>
-<summary><b>¿Por qué el árbol no muestra previsualización?</b></summary>
+<summary><b>Why does the tree show no preview?</b></summary>
 
 <br/>
 
-La configuración del panel usa `ratio = [0, 1, 0]`: sin columna padre y sin preview. A 60 columnas, el diseño
-de tres columnas por defecto de yazi trunca **todos** los nombres. `YAZI_CONFIG_HOME` **reemplaza** a
-`~/.config/yazi`, no se fusiona con ella, así que el `opener` está duplicado a propósito — y un test falla si
-las dos copias divergen.
+The pane's configuration uses `ratio = [0, 1, 0]`: no parent column and no preview. At 60 columns, yazi's
+default three-column layout truncates **every** name. `YAZI_CONFIG_HOME` **replaces**
+`~/.config/yazi`, it does not merge with it, so the `opener` is duplicated on purpose — and a test fails if
+the two copies diverge.
 
 </details>
 
-### ⚙️ Ajustes
+### ⚙️ Settings
 
-| Variable | Por defecto | Para qué |
+| Variable | Default | Purpose |
 | :--- | :--- | :--- |
-| `SIDEBAR_CMD` | `yazi` | Programa que corre en el panel |
-| `SIDEBAR_WIDTH` | `30%` | Ancho del panel |
-| `SIDEBAR_CONFIG_HOME` | `~/.config/yazi-sidebar` | Config de yazi propia del panel |
-| `FILE_EDITOR` | `nano` | Editor al abrir un archivo |
-| `WATCH_INTERVAL` | `2` | Segundos entre comprobaciones del vigilante |
+| `SIDEBAR_CMD` | `yazi` | Program that runs in the pane |
+| `SIDEBAR_WIDTH` | `30%` | Pane width |
+| `SIDEBAR_CONFIG_HOME` | `~/.config/yazi-sidebar` | The pane's own yazi config |
+| `FILE_EDITOR` | `nano` | Editor used when opening a file |
+| `WATCH_INTERVAL` | `2` | Seconds between watcher checks |
 
-### ⌨️ Por qué estos atajos y no otros
+### ⌨️ Why these shortcuts and not others
 
 > [!CAUTION]
-> **En una distribución «Spanish - ISO», `Option+E` es la tecla muerta del acento agudo.** macOS la consume
-> para componer `á`/`é` y **nunca llega a tmux**.
+> **On a "Spanish - ISO" layout, `Option+E` is the dead key for the acute accent.** macOS consumes it
+> to compose `á`/`é` and it **never reaches tmux**.
 
-El atajo original era `Alt+e` y parecía no hacer nada: el binding estaba registrado y funcionaba, pero la
-pulsación no llegaba. Regla del proyecto: **nunca atar `Option` + `e` / `i` / `u` / `n`.** Por eso hay tres
-accesos: `Alt+t` (sin colisión), `prefix`+`e` (no pasa por `Option`) y el botón **`[FILES]`** (no depende del
-teclado).
+The original shortcut was `Alt+e` and it seemed to do nothing: the binding was registered and worked, but the
+keypress never arrived. Project rule: **never bind `Option` + `e` / `i` / `u` / `n`.** That is why there are three
+ways in: `Alt+t` (no collision), `prefix`+`e` (does not go through `Option`) and the **`[FILES]`** button (does not depend on the
+keyboard).
 
 ---
 
-## ⌨️ Moverse entre splits
+## ⌨️ Moving between splits
 
-Los paneles de una ventana de Ghostty son **splits suyos**, cada uno con su propia sesión de tmux. Moverse
-entre ellos es cosa de Ghostty: tmux nunca ve esas teclas.
+The panes in a Ghostty window are **its own splits**, each with its own tmux session. Moving
+between them is Ghostty's job: tmux never sees those keys.
 
-| Atajo | Acción |
+| Shortcut | Action |
 | :--- | :--- |
-| `Cmd+Alt+H` `J` `K` `L` (o flechas) | Salto direccional, sin soltar la fila home |
-| `Cmd+[` · `Cmd+]` | Recorrer los splits en orden |
+| `Cmd+Alt+H` `J` `K` `L` (or arrows) | Directional jump, without leaving the home row |
+| `Cmd+[` · `Cmd+]` | Cycle through the splits in order |
 
 > [!NOTE]
-> **Ghostty no permite «ir al split N»**: `goto_split` solo acepta direcciones y `previous`/`next`
-> (`goto_split:1` devuelve `error.InvalidFormat`).
+> **Ghostty has no "go to split N"**: `goto_split` only accepts directions and `previous`/`next`
+> (`goto_split:1` returns `error.InvalidFormat`).
 
 <details>
-<summary><b>Por qué estas teclas y no otras</b></summary>
+<summary><b>Why these keys and not others</b></summary>
 
 <br/>
 
-- **`Ctrl+H/J/K/L` queda libre a propósito.** Ghostty recibe las teclas **antes** que tmux, así que atarlas
-  ahí dejaría inservible `vim-tmux-navigator` dentro de cada sesión.
-- **`Cmd+H`, `Cmd+M` y `Cmd+Q` no se tocan.** macOS los usa para ocultar, minimizar y salir.
+- **`Ctrl+H/J/K/L` is left free on purpose.** Ghostty receives keys **before** tmux, so binding them
+  there would break `vim-tmux-navigator` inside every session.
+- **`Cmd+H`, `Cmd+M` and `Cmd+Q` are left alone.** macOS uses them to hide, minimise and quit.
 
 </details>
 
 ---
 
-## 🤖 Agentes
+## 🤖 Agents
 
-### 🧩 Skills compartidas
+### 🧩 Shared skills
 
-`skills/` se enlaza **una a una** a `~/.claude/skills`, `~/.config/opencode/skills` y `~/.opencode/skills`,
-así que cada skill existe una sola vez. Las skills de marketplaces y packs de terceros **no se versionan**:
-cada herramienta las reinstala por su cuenta. Las que traen licencia llevan su atribución en
-`skills/PROVENANCE.md` (un test falla si falta una).
+`skills/` is linked **one by one** into `~/.claude/skills`, `~/.config/opencode/skills` and `~/.opencode/skills`,
+so each skill exists exactly once. Skills from marketplaces and third-party packs are **not versioned**:
+each tool reinstalls them on its own. Those that ship with a licence carry their attribution in
+`skills/PROVENANCE.md` (a test fails if one is missing).
 
-| Familia | Skills |
+| Family | Skills |
 | :--- | :--- |
-| Disciplina | `strict-tdd` · `cognitive-doc-design` · `skill-creator` |
-| Diseño y UI | `design-pipeline` · `design-refactor` · `laws-of-ux` · `accessibility` · `react-19` · `tailwind-4` · `typescript` · `zod-4` · `ai-sdk-5` |
-| Git y entrega | `ship` · `branch-pr` · `chained-pr` · `prs-pro` · `work-unit-commits` · `issue-creation-pro` · `repo-prep` |
-| Documentos | `pdf-report` · `readme-portal` · `readme-guardian` |
-| Entorno | `kiri-docker` · `kiri-health` · `docker-build-optimized` · `docker-space-optimizer` · `mac-disk-cleanup` · `lightpanda-browser` · `herdr` |
+| Discipline | `strict-tdd` · `cognitive-doc-design` · `skill-creator` |
+| Design and UI | `design-pipeline` · `design-refactor` · `laws-of-ux` · `accessibility` · `react-19` · `tailwind-4` · `typescript` · `zod-4` · `ai-sdk-5` |
+| Git and delivery | `ship` · `branch-pr` · `chained-pr` · `prs-pro` · `work-unit-commits` · `issue-creation-pro` · `repo-prep` |
+| Documents | `pdf-report` · `readme-portal` · `readme-guardian` |
+| Environment | `kiri-docker` · `kiri-health` · `docker-build-optimized` · `docker-space-optimizer` · `mac-disk-cleanup` · `lightpanda-browser` · `herdr` |
 
 <details>
-<summary><b>La duplicación ya había divergido</b></summary>
+<summary><b>The duplication had already diverged</b></summary>
 
 <br/>
 
-Cuando las skills estaban duplicadas entre Claude y OpenCode, dos copias de la misma skill medían el
-presupuesto de PR con reglas distintas (`PRs over 400 changed lines` frente a `400 production lines` +
-`Test files never count`). El concepto se refinó en un lado y el otro se quedó atrás: justo el fallo que una
-fuente única elimina.
+When skills were duplicated between Claude and OpenCode, two copies of the same skill measured the
+PR budget with different rules (`PRs over 400 changed lines` versus `400 production lines` +
+`Test files never count`). The concept was refined on one side and the other fell behind: exactly the failure a
+single source eliminates.
 
 </details>
 
 <details>
-<summary><b>Lo que NO se comparte, y por qué</b></summary>
+<summary><b>What is NOT shared, and why</b></summary>
 
 <br/>
 
-Los `commands/` y `agents/` son específicos de cada herramienta: `agent:` y `subtask:` son sintaxis propia de
-OpenCode y las rutas apuntan a sitios distintos. Son la **capa de adaptación** entre cada herramienta y las
-skills compartidas.
+`commands/` and `agents/` are specific to each tool: `agent:` and `subtask:` are OpenCode's own syntax and the
+paths point to different places. They are the **adaptation layer** between each tool and the
+shared skills.
 
 </details>
 
-### 📋 Configuración por herramienta
+### 📋 Per-tool configuration
 
-| Ruta | Contenido |
+| Path | Contents |
 | :--- | :--- |
-| `claude/CLAUDE.md`, `RTK.md`, `MCP-PER-PROJECT.md` | Instrucciones globales: persona, TDD estricto, pipeline de diseño |
-| `claude/settings.json` | Permisos, hooks (`aval hook …`), plugins y marketplaces; no se enlaza, lo aplica `aval sync` |
-| `claude/agents/`, `commands/`, `lessons/` | Subagentes, comandos y lecciones bajo demanda |
-| `claude/themes/` | Temas de color propios, referenciados como `custom:<fichero>` |
-| `opencode/opencode.json`, `AGENTS.md`, `package.json` | Configuración e instrucciones globales |
-| `opencode/agents/`, `commands/`, `plugin(s)/`, `profiles/` | Adaptadores y extensiones |
+| `claude/CLAUDE.md`, `RTK.md`, `MCP-PER-PROJECT.md` | Global instructions: persona, strict TDD, design pipeline |
+| `claude/settings.json` | Permissions, hooks (`aval hook …`), plugins and marketplaces; not linked, applied by `aval sync` |
+| `claude/agents/`, `commands/`, `lessons/` | Subagents, commands and on-demand lessons |
+| `claude/themes/` | Custom colour themes, referenced as `custom:<file>` |
+| `opencode/opencode.json`, `AGENTS.md`, `package.json` | Global configuration and instructions |
+| `opencode/agents/`, `commands/`, `plugin(s)/`, `profiles/` | Adapters and extensions |
 
 ---
 
-## 🐚 Shell y herramientas
+## 🐚 Shell and tools
 
 > [!TIP]
-> **`bat`, `zoxide`, `fzf` y `eza` no tienen fichero de configuración propio.** Todo su ajuste vive en
-> `~/.zshrc`, y por eso ese fichero se versiona. `atuin`, `gh` y `git` sí tienen fichero y van aparte.
+> **`bat`, `zoxide`, `fzf` and `eza` have no configuration file of their own.** All of their tuning lives in
+> `~/.zshrc`, which is why that file is versioned. `atuin`, `gh` and `git` do have files and are kept separately.
 
-| Herramienta | Dónde está su configuración |
+| Tool | Where its configuration lives |
 | :--- | :--- |
 | `zoxide` | `~/.zshrc` → `eval "$(zoxide init zsh)"` |
 | `fzf` | `~/.zshrc` → `eval "$(fzf --zsh)"` + `FZF_DEFAULT_COMMAND` |
-| `bat` · `eza` | `~/.zshrc` → aliases y `LS_COLORS` |
+| `bat` · `eza` | `~/.zshrc` → aliases and `LS_COLORS` |
 | `atuin` | `config/atuin/config.toml` |
-| `delta` | `home/gitconfig` → pager y `diffFilter` |
+| `delta` | `home/gitconfig` → pager and `diffFilter` |
 | `git` | `home/gitconfig` + `config/git/ignore` |
 
 <details>
-<summary><b>Higiene del shell: qué se limpió y por qué</b></summary>
+<summary><b>Shell hygiene: what was cleaned up and why</b></summary>
 
 <br/>
 
-| Problema | Efecto | Solución |
+| Problem | Effect | Fix |
 | :--- | :--- | :--- |
-| `export PATH` de una herramienta **6 veces** | Reevaluado en cada arranque | Reducido a uno |
-| `$HOME/.cargo/bin` dos veces en la misma línea | Ruido en el `PATH` | Deduplicado |
-| Variable apuntando al `$HOME` de otra persona | Heredada de una config copiada; nadie la leía | Eliminada |
-| `delta` instalado pero sin configurar | git no lo usaba | Conectado como pager |
-| Shells anidados apilando el `PATH` | Ghostty → tmux → zsh, cada nivel antepone | `typeset -U path` |
+| One tool's `export PATH` **6 times** | Re-evaluated on every startup | Reduced to one |
+| `$HOME/.cargo/bin` twice on the same line | Noise in `PATH` | Deduplicated |
+| Variable pointing to another person's `$HOME` | Inherited from a copied config; nobody read it | Removed |
+| `delta` installed but not configured | git was not using it | Wired up as the pager |
+| Nested shells stacking `PATH` | Ghostty → tmux → zsh, each level prepends | `typeset -U path` |
 
-`typeset -U path` es la pieza clave: declarar cada entrada una vez en el fichero no basta, porque cada
-`export` antepone al `PATH` heredado que ya la contenía. Un test comprueba en **tiempo de ejecución** que un
-shell interactivo no tiene entradas repetidas, y otro que el arranque cabe en 80 ms.
+`typeset -U path` is the key piece: declaring each entry once in the file is not enough, because each
+`export` prepends to the inherited `PATH`, which already contained it. One test checks at **runtime** that an
+interactive shell has no repeated entries, and another that startup fits in 80 ms.
 
 </details>
 
 ---
 
-## 🔐 Secretos
+## 🔐 Secrets
 
 > [!IMPORTANT]
-> **Ninguna credencial vive en este repositorio.** Se cargan desde `~/.config/zsh/secrets.zsh` (modo `600`,
-> fuera de git), mediante un `source` protegido que no rompe el shell si el fichero no existe.
+> **No credential lives in this repository.** They are loaded from `~/.config/zsh/secrets.zsh` (mode `600`,
+> outside git), through a guarded `source` that does not break the shell if the file does not exist.
 
 ```zsh
 # ~/.zshrc
 [ -r "$HOME/.config/zsh/secrets.zsh" ] && source "$HOME/.config/zsh/secrets.zsh"
 ```
 
-### 🛡️ Guarda automática
+### 🛡️ Automatic guard
 
-`tests/secrets_test.go` corre **gitleaks** en cada ejecución y verifica:
+`tests/secrets_test.go` runs **gitleaks** on every run and verifies:
 
-- ✅ El árbol de trabajo y **todo el historial** están limpios.
-- ✅ Una credencial plantada **es detectada**: un detector al que nadie ha visto detectar nada es decoración.
+- ✅ The working tree and the **entire history** are clean.
+- ✅ A planted credential **is detected**: a detector nobody has ever seen detect anything is decoration.
 
 <details>
-<summary><b>Por qué existe esta guarda: un token llegó a GitHub</b></summary>
+<summary><b>Why this guard exists: a token reached GitHub</b></summary>
 
 <br/>
 
-`ENGRAM_CLOUD_TOKEN` se commiteó literal en `opencode.json` y se publicó. El barrido que había dado el
-fichero por limpio buscaba `token` **como palabra suelta** antes de `:` o `=`; la clave se llamaba
-`ENGRAM_CLOUD_TOKEN`, así que el patrón nunca la tocó.
+`ENGRAM_CLOUD_TOKEN` was committed verbatim in `opencode.json` and published. The sweep that had
+declared the file clean searched for `token` **as a standalone word** before `:` or `=`; the key was called
+`ENGRAM_CLOUD_TOKEN`, so the pattern never touched it.
 
-**Remediación, en este orden:**
+**Remediation, in this order:**
 
-1. 🔄 Token **rotado** primero (GitHub conserva objetos huérfanos un tiempo; rotar importa más que reescribir).
-2. 💾 Copia de seguridad con `git bundle`.
-3. 🔧 Valor sustituido por `{env:ENGRAM_CLOUD_TOKEN}`, sintaxis nativa de opencode.
-4. 🧹 `git filter-repo --replace-text` sobre todo el historial + `push --force`.
-5. ✅ `gitleaks`: 18 commits escaneados, 0 hallazgos.
+1. 🔄 Token **rotated** first (GitHub keeps orphaned objects for a while; rotating matters more than rewriting).
+2. 💾 Backup with `git bundle`.
+3. 🔧 Value replaced with `{env:ENGRAM_CLOUD_TOKEN}`, opencode's native syntax.
+4. 🧹 `git filter-repo --replace-text` over the whole history + `push --force`.
+5. ✅ `gitleaks`: 18 commits scanned, 0 findings.
 
-**Lecciones que quedaron en los tests:**
+**Lessons that stayed in the tests:**
 
-- `gitleaks` detectó **solo 2 de las 4** líneas con secretos del `.zshrc`. La suite lo combina con patrones
-  explícitos en vez de fiarse de un detector.
-- El canario se genera **en tiempo de ejecución** con `crypto/rand`. Escrito literal en el fichero, el propio
-  guardián lo detectaba y marcaba el repo como sucio para siempre.
+- `gitleaks` detected **only 2 of the 4** secret-bearing lines in `.zshrc`. The suite combines it with explicit
+  patterns instead of trusting a single detector.
+- The canary is generated **at runtime** with `crypto/rand`. Written literally in the file, the guard itself
+  would detect it and mark the repo as dirty forever.
 
 </details>
 
-### 🚫 Fuera del repositorio a propósito
+### 🚫 Deliberately outside the repository
 
-| Ruta | Motivo |
+| Path | Reason |
 | :--- | :--- |
-| `~/.config/zsh/secrets.zsh` · `~/.claude/.credentials.json` · `~/.local/share/opencode/auth.json`, `mcp-auth.json` | 🔑 Credenciales |
-| `~/.config/gh/hosts.yml` | 👤 Identifica la cuenta; gh usa el keyring |
-| `~/.claude/projects`, `history.jsonl`, `file-history` · `~/.local/share/opencode/opencode.db` | 💾 Historial (GB) |
-| `~/.claude/settings.local.json` | 💻 Permisos de una máquina concreta |
-| `.agents/` | 📓 Notas de diseño, solo locales |
-| `node_modules`, `*.bak` | ♻️ Regenerables |
+| `~/.config/zsh/secrets.zsh` · `~/.claude/.credentials.json` · `~/.local/share/opencode/auth.json`, `mcp-auth.json` | 🔑 Credentials |
+| `~/.config/gh/hosts.yml` | 👤 Identifies the account; gh uses the keyring |
+| `~/.claude/projects`, `history.jsonl`, `file-history` · `~/.local/share/opencode/opencode.db` | 💾 History (GBs) |
+| `~/.claude/settings.local.json` | 💻 Permissions for one specific machine |
+| `.agents/` | 📓 Design notes, local only |
+| `node_modules`, `*.bak` | ♻️ Regenerable |
 
 ---
 
 ## 🧪 Tests
 
 ```sh
-go test ./...                      # todo; los que necesitan una herramienta ausente se saltan
-go test -short ./...               # subconjunto rápido (salta los extremo a extremo lentos)
-node --test npm/cli/lib/*.test.js  # empaquetado npm
-AVAL_LIVE_CHECKS=1 go test ./tests # además, comprobaciones contra esta máquina
+go test ./...                      # everything; tests that need a missing tool are skipped
+go test -short ./...               # fast subset (skips the slow end-to-end tests)
+node --test npm/cli/lib/*.test.js  # npm packaging
+AVAL_LIVE_CHECKS=1 go test ./tests # plus checks against this machine
 ```
 
-Medido en macOS con las herramientas del `Brewfile` instaladas (cuenta tests y subtests):
+Measured on macOS with the `Brewfile` tools installed (counts tests and subtests):
 
-| Orden | Resultado | Tiempo |
+| Command | Result | Time |
 | :--- | :--- | ---: |
-| `go test ./...` | 33 paquetes ok · 730 pasan · 0 fallan · 4 saltados | ~17 s |
-| `go test -short ./...` | 33 paquetes ok · 679 pasan · 0 fallan · 39 saltados | ~12 s |
-| `node --test npm/cli/lib/*.test.js` | 13 pasan · 0 fallan | 0,15 s |
+| `go test ./...` | 33 packages ok · 730 pass · 0 fail · 4 skipped | ~17 s |
+| `go test -short ./...` | 33 packages ok · 679 pass · 0 fail · 39 skipped | ~12 s |
+| `node --test npm/cli/lib/*.test.js` | 13 pass · 0 fail | 0.15 s |
 
-**Qué cubre cada capa.** Los tests unitarios viven junto a su código en `cmd/` e `internal/`
-(`internal/term/tmux/e2e` levanta un servidor de tmux aislado). `tests/` es un único paquete de integración:
-secretos y material de empresa en árbol e historial, manifiesto frente al binario compilado, instalador,
-arranque bajo el `PATH` mínimo de launchd, teclas de Ghostty, higiene y arranque de zsh, hooks de agente de
-extremo a extremo, pipeline de diseño, presupuesto de contexto, y el propio README (imágenes
-content-addressed, enlaces, fugas).
+**What each layer covers.** Unit tests live next to their code in `cmd/` and `internal/`
+(`internal/term/tmux/e2e` spins up an isolated tmux server). `tests/` is a single integration package:
+secrets and company material in tree and history, manifest versus the compiled binary, installer,
+startup under launchd's minimal `PATH`, Ghostty keys, zsh hygiene and startup, end-to-end agent hooks,
+design pipeline, context budget, and the README itself (content-addressed images, links, leaks).
 
-**Herramientas que activan tests.** Sin `tmux`, `zsh`, `gitleaks`, `git`, `node`, `bun`, `atuin`, `zoxide`,
-`fzf`, `delta`, `hyperfine` o `go`, los tests que las usan se **saltan** en vez de fallar; instálalas
-(`brew bundle --file=Brewfile`) para que corran. `AVAL_LIVE_CHECKS=1` activa los pocos que leen el `$HOME`
-real (settings vivos y fichero de secretos); se saltan por defecto porque dependen de la máquina. Los render de `shot.mjs` se saltan si no hay Chromium de Playwright.
+**Tools that enable tests.** Without `tmux`, `zsh`, `gitleaks`, `git`, `node`, `bun`, `atuin`, `zoxide`,
+`fzf`, `delta`, `hyperfine` or `go`, the tests that use them are **skipped** instead of failing; install them
+(`brew bundle --file=Brewfile`) so they run. `AVAL_LIVE_CHECKS=1` enables the few that read the real
+`$HOME` (live settings and the secrets file); they are skipped by default because they depend on the machine. The `shot.mjs` renders are skipped if there is no Playwright Chromium.
 
 > [!NOTE]
-> Los tests de instalación usan `t.TempDir()` para el repo y para `$HOME`, y los de tmux, un servidor aislado
-> (`tmux -L`): ninguno toca tu sesión ni tu configuración real.
+> The install tests use `t.TempDir()` for both the repo and `$HOME`, and the tmux ones use an isolated server
+> (`tmux -L`): none of them touches your session or your real configuration.
 
 <details>
-<summary><b>🎓 Lecciones aprendidas: tests que mentían</b></summary>
+<summary><b>🎓 Lessons learned: tests that lied</b></summary>
 
 <br/>
 
-Varios tests existen porque una comprobación anterior **pasaba en verde mientras el fallo seguía ahí**:
+Several tests exist because an earlier check **passed green while the failure was still there**:
 
-| Patrón | Qué pasó | Corrección |
+| Pattern | What happened | Fix |
 | :--- | :--- | :--- |
-| Buscar `leaks found` | `gitleaks` imprime **`no leaks found`** al tener éxito: contiene la cadena buscada | Juzgar por **código de salida** |
-| `rg "Ctrl+X"` | `+` es un metacarácter regex: buscaba `Ctrl`, `Ctrll`… | Búsqueda literal (`-F`) |
-| `sleep 600` como doble de yazi | `/bin/sleep` resuelve bajo **cualquier** `PATH`, borrando la propiedad que decía probar | Usar el binario real |
-| `EDITOR=cat` al verificar | `cat` termina al instante: la ventana se creaba y se cerraba sola | Usar un editor que bloquee |
-| Leer el código fuente | Comprobaba lo que el código **dice**, no lo que **hace** | Aserciones de comportamiento |
-| Comparar dos ejecuciones con datos vivos | `23%` vs `9%` daban `NN%` vs `N%` | Colapsar valores de longitud variable |
-| Contar procesos por nombre | `pgrep -f` también contaba el **propio proceso de test**, que lleva ese nombre | Excluirse a sí mismo |
-| `sleep` fijo tras `kill-server` | `kill-server` solo **inicia** el apagado: bajo carga, el `new-session` siguiente aterrizaba en un servidor moribundo que borraba el socket y se llevaba la sesión nueva | Un **socket propio** por bloque |
+| Searching for `leaks found` | `gitleaks` prints **`no leaks found`** on success: it contains the searched string | Judge by **exit code** |
+| `rg "Ctrl+X"` | `+` is a regex metacharacter: it searched for `Ctrl`, `Ctrll`… | Literal search (`-F`) |
+| `sleep 600` as a yazi stand-in | `/bin/sleep` resolves under **any** `PATH`, erasing the property it claimed to test | Use the real binary |
+| `EDITOR=cat` when verifying | `cat` exits instantly: the window was created and closed itself | Use an editor that blocks |
+| Reading the source code | It checked what the code **says**, not what it **does** | Behavioural assertions |
+| Comparing two runs with live data | `23%` vs `9%` gave `NN%` vs `N%` | Collapse variable-length values |
+| Counting processes by name | `pgrep -f` also counted the **test process itself**, which carries that name | Exclude itself |
+| Fixed `sleep` after `kill-server` | `kill-server` only **starts** the shutdown: under load, the next `new-session` landed on a dying server that deleted the socket and took the new session with it | A **dedicated socket** per block |
 
-Regla que resume todo: **un test que afirma ausencia pasa por defecto.** Si no lo mutas para verlo fallar, no
-sabes si sirve. Varios de estos se verificaron reintroduciendo el bug a propósito.
+The rule that sums it all up: **a test that asserts absence passes by default.** If you do not mutate it to watch it fail, you
+do not know whether it is any good. Several of these were verified by deliberately reintroducing the bug.
 
 </details>
 
 ---
 
-## 🧭 Principios
+## 🧭 Principles
 
-- **Un solo binario de Go.** La lógica propia es Go. Sin shell ni Python propios, salvo los dotfiles de zsh
-  (`home/`) y el shim de 3 líneas de `.githooks/pre-push`, porque git exige un ejecutable.
-- **Manifiesto declarativo.** `install.manifest` dice qué se instala y dónde; el código lee datos.
-- **Sin upstream vendorizado.** Dependencias como módulos de Go, no árboles copiados.
-- **Superficie pequeña.** Se prefiere borrar código a añadir banderas.
+- **A single Go binary.** The project's own logic is Go. No shell or Python of its own, except the zsh dotfiles
+  (`home/`) and the 3-line `.githooks/pre-push` shim, because git requires an executable.
+- **Declarative manifest.** `install.manifest` says what is installed and where; the code reads data.
+- **No vendored upstream.** Dependencies are Go modules, not copied trees.
+- **Small surface.** Deleting code is preferred over adding flags.
 
-Para contribuir: [CONTRIBUTING.md](../CONTRIBUTING.md) (issue primero, TDD estricto, commits convencionales).
-Licencia [MIT](../LICENSE). Vulnerabilidades: [SECURITY.md](../SECURITY.md).
+To contribute: [CONTRIBUTING.md](../CONTRIBUTING.md) (issue first, strict TDD, conventional commits).
+[MIT](../LICENSE) licence. Vulnerabilities: [SECURITY.md](../SECURITY.md).
 
 ---
 
 <div align="center">
 
-**Hecho a base de medir antes de opinar.**
+**Built by measuring before opining.**
 
-<sub>Cada decisión de este repositorio está documentada con el dato que la provocó.</sub>
+<sub>Every decision in this repository is documented with the data that prompted it.</sub>
 
 </div>
