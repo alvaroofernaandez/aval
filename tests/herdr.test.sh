@@ -77,5 +77,15 @@ assert_eq "CLAUDE.md: shared block points to the lessons" "yes" \
 assert_eq "AGENTS.md mirrors the pointer" "yes" \
   "$(shared_block "$AGENTS_MD" | rg -q 'Herdr' && echo yes || echo no)"
 
+# herdr-app keys are versioned: git and PR views one key away from any agent.
+KEYS="$REPO/config/herdr-app/keys.json"
+assert_eq "herdr-app keys.json is versioned and valid JSON" "yes" "$(jq -e . "$KEYS" >/dev/null 2>&1 && echo yes || echo no)"
+assert_eq "cmd-shift-g opens lazygit in a new tab" "lazygit" \
+  "$(jq -r '.global["cmd-shift-g"].args.argv[0] // empty' "$KEYS" 2>/dev/null)"
+assert_eq "cmd-shift-o opens the branch PR" "gh pr view --web" \
+  "$(jq -r '.global["cmd-shift-o"].args.argv | join(" ")' "$KEYS" 2>/dev/null)"
+assert_eq "the manifest links it" "yes" \
+  "$(rg -q '^config/herdr-app/keys\.json\s+\.config/herdr-app/keys\.json$' "$REPO/install.manifest" && echo yes || echo no)"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

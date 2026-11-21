@@ -31,6 +31,7 @@ config/yazi                        .config/yazi
 config/yazi-sidebar                .config/yazi-sidebar
 config/ghostty                     .config/ghostty
 config/herdr-core/templates        .config/herdr-core/templates
+config/herdr-app/keys.json         .config/herdr-app/keys.json
 shared/skills/kiri-docker/scripts/kiri-up.sh .local/bin/kiri-up
 shared/skills/design-pipeline/scripts/design-ack .local/bin/design-ack
 home/tmux.conf                     .tmux.conf
