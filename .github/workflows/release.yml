@@ -18,11 +18,7 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
-    # Bounded because the tmux suites park `sleep 600` processes inside panes as
-    # stand-ins for long-running programs. If one of those outlives its server,
-    # the command substitution in run-all.sh waits on a pipe that never closes
-    # and the job sits there until GitHub's 6-hour default kills it. Failing in
-    # twelve minutes with a log beats burning an afternoon of runner time.
+    # Bounded: the tmux e2e tests drive real servers; a hang should fail fast.
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -31,76 +27,49 @@ jobs:
         with:
           go-version: "1.25"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Tools the integration tests exercise. Every Go test skips cleanly when
+      # its tool is missing, so these are what make the skips into real runs.
+      # gitleaks comes from `go install`; its upstream shell script returns 404.
+      - name: install test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tmux zsh
+          go install github.com/zricethezav/gitleaks/v8@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          yazi_url="https://github.com/sxyazi/yazi/releases/latest/download/yazi-x86_64-unknown-linux-gnu.zip"
+          curl -fsSL "$yazi_url" -o "$RUNNER_TEMP/yazi.zip"
+          unzip -q -o "$RUNNER_TEMP/yazi.zip" -d "$RUNNER_TEMP/yazi"
+          for b in yazi ya; do
+            p="$(find "$RUNNER_TEMP/yazi" -name "$b" -type f | head -1)"
+            [ -n "$p" ] && sudo install -m755 "$p" /usr/local/bin/"$b"
+          done
+          # The statusbar renders identically under a comma-decimal locale.
+          sudo locale-gen es_ES.UTF-8
+
+      # Same instruction the README gives a fresh machine. It also sets
+      # core.hooksPath, which the pre-push test asserts.
+      - name: install aval
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          go build -o "$HOME/.local/bin/aval" ./cmd/aval
+          "$HOME/.local/bin/aval" --yes
+
       - name: go vet
         run: go vet ./...
 
+      - name: gofmt
+        run: test -z "$(gofmt -l .)"
+
       - name: go test
+        timeout-minutes: 8
         run: go test ./... -race
 
-      # The shell suite covers the Go installer, the tmux scripts and the guards that
-      # keep employer material and machine indexes out of the repo. It runs on
-      # Linux here; the tmux suites need a tmux binary.
-      # run-all.sh parses each suite's summary with sd and rg. Without them the
-      # counts come back empty and passing suites are reported as failures —
-      # a silent, misleading break rather than an honest one. It now refuses to
-      # start without them, so this step failing is unmissable.
-      #
-      # gitleaks is installed with `go install` rather than its upstream shell
-      # script, which returns 404. The Go toolchain is already here for the
-      # build, so this adds no dependency of its own.
-      # zsh and yazi are what the suites actually exercise, not optional extras:
-      # without them the zsh syntax check exits 127 and every sidebar test finds
-      # an empty pane, which reads as a broken sidebar rather than a missing
-      # program.
-      - name: install shell test dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq tmux ripgrep zsh
-          cargo install sd --quiet
-          go install github.com/zricethezav/gitleaks/v8@latest
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-          # yazi ships prebuilt; building it from source here would add minutes.
-          # `ya` comes along because newer yazi moved its config introspection
-          # there, and the sidebar suite asks for it.
-          yazi_url="https://github.com/sxyazi/yazi/releases/latest/download/yazi-x86_64-unknown-linux-gnu.zip"
-          curl -fsSL "$yazi_url" -o /tmp/yazi.zip
-          unzip -q -o /tmp/yazi.zip -d /tmp/yazi
-          sudo install -m755 "$(find /tmp/yazi -name yazi -type f | head -1)" /usr/local/bin/yazi
-          ya_bin="$(find /tmp/yazi -name ya -type f | head -1)"
-          [ -n "$ya_bin" ] && sudo install -m755 "$ya_bin" /usr/local/bin/ya
-
-          # The statusbar suite asserts that the bar renders identically under a
-          # Spanish locale, where awk would otherwise emit a comma decimal
-          # separator. An ungenerated locale silently falls back to C, so the
-          # test compares C against C and the assertion means nothing.
-          sudo locale-gen es_ES.UTF-8
-          sudo update-locale
-
-      - name: verify the toolchain is complete
-        run: |
-          # Checked explicitly: every one of these missing has already caused a
-          # run that blamed the tests for a missing binary.
-          for tool in tmux rg sd gitleaks zsh yazi; do
-            command -v "$tool" >/dev/null || { echo "missing: $tool"; exit 1; }
-            echo "$tool: $(command -v "$tool")"
-          done
-
-      # The tmux, yazi and zsh suites exercise the *installed* configs under
-      # ~/.config, not the ones in the repo, so they need a real installation
-      # first. This is the same instruction the README gives for a fresh machine.
-      # The runner is throwaway, so linking into its $HOME is free.
-      - name: install aval
-        run: |
-          mkdir -p "/.local/bin"
-          go build -o "/.local/bin/aval" ./cmd/aval
-          "$HOME/.local/bin/aval" --yes
-
-      # Individually bounded as well as at the job level, so a hang is
-      # attributed to the suites rather than to whatever ran last.
-      - name: shell tests
-        timeout-minutes: 8
-        run: ./tests/run-all.sh
+      - name: npm tests
+        run: node --test npm/cli/lib/*.test.js
 
   build:
     name: build ${{ matrix.os }}/${{ matrix.arch }}

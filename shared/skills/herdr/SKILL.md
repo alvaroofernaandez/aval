@@ -77,7 +77,7 @@ hc wait --children any
 - PATH entries from `~/.zshrc` (nix, cargo, bun, volta...) only exist in an
   interactive shell. One-off commands through `hc run`/`hc exec` miss them
   (`yazi: command not found`, "node not installed"). Wrap them:
-  `hc run --bg --name tests -- zsh -ic 'bash tests/run-all.sh'`.
+  `hc run --bg --name tests -- zsh -ic 'go test ./...'`.
 - macOS privacy prompts from terminal programs belong to **Herdr Core**, not
   Herdr.app: grant them to the core.
 - `hc run` children end with their parent unless `--outlive-parent`.

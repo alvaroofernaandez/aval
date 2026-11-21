@@ -438,7 +438,7 @@ aval/
 
 > [!IMPORTANT]
 > **`install.manifest` es la fuente única.** El instalador de Go (TUI y `--yes`) lo lee;
-> nada más lleva su propia lista. `tests/manifest.test.sh` compila el binario y compara
+> nada más lleva su propia lista. `tests/manifest_test.go` compila el binario y compara
 > sus destinos con los del manifiesto, así que una divergencia rompe el build en vez de
 > producir dos máquinas configuradas distinto.
 
@@ -832,7 +832,7 @@ comprueba en **tiempo de ejecución** que un shell interactivo no tiene entradas
 
 ### 🛡️ Guarda automática
 
-La suite `tests/secrets.test.sh` corre **gitleaks** en cada ejecución y verifica:
+La suite `tests/secrets_test.go` corre **gitleaks** en cada ejecución y verifica:
 
 - ✅ El árbol de trabajo y **todo el historial** están limpios.
 - ✅ Una credencial plantada **es detectada** — un detector al que nadie ha visto detectar

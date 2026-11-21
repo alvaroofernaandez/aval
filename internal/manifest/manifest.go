@@ -1,7 +1,7 @@
 // Package manifest reads install.manifest, the single source of truth for
 // what this repository installs and where.
 //
-// tests/manifest.test.sh fails the build if the installer ever disagrees with
+// tests/manifest_test.go fails the build if the installer ever disagrees with
 // the file about what gets installed.
 package manifest
 

@@ -6,7 +6,7 @@ with the work, so this file exists to keep that obligation visible when the
 skills are read through the symlink farm rather than in their own repos.
 
 Each skill's own `SKILL.md` frontmatter carries the authoritative `license:`
-and `author:` fields — never strip them. `tests/provenance.test.sh` fails if a
+and `author:` fields — never strip them. `tests/provenance_test.go` fails if a
 licensed skill is missing from the table below.
 
 Skills with no licence line are this repo's own work.

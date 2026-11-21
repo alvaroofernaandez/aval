@@ -114,7 +114,7 @@ Lo privado (nombres de empresa, skills de cliente) vive fuera del repo, en `~/.c
 | `home/` | zsh, p10k, git | [Shell](docs/guide.md#-shell-y-herramientas) |
 | `cmd/aval` · `internal/` · `npm/` | Instalador TUI en Go | [Instalación](docs/guide.md#-instalación) |
 | `install.manifest` | Qué se instala y dónde: fuente única | [Mapa](docs/guide.md#️-mapa-del-repositorio) |
-| `tests/` | Shell, Go y npm en una sola orden: `./tests/run-all.sh` | [Tests](docs/guide.md#-tests) |
+| `tests/` | Tests de integración en Go: `go test ./...` | [Tests](docs/guide.md#-tests) |
 
 <br/>
 

@@ -10,7 +10,7 @@
 // stack-*. Logos are vendored under docs/logos/ (provenance in
 // docs/logos/SOURCES.md) and embedded as data URIs, because GitHub renders a
 // README SVG as an <img>, which cannot load files outside itself.
-// tests/readme.test.sh fails if the committed images drift from this output.
+// tests/readme_test.go fails if the committed images drift from this output.
 package main
 
 import (

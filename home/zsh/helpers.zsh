@@ -1,6 +1,6 @@
 # Shell helpers from the habits audit (2026-11-21). Sourced by home/zshrc.
 # Each one replaces something typed hundreds of times; numbers are in
-# tests/shell-helpers.test.sh.
+# tests/shell_helpers_test.go.
 
 # Typos of clear/exit (~150 in history). Ctrl+L also clears.
 alias -- cñear=clear ckear=clear clea=clear clar=clear exir=exit exirt=exit

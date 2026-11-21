@@ -3,7 +3,7 @@
 # The Go installer under cmd/aval (TUI and `--yes`) reads this file. Keeping the
 # list in one place is the whole point — a second copy diverges the first time
 # an entry is added to one and not the other, and the failure is silent: the
-# config just never gets linked. tests/manifest.test.sh fails the build if the
+# config just never gets linked. tests/manifest_test.go fails the build if the
 # installer and this file ever disagree.
 #
 # Format

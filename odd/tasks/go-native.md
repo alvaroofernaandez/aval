@@ -33,7 +33,7 @@ Decisions
       `scripts/sync-agent-rules.sh`, `scripts/reap-orphan-tests.sh`,
       `scripts/macos/*`, skill scripts (`kiri-up.sh`, `pdf-report/*.py`,
       docker/design-refactor helpers), `docs/*.py`.
-- [ ] T7 Shell test suite (`tests/*.test.sh`, `config/tmux/tests`) → `go test`;
+- [x] T7 Shell test suite (`tests/*.test.sh`, `config/tmux/tests`) → `go test`;
       CI runs `go test ./...` only.
 - [ ] T8 Layout: final folder tree, root cleanup, README/docs updated.
 
