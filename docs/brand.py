@@ -9,7 +9,7 @@
 Outputs, each in a light and a dark variant so the README can swap them with
 <picture> to follow the reader's GitHub theme:
 
-    hero-{light,dark}.svg    suminagashi rings and the aval wordmark (docs/hero.py)
+    hero-{light,dark}.svg    aval as a guilloché certificate (docs/hero.py)
     mark-{light,dark}.svg    the aval isotype (docs/logo.py)
     wordmark-{light,dark}.svg  the aval wordmark (docs/logo.py)
     stack-{light,dark}.svg   every tool's real, coloured logo

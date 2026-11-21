@@ -326,7 +326,7 @@ aval/
 │
 ├── 📁 docs/                   Assets del README y sus generadores
 │   ├── brand.py               Hero en blanco y negro y muro de logos
-│   ├── hero.py                Suminagashi generativo (determinista)
+│   ├── hero.py                Hero: certificado guilloché (determinista)
 │   ├── logos/                 Logos oficiales vendorizados + SOURCES.md
 │   ├── installer-demo.tape    Grabación de la TUI (VHS)
 │   └── environment.tape       Captura de tmux + yazi (VHS)

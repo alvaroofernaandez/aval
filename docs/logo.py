@@ -122,3 +122,18 @@ def mark(theme):
         f'<path d="M {cx + r} {cy} L {joint[0]} {joint[1]} L {tx} {ty}" {style}/>\n'
         "</svg>\n"
     )
+
+
+def mark_group(ink, cx, cy, size):
+    """The isotype centred at (cx, cy) inside another SVG, `size` px wide."""
+    s = size / M
+    rx, ry, r = RING
+    tx, ty = CHECK_TIP
+    joint = (rx + r + 40, ry + r)
+    return (
+        f'<g transform="translate({cx - size / 2:.1f} {cy - size / 2:.1f}) scale({s:.4f})" '
+        f'fill="none" stroke="{ink}" stroke-width="{MS}" stroke-linecap="round" '
+        f'stroke-linejoin="round">'
+        f'<circle cx="{rx}" cy="{ry}" r="{r}"/>'
+        f'<path d="M {rx + r} {ry} L {joint[0]} {joint[1]} L {tx} {ty}"/></g>'
+    )
