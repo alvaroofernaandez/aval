@@ -61,6 +61,7 @@ SUITES=(
   "$REPO/tests/no-sdd.test.sh"
   "$REPO/tests/shell-startup.test.sh"
   "$REPO/tests/pre-push.test.sh"
+  "$REPO/tests/omniwm.test.sh"
 )
 
 total_pass=0

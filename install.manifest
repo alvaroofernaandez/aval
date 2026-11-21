@@ -30,6 +30,8 @@ config/tmux                        .config/tmux
 config/yazi                        .config/yazi
 config/yazi-sidebar                .config/yazi-sidebar
 config/ghostty                     .config/ghostty
+# OmniWM: only the settings file; ~/.config/omniwm/shell is app-managed.
+config/omniwm/settings.toml        .config/omniwm/settings.toml
 config/herdr-core/templates        .config/herdr-core/templates
 shared/skills/kiri-docker/scripts/kiri-up.sh .local/bin/kiri-up
 home/tmux.conf                     .tmux.conf
