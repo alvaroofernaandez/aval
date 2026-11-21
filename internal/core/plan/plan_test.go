@@ -64,7 +64,8 @@ func TestBuildKeepsEveryGroupOnUnix(t *testing.T) {
 
 func TestBuildExpandsTheFanout(t *testing.T) {
 	repo := t.TempDir()
-	p, err := Build(testManifest(t, repo), Options{Repo: repo, Home: "/home/u", GOOS: "darwin"})
+	home := t.TempDir()
+	p, err := Build(testManifest(t, repo), Options{Repo: repo, Home: home, GOOS: "darwin"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,8 +87,8 @@ func TestBuildExpandsTheFanout(t *testing.T) {
 		seen[a.Dest] = true
 	}
 	for _, want := range []string{
-		"/home/u/.claude/skills/alpha",
-		"/home/u/.opencode/skills/beta",
+		filepath.Join(home, ".claude", "skills", "alpha"),
+		filepath.Join(home, ".opencode", "skills", "beta"),
 	} {
 		if !seen[want] {
 			t.Errorf("missing expanded destination %q", want)
@@ -99,7 +100,8 @@ func TestBuildMakesPathsAbsolute(t *testing.T) {
 	// The executor never re-resolves paths, so anything relative that survives
 	// here would be created relative to the process working directory.
 	repo := t.TempDir()
-	p, err := Build(testManifest(t, repo), Options{Repo: repo, Home: "/home/u", GOOS: "darwin"})
+	home := t.TempDir()
+	p, err := Build(testManifest(t, repo), Options{Repo: repo, Home: home, GOOS: "darwin"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +119,8 @@ func TestBuildSelectsApplicableGroupsByDefault(t *testing.T) {
 	// case is "install all of it", and an all-empty list makes the user work
 	// before they can do anything.
 	repo := t.TempDir()
-	p, err := Build(testManifest(t, repo), Options{Repo: repo, Home: "/home/u", GOOS: "darwin"})
+	home := t.TempDir()
+	p, err := Build(testManifest(t, repo), Options{Repo: repo, Home: home, GOOS: "darwin"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +133,8 @@ func TestBuildSelectsApplicableGroupsByDefault(t *testing.T) {
 
 func TestSelectedActionsHonoursSelection(t *testing.T) {
 	repo := t.TempDir()
-	p, err := Build(testManifest(t, repo), Options{Repo: repo, Home: "/home/u", GOOS: "darwin"})
+	home := t.TempDir()
+	p, err := Build(testManifest(t, repo), Options{Repo: repo, Home: home, GOOS: "darwin"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +145,7 @@ func TestSelectedActionsHonoursSelection(t *testing.T) {
 	if got, want := len(actions), 1; got != want {
 		t.Fatalf("selected actions = %d, want %d", got, want)
 	}
-	if actions[0].Dest != "/home/u/.claude/CLAUDE.md" {
+	if actions[0].Dest != filepath.Join(home, ".claude", "CLAUDE.md") {
 		t.Errorf("unexpected action: %+v", actions[0])
 	}
 }

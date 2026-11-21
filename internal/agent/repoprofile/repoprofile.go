@@ -136,7 +136,7 @@ func openPlans(dir string) string {
 		b, err := os.ReadFile(f)
 		if err == nil && strings.Contains(string(b), "- [ ]") {
 			rel, _ := filepath.Rel(dir, f)
-			open = append(open, rel)
+			open = append(open, filepath.ToSlash(rel))
 		}
 	}
 	if len(open) > 3 {

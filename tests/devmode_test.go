@@ -39,6 +39,7 @@ func newDevMachine(t *testing.T) devMachine {
 	gopath := run("", nil, "", "go", "env", "GOPATH").Stdout
 	goenv := run("", nil, "", "go", "env", "GOENV").Stdout
 	env := isoEnv(home,
+		"PATH="+hookTools(t)+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"XDG_CACHE_HOME="+filepath.Join(home, ".cache"),
 		"GIT_CONFIG_GLOBAL="+filepath.Join(home, ".gitconfig"),
 		"GOCACHE="+strings.TrimSpace(gocache), "GOMODCACHE="+strings.TrimSpace(gomod), "GOPATH="+strings.TrimSpace(gopath),
@@ -50,6 +51,26 @@ func newDevMachine(t *testing.T) devMachine {
 		t.Fatal(err)
 	}
 	return devMachine{home: home, env: env}
+}
+
+// hookTools is a directory of stand-ins for the programs the repo's own hooks
+// call (gentle-ai, code-review-graph). The sandbox sync ends with the doctor's
+// hooks-resolve check, which fails on a machine, like a CI runner, that lacks
+// them. Copies of the aval binary resolve exactly like the real tools and are
+// never run by these tests.
+func hookTools(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	bin, err := os.ReadFile(avalBin(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"gentle-ai", "code-review-graph"} {
+		if err := os.WriteFile(filepath.Join(dir, name+exeSuffix), bin, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
 }
 
 func (m devMachine) base() string { return filepath.Join(m.home, ".cache", "aval", "dev") }

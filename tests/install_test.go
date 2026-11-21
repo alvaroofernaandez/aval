@@ -59,9 +59,12 @@ func (s *sandbox) cat(rel string) string {
 }
 
 // countBackups mirrors the original `find -mindepth 2 -maxdepth 4`.
-func (s *sandbox) countBackups() int {
+func (s *sandbox) countBackups() int { return len(s.listBackups()) }
+
+// listBackups names the backed-up items (relative to the backup root).
+func (s *sandbox) listBackups() []string {
 	root := s.path(backupRootName)
-	n := 0
+	var items []string
 	_ = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || path == root {
 			return nil
@@ -69,11 +72,11 @@ func (s *sandbox) countBackups() int {
 		rel, _ := filepath.Rel(root, path)
 		depth := strings.Count(rel, string(filepath.Separator)) + 1
 		if depth >= 2 && depth <= 4 && d.Name() != "manifest.json" {
-			n++
+			items = append(items, rel)
 		}
 		return nil
 	})
-	return n
+	return items
 }
 
 // backupOf finds a backed-up item whatever timestamp it got.
@@ -354,9 +357,11 @@ func TestInstallCopyModeProducesRealFilesAndIsIdempotent(t *testing.T) {
 	eq(t, "agents are copied byte for byte", read(t, "config/claude/CLAUDE.md"), readAbsOrEmpty(s.path(".claude/CLAUDE.md")))
 	eq(t, "leaves third-party skills untouched", "vendor", s.cat(".claude/skills/some-vendor-skill/SKILL.md"))
 
-	before := s.countBackups()
+	before := s.listBackups()
 	again := s.install("--copy")
 	eq(t, "exit code of the second run", 0, again.Code)
-	eq(t, "a second run displaces nothing", before, s.countBackups())
+	if after := s.listBackups(); len(after) != len(before) {
+		t.Errorf("a second run displaces nothing: backups %v -> %v\n%s", before, after, again.Out())
+	}
 	mustHave(t, `(?i)already installed`, again.Out(), "the second run reports the copies as already installed")
 }
