@@ -1,7 +1,8 @@
 {
   "env": {
     "USER": "alvaroofernaandez",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet",
+    "CLAUDE_CODE_SUBAGENT_EFFORT": "medium"
   },
   "permissions": {
     "allow": [
@@ -172,7 +173,10 @@
     "image-preview@better-claude": true,
     "sub-meter@better-claude": true,
     "context-meter@better-claude": true,
-    "alvaro-dev-references@synced": false
+    "alvaro-dev-references@synced": false,
+    "session-report@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "bencium-marketplace": {
@@ -235,5 +239,6 @@
   "attribution": {
     "commit": "",
     "pr": ""
-  }
+  },
+  "subagentPromptCacheTtl": "1h"
 }

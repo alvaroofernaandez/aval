@@ -7,9 +7,8 @@
 # retired, so nothing reinstalls it — which also means nothing removes the
 # leftovers but this repo. This suite keeps them from creeping back.
 #
-# Retired material lives in shared/skills-retired/ and git history; this
-# suite, odd/ task logs and the retired folder are the only places the word
-# may still appear.
+# Retired material lives only in git history; this suite and odd/ task logs
+# are the only places the word may still appear.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
