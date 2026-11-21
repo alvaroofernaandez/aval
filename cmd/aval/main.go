@@ -89,6 +89,12 @@ func run() error {
 		return runReview(wd, flag.Args()[1:], os.Stdout)
 	}
 
+	// design gates and ack work on the project in the current directory.
+	if flag.Arg(0) == "design" {
+		wd, _ := os.Getwd()
+		return runDesign(flag.Args()[1:], wd, os.Stdout)
+	}
+
 	repo, err := resolveRepo(*repoFlag)
 	if err != nil {
 		return err
