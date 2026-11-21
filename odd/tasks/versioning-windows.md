@@ -22,4 +22,4 @@ features skip cleanly (runtime check plus a stated reason), never emulated.
 - [x] Tests: Unix-only suites skip via `testenv.SkipWindows` with a reason;
       HOME/USERPROFILE/LocalAppData are set together (`testenv`)
 - [x] CI: `windows-latest` in the matrix (copy-mode install, no -race)
-- [ ] First green Windows CI run (cannot be verified locally)
+- [x] First green Windows CI run (PR #54, run 44942010434 on main)
