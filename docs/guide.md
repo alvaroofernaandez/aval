@@ -379,7 +379,7 @@ nada.
 ### 📦 Dependencias
 
 ```bash
-brew install tmux yazi neovim bat fd ripgrep sd eza gitleaks
+brew install tmux yazi bat fd ripgrep sd eza gitleaks
 ```
 
 ---
@@ -604,7 +604,7 @@ sin guardar— **no se toca**: no recibe pulsaciones ni pierde el foco. Al cerra
 la ventana desaparece y vuelves exactamente donde estabas.
 
 El diseño anterior escribía en el panel de trabajo con `send-keys` y necesitaba decidir
-entre tres ramas: escribir en el shell, reusar nvim con `:edit`, o negarse si el panel
+entre tres ramas: escribir en el shell, reusar el editor abierto, o negarse si el panel
 estaba ocupado. Toda esa complejidad existía **solo** porque escribía en un panel que
 podías estar usando. Una ventana nueva hace la pregunta irrelevante.
 
@@ -619,7 +619,7 @@ Porque el requisito era **cerrar con `Ctrl+X`**, que es literalmente la tecla de
 nano. No hay atajo inventado por medio: es el propio editor. Y si el archivo tiene cambios
 sin guardar, nano pregunta *«Save modified buffer?»* — la protección viene incluida.
 
-`$EDITOR` es `nvim` en este sistema, que necesita `:q`. Se puede cambiar con `FILE_EDITOR`.
+`$EDITOR` es `nano` en este sistema, que sale con `Ctrl+X`. Se puede cambiar con `FILE_EDITOR`.
 
 > ⚠️ **Detalle de macOS:** `/usr/bin/nano` es la build **PICO** de Apple, y tmux reporta
 > el proceso como `pico`, no `nano`. `aval tmux close-file` acepta ambos nombres; si solo

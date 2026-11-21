@@ -38,7 +38,7 @@ type group struct {
 var stackGroups = []group{
 	{"terminal", []tool{
 		{"Ghostty", "ghostty.png", ""}, {"tmux", "tmux.svg", ""}, {"Zsh", "zsh.svg", ""},
-		{"Neovim", "neovim.svg", ""}, {"yazi", "yazi.png", ""}, {"Herdr", "herdr.svg", ""},
+		{"yazi", "yazi.png", ""}, {"Herdr", "herdr.svg", ""},
 	}},
 	{"agentes", []tool{
 		{"Claude Code", "claude.svg", ""}, {"OpenCode", "opencode.svg", ""},

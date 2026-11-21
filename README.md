@@ -61,8 +61,8 @@ la **v** del logotipo es un check.
 ## Stack
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.7407df20.svg">
-  <img src="docs/assets/stack-light.4d5b5ad7.svg" alt="Ghostty, tmux, Zsh, Neovim, yazi, Herdr, Claude Code, OpenCode, Engram, RTK, Go, Node.js, npm, Bun, Python, Bash, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux y Windows" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.ba66d22a.svg">
+  <img src="docs/assets/stack-light.881a536c.svg" alt="Ghostty, tmux, Zsh, yazi, Herdr, Claude Code, OpenCode, Engram, RTK, Go, Node.js, npm, Bun, Python, Bash, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux y Windows" width="100%">
 </picture>
 
 <sub>Logos oficiales de cada proyecto (<a href="docs/logos/SOURCES.md">procedencia</a>). ripgrep y delta no publican logo: llevan sus iniciales en vez de uno inventado.</sub>

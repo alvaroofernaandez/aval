@@ -18,7 +18,6 @@ to at most 192 px so the generated SVGs stay small.
 | `go.svg` | devicons/devicon — `icons/go/go-original.svg` |
 | `homebrew.svg` | devicons/devicon — `icons/homebrew/homebrew-original.svg` |
 | `linux.svg` | devicons/devicon — `icons/linux/linux-original.svg` |
-| `neovim.svg` | devicons/devicon — `icons/neovim/neovim-original.svg` |
 | `nodejs.svg` | devicons/devicon — `icons/nodejs/nodejs-original.svg` |
 | `npm.svg` | devicons/devicon — `icons/npm/npm-original.svg` |
 | `python.svg` | devicons/devicon — `icons/python/python-original.svg` |

@@ -69,8 +69,8 @@ func TestList(t *testing.T) {
 		t.Fatal(err)
 	}
 	lines := strings.Split(strings.TrimRight(so.String(), "\n"), "\n")
-	if len(lines) != 34 {
-		t.Fatalf("want 34 tools, got %d", len(lines))
+	if len(lines) != 33 {
+		t.Fatalf("want 33 tools, got %d", len(lines))
 	}
 	if lines[0] != "Ghostty" || lines[len(lines)-1] != "Windows" {
 		t.Errorf("unexpected order: %q ... %q", lines[0], lines[len(lines)-1])
