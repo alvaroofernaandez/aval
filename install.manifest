@@ -26,7 +26,6 @@ label = Terminal environment
 detail = tmux, yazi, Ghostty, zsh and Powerlevel10k
 platforms = unix
 
-config/tmux                        .config/tmux
 config/yazi                        .config/yazi
 config/yazi-sidebar                .config/yazi-sidebar
 config/ghostty                     .config/ghostty

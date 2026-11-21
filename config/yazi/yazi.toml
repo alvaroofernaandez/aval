@@ -15,5 +15,5 @@ show_hidden = true
 
 [opener]
 edit = [
-  { run = '$HOME/.config/tmux/open-file.sh %s', block = true, desc = "Edit in new tab", for = "unix" },
+  { run = '$HOME/.local/bin/aval tmux open-file %s', block = true, desc = "Edit in new tab", for = "unix" },
 ]

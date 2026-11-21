@@ -95,6 +95,11 @@ func run() error {
 		return runDesign(flag.Args()[1:], wd, os.Stdout)
 	}
 
+	// tmux/Ghostty/zsh helpers run on every refresh or cd: no repo lookup.
+	if flag.Arg(0) == "tmux" {
+		os.Exit(runTmux(flag.Args()[1:]))
+	}
+
 	repo, err := resolveRepo(*repoFlag)
 	if err != nil {
 		return err

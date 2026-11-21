@@ -59,7 +59,7 @@ mouse-hide-while-typing = true
 # Attach to the shared tmux session, creating it only if absent. The tmux server
 # outlives Ghostty, so this costs ~970ms once after a reboot and ~9ms on every
 # window afterwards. Escape hatch: `ghostty -e zsh` for a plain shell.
-command = /Users/alvaroofernaandez/.config/ghostty/launch.sh
+command = /Users/alvaroofernaandez/.local/bin/aval tmux launch
 
 # --- Behavior ----------------------------------------------------------------
 copy-on-select = clipboard
@@ -106,7 +106,7 @@ keybind = cmd+k=clear_screen
 # Code) listen for ctrl+v — 0x16 — and read the clipboard natively instead.
 #
 # Rather than pick one and lose the other, cmd+v emits a private sequence that
-# tmux routes to config/tmux/paste-router.sh, which branches on what the
+# tmux routes to `aval tmux paste-router`, which branches on what the
 # clipboard actually holds: 0x16 for a screenshot, an ordinary paste for text.
 # Deciding here instead would cost text pasting everywhere (0x16 is
 # quoted-insert in zsh), and the alternative signal — which app has focus — is

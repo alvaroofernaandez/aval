@@ -322,7 +322,7 @@ Los backups viven fuera de cualquier árbol escaneado, y hay un test que lo veri
 
 ### 🚀 Arranque
 
-Ghostty ejecuta `config/ghostty/launch.sh`, que resuelve tmux **por ruta absoluta** y
+Ghostty ejecuta `aval tmux launch`, que resuelve tmux **por ruta absoluta** y
 adjunta cada pestaña a **una sesión propia** (reutilizando una libre si la hay). Si tmux
 no estuviera, cae a una shell de login: un multiplexor ausente no puede dejarte sin
 terminal.
@@ -392,15 +392,15 @@ aval/
 │
 ├── 📁 config/
 │   ├── 🖥️  ghostty/            Tema Tokyo Night, tipografía, arranque
-│   │   └── launch.sh          Resuelve tmux y se adjunta a la sesión
+│   │   └── (`aval tmux launch` resuelve tmux y se adjunta a la sesión)
 │   │
 │   ├── 🪟 tmux/
-│   │   ├── sidebar-toggle.sh  Abre y cierra el panel lateral
-│   │   ├── sidebar-follow.sh  Mueve el árbol al hacer cd (vía hook de zsh)
-│   │   ├── sidebar-watch.sh   Red de seguridad: sincroniza sin depender del shell
-│   │   ├── open-file.sh       Abre el archivo en una pestaña nueva
-│   │   ├── close-file.sh      La cierra sin escribir el comando del editor
-│   │   ├── statusbar.sh       CPU · GPU · RAM · hora · fecha (Linux: sin GPU)
+│   │   ├── aval tmux sidebar-toggle  Abre y cierra el panel lateral
+│   │   ├── aval tmux sidebar-follow  Mueve el árbol al hacer cd (vía hook de zsh)
+│   │   ├── aval tmux sidebar-watch   Red de seguridad: sincroniza sin depender del shell
+│   │   ├── aval tmux open-file       Abre el archivo en una pestaña nueva
+│   │   ├── aval tmux close-file      La cierra sin escribir el comando del editor
+│   │   ├── aval tmux statusbar       CPU · GPU · RAM · hora · fecha (Linux: sin GPU)
 │   │   └── tests/             12 suites, con lib/wait.sh para esperas acotadas
 │   │
 │   ├── 📂 yazi/               Config de uso general
@@ -575,7 +575,7 @@ propósito:
 flowchart LR
     A["cd / z"] --> B["Hook chpwd de zsh"]
     B -->|instantáneo, 0 coste| D["ya emit-to · cd"]
-    C["sidebar-watch.sh<br/>sondeo cada 2 s"] -->|red de seguridad| D
+    C["aval tmux sidebar-watch<br/>sondeo cada 2 s"] -->|red de seguridad| D
     D --> E["🌳 El árbol se mueve"]
     style B fill:#98BB6C,color:#1F1F28
     style C fill:#7E9CD8,color:#1F1F28
@@ -585,7 +585,7 @@ flowchart LR
 | Mecanismo | Latencia | Coste | Cubre |
 | :--- | :--- | :--- | :--- |
 | Hook `chpwd` de zsh | Instantánea | 0 | Shells abiertos **después** de instalarlo |
-| `sidebar-watch.sh` | ≤ 2 s | ~0,65 % de un core | **Todo lo demás** |
+| `aval tmux sidebar-watch` | ≤ 2 s | ~0,65 % de un core | **Todo lo demás** |
 
 > [!NOTE]
 > El vigilante existe porque los hooks de zsh **se registran al arrancar el shell**. Un
@@ -625,7 +625,7 @@ sin guardar, nano pregunta *«Save modified buffer?»* — la protección viene 
 `$EDITOR` es `nvim` en este sistema, que necesita `:q`. Se puede cambiar con `FILE_EDITOR`.
 
 > ⚠️ **Detalle de macOS:** `/usr/bin/nano` es la build **PICO** de Apple, y tmux reporta
-> el proceso como `pico`, no `nano`. `close-file.sh` acepta ambos nombres; si solo
+> el proceso como `pico`, no `nano`. `aval tmux close-file` acepta ambos nombres; si solo
 > contemplara `nano`, `Alt+w` mataría el editor sin preguntar por los cambios.
 
 </details>
@@ -637,8 +637,8 @@ sin guardar, nano pregunta *«Save modified buffer?»* — la protección viene 
 
 Dos reglas hacen esto seguro:
 
-1. **Solo cierra lo que abrió el sidebar.** `open-file.sh` marca su ventana con
-   `@file_window`; `close-file.sh` se niega con cualquier otra y te lo dice. Deducirlo por
+1. **Solo cierra lo que abrió el sidebar.** `aval tmux open-file` marca su ventana con
+   `@file_window`; `aval tmux close-file` se niega con cualquier otra y te lo dice. Deducirlo por
    el nombre de la ventana o por lo que corre dentro habría acabado cerrando trabajo real.
 2. **Al editor le pide salir, no lo mata.** Con nano envía `Ctrl+X`; con vim/nvim, `:q`.
    Si hay cambios sin guardar, el editor se niega y avisa. Descartar trabajo no guardado
@@ -942,7 +942,7 @@ verde mientras el fallo seguía ahí**. Son los patrones que más veces engañar
 | `EDITOR=cat` al verificar | `cat` termina al instante: la ventana se creaba y se cerraba sola, y parecía roto | Usar un editor que bloquee |
 | `grep` al código fuente | Comprobaba lo que el script **dice**, no lo que **hace** | Aserciones de comportamiento |
 | Normalizar dígito a dígito | Comparaba dos ejecuciones con datos vivos: `23%` vs `9%` daban `NN%` vs `N%` | Colapsar valores de longitud variable |
-| `pgrep -f 'sidebar-watch.sh'` | También contaba el **propio fichero de test**, que lleva ese nombre | Excluir `.test.sh` |
+| `pgrep -f 'aval tmux sidebar-watch'` | También contaba el **propio fichero de test**, que lleva ese nombre | Excluir `.test.sh` |
 | `sleep` fijo tras `kill-server` | `kill-server` solo **inicia** el apagado: bajo carga el `new-session` siguiente aterrizaba en un servidor moribundo que, al terminar, borraba el socket y se llevaba la sesión nueva. Todo devolvía `no server running` y las aserciones describían un panel que nunca se creó | Un **socket propio** por bloque, no reutilizar el que se está destruyendo |
 
 Regla que resume todo: **un test que afirma ausencia pasa por defecto.** Si no lo mutas

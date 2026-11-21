@@ -56,10 +56,10 @@ assert_eq "M-e is no longer bound to the sidebar" "yes" \
 assert_eq "does not clash with the M-g scratch popup" "yes" \
   "$([ "$alt_binding" != "M-g" ] && echo yes || echo no)"
 
-# --- every route points at the same script -----------------------------------
+# --- every route points at the same command -----------------------------------
 # Three routes by design: M-t, prefix+e, and the clickable status-bar button.
 assert_eq "all three routes run the same toggle" "3" \
-  "$(printf '%s\n%s' "$root_keys" "$prefix_keys" | rg -c 'sidebar-toggle\.sh')"
+  "$(printf '%s\n%s' "$root_keys" "$prefix_keys" | rg -c 'aval tmux sidebar-toggle')"
 assert_eq "the mouse route exists as a keyboard-independent fallback" "yes" \
   "$(printf '%s' "$root_keys" | rg -q 'MouseDown1Status.*sidebar-toggle' && echo yes || echo no)"
 

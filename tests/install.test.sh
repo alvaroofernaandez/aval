@@ -40,8 +40,8 @@ echo "install"
 fresh_home
 run_install >/dev/null
 
-assert_eq "links ~/.config/tmux to the repo" \
-  "$REPO/config/tmux" "$(readlink "$SANDBOX/.config/tmux")"
+assert_eq "links ~/.config/yazi to the repo" \
+  "$REPO/config/yazi" "$(readlink "$SANDBOX/.config/yazi")"
 assert_eq "links ~/.config/yazi to the repo" \
   "$REPO/config/yazi" "$(readlink "$SANDBOX/.config/yazi")"
 assert_eq "links ~/.config/yazi-sidebar to the repo" \
@@ -56,19 +56,19 @@ assert_eq "creates no backups on a clean machine" "0" "$(count_backups)"
 
 # The link must actually resolve to readable content, not just exist.
 assert_eq "linked config is readable through the symlink" "yes" \
-  "$([ -r "$SANDBOX/.config/tmux/sidebar-toggle.sh" ] && echo yes || echo no)"
+  "$([ -r "$SANDBOX/.config/yazi/yazi.toml" ] && echo yes || echo no)"
 
 # --- existing config is preserved, never destroyed ---------------------------
 fresh_home
-mkdir -p "$SANDBOX/.config/tmux"
-printf 'MINE\n' > "$SANDBOX/.config/tmux/precious.conf"
+mkdir -p "$SANDBOX/.config/yazi"
+printf 'MINE\n' > "$SANDBOX/.config/yazi/precious.conf"
 printf 'MY TMUX\n' > "$SANDBOX/.tmux.conf"
 run_install >/dev/null
 
 assert_eq "replaces the existing directory with the link" \
-  "$REPO/config/tmux" "$(readlink "$SANDBOX/.config/tmux")"
+  "$REPO/config/yazi" "$(readlink "$SANDBOX/.config/yazi")"
 
-backup_dir="$(backup_of '.config/tmux')"
+backup_dir="$(backup_of '.config/yazi')"
 assert_eq "backs up the previous directory" "yes" \
   "$([ -n "$backup_dir" ] && echo yes || echo no)"
 assert_eq "backup keeps the original contents intact" \
@@ -89,21 +89,21 @@ before="$(count_backups)"
 out="$(run_install)"
 assert_eq "second run creates no new backups" "$before" "$(count_backups)"
 assert_eq "second run still leaves a valid link" \
-  "$REPO/config/tmux" "$(readlink "$SANDBOX/.config/tmux")"
+  "$REPO/config/yazi" "$(readlink "$SANDBOX/.config/yazi")"
 assert_eq "second run reports links as already in place" "yes" \
   "$(printf '%s' "$out" | rg -qi 'already|ok|skip' && echo yes || echo no)"
 
 # --- dry run -----------------------------------------------------------------
 fresh_home
-mkdir -p "$SANDBOX/.config/tmux"
-printf 'UNTOUCHED\n' > "$SANDBOX/.config/tmux/precious.conf"
+mkdir -p "$SANDBOX/.config/yazi"
+printf 'UNTOUCHED\n' > "$SANDBOX/.config/yazi/precious.conf"
 run_install --dry-run >/dev/null
 
 assert_eq "dry-run creates no symlink" "no" \
-  "$([ -L "$SANDBOX/.config/tmux" ] && echo yes || echo no)"
+  "$([ -L "$SANDBOX/.config/yazi" ] && echo yes || echo no)"
 assert_eq "dry-run creates no backups" "0" "$(count_backups)"
 assert_eq "dry-run leaves existing files alone" \
-  "UNTOUCHED" "$(cat "$SANDBOX/.config/tmux/precious.conf" 2>/dev/null)"
+  "UNTOUCHED" "$(cat "$SANDBOX/.config/yazi/precious.conf" 2>/dev/null)"
 # Capture first, then match: piping straight into `rg -q` makes it exit on the
 # first hit, and the SIGPIPE that kills install.sh trips pipefail.
 dry_out="$(run_install --dry-run)"

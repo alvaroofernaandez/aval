@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tests for the paste router behind cmd+v.
+# Tests for `aval tmux paste-router`, the router behind cmd+v.
 #
 # cmd+v cannot carry an image on its own: Ghostty's paste_from_clipboard only
 # pushes TEXT down the pty, and image bytes do not fit through it. TUIs that
@@ -12,8 +12,8 @@
 # stable signal, which is what this router reads.
 set -uo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-ROUTER="$REPO/config/tmux/paste-router.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/aval.sh"
+SOURCE="$REPO_ROOT/internal/tmux/paste.go"
 
 # Real `osascript -e 'clipboard info'` output, captured on macOS 15.
 CLIP_SCREENSHOT='«class PNGf», 703838, «class AVIF», 164185, «class 8BPS», 5245480, GIF picture, 265978, TIFF picture, 23758990'
@@ -30,12 +30,12 @@ assert_eq() { [ "$2" = "$3" ] && ok "$1" || ko "$1" "$2" "$3"; }
 
 # ROUTE_ONLY keeps the decision inspectable without a tmux server attached,
 # mirroring how launch.sh exposes LAUNCH_RESOLVE_ONLY.
-route_for() { CLIPBOARD_INFO="$1" ROUTE_ONLY=1 sh "$ROUTER" 2>/dev/null; }
+route_for() { CLIPBOARD_INFO="$1" ROUTE_ONLY=1 "$AVAL" tmux paste-router 2>/dev/null; }
 
 echo "paste-router"
 
-assert_eq "the router is executable" "yes" \
-  "$([ -x "$ROUTER" ] && echo yes || echo no)"
+assert_eq "the router binary is executable" "yes" \
+  "$([ -x "$AVAL" ] && echo yes || echo no)"
 
 # --- the case this exists for -------------------------------------------------
 assert_eq "a screenshot routes to the image path" "image" "$(route_for "$CLIP_SCREENSHOT")"
@@ -56,7 +56,7 @@ assert_eq "an empty clipboard routes to text" "text" "$(route_for "$CLIP_EMPTY")
 # --- the probe must not be hardcoded to a stub --------------------------------
 # Without an override the router has to ask the real system clipboard.
 assert_eq "falls back to osascript when no override is given" "yes" \
-  "$(rg -q 'clipboard info' "$ROUTER" 2>/dev/null && echo yes || echo no)"
+  "$(rg -q 'clipboard info' "$SOURCE" 2>/dev/null && echo yes || echo no)"
 
 # --- the two sides of the branch, by behaviour --------------------------------
 # A stub standing in for tmux records the arguments it was handed, so these
@@ -81,7 +81,7 @@ run_router() {
     STUB_LOG="$STUB_DIR/log" \
     TMUX_BIN="$STUB" \
     CLIPBOARD_INFO="$1" \
-    sh "$ROUTER" >/dev/null 2>&1
+    "$AVAL" tmux paste-router >/dev/null 2>&1
   echo "$?"
 }
 
@@ -101,7 +101,7 @@ assert_eq "the text path never sends 0x16" "yes" \
 
 # --- tmux must be located without help from PATH ------------------------------
 assert_eq "resolves a real tmux when PATH does not provide one" "yes" \
-  "$(bin="$(env -i PATH="$MINIMAL_PATH" HOME="$HOME" RESOLVE_ONLY=1 sh "$ROUTER" 2>/dev/null)"; \
+  "$(bin="$(env -i PATH="$MINIMAL_PATH" HOME="$HOME" RESOLVE_ONLY=1 "$AVAL" tmux paste-router 2>/dev/null)"; \
      [ -n "$bin" ] && [ -x "$bin" ] && echo yes || echo no)"
 
 # --- Linux clipboard backend selection ---------------------------------------
@@ -116,7 +116,7 @@ backend_for() { # backend_for <os> <wayland|""> <tool>...
   os="$1"; wl="$2"; shift 2
   bd="$(mktemp -d)"; mkbin "$bd" "$@"
   env -i PATH="$bd:/usr/bin:/bin" HOME="$HOME" PASTE_OS="$os" \
-    ${wl:+WAYLAND_DISPLAY="$wl"} CLIPBOARD_BACKEND_ONLY=1 sh "$ROUTER" 2>/dev/null
+    ${wl:+WAYLAND_DISPLAY="$wl"} CLIPBOARD_BACKEND_ONLY=1 "$AVAL" tmux paste-router 2>/dev/null
   rm -rf "$bd"
 }
 assert_eq "macOS uses pbpaste"                       "pbpaste"  "$(backend_for Darwin "" pbpaste wl-paste xclip)"
@@ -129,13 +129,13 @@ assert_eq "linux with no clipboard tool reports none" "none"    "$(backend_for L
 # Without a backend the text path must fail quietly: no stderr into the pane.
 nb="$(mktemp -d)"
 err="$(env -i PATH="$nb:/usr/bin:/bin" HOME="$HOME" PASTE_OS=Linux TMUX_BIN="$STUB" \
-  CLIPBOARD_INFO='' sh "$ROUTER" 2>&1 >/dev/null)"
+  CLIPBOARD_INFO='' "$AVAL" tmux paste-router 2>&1 >/dev/null)"
 assert_eq "no clipboard tool: no error output" "" "$err"
 rm -rf "$nb"
 
 # Linux image detection comes from the advertised MIME types.
 img_route() { # CLIPBOARD_INFO substitutes the probe, as on macOS
-  CLIPBOARD_INFO="$1" PASTE_OS=Linux ROUTE_ONLY=1 sh "$ROUTER" 2>/dev/null; }
+  CLIPBOARD_INFO="$1" PASTE_OS=Linux ROUTE_ONLY=1 "$AVAL" tmux paste-router 2>/dev/null; }
 assert_eq "linux: image/png alone routes to image"   "image" "$(img_route 'image/png')"
 assert_eq "linux: text/plain wins over image/png"    "text"  "$(img_route 'text/plain;charset=utf-8
 image/png')"

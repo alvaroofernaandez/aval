@@ -55,7 +55,7 @@ assert_eq "current window is distinguishable" "yes" \
 
 # --- the segments still render -----------------------------------------------
 right="$("${TMUX_TEST[@]}" show -gv status-right 2>/dev/null)"
-assert_contains "status-right still runs the segment bar" "statusbar.sh" "$right"
+assert_contains "status-right still runs the segment bar" "tmux statusbar" "$right"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tests for close-file.sh — closing a file opened from the sidebar without
+# Tests for `aval tmux close-file` — closing a file opened from the sidebar without
 # typing the editor's own quit command.
 #
 # The safety property that matters: it must NEVER close a window the user was
@@ -7,9 +7,7 @@
 # at creation rather than guessed at.
 set -uo pipefail
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CLOSE="$DIR/close-file.sh"
-OPEN="$DIR/open-file.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/aval.sh"
 SOCKET="closefile-test-$$"
 TMUX_TEST=(tmux -L "$SOCKET")
 WORKDIR="$(mktemp -d)"
@@ -47,7 +45,7 @@ setup_session() {
 }
 
 close_current() {
-  TMUX_SOCKET="$SOCKET" TMUX_PANE="$1" bash "$CLOSE" 2>&1
+  TMUX_SOCKET="$SOCKET" TMUX_PANE="$1" "$AVAL" tmux close-file 2>&1
 }
 
 printf 'PORT=3000\n' > "$WORKDIR/.env"
@@ -56,7 +54,7 @@ echo "close-file"
 
 # --- opened windows are tagged ----------------------------------------------
 setup_session
-TMUX_SOCKET="$SOCKET" FILE_EDITOR="$WORKDIR/bin/fakeedit" bash "$OPEN" "$WORKDIR/.env" >/dev/null 2>&1
+TMUX_SOCKET="$SOCKET" FILE_EDITOR="$WORKDIR/bin/fakeedit" "$AVAL" tmux open-file "$WORKDIR/.env" >/dev/null 2>&1
 sleep 1
 opened_win="$("${TMUX_TEST[@]}" list-windows -F '#{window_id}|#{?@file_window,1,0}' 2>/dev/null | awk -F'|' '$2=="1"{print $1}')"
 assert_eq "open-file tags the window it creates" "yes" \
@@ -83,7 +81,7 @@ assert_eq "says why it refused" "yes" \
 # --- an editor with unsaved work decides for itself --------------------------
 if [ "$HAVE_NVIM" -eq 1 ]; then
   setup_session
-  TMUX_SOCKET="$SOCKET" FILE_EDITOR="$WORKDIR/bin/nvim" bash "$OPEN" "$WORKDIR/.env" >/dev/null 2>&1
+  TMUX_SOCKET="$SOCKET" FILE_EDITOR="$WORKDIR/bin/nvim" "$AVAL" tmux open-file "$WORKDIR/.env" >/dev/null 2>&1
   sleep 1.2
   win="$("${TMUX_TEST[@]}" list-windows -F '#{window_id}|#{?@file_window,1,0}' 2>/dev/null | awk -F'|' '$2=="1"{print $1}')"
   pane="$("${TMUX_TEST[@]}" list-panes -t "$win" -F '#{pane_id}' 2>/dev/null | head -1)"

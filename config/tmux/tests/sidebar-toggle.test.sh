@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Tests for sidebar-toggle.sh, run against an isolated tmux server so the
+# Tests for `aval tmux sidebar-toggle`, run against an isolated tmux server so the
 # user's live session is never touched.
 set -uo pipefail
 
-SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/sidebar-toggle.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/aval.sh"
 SOCKET="sidebar-test-$$"
 TMUX_TEST=(tmux -L "$SOCKET")
 WORKDIR="$(mktemp -d)"
@@ -51,7 +51,7 @@ toggle() {
   # `sleep 600` stands in for yazi: same pane lifecycle, no TUI rendering.
   # Invoked directly rather than through `run-shell -b`, which detaches and
   # swallows both the exit status and stderr.
-  SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" bash "$SCRIPT"
+  SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" "$AVAL" tmux sidebar-toggle
 }
 
 panes() { "${TMUX_TEST[@]}" list-panes -t main -F '#{pane_id}' | wc -l | tr -d ' '; }
@@ -125,7 +125,7 @@ reset_session
 work_pane="$("${TMUX_TEST[@]}" list-panes -t main -F '#{pane_id}')"
 minimal_out="$(env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" HOME="$HOME" \
   SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" \
-  /bin/bash "$SCRIPT" 2>&1)"
+  "$AVAL" tmux sidebar-toggle 2>&1)"
 minimal_rc=$?
 
 assert_eq "runs under launchd's minimal PATH" "0" "$minimal_rc"
@@ -141,7 +141,7 @@ assert_eq "opens the sidebar under minimal PATH" "2" "$(panes)"
 reset_session
 work_pane="$("${TMUX_TEST[@]}" list-panes -t main -F '#{pane_id}')"
 env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" HOME="$HOME" \
-  TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" /bin/bash "$SCRIPT" >/dev/null 2>&1
+  TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" "$AVAL" tmux sidebar-toggle >/dev/null 2>&1
 sleep 2.5
 
 assert_eq "the real sidebar command survives under minimal PATH" "2" "$(panes)"
@@ -201,8 +201,8 @@ win_b="$(last_window)"
 pane_b="$(wait_until 10 '%' "${TMUX_MW[@]}" list-panes -t "$win_b" -F '#{pane_id}')"
 
 # Window B is active here, so opening A's sidebar is the case that used to break.
-SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET_MW" TMUX_PANE="$pane_a" bash "$SCRIPT" >/dev/null 2>&1
-SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET_MW" TMUX_PANE="$pane_b" bash "$SCRIPT" >/dev/null 2>&1
+SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET_MW" TMUX_PANE="$pane_a" "$AVAL" tmux sidebar-toggle >/dev/null 2>&1
+SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET_MW" TMUX_PANE="$pane_b" "$AVAL" tmux sidebar-toggle >/dev/null 2>&1
 
 # A tmux pane id always starts with '%', so it doubles as the "not empty yet"
 # marker: reading the pane list straight after the toggle can return nothing.
@@ -257,7 +257,7 @@ fi
 # A stale TMUX_PANE (e.g. inherited from another tmux server) must not be
 # swallowed: a keybind that silently does nothing is the worst outcome.
 reset_session
-SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="%999" bash "$SCRIPT" >/dev/null 2>&1
+SIDEBAR_CMD="sleep 600" TMUX_SOCKET="$SOCKET" TMUX_PANE="%999" "$AVAL" tmux sidebar-toggle >/dev/null 2>&1
 rc=$?
 assert_eq "exits non-zero when the target pane is stale" \
   "nonzero" "$([ "$rc" -ne 0 ] && echo nonzero || echo zero)"

@@ -142,11 +142,11 @@ fi
 
 # >>> sidebar follow >>>
 # Keeps the yazi sidebar tree on whatever directory this pane is in, so cd and z
-# move the tree too. The script exits immediately and silently when there is no
+# move the tree too. The command exits immediately and silently when there is no
 # sidebar, so this costs nothing in the common case and can never break a cd.
 autoload -Uz add-zsh-hook
 _sidebar_follow_cwd() {
-  [[ -n "$TMUX" ]] && "$HOME/.config/tmux/sidebar-follow.sh" "$PWD"
+  [[ -n "$TMUX" && -x "$HOME/.local/bin/aval" ]] && "$HOME/.local/bin/aval" tmux sidebar-follow "$PWD"
 }
 add-zsh-hook chpwd _sidebar_follow_cwd
 # <<< sidebar follow <<<

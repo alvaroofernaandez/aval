@@ -10,7 +10,7 @@ set -uo pipefail
 MAIN_CONFIG="$HOME/.config/yazi/yazi.toml"
 SIDEBAR_CONFIG_HOME="$HOME/.config/yazi-sidebar"
 SIDEBAR_CONFIG="$SIDEBAR_CONFIG_HOME/yazi.toml"
-TOGGLE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/sidebar-toggle.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/aval.sh"
 
 SOCKET="yazicfg-test-$$"
 TMUX_TEST=(tmux -L "$SOCKET")
@@ -112,7 +112,7 @@ for _ in $(seq 1 60); do
   [ -n "$("${TMUX_TEST[@]}" display -p -t "$work_pane" '#{pane_current_command}')" ] && break
   sleep 0.1
 done
-SIDEBAR_CMD="$WORKDIR/probe.sh" TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" bash "$TOGGLE"
+SIDEBAR_CMD="$WORKDIR/probe.sh" TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" "$AVAL" tmux sidebar-toggle
 for _ in $(seq 1 60); do [ -s "$WORKDIR/env.txt" ] && break; sleep 0.1; done
 
 assert_eq "toggle launches the sidebar with YAZI_CONFIG_HOME" \
@@ -139,7 +139,7 @@ for _ in $(seq 1 60); do
   [ -n "$("${TMUX_E2E[@]}" display -p -t "$e2e_pane" '#{pane_current_command}')" ] && break
   sleep 0.1
 done
-TMUX_SOCKET="$SOCKET_E2E" TMUX_PANE="$e2e_pane" bash "$TOGGLE"
+TMUX_SOCKET="$SOCKET_E2E" TMUX_PANE="$e2e_pane" "$AVAL" tmux sidebar-toggle
 
 # Two waits, because there are two races here and a fixed sleep covered
 # neither reliably. First the sidebar pane has to exist and carry the @sidebar

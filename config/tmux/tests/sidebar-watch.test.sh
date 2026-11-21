@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tests for sidebar-watch.sh — the safety net that keeps the tree in sync even
+# Tests for `aval tmux sidebar-watch` — the safety net that keeps the tree in sync even
 # when the shell has no chpwd hook.
 #
 # The zsh hook is instant and free, but it only exists in shells started after
@@ -8,9 +8,7 @@
 # it must stay quiet when nothing changed.
 set -uo pipefail
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WATCH="$DIR/sidebar-watch.sh"
-TOGGLE="$DIR/sidebar-toggle.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/aval.sh"
 SOCKET="watch-test-$$"
 TMUX_TEST=(tmux -L "$SOCKET")
 WORKDIR="$(mktemp -d)"
@@ -21,7 +19,8 @@ fail=0
 
 cleanup() {
   "${TMUX_TEST[@]}" kill-server 2>/dev/null
-  pkill -f "sidebar-watch.sh.*$SOCKET" 2>/dev/null
+  # Watchers exit on their own once the server above is gone; no pkill, which
+  # would also take down the real sidebars of a running desktop session.
   rm -rf "$WORKDIR"
 }
 trap cleanup EXIT
@@ -48,10 +47,10 @@ chmod +x "$WORKDIR/bin/yazi"
 
 mkdir -p "$WORKDIR/a" "$WORKDIR/b"
 
-# Counts running watchers only. A bare match on "sidebar-watch.sh" also counts
+# Counts running watchers only. A bare match on "tmux sidebar-watch" also counts
 # THIS test file, whose own name contains it, so the count never appeared to
 # change.
-watchers() { pgrep -fl 'sidebar-watch\.sh' 2>/dev/null | rg -v '\.test\.sh' | wc -l | tr -d ' '; }
+watchers() { pgrep -fl 'tmux sidebar-watch' 2>/dev/null | rg -v '\.test\.sh' | wc -l | tr -d ' '; }
 
 echo "sidebar-watch"
 
@@ -63,7 +62,7 @@ before_watchers="$(watchers)"
 
 SIDEBAR_CMD="$WORKDIR/bin/yazi" YA_BIN="$WORKDIR/bin/ya" \
   TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" WATCH_INTERVAL=0.3 \
-  bash "$TOGGLE" >/dev/null 2>&1
+  "$AVAL" tmux sidebar-toggle >/dev/null 2>&1
 sleep 1.2
 
 # The watcher is a nohup'd background process the toggle disowns, and the
@@ -125,7 +124,7 @@ sleep 0.3
 rm -f "$COUNTER"
 # One iteration only: interval long enough that the loop is killed mid-sleep.
 TMUX_SOCKET="$SOCKET" TMUX_BIN="$WORKDIR/bin/tmux-counted" YA_BIN="$WORKDIR/bin/ya" \
-  WATCH_INTERVAL=30 timeout 3 bash "$WATCH" "$sbp" 4242 >/dev/null 2>&1
+  WATCH_INTERVAL=30 timeout 3 "$AVAL" tmux sidebar-watch "$sbp" 4242 >/dev/null 2>&1
 calls="$(wc -l < "$COUNTER" 2>/dev/null | tr -d ' ')"
 
 [ -n "${WATCH_SKIP:-}" ] || assert_eq "one tmux call per cycle, not three" "yes" \
@@ -134,7 +133,7 @@ calls="$(wc -l < "$COUNTER" 2>/dev/null | tr -d ' ')"
 # --- it dies with the sidebar ------------------------------------------------
 # An orphaned polling loop would keep waking up forever after the panel closed.
 SIDEBAR_CMD="$WORKDIR/bin/yazi" YA_BIN="$WORKDIR/bin/ya" \
-  TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" bash "$TOGGLE" >/dev/null 2>&1
+  TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" "$AVAL" tmux sidebar-toggle >/dev/null 2>&1
 sleep 2.5
 
 [ -n "${WATCH_SKIP:-}" ] || assert_eq "closing the sidebar stops the watcher" "$before_watchers" "$(watchers)"
@@ -142,7 +141,7 @@ sleep 2.5
 # --- and dies if the whole server goes away ----------------------------------
 SIDEBAR_CMD="$WORKDIR/bin/yazi" YA_BIN="$WORKDIR/bin/ya" \
   TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" WATCH_INTERVAL=0.3 \
-  bash "$TOGGLE" >/dev/null 2>&1
+  "$AVAL" tmux sidebar-toggle >/dev/null 2>&1
 sleep 1
 "${TMUX_TEST[@]}" kill-server 2>/dev/null
 sleep 2.5

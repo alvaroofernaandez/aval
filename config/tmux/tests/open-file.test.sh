@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tests for open-file.sh, run against an isolated tmux server so the user's
+# Tests for `aval tmux open-file`, run against an isolated tmux server so the user's
 # live session is never touched.
 #
 # Contract: opening a file from the sidebar creates a NEW tmux window. Whatever
@@ -8,7 +8,7 @@
 # state. That is the whole point of using a window instead of the work pane.
 set -uo pipefail
 
-SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/open-file.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/aval.sh"
 SOCKET="openfile-test-$$"
 TMUX_TEST=(tmux -L "$SOCKET")
 WORKDIR="$(mktemp -d)"
@@ -59,7 +59,7 @@ setup_session() {
 }
 
 open_file() {
-  TMUX_SOCKET="$SOCKET" FILE_EDITOR="$FAKE_EDITOR" bash "$SCRIPT" "$@" 2>&1
+  TMUX_SOCKET="$SOCKET" FILE_EDITOR="$FAKE_EDITOR" "$AVAL" tmux open-file "$@" 2>&1
 }
 
 echo "open-file"
@@ -133,14 +133,14 @@ assert_eq "passes every selected file" \
 # minimal PATH when Ghostty started the server.
 setup_session
 env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" HOME="$HOME" \
-  TMUX_SOCKET="$SOCKET" FILE_EDITOR="$FAKE_EDITOR" /bin/bash "$SCRIPT" "$WORKDIR/.env" >/dev/null 2>&1
+  TMUX_SOCKET="$SOCKET" FILE_EDITOR="$FAKE_EDITOR" "$AVAL" tmux open-file "$WORKDIR/.env" >/dev/null 2>&1
 sleep 1.5
 assert_eq "opens a window under minimal PATH" "2" "$(windows)"
 
 # --- fallback outside tmux ---------------------------------------------------
 rm -f "$ARGS_FILE"
 TMUX_SOCKET="" TMUX="" TMUX_BIN="/nonexistent/tmux" FILE_EDITOR="$FAKE_EDITOR" \
-  timeout 3 bash "$SCRIPT" "$WORKDIR/.env" >/dev/null 2>&1
+  timeout 3 "$AVAL" tmux open-file "$WORKDIR/.env" >/dev/null 2>&1
 assert_eq "falls back to running the editor directly" \
   "$WORKDIR/.env" "$(tail -1 "$ARGS_FILE" 2>/dev/null)"
 
@@ -152,7 +152,7 @@ assert_eq "falls back to running the editor directly" \
 # editor actually ends up running in the window.
 setup_session
 EDITOR="/should/not/be/used" TMUX_SOCKET="$SOCKET" \
-  bash "$SCRIPT" "$WORKDIR/.env" >/dev/null 2>&1
+  "$AVAL" tmux open-file "$WORKDIR/.env" >/dev/null 2>&1
 sleep 1.2
 opened="$("${TMUX_TEST[@]}" list-windows -F '#{window_id}|#{?@file_window,1,0}' 2>/dev/null | awk -F'|' '$2=="1"{print $1}')"
 opened_pane="$("${TMUX_TEST[@]}" list-panes -t "$opened" -F '#{pane_id}' 2>/dev/null | head -1)"
@@ -172,7 +172,7 @@ assert_eq "Ctrl+X closes the file window" "1" "$(windows)"
 setup_session
 rm -f "$ARGS_FILE"
 EDITOR="/should/not/be/used" FILE_EDITOR="$FAKE_EDITOR" TMUX_SOCKET="$SOCKET" \
-  bash "$SCRIPT" "$WORKDIR/.env" >/dev/null 2>&1
+  "$AVAL" tmux open-file "$WORKDIR/.env" >/dev/null 2>&1
 wait_for_args
 assert_eq "FILE_EDITOR overrides the default" \
   "$WORKDIR/.env" "$(tail -1 "$ARGS_FILE" 2>/dev/null)"

@@ -31,7 +31,7 @@ Type "clear" Enter
 
 # An isolated socket: recording this must never disturb a real session.
 # TMUX_SOCKET is exported before the server starts, so run-shell inherits it
-# and sidebar-toggle.sh talks to this socket instead of the default one. Without
+# and `aval tmux sidebar-toggle` talks to this socket instead of the default one. Without
 # it the binding fires inside the isolated server but the script looks for the
 # pane on the real one, and exits 1.
 Type "export TMUX_SOCKET=readme-shot" Enter
@@ -43,7 +43,7 @@ Sleep 2s
 # arrives, and a screenshot should not be betting on that chain. The result on
 # screen is identical.
 Type "PANE=$(tmux -L readme-shot list-panes -t demo -F '#{pane_id}')" Enter
-Type "TMUX_SOCKET=readme-shot TMUX_PANE=$PANE bash ~/.config/tmux/sidebar-toggle.sh" Enter
+Type "TMUX_SOCKET=readme-shot TMUX_PANE=$PANE ~/.local/bin/aval tmux sidebar-toggle" Enter
 Sleep 3s
 Type "clear && tmux -L readme-shot attach -t demo" Enter
 # Long enough for the status bar to refresh at least once (status-interval is

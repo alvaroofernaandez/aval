@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tests for sidebar-follow.sh — keeping the sidebar tree on the directory the
+# Tests for `aval tmux sidebar-follow` — keeping the sidebar tree on the directory the
 # work pane is actually in.
 #
 # This runs from a zsh chpwd hook, so it fires on EVERY directory change. Two
@@ -8,9 +8,7 @@
 # prompt.
 set -uo pipefail
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FOLLOW="$DIR/sidebar-follow.sh"
-TOGGLE="$DIR/sidebar-toggle.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/aval.sh"
 SOCKET="follow-test-$$"
 TMUX_TEST=(tmux -L "$SOCKET")
 WORKDIR="$(mktemp -d)"
@@ -52,7 +50,7 @@ setup_session() {
 }
 
 follow() {
-  TMUX_SOCKET="$SOCKET" TMUX_PANE="$1" YA_BIN="$FAKE_YA" bash "$FOLLOW" "$2" 2>&1
+  TMUX_SOCKET="$SOCKET" TMUX_PANE="$1" YA_BIN="$FAKE_YA" "$AVAL" tmux sidebar-follow "$2" 2>&1
 }
 
 echo "sidebar-follow"
@@ -80,7 +78,7 @@ chmod +x "$WORKDIR/bin/yazi"
 
 setup_session
 work_pane="$("${TMUX_TEST[@]}" list-panes -t main -F '#{pane_id}')"
-SIDEBAR_CMD="$WORKDIR/bin/yazi" TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" bash "$TOGGLE" >/dev/null 2>&1
+SIDEBAR_CMD="$WORKDIR/bin/yazi" TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" "$AVAL" tmux sidebar-toggle >/dev/null 2>&1
 sleep 0.6
 
 client_id="$("${TMUX_TEST[@]}" display -p -t "$work_pane" '#{@sidebar_client_id}' 2>/dev/null)"
@@ -112,7 +110,7 @@ assert_eq "a directory with spaces arrives whole" "yes" \
 # exit 0 and print nothing, or the failure shows up in the user's shell.
 rm -f "$CALLS"
 out="$(TMUX_SOCKET="$SOCKET" TMUX_PANE="$work_pane" YA_BIN="/nonexistent/ya" \
-  bash "$FOLLOW" "$target" 2>&1)"
+  "$AVAL" tmux sidebar-follow "$target" 2>&1)"
 rc=$?
 assert_eq "exits 0 even when ya is missing" "0" "$rc"
 assert_eq "prints nothing when ya is missing" "" "$out"

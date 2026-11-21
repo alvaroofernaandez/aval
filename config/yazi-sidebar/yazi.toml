@@ -1,4 +1,4 @@
-# yazi config used ONLY by the tmux sidebar (see ~/.config/tmux/sidebar-toggle.sh).
+# yazi config used ONLY by the tmux sidebar (see `aval tmux sidebar-toggle`).
 #
 # At ~60 columns yazi's default three-column layout strangles every filename
 # into "c…", so the sidebar drops the parent and preview columns and spends the
@@ -19,5 +19,5 @@ show_hidden = true
 
 [opener]
 edit = [
-  { run = '$HOME/.config/tmux/open-file.sh %s', block = true, desc = "Edit in new tab", for = "unix" },
+  { run = '$HOME/.local/bin/aval tmux open-file %s', block = true, desc = "Edit in new tab", for = "unix" },
 ]

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Tests for statusbar.sh, the tmux status-right renderer.
+# Tests for `aval tmux statusbar`, the tmux status-right renderer.
 #
 # These encode .agents/DESIGN.md: segment colours, contrast pairing, the ASCII
 # constraint, and the performance budget. This script runs on every status
 # refresh, so its cost is paid continuously and is part of the contract.
 set -uo pipefail
 
-SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/statusbar.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/aval.sh"
+SOURCE="$REPO_ROOT/internal/tmux/statusbar.go"
 BUDGET_MS=100
 
 # DESIGN.md §2 — Kanagawa roles. Each segment owns one colour.
@@ -30,7 +31,7 @@ now_ms() { perl -MTime::HiRes=time -e 'printf "%d\n", time*1000'; }
 
 echo "statusbar"
 
-out="$(bash "$SCRIPT" 2>&1)"
+out="$("$AVAL" tmux statusbar 2>&1)"
 rc=$?
 
 # --- output contract ---------------------------------------------------------
@@ -117,8 +118,8 @@ assert_eq "keeps exactly one padding space at the end" "yes" \
 # made this flaky: the readings change between the two invocations, so a GPU
 # going from 23% to 9% produced "NN%" vs "N%" and failed on live data rather
 # than on formatting, which is all this test is about.
-es_out="$(LANG=es_ES.UTF-8 LC_ALL=es_ES.UTF-8 bash "$SCRIPT" 2>/dev/null | sd '[0-9]+' 'N')"
-c_out="$(LANG=C LC_ALL=C bash "$SCRIPT" 2>/dev/null | sd '[0-9]+' 'N')"
+es_out="$(LANG=es_ES.UTF-8 LC_ALL=es_ES.UTF-8 "$AVAL" tmux statusbar 2>/dev/null | sd '[0-9]+' 'N')"
+c_out="$(LANG=C LC_ALL=C "$AVAL" tmux statusbar 2>/dev/null | sd '[0-9]+' 'N')"
 assert_eq "renders identically regardless of locale" "$c_out" "$es_out"
 # The reading itself has to exist for its formatting to be assertable, and it
 # comes from vm_stat and sysctl — macOS. Elsewhere the bar renders without a
@@ -129,12 +130,12 @@ if [ "$(uname)" != "Darwin" ]; then
   printf '  \033[33mSKIP\033[0m uses a dot as decimal separator (RAM reading is macOS-only)\n'
 else
 assert_eq "uses a dot as decimal separator" "yes" \
-  "$(LANG=es_ES.UTF-8 bash "$SCRIPT" 2>/dev/null | rg -q 'RAM [0-9]+\.[0-9]' && echo yes || echo no)"
+  "$(LANG=es_ES.UTF-8 "$AVAL" tmux statusbar 2>/dev/null | rg -q 'RAM [0-9]+\.[0-9]' && echo yes || echo no)"
 fi
 
 # --- DESIGN.md §7: performance budget ----------------------------------------
-bash "$SCRIPT" >/dev/null 2>&1
-t0="$(now_ms)"; bash "$SCRIPT" >/dev/null 2>&1; t1="$(now_ms)"
+"$AVAL" tmux statusbar >/dev/null 2>&1
+t0="$(now_ms)"; "$AVAL" tmux statusbar >/dev/null 2>&1; t1="$(now_ms)"
 elapsed=$((t1 - t0))
 [ "$elapsed" -lt "$BUDGET_MS" ] \
   && ok "runs in under ${BUDGET_MS}ms (took ${elapsed}ms)" \
@@ -162,15 +163,15 @@ export STATUSBAR_CACHE="$cache_dir/cache"
 best_uncached=0
 best_cached=0
 for _round in 1 2 3; do
-  STATUSBAR_CACHE_TTL=0 bash "$SCRIPT" >/dev/null 2>&1
+  STATUSBAR_CACHE_TTL=0 "$AVAL" tmux statusbar >/dev/null 2>&1
   t0="$(now_ms)"
-  for _ in 1 2 3 4; do STATUSBAR_CACHE_TTL=0 bash "$SCRIPT" >/dev/null 2>&1; done
+  for _ in 1 2 3 4; do STATUSBAR_CACHE_TTL=0 "$AVAL" tmux statusbar >/dev/null 2>&1; done
   t1="$(now_ms)"
   round_uncached=$((t1 - t0))
 
-  bash "$SCRIPT" >/dev/null 2>&1          # primes the cache
+  "$AVAL" tmux statusbar >/dev/null 2>&1          # primes the cache
   t0="$(now_ms)"
-  for _ in 1 2 3 4; do bash "$SCRIPT" >/dev/null 2>&1; done
+  for _ in 1 2 3 4; do "$AVAL" tmux statusbar >/dev/null 2>&1; done
   t1="$(now_ms)"
   round_cached=$((t1 - t0))
 
@@ -213,7 +214,7 @@ assert_eq "the cache file is created" "yes" \
 # A stale cache must not freeze the clock.
 printf 'CACHE ANTIGUO\n' > "$cache_dir/cache"
 touch -t 202001010000 "$cache_dir/cache"
-fresh="$(bash "$SCRIPT" 2>/dev/null)"
+fresh="$("$AVAL" tmux statusbar 2>/dev/null)"
 assert_eq "an expired cache is recomputed" "yes" \
   "$(printf '%s' "$fresh" | rg -q 'CACHE ANTIGUO' && echo no || echo yes)"
 
@@ -223,10 +224,10 @@ rm -rf "$cache_dir"
 # --- Linux: fixture-driven, runnable on any host ------------------------------
 # STATUSBAR_OS and STATUSBAR_PROC_DIR inject the platform and a fake /proc, so
 # the Linux branch is asserted on macOS too.
-FIX="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fixtures"
+FIX="$REPO_ROOT/internal/tmux/testdata"
 linux_bar() {
   STATUSBAR_OS=Linux STATUSBAR_PROC_DIR="$FIX/$1" STATUSBAR_CACHE_TTL=0 \
-    STATUSBAR_CACHE="$(mktemp -u)" bash "$SCRIPT" 2>&1
+    STATUSBAR_CACHE="$(mktemp -u)" "$AVAL" tmux statusbar 2>&1
 }
 lin="$(linux_bar linux-proc)"
 lin_plain="$(printf '%s' "$lin" | sd '#\[[^]]*\]' '')"
@@ -245,13 +246,13 @@ assert_eq "linux: no stderr noise in the status line" "no" \
 lin_busy="$(linux_bar linux-proc-busy)"
 assert_contains "linux: CPU is clamped to 100%" "CPU 100%" "$lin_busy"
 assert_contains "linux: a metric over threshold uses the alert colour" "bg=colour167" "$lin_busy"
-lin_missing="$(STATUSBAR_OS=Linux STATUSBAR_PROC_DIR="$FIX/does-not-exist" STATUSBAR_CACHE_TTL=0 STATUSBAR_CACHE="$(mktemp -u)" bash "$SCRIPT" 2>&1)"
+lin_missing="$(STATUSBAR_OS=Linux STATUSBAR_PROC_DIR="$FIX/does-not-exist" STATUSBAR_CACHE_TTL=0 STATUSBAR_CACHE="$(mktemp -u)" "$AVAL" tmux statusbar 2>&1)"
 assert_eq "linux: a missing /proc still renders a row without errors" "yes" \
   "$(printf '%s' "$lin_missing" | rg -q 'RAM' && ! printf '%s' "$lin_missing" | rg -qi 'error|No such' && echo yes || echo no)"
 
 # --- the expensive calls must stay gone --------------------------------------
 # Comments are stripped: these names appear legitimately in the rationale.
-code="$(rg -v '^\s*#' "$SCRIPT")"
+code="$(rg -v '^\s*//' "$SOURCE")"
 assert_eq "does not shell out to top" "absent" \
   "$(printf '%s' "$code" | rg -q '\btop\b' && echo present || echo absent)"
 assert_eq "does not start a python interpreter" "absent" \
