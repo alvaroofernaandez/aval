@@ -11,6 +11,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/doctor"
 	avalsync "github.com/alvaroofernaandez/aval/internal/sync"
+	"github.com/alvaroofernaandez/aval/internal/txsync"
 )
 
 // errChecksFailed makes main exit 1 without printing "error:" — the doctor
@@ -78,11 +79,19 @@ func runSync(repo, home string, args []string, dryRun bool, out io.Writer) error
 		return err
 	}
 
-	rep, err := avalsync.Run(avalsync.Options{
-		Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), DryRun: *dry,
+	res, err := txsync.Run(txsync.Options{
+		Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS, DryRun: *dry,
 	})
-	if rep != nil {
-		printSync(out, home, rep, *dry)
+	if res != nil {
+		for _, id := range res.Recovered {
+			fmt.Fprintf(out, "recovered backup %s: a previous sync was interrupted and has been restored\n", id)
+		}
+		if res.Report != nil {
+			printSync(out, home, res.Report, *dry)
+		}
+		if res.RolledBack {
+			fmt.Fprintf(out, "\nsync rolled back; backup %s is marked failed (aval restore --list)\n", res.RunID)
+		}
 	}
 	return err
 }

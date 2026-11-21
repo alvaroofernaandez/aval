@@ -72,6 +72,21 @@ func Run(opt Options) []Result {
 	return rs
 }
 
+// RunOnly runs every check and keeps the ones whose ID equals, or starts
+// with, one of ids ("overlay" also keeps "overlay-links"). It never writes.
+func RunOnly(opt Options, ids ...string) []Result {
+	var out []Result
+	for _, r := range Run(opt) {
+		for _, id := range ids {
+			if r.ID == id || strings.HasPrefix(r.ID, id+"-") {
+				out = append(out, r)
+				break
+			}
+		}
+	}
+	return out
+}
+
 // Fix removes broken links, then runs sync for the drift it can repair.
 func Fix(opt Options) ([]string, error) {
 	var removed []string

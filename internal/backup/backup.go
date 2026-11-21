@@ -144,6 +144,15 @@ func loadRun(dir string) Run {
 	return r
 }
 
+// LoadRun describes the run stored in dir.
+func (s *Store) LoadRun(dir string) Run { return loadRun(dir) }
+
+// MarkFailed keeps run, notes why it failed and clears its pending marker.
+func (s *Store) MarkFailed(run Run, reason string) error {
+	_ = os.Remove(filepath.Join(run.Dir, pendingMarker))
+	return os.WriteFile(filepath.Join(run.Dir, failedMarker), []byte(reason+"\n"), 0o644)
+}
+
 // List returns every run, newest first. A missing store is an empty list.
 func (s *Store) List() ([]Run, error) {
 	des, err := os.ReadDir(s.Root)
