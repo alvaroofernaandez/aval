@@ -245,7 +245,7 @@ type PrepareOptions struct {
 // Prepare makes the sandbox ready to use and returns it with the environment
 // to run commands in: directories, a fresh copy of the repo, the git identity
 // (first time only), a fresh build, the environment self-check, and on first
-// entry `aval --yes --copy` plus `aval sync` so it mirrors a new machine.
+// entry `aval --yes` plus `aval sync` so it mirrors a new machine.
 func Prepare(o PrepareOptions) (Sandbox, []string, error) {
 	goos := runtime.GOOS
 	s, err := Create(o.Base, o.Name, o.RealHome)
@@ -272,7 +272,7 @@ func Prepare(o PrepareOptions) (Sandbox, []string, error) {
 
 	if !s.Ready() {
 		fmt.Fprintf(o.Out, "aval dev: first entry, installing into the sandbox (%s)\n", s.Root)
-		for _, args := range [][]string{{"--yes", "--copy"}, {"sync"}} {
+		for _, args := range [][]string{{"--yes"}, {"sync"}} {
 			c := exec.Command(s.AvalBin(goos), args...)
 			c.Dir = s.Repo()
 			c.Env = env

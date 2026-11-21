@@ -6,7 +6,7 @@
 
 | Orden | Qué hace |
 | :--- | :--- |
-| `aval dev` | Abre tu `$SHELL` dentro del sandbox (prompt `[aval dev:default]`). La primera vez hace `aval --yes --copy` y `aval sync` allí. |
+| `aval dev` | Abre tu `$SHELL` dentro del sandbox (prompt `[aval dev:default]`). La primera vez hace `aval --yes` y `aval sync` allí. |
 | `aval dev run -- <cmd>` | Un solo comando en el mismo entorno: `aval dev run -- aval doctor`. Devuelve su código de salida. |
 | `aval dev diff` | Qué cambiarían `aval --yes` y `aval sync` en tu máquina **real**. Solo lectura: es la puerta de "funciona en dev" a "es seguro aplicar". |
 | `aval dev project <ruta>` | Clona un proyecto real dentro del sandbox para probar hooks y comandos con código de verdad. |
@@ -22,7 +22,7 @@ Dentro del sandbox, cada una de estas variables apunta a una carpeta del sandbox
 
 Además se quitan `TMUX`, `GIT_DIR`, `GIT_WORK_TREE`, todo `AVAL_*` y todo `ENGRAM_*` (incluido el token de la nube), y `PATH` empieza por el `bin` del sandbox. `AVAL_DEV=1` marca que estás dentro.
 
-El sandbox instala desde una **copia** del repo (sin `.git`), así que los enlaces apuntan al sandbox y nada puede escribir en tu checkout. Las cachés de Go se comparten a propósito (son por contenido).
+El sandbox instala desde una **copia** del repo (sin `.git`), así que los enlaces (symlinks) apuntan al sandbox y nada puede escribir en tu checkout. Las cachés de Go se comparten a propósito (son por contenido).
 
 ## Garantías
 
