@@ -205,7 +205,7 @@ and `font-size`, so they always match their text.
 `signature` `circle-help` `flag` `route` `chart-column` `package` `banknote` `milestone`
 `square-check-big` `minus`
 
-Need another? Add it to the `ICONS` list in `build-assets.py` and rebuild. Never emojis.
+Need another? Add it to the `icons` list in `internal/pdfreport/assets.go` and rebuild with `aval pdf assets`. Never emojis.
 
 ## Utilities
 

@@ -2,7 +2,7 @@
 # Run every test suite in the repo and summarise the result.
 #
 # The tmux/yazi suites exercise the *installed* configs under ~/.config, so run
-# ./install.sh first on a fresh machine or they will report missing files.
+# `aval --yes` first on a fresh machine or they will report missing files.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -35,7 +35,6 @@ SUITES=(
   "$REPO/tests/design-pipeline.test.sh"
   "$REPO/tests/design-shot-stop.test.sh"
   "$REPO/tests/hooks-e2e.test.sh"
-  "$REPO/tests/bootstrap-verify.test.sh"
   "$REPO/tests/provenance.test.sh"
   "$REPO/tests/context-budget.test.sh"
   "$REPO/tests/agent-rules-sync.test.sh"
@@ -56,7 +55,6 @@ SUITES=(
   "$REPO/tests/docker-runtime-skills.test.sh"
   "$REPO/tests/lightpanda-browser.test.sh"
   "$REPO/tests/herdr.test.sh"
-  "$REPO/tests/kiri-up.test.sh"
   "$REPO/tests/readme.test.sh"
   "$REPO/tests/agent-hooks.test.sh"
   "$REPO/tests/no-sdd.test.sh"
@@ -143,8 +141,8 @@ done
 # Counted in the same total as the shell suites, so "everything green" means
 # every test in the repository rather than only the ones written in bash.
 #
-# A missing toolchain is a skip, not a failure: install.sh is the installer that
-# has to work everywhere, and it needs nothing but bash.
+# A missing toolchain is a skip, not a failure here; the suites that build the
+# binary report their own "Go binary builds" failure.
 if command -v go >/dev/null 2>&1; then
   go_out="$(cd "$REPO" && go test ./... 2>&1)"
   go_rc=$?

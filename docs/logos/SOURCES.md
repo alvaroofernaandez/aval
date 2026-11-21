@@ -4,7 +4,7 @@ Each tool's own mark, taken from the project itself. They are trademarks of
 their owners, shown only to name the tools this setup uses. PNGs are resized
 to at most 192 px so the generated SVGs stay small.
 
-`docs/brand.py` embeds these into `docs/assets/stack-*.svg`.
+`tools/brand` embeds these into `docs/assets/stack-*.svg`.
 
 | File | Source |
 | :--- | :--- |
@@ -46,6 +46,6 @@ to at most 192 px so the generated SVGs stay small.
 delta (dandavison/delta; its docs favicon is mdBook's default). Both get a
 monogram tile rather than an invented mark.
 
-On the dark theme, `docs/brand.py` lightens the dark tones of apple, github,
+On the dark theme, `tools/brand` lightens the dark tones of apple, github,
 zsh, bash and tmux (brand colours are kept), because those marks are drawn
 black and disappear on a dark card. The files here stay untouched.

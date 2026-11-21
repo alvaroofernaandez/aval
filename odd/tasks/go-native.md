@@ -29,7 +29,7 @@ Decisions
       settings.json points at the binary.
 - [x] T5 tmux helpers (`config/tmux/*.sh`) → `aval tmux <name>`; tmux.conf
       calls the binary.
-- [ ] T6 Remaining scripts → Go: `install.sh`, `scripts/install.sh`,
+- [x] T6 Remaining scripts → Go: `install.sh`, `scripts/install.sh`,
       `scripts/sync-agent-rules.sh`, `scripts/reap-orphan-tests.sh`,
       `scripts/macos/*`, skill scripts (`kiri-up.sh`, `pdf-report/*.py`,
       docker/design-refactor helpers), `docs/*.py`.

@@ -36,6 +36,8 @@ func TestRunDesign(t *testing.T) {
 		{"hardcodes ext filter", []string{"gate", "hardcodes", "--ext", "tsx", css}, true, "", "no lintable"},
 		{"theme-refs with --theme", []string{"gate", "theme-refs", "--theme", theme, css}, false, "", "OK"},
 		{"theme-refs two-arg form", []string{"gate", "theme-refs", theme, css}, false, "", "OK"},
+		{"native clean", []string{"gate", "native", theme}, false, "", "clean"},
+		{"native no paths", []string{"gate", "native"}, false, "usage", ""},
 		{"emoji clean", []string{"gate", "emoji", theme}, false, "", "OK"},
 		{"unknown gate", []string{"gate", "nope"}, false, "unknown gate", ""},
 		{"no gate", []string{"gate"}, false, "usage", ""},

@@ -1,10 +1,10 @@
 # Single source of truth for what gets installed and where.
 #
-# Two installers read this file: install.sh (Unix) and the cross-platform TUI
-# under cmd/aval. Keeping the list in one place is the whole
-# point — a second copy diverges the first time an entry is added to one and
-# not the other, and the failure is silent: the config just never gets linked.
-# tests/manifest.test.sh fails the build if the two ever disagree.
+# The Go installer under cmd/aval (TUI and `--yes`) reads this file. Keeping the
+# list in one place is the whole point — a second copy diverges the first time
+# an entry is added to one and not the other, and the failure is silent: the
+# config just never gets linked. tests/manifest.test.sh fails the build if the
+# installer and this file ever disagree.
 #
 # Format
 # ------
@@ -32,7 +32,6 @@ config/ghostty                     .config/ghostty
 config/herdr-core/templates        .config/herdr-core/templates
 config/herdr-app/keys.json         .config/herdr-app/keys.json
 config/herdr-app/mods/diff-review  .config/herdr-app/mods/diff-review
-shared/skills/kiri-docker/scripts/kiri-up.sh .local/bin/kiri-up
 home/tmux.conf                     .tmux.conf
 home/zshrc                         .zshrc
 home/zprofile                      .zprofile

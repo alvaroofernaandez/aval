@@ -17,8 +17,8 @@ rendered 16 pages -> informe.pdf
 An `.ico-*` class used in the HTML with no rule in `brand.css`. It renders as an empty
 box: invisible in a thumbnail, obvious in print.
 
-**Fix:** typo in the icon name, or the icon is not in the `ICONS` list. Add it to
-`build-assets.py` and rebuild `brand.css`.
+**Fix:** typo in the icon name, or the icon is not in the `icons` list. Add it to
+the list in `internal/pdfreport/assets.go` and rebuild `brand.css` with `aval pdf assets`.
 
 ## OVERFLOW
 

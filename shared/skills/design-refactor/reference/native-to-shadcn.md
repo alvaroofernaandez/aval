@@ -6,7 +6,7 @@ browser `<dialog>`, no `confirm()`. They cannot be styled consistently, they
 render differently on every OS and browser, and each one is a hole in the single
 shared primitive layer the design system depends on.
 
-`scripts/lint_native_elements.py` enforces this and exits non-zero on a hit.
+`aval design gate native` enforces this and exits non-zero on a hit.
 This file is the replacement for each one.
 
 Upstream's own framework adapters cover Vue, Svelte, Angular, Solid, Lit, React

@@ -1,9 +1,0 @@
-# BuildKit config for the `multiarch` builder (created by kiri-up).
-#
-# The cache is bounded so builds stay fast without eating the disk: BuildKit
-# garbage-collects the least recently used layers once the cache passes
-# maxUsedSpace, and keeps at least minFreeSpace free on the VM disk.
-[worker.oci]
-  gc = true
-  maxUsedSpace = "20GB"
-  minFreeSpace = "10GB"

@@ -19,7 +19,8 @@ const designUsage = `usage:
   aval design gate hardcodes [--ext .css,.tsx] [--no-tw] <path>...
   aval design gate theme-refs --theme <theme.css>... <path>...
   aval design gate component [--root <dir>]      (checks <dir>/components/*.md)
-  aval design gate emoji <path>...`
+  aval design gate emoji <path>...
+  aval design gate native <path>...              (native select/date/dialog/confirm)`
 
 // runDesign dispatches `aval design`. It needs no repository: the gates work
 // on whatever project the current directory is in.
@@ -118,6 +119,8 @@ func runDesignGate(args []string, out io.Writer) error {
 		code = designgate.Component(out, root)
 	case "emoji":
 		code = designgate.Emoji(out, pos)
+	case "native":
+		code = designgate.Native(out, pos)
 	default:
 		return fmt.Errorf("unknown gate %q\n%s", args[0], designUsage)
 	}

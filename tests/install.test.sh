@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
-# Tests for install.sh. Every run happens inside a throwaway $HOME, so the real
+# Tests for the Go installer (`aval --yes`). Every run happens inside a throwaway $HOME, so the real
 # dotfiles of whoever runs the suite are never touched.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INSTALL="$REPO/install.sh"
+. "$REPO/tests/lib/aval-bin.sh"
 
 pass=0
 fail=0
 SANDBOX=""
 
-cleanup() { [ -n "$SANDBOX" ] && rm -rf "$SANDBOX"; }
+BIN_DIR="$(mktemp -d)"
+cleanup() { [ -n "$SANDBOX" ] && rm -rf "$SANDBOX"; rm -rf "$BIN_DIR"; }
 trap cleanup EXIT
+AVAL="$(build_aval "$BIN_DIR")"
 
 ok() { printf '  \033[32mPASS\033[0m %s\n' "$1"; pass=$((pass + 1)); }
 ko() { printf '  \033[31mFAIL\033[0m %s\n     expected: %s\n     actual:   %s\n' "$1" "$2" "$3"; fail=$((fail + 1)); }
@@ -22,19 +24,20 @@ fresh_home() {
   SANDBOX="$(mktemp -d)"
 }
 
-run_install() { HOME="$SANDBOX" bash "$INSTALL" "$@" 2>&1; }
+run_install() { HOME="$SANDBOX" "$AVAL" --yes --repo "$REPO" "$@" 2>&1; }
 
 # Backups live in a quarantine directory, never beside the original.
 BACKUP_ROOT_NAME=".aval-backup"
 count_backups() {
   [ -d "$SANDBOX/$BACKUP_ROOT_NAME" ] || { echo 0; return; }
-  find "$SANDBOX/$BACKUP_ROOT_NAME" -mindepth 2 -maxdepth 4 \( -type f -o -type d \) 2>/dev/null \
-    | rg -v "^$SANDBOX/$BACKUP_ROOT_NAME/[^/]+$" | head -100 | wc -l | tr -d ' '
+  find "$SANDBOX/$BACKUP_ROOT_NAME" -mindepth 2 -maxdepth 4 \( -type f -o -type d \) ! -name manifest.json 2>/dev/null \
+    | head -100 | wc -l | tr -d ' '
 }
 # Path of a backed-up item, whatever timestamp it got.
 backup_of() { find "$SANDBOX/$BACKUP_ROOT_NAME" -maxdepth 3 -path "*/$1" 2>/dev/null | head -1; }
 
 echo "install"
+assert_eq "the Go binary builds" "yes" "$([ -n "$AVAL" ] && echo yes || echo no)"
 
 # --- clean machine -----------------------------------------------------------
 fresh_home
@@ -105,7 +108,7 @@ assert_eq "dry-run creates no backups" "0" "$(count_backups)"
 assert_eq "dry-run leaves existing files alone" \
   "UNTOUCHED" "$(cat "$SANDBOX/.config/yazi/precious.conf" 2>/dev/null)"
 # Capture first, then match: piping straight into `rg -q` makes it exit on the
-# first hit, and the SIGPIPE that kills install.sh trips pipefail.
+# first hit, and the SIGPIPE that kills the installer trips pipefail.
 dry_out="$(run_install --dry-run)"
 assert_eq "dry-run still reports what it would do" "yes" \
   "$(printf '%s' "$dry_out" | rg -qi 'tmux' && echo yes || echo no)"
@@ -194,12 +197,39 @@ assert_eq "leaves opencode node_modules in place" \
 
 # --- missing source ----------------------------------------------------------
 fresh_home
-out="$(HOME="$SANDBOX" REPO_ROOT="$SANDBOX/not-a-repo" bash "$INSTALL" 2>&1)"
+mkdir -p "$SANDBOX/not-a-repo"
+cp "$REPO/install.manifest" "$SANDBOX/not-a-repo/"
+out="$(HOME="$SANDBOX" "$AVAL" --yes --repo "$SANDBOX/not-a-repo" 2>&1)"
 rc=$?
 assert_eq "fails when the source tree is missing" \
   "nonzero" "$([ "$rc" -ne 0 ] && echo nonzero || echo zero)"
 assert_eq "says which path was missing" "yes" \
   "$(printf '%s' "$out" | rg -qi 'not-a-repo|missing|no such' && echo yes || echo no)"
+
+# --- what install.sh used to do after linking --------------------------------
+# core.hooksPath turns the versioned pre-push hook on, in a git checkout only.
+fresh_home
+clone="$SANDBOX/clone"
+mkdir -p "$clone"
+cp -R "$REPO/." "$clone/" 2>/dev/null
+rm -rf "$clone/.git"
+git -C "$clone" init -q
+git -C "$clone" config --unset core.hooksPath 2>/dev/null
+HOME="$SANDBOX" "$AVAL" --yes --repo "$clone" >/dev/null 2>&1
+assert_eq "enables the versioned git hooks in a checkout" ".githooks" \
+  "$(git -C "$clone" config --get core.hooksPath)"
+
+fresh_home
+clone="$SANDBOX/clone"
+mkdir -p "$clone"
+cp -R "$REPO/." "$clone/" 2>/dev/null
+rm -rf "$clone/.git"
+git -C "$clone" init -q
+HOME="$SANDBOX" "$AVAL" --yes --dry-run --repo "$clone" >/dev/null 2>&1
+assert_eq "dry-run leaves core.hooksPath alone" "" \
+  "$(git -C "$clone" config --get core.hooksPath)"
+assert_eq "dry-run seeds no settings" "no" \
+  "$([ -e "$SANDBOX/.claude/settings.json" ] && echo yes || echo no)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

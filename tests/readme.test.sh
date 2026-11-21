@@ -25,8 +25,8 @@ trap 'rm -rf "$out"' EXIT
 
 # --- generator ---------------------------------------------------------------
 gen_status=0
-python3 "$REPO/docs/brand.py" --out "$out" >/dev/null 2>&1 || gen_status=$?
-assert_eq "docs/brand.py runs" "0" "$gen_status"
+(cd "$REPO" && go run ./tools/brand --out "$out") >/dev/null 2>&1 || gen_status=$?
+assert_eq "tools/brand runs" "0" "$gen_status"
 
 # Generated images are content-addressed: <name>.<sha256[:8]>.svg. The hash
 # is in the file name, not a query string, because github.com/<repo>/raw/...
@@ -99,10 +99,10 @@ assert_eq "hero uses only black, white and greys" "" "$non_grey"
 # Real logos, embedded, for every tool that publishes one. Embedded because a
 # README image cannot load external files: an <image href="docs/..."> inside an
 # SVG renders as a blank square on GitHub.
-nologo="$(python3 "$REPO/docs/brand.py" --no-logo 2>/dev/null | tr '\n' ' ')"
+nologo="$(cd "$REPO" && go run ./tools/brand --no-logo 2>/dev/null | tr '\n' ' ')"
 assert_eq "only tools with no published logo lack one" "ripgrep delta " "$nologo"
 embedded="$(rg -c '<image ' "$(asset "$out" stack-light)")"
-expected=$(( $(python3 "$REPO/docs/brand.py" --list 2>/dev/null | rg -c .) - 2 ))
+expected=$(( $(cd "$REPO" && go run ./tools/brand --list 2>/dev/null | rg -c .) - 2 ))
 assert_eq "every other tool embeds its logo" "$expected" "${embedded:-0}"
 assert_eq "logos are not loaded from outside the SVG" "0" \
   "$(rg -c 'href="(https?:|\.\.?/|docs/)' "$(asset "$out" stack-light)" || echo 0)"
@@ -135,7 +135,7 @@ assert_eq "every logo lists its source" "" "$unsourced"
 
 # One tile per tool, and each tile is labelled so the image is not a mystery
 # to a screen reader.
-tools="$(python3 "$REPO/docs/brand.py" --list 2>/dev/null)"
+tools="$(cd "$REPO" && go run ./tools/brand --list 2>/dev/null)"
 tool_count="$(printf '%s\n' "$tools" | rg -c .)"
 assert_eq "generator lists at least 20 tools" "yes" "$([ "${tool_count:-0}" -ge 20 ] && echo yes || echo no)"
 missing=""

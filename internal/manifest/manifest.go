@@ -1,9 +1,8 @@
 // Package manifest reads install.manifest, the single source of truth for
 // what this repository installs and where.
 //
-// install.sh parses the same file in bash. Neither implementation owns the
-// list; tests/manifest.test.sh fails the build if the two ever disagree about
-// what gets installed.
+// tests/manifest.test.sh fails the build if the installer ever disagrees with
+// the file about what gets installed.
 package manifest
 
 import (

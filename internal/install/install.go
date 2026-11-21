@@ -1,6 +1,6 @@
 // Package install executes a plan against the filesystem.
 //
-// It keeps the promise install.sh makes and that users rely on: nothing is ever
+// It keeps the promise users rely on: nothing is ever
 // deleted. Anything already sitting at a destination is moved into a timestamped
 // quarantine directory before the new entry takes its place, and re-running is a
 // no-op for entries already pointing at the repo.

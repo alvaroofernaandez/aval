@@ -73,14 +73,15 @@ la **v** del logotipo es un check.
 
 ```sh
 git clone https://github.com/alvaroofernaandez/aval.git ~/aval
-cd ~/aval && ./install.sh --dry-run && ./install.sh
+cd ~/aval && go build -o ~/.local/bin/aval ./cmd/aval && aval --yes --dry-run && aval --yes
 brew bundle --file=Brewfile   # macOS/Linux: todo lo instalado a propósito
 ```
 
-Con Go instalado, el arranque de un comando compila la TUI multiplataforma:
+Con Go instalado, un comando instala el binario (la TUI multiplataforma); también
+sirve el paquete npm o el binario de la página de releases:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/aval/main/scripts/install.sh | sh
+go install github.com/alvaroofernaandez/aval/cmd/aval@latest
 aval update   # git pull + enlaza lo nuevo
 aval doctor   # revisa enlaces, hooks, agentes y settings (--fix repara, --json para scripts)
 aval sync     # vuelca lo que gestiona el repo en ~/.claude/settings.json y en Codex/Gemini (--dry-run)
@@ -124,6 +125,6 @@ Lo privado (nombres de empresa, skills de cliente) vive fuera del repo, en `~/.c
   <img src="docs/assets/wordmark-light.8ec8a19c.svg" alt="aval" width="88">
 </picture>
 
-<sub>Imágenes generadas con <code>python3 docs/brand.py</code> · cada logo del stack es marca registrada de su proyecto</sub>
+<sub>Imágenes generadas con <code>go run ./tools/brand</code> · cada logo del stack es marca registrada de su proyecto</sub>
 
 </div>

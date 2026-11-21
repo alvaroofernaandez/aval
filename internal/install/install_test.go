@@ -208,7 +208,7 @@ func TestCopyHandlesDirectories(t *testing.T) {
 }
 
 func TestExistingFileIsBackedUpNeverDeleted(t *testing.T) {
-	// The promise install.sh makes, and the one that matters most: whatever the
+	// The promise the installer makes, and the one that matters most: whatever the
 	// user already had is still on disk afterwards.
 	_, home, act := fixture(t)
 	if err := os.WriteFile(act.Dest, []byte("PRECIOUS"), 0o644); err != nil {

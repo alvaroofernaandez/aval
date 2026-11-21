@@ -58,7 +58,7 @@ This section carries only tooling and workflow directives — it does not restat
 
 <!-- shared:agent-rules -->
 <!-- Kept byte-identical in config/opencode/AGENTS.md by
-     scripts/sync-agent-rules.sh. Edit HERE, never there. -->
+     `aval rules sync`. Edit HERE, never there. -->
 
 ## Design Architecture (BLOCKING for UI work)
 

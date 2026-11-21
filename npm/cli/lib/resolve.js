@@ -34,7 +34,7 @@ export function binaryName(platform) {
 
 /**
  * The message shown on an unsupported platform. It names the platform and
- * points at the shell installer, which needs nothing but bash — being on an
+ * points at building from source, which needs nothing but Go — being on an
  * odd architecture should not mean being stuck.
  */
 export function describeUnsupported(platform, arch) {
@@ -45,7 +45,6 @@ export function describeUnsupported(platform, arch) {
     `Supported: ${supported}`,
     ``,
     `Install from source instead:`,
-    `  git clone https://github.com/alvaroofernaandez/aval.git ~/.aval`,
-    `  ~/.aval/install.sh`,
+    `  go install github.com/alvaroofernaandez/aval/cmd/aval@latest`,
   ].join("\n");
 }

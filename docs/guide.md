@@ -87,11 +87,12 @@ Se desactiva con `AVAL_NO_UPDATE_CHECK=1`.
 ### Un comando, sin Node (macOS · Linux · Windows)
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/aval/main/scripts/install.sh | sh
+go install github.com/alvaroofernaandez/aval/cmd/aval@latest
 ```
 
-Clona el repositorio, descarga el binario para tu plataforma y abre la **TUI de
-instalación**: detecta el sistema, muestra solo lo que aplica y deja elegir qué instalar.
+O descarga el binario de tu plataforma de la página de releases (con `SHA256SUMS`).
+Instala el binario y abre la **TUI de instalación**: detecta el sistema, muestra solo lo
+que aplica y deja elegir qué instalar.
 
 <div align="center">
 <img src="assets/installer.gif" alt="La TUI del instalador: selección de grupos, instalación y resumen" width="100%">
@@ -110,7 +111,7 @@ instalación**: detecta el sistema, muestra solo lo que aplica y deja elegir qu�
 > El GIF es una instalación real grabada con [VHS](https://github.com/charmbracelet/vhs)
 > contra un `$HOME` desechable — por eso el resumen dice `linked 43` y no `would install`.
 > Se regenera con `vhs docs/installer-demo.tape`, igual que la captura de arriba con
-> `vhs docs/environment.tape` y el hero con `python3 docs/brand.py`.
+> `vhs docs/environment.tape` y el hero con `go run ./tools/brand`.
 
 ### Actualizar
 
@@ -268,21 +269,21 @@ líneas); `low` si solo hay docs/tests o un cambio pequeño con tests. Devuelve 
 revisores: ninguno, `review-reliability`, o los cuatro (`review-risk`, `review-resilience`,
 `review-reliability`, `review-readability`). La skill `ship` lo usa para dimensionar la auto-revisión.
 
-### Sin binario: el instalador de siempre
+### Sin TUI: modo headless
 
 ```bash
 git clone https://github.com/alvaroofernaandez/aval.git ~/aval
 cd ~/aval
 
-./install.sh --dry-run   # 👀 muestra qué haría, sin tocar nada
-./install.sh             # 🔗 enlaza de verdad
+aval --yes --dry-run   # 👀 muestra qué haría, sin tocar nada
+aval --yes             # 🔗 enlaza de verdad
 ```
 
-Ambos instaladores leen **el mismo `install.manifest`**, y un test falla si alguna vez
-dejan de coincidir. No hay dos listas que mantener sincronizadas.
+La TUI y el modo headless leen **el mismo `install.manifest`**: no hay dos listas que
+mantener sincronizadas.
 
 > [!IMPORTANT]
-> **`install.sh` nunca borra nada.** Si ya tienes configuración en el destino, la mueve a
+> **`aval` nunca borra nada.** Si ya tienes configuración en el destino, la mueve a
 > `~/.aval-backup/<timestamp>/` antes de enlazar. Volver a ejecutarlo es seguro: los
 > enlaces que ya apuntan aquí se dejan intactos.
 
@@ -424,26 +425,22 @@ aval/
 │   ├── cli/                   Paquete principal: launcher + resolutor
 │   └── build.mjs              Arma los 7 paquetes desde los binarios
 │
-├── 📁 docs/                   Assets del README y sus generadores
-│   ├── brand.py               Hero en blanco y negro y muro de logos
-│   ├── hero.py                Hero: wordmark + isotipo hecho de checks
+├── 📁 docs/                   Assets del README
 │   ├── logos/                 Logos oficiales vendorizados + SOURCES.md
 │   ├── installer-demo.tape    Grabación de la TUI (VHS)
 │   └── environment.tape       Captura de tmux + yazi (VHS)
 │
-├── 📁 scripts/
-│   └── install.sh             Arranque de un comando (curl | sh)
+├── 📁 tools/brand/            Generador de las imágenes del README (go run)
 │
 ├── 📋 install.manifest        Qué se instala y dónde — fuente única
-├── ⚙️  install.sh              Instalador shell: lee el mismo manifiesto
 └── 🧪 tests/                  10 suites transversales
 ```
 
 > [!IMPORTANT]
-> **`install.manifest` es la fuente única.** Los dos instaladores lo leen; ninguno lleva
-> su propia lista. `tests/manifest.test.sh` compila el binario y compara sus destinos con
-> los de `install.sh`, así que una divergencia rompe el build en vez de producir dos
-> máquinas configuradas distinto.
+> **`install.manifest` es la fuente única.** El instalador de Go (TUI y `--yes`) lo lee;
+> nada más lleva su propia lista. `tests/manifest.test.sh` compila el binario y compara
+> sus destinos con los del manifiesto, así que una divergencia rompe el build en vez de
+> producir dos máquinas configuradas distinto.
 
 ---
 
@@ -911,8 +908,7 @@ wait-helpers           16 passed        paste-router           12 passed
 
 Una sola orden cubre **shell, Go y npm**: si están los toolchains, `run-all.sh` ejecuta
 también `go test ./...` y `node --test` y los suma al total. Si falta alguno, lo salta sin
-fallar — `install.sh` es el instalador que debe funcionar en cualquier parte, y solo
-necesita bash.
+fallar.
 
 Cada suite levanta su **propio servidor de tmux aislado** (`tmux -L`) y, en el caso de
 `install`, un `$HOME` desechable. Ninguna toca tu sesión ni tu configuración real.
@@ -920,11 +916,11 @@ Cada suite levanta su **propio servidor de tmux aislado** (`tmux -L`) y, en el c
 > [!NOTE]
 > Los tests de Go usan `t.TempDir()` para el repo y para `$HOME`, así que tampoco tocan
 > nada real. `manifest` es el que impide que los dos instaladores diverjan: compila el
-> binario y compara sus 88 destinos con los de `install.sh`.
+> binario y compara sus destinos con los del manifiesto.
 
 > [!NOTE]
 > Las suites de tmux y yazi comprueban la configuración **instalada** en `~/.config`, así
-> que ejecuta `./install.sh` antes de lanzarlas en una máquina nueva.
+> que ejecuta `aval --yes` antes de lanzarlas en una máquina nueva.
 
 <details>
 <summary><b>🎓 Lecciones aprendidas: tests que mentían</b></summary>

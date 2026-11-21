@@ -324,7 +324,7 @@ done
 # The path-scoped half of the section moved to lessons (aval hook lessons), which
 # inject it when a UI file is touched instead of on every turn.
 for pair in 'ui-visual-verification:shot.mjs' 'ui-visual-verification:not run' \
-            'ui-native-elements:lint_native_elements.py' 'ui-native-elements:components/ui' \
+            'ui-native-elements:aval design gate native' 'ui-native-elements:components/ui' \
             'ui-native-elements:shadcn/ui'; do
   lesson="${pair%%:*}"; needle="${pair#*:}"
   assert_eq "lesson $lesson still says: $needle" "yes" \

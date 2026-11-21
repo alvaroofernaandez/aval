@@ -213,7 +213,7 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 
 <!-- shared:agent-rules -->
 <!-- Kept byte-identical in config/opencode/AGENTS.md by
-     scripts/sync-agent-rules.sh. Edit HERE, never there. -->
+     `aval rules sync`. Edit HERE, never there. -->
 
 ## Design Architecture (BLOCKING for UI work)
 
@@ -307,7 +307,7 @@ Never use native interactive elements: no native date picker, raw `<select>`,
 `<datalist>`, browser `<dialog>`, `confirm()` or `alert()`. Use shadcn/ui + Radix
 (`components/ui/**` is exempt). Text, email, password, number, search inputs and
 `<textarea>` stay native. Enforce with
-`python3 ~/.claude/skills/design-refactor/scripts/lint_native_elements.py src/`,
+`aval design gate native src/`,
 which must exit 0; the `design-refactor` skill covers each replacement.
 
 ### ui-visual-verification

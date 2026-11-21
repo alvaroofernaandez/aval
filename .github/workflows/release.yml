@@ -1,9 +1,8 @@
 # Builds the installer for every supported platform and publishes it.
 #
 # This is what makes the installer self-updating in practice: every push to
-# main republishes the "latest" release, so `aval update` and the
-# bootstrap script both pick up changes without anyone cutting a version by
-# hand. Tagged pushes additionally produce a permanent, versioned release.
+# main republishes the "latest" release, so `aval update` and the release
+# binaries both pick up changes without anyone cutting a version by hand. Tagged pushes additionally produce a permanent, versioned release.
 name: release
 
 on:
@@ -38,7 +37,7 @@ jobs:
       - name: go test
         run: go test ./... -race
 
-      # The shell suite covers install.sh, the tmux scripts and the guards that
+      # The shell suite covers the Go installer, the tmux scripts and the guards that
       # keep employer material and machine indexes out of the repo. It runs on
       # Linux here; the tmux suites need a tmux binary.
       # run-all.sh parses each suite's summary with sd and rg. Without them the
@@ -92,7 +91,10 @@ jobs:
       # first. This is the same instruction the README gives for a fresh machine.
       # The runner is throwaway, so linking into its $HOME is free.
       - name: install aval
-        run: ./install.sh
+        run: |
+          mkdir -p "/.local/bin"
+          go build -o "/.local/bin/aval" ./cmd/aval
+          "$HOME/.local/bin/aval" --yes
 
       # Individually bounded as well as at the job level, so a hang is
       # attributed to the suites rather than to whatever ran last.
@@ -159,7 +161,7 @@ jobs:
           sha256sum aval-* > SHA256SUMS
           cat SHA256SUMS
 
-      # A rolling "latest" tag is what the bootstrap script and `update` point
+      # A rolling "latest" tag is what `update` and the binary downloads point
       # at, so every push to main is immediately installable.
       - name: publish rolling latest
         if: startsWith(github.ref, 'refs/tags/') == false
@@ -173,8 +175,11 @@ jobs:
             Install or update:
 
             ```sh
-            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | sh
+            go install github.com/${{ github.repository }}/cmd/aval@latest
             ```
+
+            or `npm install -g` the npm package, or download the binary for your
+            platform below (checksums in `SHA256SUMS`) and run `aval`.
           prerelease: true
           files: dist/*
 

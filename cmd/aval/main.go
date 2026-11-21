@@ -9,6 +9,10 @@
 //	aval budget     always-on context per agent and hook latency (--json)
 //	aval review assess  git-only risk tier and reviewer lenses (--base, --json)
 //	aval sync       merge repo-managed settings into the live config (--dry-run)
+//	aval rules sync mirror CLAUDE.md's shared rules and lessons into OpenCode's AGENTS.md (--check)
+//	aval macos      macOS defaults and the screenshot-to-clipboard LaunchAgent
+//	aval reap-orphan-tests  end orphaned test processes (--min-age, --dry-run)
+//	aval hook ...   agent hooks and the git pre-push gate
 //	aval restore    list or restore backup runs (--list, latest, <id>, --pin <id>)
 //	aval uninstall  remove aval's links and restore what they displaced (--dry-run, --yes)
 //	aval --version  print the version
@@ -100,6 +104,25 @@ func run() error {
 		os.Exit(runTmux(flag.Args()[1:]))
 	}
 
+	// macOS helpers and the orphan-test reaper are called by launchd with no
+	// repository around: no repo lookup.
+	if flag.Arg(0) == "macos" {
+		return runMacos(flag.Args()[1:], os.Stdout)
+	}
+	if flag.Arg(0) == "reap-orphan-tests" {
+		return runReap(flag.Args()[1:], os.Stdout)
+	}
+
+	// Skill tooling: standalone, no repository and no update check.
+	switch flag.Arg(0) {
+	case "kiri":
+		return runKiri(flag.Args()[1:])
+	case "docker":
+		return runDocker(flag.Args()[1:])
+	case "pdf":
+		return runPDF(flag.Args()[1:], os.Stdout)
+	}
+
 	repo, err := resolveRepo(*repoFlag)
 	if err != nil {
 		return err
@@ -118,6 +141,8 @@ func run() error {
 		return runBudget(home, flag.Args()[1:], os.Stdout)
 	case "sync":
 		return runSync(repo, home, flag.Args()[1:], *dryRun, os.Stdout)
+	case "rules":
+		return runRules(repo, flag.Args()[1:], os.Stdout)
 	case "restore":
 		return runRestore(repo, home, flag.Args()[1:], *dryRun, os.Stdout)
 	case "uninstall":
@@ -253,7 +278,7 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 	if yes {
 		err := runHeadless(p, pf, runner, symlinks, dryRun)
 		if err == nil {
-			err = seedClaudeSettings(repo, home, dryRun)
+			err = finishInstall(repo, home, dryRun)
 		}
 		return finish(runner, err)
 	}
@@ -271,7 +296,7 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 	if fm, ok := final.(ui.Model); ok && len(fm.Errs()) > 0 {
 		return fmt.Errorf("%d action(s) failed", len(fm.Errs()))
 	}
-	return seedClaudeSettings(repo, home, dryRun)
+	return finishInstall(repo, home, dryRun)
 }
 
 // finish closes the runner's backup run without hiding the original error.

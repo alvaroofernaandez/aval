@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
-# Tests for the Kiri-only Docker skills and the space cleanup script.
+# Tests for the Kiri-only Docker skills. The cleanup command itself is covered
+# by Go tests (internal/dockerclean).
 #
-# Kiri replaced OrbStack (which replaced Colima) on 2026-11-17. The cleanup
-# script must only ever run the safe prunes, and only against the `kiri`
-# context: a prune sent to the wrong daemon deletes data from a runtime the user
-# did not mean to touch. docker/df/du are stubbed on PATH so nothing real is pruned.
+# Kiri replaced OrbStack (which replaced Colima) on 2026-11-17: no skill may
+# instruct starting either of them.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS="$REPO/shared/skills"
-SCRIPT="$SKILLS/docker-space-optimizer/scripts/cleanup.sh"
 
 pass=0
 fail=0
@@ -48,54 +46,12 @@ assert_eq "kiri-docker documents BUILDX_BUILDER=multiarch" "yes" \
   "$(rg -q 'BUILDX_BUILDER=multiarch' "$SKILLS/kiri-docker/SKILL.md" 2>/dev/null && echo yes || echo no)"
 assert_eq "docker-build-optimized verifies the image architecture" "yes" \
   "$(rg -q "image inspect -f '\{\{.Architecture\}\}'" "$SKILLS/docker-build-optimized/SKILL.md" 2>/dev/null && echo yes || echo no)"
-assert_eq "cleanup.sh never calls orbctl" "no" \
-  "$(rg -q 'orbctl' "$SCRIPT" 2>/dev/null && echo yes || echo no)"
-
-# --- cleanup.sh ---------------------------------------------------------------
-assert_eq "cleanup.sh exists" "yes" "$([ -f "$SCRIPT" ] && echo yes || echo no)"
-assert_eq "cleanup.sh is executable" "yes" "$([ -x "$SCRIPT" ] && echo yes || echo no)"
-assert_eq "cleanup.sh uses strict mode" "yes" \
-  "$(rg -q '^set -euo pipefail' "$SCRIPT" 2>/dev/null && echo yes || echo no)"
-
-STUB="$(mktemp -d)"
-LOG="$STUB/calls.log"
-mkstub() { printf '#!/usr/bin/env bash\necho "%s $*" >>"%s"\n%s\n' "$1" "$LOG" "$2" >"$STUB/$1"; chmod +x "$STUB/$1"; }
-mkstub docker 'if [ "$1 $2" = "context show" ]; then echo "${FAKE_CONTEXT:-kiri}"; fi'
-mkstub df 'echo "Filesystem Size Used Avail"; echo "/dev/disk3 460Gi 12Gi 100Gi"'
-mkstub du 'echo "2.9G	$*"'
-
-run() { : >"$LOG"; env PATH="$STUB:/usr/bin:/bin" FAKE_CONTEXT="$1" bash "$SCRIPT" 2>&1; echo "exit=$?"; }
-
-if [ -f "$SCRIPT" ]; then
-  out="$(run kiri)"; calls="$(cat "$LOG")"
-  assert_contains "runs container prune" "docker container prune -f" "$calls"
-  assert_contains "runs image prune (dangling only)" "docker image prune -f" "$calls"
-  assert_contains "runs builder prune" "docker builder prune -af" "$calls"
-  assert_not_contains "never runs system prune" "system prune" "$calls"
-  assert_not_contains "never prunes volumes" "volume prune" "$calls"
-  assert_eq "only ever removes its own probe volume" "" \
-    "$(printf '%s\n' "$calls" | rg 'volume rm' | rg -v 'volume rm kiri-fstrim-probe$')"
-  assert_not_contains "never prunes all images" "image prune -a" "$calls"
-  assert_contains "prints a BEFORE section" "BEFORE" "$out"
-  assert_contains "prints an AFTER section" "AFTER" "$out"
-  assert_contains "prunes the multiarch builder cache" "docker buildx prune --builder multiarch -af" "$calls"
-  assert_contains "measures the Kiri data dir" "Application Support/Kiri" "$out"
-  assert_not_contains "does not claim the disk auto-shrinks" "auto-shrink" "$out"
-  assert_contains "succeeds on kiri" "exit=0" "$out"
-  # Kiri's data.img never returns freed blocks by itself; fstrim on the VM's ext4
-  # (reached through a throwaway volume) did: 49.4 -> 25.2 GB on 2026-11-19.
-  assert_contains "trims the VM disk through a throwaway volume" "docker volume create kiri-fstrim-probe" "$calls"
-  assert_contains "runs fstrim on that volume's filesystem" "fstrim -v /v" "$calls"
-  assert_contains "removes the probe volume afterwards" "docker volume rm kiri-fstrim-probe" "$calls"
-  assert_not_contains "never mounts the VM block device itself" "mount /dev/vda" "$calls"
-  assert_contains "measures data.img real size" "data.img" "$out"
-
-  for other in orbstack colima-rosetta desktop-linux; do
-    out="$(run "$other")"; calls="$(cat "$LOG")"
-    assert_not_contains "refuses to prune on context $other" "prune" "$calls"
-    assert_not_contains "exits non-zero on context $other" "exit=0" "$out"
-  done
-fi
+assert_eq "docker-space-optimizer points to aval docker cleanup" "yes" \
+  "$(rg -q 'aval docker cleanup' "$SKILLS/docker-space-optimizer/SKILL.md" 2>/dev/null && echo yes || echo no)"
+assert_eq "kiri-docker points to aval kiri up" "yes" \
+  "$(rg -q 'aval kiri up' "$SKILLS/kiri-docker/SKILL.md" 2>/dev/null && echo yes || echo no)"
+assert_eq "no shell scripts left in the docker skills" "" \
+  "$(fd -e sh . "$SKILLS/kiri-docker" "$SKILLS/docker-space-optimizer" 2>/dev/null)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -340,3 +340,52 @@ func TestEmoji(t *testing.T) {
 		}
 	}
 }
+
+func TestNative(t *testing.T) {
+	dir := t.TempDir()
+	clean := write(t, dir, "src/ok.tsx", "export const A = () => <Select />\n")
+	dirty := write(t, dir, "src/bad.tsx", "<select name=\"a\">\n  <option>1</option>\n</select>\n")
+	date := write(t, dir, "src/date.html", `<input class="x" type="date">`+"\n")
+	conf := write(t, dir, "src/conf.jsx", "if (confirm('sure')) {}\nwindow.alert('x')\nprompt('p')\n")
+	notNative := write(t, dir, "src/safe.jsx", "myalert('x'); obj.confirm('y'); doprompt('z')\n")
+	comment := write(t, dir, "src/c.tsx", "// <select> in a comment\n * <dialog>\n# <details>\n")
+	exempt := write(t, dir, "src/components/ui/select.tsx", "<select />\n")
+	skipped := write(t, dir, "node_modules/x/a.tsx", "<select />\n")
+	nonUI := write(t, dir, "src/readme.md", "<select />\n")
+	_ = skipped
+
+	tests := []struct {
+		name  string
+		paths []string
+		code  int
+		want  []string
+	}{
+		{"clean file", []string{clean}, 0, []string{"clean (1 file(s) checked)"}},
+		{"select and option", []string{dirty}, 1, []string{"2 native element(s) found", "bad.tsx:1", "native <select>", "bad.tsx:2", "native <option>", "shadcn Select"}},
+		{"date input", []string{date}, 1, []string{"native date input", "DatePicker"}},
+		{"alert confirm prompt", []string{conf}, 1, []string{"3 native element(s)", "window.confirm()", "window.alert()", "window.prompt()"}},
+		{"lookalikes are not flagged", []string{notNative}, 0, []string{"clean"}},
+		{"comment lines are skipped", []string{comment}, 0, []string{"clean"}},
+		{"components/ui is exempt", []string{exempt}, 0, []string{"clean (0 file(s)"}},
+		{"directory walk skips node_modules", []string{dir}, 1, []string{"bad.tsx", "date.html", "conf.jsx"}},
+		{"non-UI extension is ignored", []string{nonUI}, 0, []string{"clean (0 file(s)"}},
+		{"missing path", []string{filepath.Join(dir, "gone")}, 2, []string{"no such path"}},
+		{"no paths", nil, 2, []string{"usage"}},
+	}
+	for _, tc := range tests {
+		var b bytes.Buffer
+		if got := Native(&b, tc.paths); got != tc.code {
+			t.Errorf("%s: exit %d, want %d\n%s", tc.name, got, tc.code, b.String())
+		}
+		for _, w := range tc.want {
+			if !strings.Contains(b.String(), w) {
+				t.Errorf("%s: output lacks %q:\n%s", tc.name, w, b.String())
+			}
+		}
+	}
+	var b bytes.Buffer
+	Native(&b, []string{dir})
+	if strings.Contains(b.String(), "node_modules") || strings.Contains(b.String(), "components/ui") {
+		t.Errorf("exempt/skipped paths leaked:\n%s", b.String())
+	}
+}

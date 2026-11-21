@@ -8,8 +8,7 @@
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COPY="$REPO/scripts/macos/screenshot-to-clipboard"
-INSTALL="$REPO/scripts/macos/install-screenshot-clipboard.sh"
+. "$REPO/tests/lib/aval-bin.sh"
 
 pass=0
 fail=0
@@ -21,15 +20,16 @@ echo "screenshot-clipboard"
 
 T="$(mktemp -d)"
 trap 'rm -rf "$T"' EXIT
+AVAL="$(build_aval "$T")"
 mkdir -p "$T/shots" "$T/state"
 LOG="$T/clip.log"
 # A fake clipboard: records which file it was asked to copy.
 printf '#!/bin/sh\nprintf "%%s\\n" "$1" >> "%s"\n' "$LOG" > "$T/fakeclip"; chmod +x "$T/fakeclip"
-run() { CLIP_CMD="$T/fakeclip" XDG_STATE_HOME="$T/state" SETTLE=0 "$COPY" "$T/shots"; }
+run() { CLIP_CMD="$T/fakeclip" XDG_STATE_HOME="$T/state" SETTLE=0 "$AVAL" macos screenshot-clipboard copy "$T/shots"; }
 
-assert_eq "the copy script exists and is executable" "yes" "$([ -x "$COPY" ] && echo yes || echo no)"
+assert_eq "the Go binary builds" "yes" "$([ -n "$AVAL" ] && echo yes || echo no)"
 
-if [ -x "$COPY" ]; then
+if [ -n "$AVAL" ]; then
   printf 'old' > "$T/shots/Captura 1.png"; touch -t 202601010000 "$T/shots/Captura 1.png"
   printf 'new' > "$T/shots/Captura 2.png"
   printf 'txt' > "$T/shots/notes.txt"
@@ -48,15 +48,18 @@ if [ -x "$COPY" ]; then
   assert_eq "it copies jpg screenshots too" "$T/shots/Captura 4.jpg" "$(tail -1 "$LOG")"
 fi
 
-assert_eq "the installer exists" "yes" "$([ -f "$INSTALL" ] && echo yes || echo no)"
-if [ -f "$INSTALL" ]; then
-  HOME="$T/home" SKIP_LAUNCHCTL=1 SKIP_DEFAULTS=1 bash "$INSTALL" >/dev/null 2>&1
+if [ -n "$AVAL" ]; then
+  HOME="$T/home" SKIP_LAUNCHCTL=1 SKIP_DEFAULTS=1 "$AVAL" macos screenshot-clipboard install >/dev/null 2>&1
   PLIST="$T/home/Library/LaunchAgents/dev.aval.screenshot-clipboard.plist"
   assert_eq "it writes the LaunchAgent" "yes" "$([ -f "$PLIST" ] && echo yes || echo no)"
   assert_eq "the agent watches the screenshot folder" "yes" \
     "$(rg -q "<string>$T/home/Pictures/Screenshots</string>" "$PLIST" 2>/dev/null && rg -q 'WatchPaths' "$PLIST" && echo yes || echo no)"
+  assert_eq "the agent runs the installed aval binary" "yes" \
+    "$(rg -q "<string>$T/home/.local/bin/aval</string>" "$PLIST" 2>/dev/null && rg -q '<string>copy</string>' "$PLIST" && echo yes || echo no)"
   assert_eq "it creates the screenshot folder" "yes" "$([ -d "$T/home/Pictures/Screenshots" ] && echo yes || echo no)"
-  assert_eq "the plist is valid" "0" "$(plutil -lint "$PLIST" >/dev/null 2>&1; echo $?)"
+  if command -v plutil >/dev/null 2>&1; then
+    assert_eq "the plist is valid" "0" "$(plutil -lint "$PLIST" >/dev/null 2>&1; echo $?)"
+  fi
 fi
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

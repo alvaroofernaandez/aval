@@ -42,12 +42,14 @@ func runHook(args []string, in io.Reader, out io.Writer) error {
 		designhook.ShotStop(in, out, designhook.StopOptions{Off: os.Getenv("DESIGN_PIPELINE_OFF") != "", Cache: cache})
 	case "rtk-rewrite":
 		rtkhook.Run(in, out, os.Stderr, rtkhook.Lookup())
+	case "pre-push":
+		return runPrePush(args[1:], in, out)
 	case "lessons":
 		// Exit 0 whatever happens: a lessons hook that can fail is a hook that
 		// can be mistaken for a block.
 		_ = lessons.Run(in, out, lessonsOptions())
 	default:
-		return fmt.Errorf("usage: aval hook lessons|repo-profile|design-gate|design-shot-stop|rtk-rewrite (reads hook JSON on stdin)")
+		return fmt.Errorf("usage: aval hook lessons|repo-profile|design-gate|design-shot-stop|rtk-rewrite|pre-push (reads hook JSON on stdin)")
 	}
 	return nil
 }

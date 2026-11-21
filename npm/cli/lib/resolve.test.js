@@ -56,9 +56,9 @@ test("binaryName carries .exe only on Windows", () => {
 
 test("the unsupported message names the platform and offers a way out", () => {
   // Someone on an unsupported platform must not be left guessing: the repo has
-  // a shell installer that needs nothing but bash.
+  // a Go module that builds anywhere Go does.
   const msg = describeUnsupported("aix", "ppc64");
   assert.match(msg, /aix/);
   assert.match(msg, /ppc64/);
-  assert.match(msg, /install\.sh/, "must point at the fallback installer");
+  assert.match(msg, /go install .*cmd\/aval/, "must point at the fallback installer");
 });

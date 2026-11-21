@@ -20,7 +20,7 @@ for each one, the `Select`-vs-`Combobox` decision, the react-hook-form
 `Controller` pitfall, and the behaviour a swap must not lose.
 
 ```bash
-python3 ~/.claude/skills/design-refactor/scripts/lint_native_elements.py src/
+aval design gate native src/
 ```
 
 Exits non-zero on any hit. `components/ui/**` is exempt — that is where the

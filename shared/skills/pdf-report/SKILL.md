@@ -20,15 +20,14 @@ Do **not** use it for slide decks, web pages, or anything the reader will scroll
 ## Quick path
 
 ```bash
-SKILL=~/.claude/skills/pdf-report
-$SKILL/scripts/init.sh <ruta>/propuestas/<nombre> \
+aval pdf init <ruta>/propuestas/<nombre> \
   --brand-dir <ruta-a-tus-imagenes-de-marca> --people person-1,person-2
 cd <ruta>/propuestas/<nombre>
 # edit informe.html, then:
 node render.mjs
 ```
 
-`init.sh` copies the template, both scripts and a DESIGN.md, then builds
+`aval pdf init` copies the template, the renderer and a DESIGN.md, then builds
 `assets/brand.css` (fonts, logos, portraits, 40 Lucide icons, all base64) and installs
 Playwright. The brand directory is a parameter: it holds `logo.png`, `banner.png` and one
 `<name>.jpg` per portrait, and nothing about it is baked into this skill. The HTML is self-contained afterwards: no network at print time.
@@ -87,7 +86,7 @@ or mark it as pending; a placeholder that looks like data is worse than an empty
 | --- | --- |
 | `references/components.md` | Building any page: the copy-paste catalogue |
 | `references/guards.md` | A guard fires and you need to know what it means |
-| `references/DESIGN.template.md` | Starting a project (init.sh copies it for you) |
+| `references/DESIGN.template.md` | Starting a project (`aval pdf init` copies it for you) |
 
 ## Known traps
 
@@ -95,7 +94,7 @@ These cost real debugging time. They are already handled in the template; do not
 undo them.
 
 - **Google Fonts subsets.** Taking only the first `woff2` from the CSS API drops
-  accents, ñ and €. `build-assets.py` embeds every subset with its `unicode-range`.
+  accents, ñ and €. `aval pdf assets` embeds every subset with its `unicode-range`.
 - **`strong` on dark surfaces.** A global `strong { color: var(--ink) }` makes bold
   text vanish on `.panel-ink` and `.answer`. The override is in the stylesheet.
 - **Variant specificity.** `.gantt .bar` (0,2,0) beats `.b-ghost` (0,1,0). Declare bar

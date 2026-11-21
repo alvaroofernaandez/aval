@@ -51,8 +51,11 @@ There is **no postinstall script**. Nothing executes at install time, so this wo
 ## Without Node
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/aval/main/scripts/install.sh | sh
+go install github.com/alvaroofernaandez/aval/cmd/aval@latest
 ```
+
+Or download the binary for your platform from the
+[releases page](https://github.com/alvaroofernaandez/aval/releases) (checksums in `SHA256SUMS`).
 
 ## License
 

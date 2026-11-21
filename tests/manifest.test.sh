@@ -2,15 +2,15 @@
 # Tests for install.manifest — the single source of truth for what gets
 # installed and where.
 #
-# The manifest exists because there are now two installers: install.sh for
-# Unix, and the cross-platform TUI under cmd/aval. A second copy
-# of the link list diverges the first time someone adds an entry to one and not
-# the other, and the failure is silent: the config simply never gets linked.
+# The manifest exists so there is exactly one list of links: the Go installer
+# under cmd/aval (TUI and `--yes`) reads it, and nothing else carries a copy
+# that could diverge the first time someone adds an entry to one and not the
+# other. The failure would be silent: the config simply never gets linked.
 #
 # So the contract these tests defend is narrow and specific:
 #   1. the manifest parses, and every group declares a platform
 #   2. every source it names actually exists in the repo
-#   3. install.sh installs exactly what the manifest says — no more, no less
+#   3. the Go installer installs exactly what the manifest says — no more, no less
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -54,7 +54,7 @@ done
 assert_eq "every group carries a label for the TUI" "0" "$bad_label"
 
 # --- every source exists -----------------------------------------------------
-# A manifest entry naming a path that was renamed or deleted makes install.sh
+# A manifest entry naming a path that was renamed or deleted makes the installer
 # fail at run time, on the user's machine, halfway through installing.
 missing=0
 while read -r src _dest; do
@@ -68,11 +68,18 @@ fanout_src="$(rg -o '^fanout-source\s*=\s*(\S+)' -r '$1' "$MANIFEST" | head -1)"
 assert_eq "the fan-out source directory exists" "yes" \
   "$([ -n "$fanout_src" ] && [ -d "$REPO/$fanout_src" ] && echo yes || echo no)"
 
-# --- install.sh and the manifest agree ---------------------------------------
-# The heart of it. install.sh --dry-run prints one destination per line; the
+# --- the Go installer and the manifest agree ---------------------------------
+# The heart of it. `aval --yes --dry-run` prints one destination per line; the
 # manifest plus its fan-out must expand to exactly that set. Any drift in
 # either direction fails here rather than on someone's machine.
-actual_dests="$(cd "$REPO" && ./install.sh --dry-run 2>/dev/null | awk 'NF {print $1}' | sort -u)"
+. "$REPO/tests/lib/aval-bin.sh"
+BIN_DIR="$(mktemp -d)"
+trap 'rm -rf "$BIN_DIR"' EXIT
+AVAL="$(build_aval "$BIN_DIR")"
+assert_eq "the Go installer builds" "yes" "$([ -n "$AVAL" ] && echo yes || echo no)"
+
+actual_dests="$(HOME="$BIN_DIR/home" "$AVAL" --yes --dry-run --repo "$REPO" 2>/dev/null \
+  | rg -o '~/\S+' | sed 's|^~/||' | sort -u)"
 
 expected_dests="$(
   rg '^\S+\s+\S+$' "$MANIFEST" | rg -v '^\s*#' | rg -v '=' | awk '{print $2}'
@@ -86,33 +93,11 @@ expected_dests="$(
 )"
 expected_dests="$(printf '%s\n' "$expected_dests" | sort -u)"
 
-assert_eq "install.sh installs exactly what the manifest declares" \
+assert_eq "the Go installer installs exactly what the manifest declares" \
   "" "$(diff <(printf '%s\n' "$expected_dests") <(printf '%s\n' "$actual_dests") | head -20)"
 
 assert_eq "the count is non-trivial" "yes" \
   "$([ "$(printf '%s\n' "$actual_dests" | rg -c .)" -ge 40 ] && echo yes || echo no)"
-
-# --- the Go installer agrees with install.sh ---------------------------------
-# The third leg of the same contract. Two installers reading one manifest is
-# only worth anything if they actually resolve it the same way: a divergence
-# here means a machine installed with the TUI differs from one installed with
-# the script, which is precisely the bug the manifest exists to prevent.
-if command -v go >/dev/null 2>&1; then
-  bin="$(mktemp -d)/aval"
-  if (cd "$REPO" && go build -o "$bin" ./cmd/aval 2>/dev/null); then
-    ok "the Go installer builds"
-    go_dests="$("$bin" --yes --dry-run --repo "$REPO" 2>/dev/null \
-      | rg -o '~/\S+' | sed 's|^~/||' | sort -u)"
-    assert_eq "the Go installer resolves the same destinations as install.sh" \
-      "" "$(diff <(printf '%s\n' "$actual_dests") <(printf '%s\n' "$go_dests") | head -20)"
-  else
-    ko "the Go installer builds" "a binary" "build failed"
-  fi
-  rm -rf "$(dirname "$bin")"
-else
-  # Not a failure: the shell installer is the one that must work everywhere.
-  printf '  \033[33mSKIP\033[0m go toolchain not available — Go installer parity unchecked\n'
-fi
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

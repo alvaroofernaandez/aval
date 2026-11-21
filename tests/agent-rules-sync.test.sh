@@ -14,14 +14,17 @@
 # 2026-09-19, and the manifest fanout carries skills to OpenCode already. What
 # still has to exist in both is the blocking summary: the part that must hold
 # BEFORE any skill can load. So that block is delimited by markers in CLAUDE.md
-# and injected into AGENTS.md by scripts/sync-agent-rules.sh, and this suite
+# and injected into AGENTS.md by `aval rules sync`, and this suite
 # asserts the two are byte-identical.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_MD="$REPO/config/claude/CLAUDE.md"
 AGENTS_MD="$REPO/config/opencode/AGENTS.md"
-SYNC="$REPO/scripts/sync-agent-rules.sh"
+. "$REPO/tests/lib/aval-bin.sh"
+BIN_DIR="$(mktemp -d)"
+trap 'rm -rf "$BIN_DIR"' EXIT
+AVAL="$(build_aval "$BIN_DIR")"
 BEGIN='<!-- shared:agent-rules -->'
 END='<!-- /shared:agent-rules -->'
 
@@ -35,7 +38,7 @@ echo "agent-rules-sync"
 
 block() { awk -v b="$BEGIN" -v e="$END" '$0==b{f=1;next} $0==e{f=0} f' "$1"; }
 
-assert_eq "the sync script exists" "yes" "$([ -x "$SYNC" ] && echo yes || echo no)"
+assert_eq "the Go binary builds" "yes" "$([ -n "$AVAL" ] && echo yes || echo no)"
 assert_eq "CLAUDE.md delimits the shared block" "yes" \
   "$(rg -qF -- "$BEGIN" "$CLAUDE_MD" && rg -qF -- "$END" "$CLAUDE_MD" && echo yes || echo no)"
 assert_eq "AGENTS.md delimits the shared block" "yes" \
@@ -56,11 +59,25 @@ assert_eq "the shared block keeps every blocking rule" "" "$MISSING"
 
 # Running the sync must be a no-op when things are already in sync; if it is
 # not idempotent it will churn the file on every install.
-if [ -x "$SYNC" ]; then
+if [ -n "$AVAL" ]; then
   BEFORE="$(md5 -q "$AGENTS_MD" 2>/dev/null || md5sum "$AGENTS_MD" | cut -d' ' -f1)"
-  "$SYNC" >/dev/null 2>&1
+  "$AVAL" --repo "$REPO" rules sync >/dev/null 2>&1
   AFTER="$(md5 -q "$AGENTS_MD" 2>/dev/null || md5sum "$AGENTS_MD" | cut -d' ' -f1)"
   assert_eq "the sync is idempotent" "$BEFORE" "$AFTER"
+  "$AVAL" --repo "$REPO" rules sync --check >/dev/null 2>&1
+  assert_eq "--check reports no drift after a sync" "0" "$?"
+
+  # --check must see drift and must not write.
+  T="$(mktemp -d)"
+  mkdir -p "$T/config/claude" "$T/config/opencode"
+  cp "$CLAUDE_MD" "$T/config/claude/CLAUDE.md"
+  printf '# AGENTS\n%s\nstale\n%s\n' "$BEGIN" "$END" > "$T/config/opencode/AGENTS.md"
+  touch "$T/install.manifest"
+  STALE="$(cat "$T/config/opencode/AGENTS.md")"
+  "$AVAL" --repo "$T" rules sync --check >/dev/null 2>&1
+  assert_eq "--check exits 1 on drift" "1" "$?"
+  assert_eq "--check does not write" "$STALE" "$(cat "$T/config/opencode/AGENTS.md")"
+  rm -rf "$T"
 fi
 
 # OpenCode has no lessons hook, so the scoped lessons that left the always-on

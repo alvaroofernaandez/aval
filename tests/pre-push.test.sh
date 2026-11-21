@@ -10,6 +10,8 @@ set -uo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOOK="$REPO/.githooks/pre-push"
 
+. "$REPO/tests/lib/aval-bin.sh"
+
 pass=0
 fail=0
 
@@ -23,19 +25,27 @@ assert_eq "the pre-push hook is versioned and executable" "yes" \
   "$([ -x "$HOOK" ] && echo yes || echo no)"
 assert_eq "this clone uses the versioned hooks" ".githooks" \
   "$(git -C "$REPO" config --get core.hooksPath)"
-assert_eq "the hook uses the shared proprietary patterns" "yes" \
-  "$(rg -q 'proprietary-patterns\.sh' "$HOOK" 2>/dev/null && echo yes || echo no)"
-assert_eq "the hook scans outgoing commits with gitleaks" "yes" \
-  "$(rg -q 'gitleaks' "$HOOK" 2>/dev/null && echo yes || echo no)"
+assert_eq "the hook is a thin exec of the Go binary" "exec \"\$a\" hook pre-push \"\$@\"" \
+  "$(tail -1 "$HOOK")"
+# Same resolution as the Claude hooks: ~/.local/bin/aval first, PATH second,
+# so a push works even when ~/.local/bin is not on PATH (GUI git clients).
+assert_eq "the hook prefers ~/.local/bin/aval" "yes" \
+  "$(rg -qF 'a="$HOME/.local/bin/aval"; [ -x "$a" ] || a=aval' "$HOOK" && echo yes || echo no)"
+assert_eq "the hook carries no logic of its own" "3" "$(wc -l < "$HOOK" | tr -d ' ')"
 
 # Behaviour: in a scratch clone, a commit carrying employer material is refused.
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/bin"
+if [ -z "$(build_aval "$work/bin")" ]; then ko "the Go binary builds" "a binary" "build failed"; fi
+export PATH="$work/bin:$PATH"
+# Real drift is the machine's business: default to a binary that reports none.
+printf '#!/bin/sh\nexit 0\n' > "$work/aval-ok"; chmod +x "$work/aval-ok"
+export AVAL_BIN="$work/aval-ok"
 git clone -q --no-hardlinks "$REPO" "$work/clone" 2>/dev/null
-# Test the working copy of the hook and patterns, not whatever is committed.
-mkdir -p "$work/clone/.githooks" "$work/clone/tests/lib"
+# Test the working copy of the hook, not whatever is committed.
+mkdir -p "$work/clone/.githooks"
 cp "$HOOK" "$work/clone/.githooks/pre-push"
-cp "$REPO/tests/lib/proprietary-patterns.sh" "$work/clone/tests/lib/"
 git -C "$work/clone" config core.hooksPath .githooks
 git init -q --bare "$work/remote.git"
 git -C "$work/clone" remote add scratch "$work/remote.git"
@@ -51,17 +61,19 @@ h="haga"
 printf 'notes about %s\n' "${h}link-projects" > "$work/clone/leak.md"
 git -C "$work/clone" add leak.md
 git -C "$work/clone" -c user.name=t -c user.email=t@t commit -qm "test: leak"
-git -C "$work/clone" push -q scratch HEAD:main >/dev/null 2>&1
+leak_err="$(git -C "$work/clone" push -q scratch HEAD:main 2>&1 >/dev/null)"
+rc=$?
 assert_eq "a push carrying employer material is refused" "1" \
-  "$([ "$?" -ne 0 ] && echo 1 || echo 0)"
+  "$([ "$rc" -ne 0 ] && echo 1 || echo 0)"
+assert_eq "...for the right reason" "yes" \
+  "$(printf '%s' "$leak_err" | rg -q 'employer material matching' && echo yes || echo no)"
 
 # aval sync --check: a WARNING by default (another machine's ~/.claude must not
 # block a push), blocking only with AVAL_PREPUSH_STRICT=1, silent when the
 # binary is absent. A stub stands in for the real binary.
 git -C "$work/clone" reset -q --hard HEAD~1   # drop the refused leak commit
-# reset restores the committed hook files; put the working copies back
+# reset restores the committed hook file; put the working copy back
 cp "$HOOK" "$work/clone/.githooks/pre-push"
-cp "$REPO/tests/lib/proprietary-patterns.sh" "$work/clone/tests/lib/"
 stub="$work/aval-drift"
 printf '#!/bin/sh\necho "drift  settings  hooks"\nexit 1\n' > "$stub"
 chmod +x "$stub"

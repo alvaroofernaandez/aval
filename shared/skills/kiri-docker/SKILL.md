@@ -33,7 +33,7 @@ Load for any Docker task on this Mac: running or building images, containers, Co
 | Build for this Mac | `docker build -t <app>:local .` (builder `multiarch`, native arm64) |
 | Build amd64 for deploy | `docker build --platform linux/amd64 -t <app>:<tag> .` then verify `Architecture` |
 | Run an amd64 image | `docker run --platform linux/amd64 ...` (Rosetta) |
-| Docker not answering, wrong context, `multiarch` builder missing | `kiri-up` (idempotent; creates the builder with the bounded cache in `scripts/buildkitd.toml`) |
+| Docker not answering, wrong context, `multiarch` builder missing | `aval kiri up` (idempotent; creates the builder with a bounded BuildKit cache, 20 GB max) |
 | Local domain for a container | `http(s)://<container>.kiri.local`; compose: `<service>.<project>.kiri.local`; custom: label `dev.kiri.domain=api.myapp`; `*.kiri.localhost` needs no setup |
 | Reach the host from a container | `host.docker.internal` (gateway IP `198.19.248.254`) |
 | Public link to a port/container | `kiri share <PORT\|CONTAINER>` (exposes it publicly: confirm first) |
@@ -48,7 +48,7 @@ Load for any Docker task on this Mac: running or building images, containers, Co
 
 ## Execution Steps
 
-1. Run `kiri-up` (starts Kiri if needed, fixes the context and builder, flags a foreign `/var/run/docker.sock`).
+1. Run `aval kiri up` (starts Kiri if needed, fixes the context and builder, flags a foreign `/var/run/docker.sock`).
 2. For builds, `echo $BUILDX_BUILDER` → must be `multiarch`; export it for the session if empty.
 3. Run the task with `docker`, `docker compose` or `docker buildx`.
 4. For deploy images, run the amd64 verification before pushing.
