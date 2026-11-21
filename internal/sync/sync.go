@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alvaroofernaandez/aval/internal/backup"
 	"github.com/alvaroofernaandez/aval/internal/install"
 	"github.com/alvaroofernaandez/aval/internal/manifest"
 	"github.com/alvaroofernaandez/aval/internal/plan"
@@ -31,6 +32,10 @@ type Options struct {
 	DryRun     bool
 	// Now stamps the backup directory; nil means time.Now.
 	Now func() time.Time
+	// Recorder receives everything sync overwrites or creates. Nil means Run
+	// opens its own backup run and commits it; a caller that passes one (the
+	// transactional sync) owns the commit.
+	Recorder *backup.Recorder
 }
 
 // SettingsResult describes what happened to ~/.claude/settings.json.
@@ -222,9 +227,9 @@ func SettingsDrift(opt Options) ([]string, error) {
 	return changed, err
 }
 
-func syncSettings(opt Options) (SettingsResult, error) {
+func syncSettings(opt Options, rec *backup.Recorder) (SettingsResult, error) {
 	var res SettingsResult
-	merged, changed, old, exists, err := planSettings(opt)
+	merged, changed, _, exists, err := planSettings(opt)
 	if err != nil {
 		return res, err
 	}
@@ -238,29 +243,26 @@ func syncSettings(opt Options) (SettingsResult, error) {
 	}
 
 	livePath := filepath.Join(opt.Home, ".claude", "settings.json")
-	if exists {
-		now := time.Now
-		if opt.Now != nil {
-			now = opt.Now
-		}
-		backup := filepath.Join(opt.Home, ".aval-backup", now().Format("20060102-150405"), "claude-settings.json")
-		if err := os.MkdirAll(filepath.Dir(backup), 0o755); err != nil {
-			return res, fmt.Errorf("sync: backup dir: %w", err)
-		}
-		if err := os.WriteFile(backup, old, 0o600); err != nil {
-			return res, fmt.Errorf("sync: backup: %w", err)
-		}
-		res.Backup = backup
-	}
 	data, err := encode(merged)
 	if err != nil {
 		return res, err
 	}
-	if err := os.MkdirAll(filepath.Dir(livePath), 0o755); err != nil {
+	// The saved copy keeps the name older backups used for this file.
+	saved, err := rec.SnapshotAs(livePath, "claude-settings.json")
+	if err != nil {
+		return res, fmt.Errorf("sync: backup: %w", err)
+	}
+	if exists {
+		res.Backup = saved
+	}
+	if err := rec.MkdirAll(filepath.Dir(livePath), 0o755); err != nil {
 		return res, err
 	}
-	if err := os.WriteFile(livePath, data, 0o600); err != nil {
+	if err := backup.WriteFileAtomic(livePath, data, 0o600); err != nil {
 		return res, fmt.Errorf("sync: write settings: %w", err)
+	}
+	if err := rec.Wrote(livePath); err != nil {
+		return res, err
 	}
 	res.Written = true
 	return res, nil
@@ -335,7 +337,7 @@ func sharedBlock(repo string) (string, error) {
 	return strings.Join(block, "\n"), nil
 }
 
-func syncRules(opt Options) ([]RulesResult, error) {
+func syncRules(opt Options, rec *backup.Recorder) ([]RulesResult, error) {
 	block, err := sharedBlock(opt.Repo)
 	if err != nil {
 		return nil, err
@@ -361,7 +363,13 @@ func syncRules(opt Options) ([]RulesResult, error) {
 		next, changed := ApplyRules(block, content)
 		res.Changed = changed
 		if changed && !opt.DryRun {
-			if err := os.WriteFile(path, []byte(next), 0o644); err != nil {
+			if _, err := rec.Snapshot(path); err != nil {
+				return out, fmt.Errorf("sync: backup: %w", err)
+			}
+			if err := backup.WriteFileAtomic(path, []byte(next), 0o644); err != nil {
+				return out, fmt.Errorf("sync: %w", err)
+			}
+			if err := rec.Wrote(path); err != nil {
 				return out, fmt.Errorf("sync: %w", err)
 			}
 		}
@@ -372,12 +380,24 @@ func syncRules(opt Options) ([]RulesResult, error) {
 
 // Run applies every sync step.
 func Run(opt Options) (*Report, error) {
+	rec := opt.Recorder
+	if rec == nil && !opt.DryRun {
+		st := backup.NewStore(opt.Home)
+		st.Now = opt.Now
+		rec = st.Begin()
+		defer func() { _, _, _ = rec.Commit() }()
+	}
+	if rec == nil { // dry run: nothing is written, nothing is recorded
+		rec = backup.NewStore(opt.Home).Begin()
+	}
+	opt.Recorder = rec
+
 	rep := &Report{}
 	var err error
-	if rep.Settings, err = syncSettings(opt); err != nil {
+	if rep.Settings, err = syncSettings(opt, rec); err != nil {
 		return rep, err
 	}
-	if rep.Rules, err = syncRules(opt); err != nil {
+	if rep.Rules, err = syncRules(opt, rec); err != nil {
 		return rep, err
 	}
 	if rep.Links, err = syncLinks(opt); err != nil {
@@ -428,15 +448,11 @@ func syncLinks(opt Options) ([]LinkResult, error) {
 	if err != nil || len(actions) == 0 {
 		return nil, err
 	}
-	now := time.Now
-	if opt.Now != nil {
-		now = opt.Now
-	}
 	runner := install.New(install.Options{
-		Home:       opt.Home,
-		Symlinks:   true,
-		DryRun:     opt.DryRun,
-		BackupRoot: filepath.Join(opt.Home, ".aval-backup", now().Format("20060102-150405")),
+		Home:     opt.Home,
+		Symlinks: true,
+		DryRun:   opt.DryRun,
+		Recorder: opt.Recorder,
 	})
 	var out []LinkResult
 	for _, a := range actions {
