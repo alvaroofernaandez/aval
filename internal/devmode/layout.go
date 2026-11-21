@@ -57,12 +57,8 @@ func ValidName(name string) error {
 }
 
 // BaseDir is where sandboxes live: ${XDG_CACHE_HOME:-~/.cache}/aval/dev.
-// On Windows without XDG_CACHE_HOME it is under %LOCALAPPDATA%.
-func BaseDir(getenv func(string) string, realHome, goos string) string {
+func BaseDir(getenv func(string) string, realHome string) string {
 	cache := getenv("XDG_CACHE_HOME")
-	if cache == "" && goos == "windows" {
-		cache = getenv("LOCALAPPDATA")
-	}
 	if cache == "" {
 		cache = filepath.Join(realHome, ".cache")
 	}

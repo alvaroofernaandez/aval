@@ -55,9 +55,6 @@ func Shell(s Sandbox, goos, shellEnv string, look func(string) (string, error)) 
 	case "bash":
 		rc := filepath.Join(s.RC(), "bashrc")
 		return ShellSpec{Path: path, Args: []string{"--rcfile", rc, "-i"}, Files: map[string]string{rc: bashRC(mk)}}
-	case "fish":
-		init := fmt.Sprintf("functions -q fish_prompt; and functions -c fish_prompt _aval_dev_orig_prompt; function fish_prompt; echo -n '%s '; _aval_dev_orig_prompt; end", mk)
-		return ShellSpec{Path: path, Args: []string{"--init-command", init}}
 	default:
 		return ShellSpec{Path: path, Env: []string{"PS1=" + mk + " $ "}}
 	}

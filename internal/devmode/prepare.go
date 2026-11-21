@@ -179,36 +179,46 @@ func WriteGitIdentity(s Sandbox, realEnv []string) error {
 	return nil
 }
 
-// withGoPaths adds GOCACHE, GOMODCACHE and GOPATH to base when it does not set
-// them, taking the values the real environment would use. Without this the
-// sandbox HOME would make every Go command inside it start from a cold cache.
+// goKeys are the Go settings pinned to the real environment's values: the
+// caches are content addressed and GOENV holds the user's Go settings, and the
+// sandbox HOME would otherwise hide all of them and force a cold build.
+var goKeys = []string{"GOCACHE", "GOMODCACHE", "GOPATH", "GOENV"}
+
+// withGoPaths adds any goKeys that base does not set, as `go env` reports them
+// for the real environment.
 func withGoPaths(base []string) []string {
 	have := map[string]bool{}
 	for _, e := range base {
 		k, _, _ := strings.Cut(e, "=")
 		have[k] = true
 	}
-	if have["GOCACHE"] && have["GOMODCACHE"] && have["GOPATH"] {
+	missing := false
+	for _, k := range goKeys {
+		missing = missing || !have[k]
+	}
+	if !missing {
 		return base
 	}
-	c := exec.Command("go", "env", "GOCACHE", "GOMODCACHE", "GOPATH")
+	c := exec.Command("go", append([]string{"env"}, goKeys...)...)
 	c.Env = base
 	out, err := c.Output()
 	if err != nil {
 		return base
 	}
-	vals := strings.Split(strings.TrimRight(string(out), "\r\n"), "\n")
-	out2 := append([]string{}, base...)
-	for i, k := range []string{"GOCACHE", "GOMODCACHE", "GOPATH"} {
+	vals := strings.Split(strings.ReplaceAll(string(out), "\r", ""), "\n")
+	res := append([]string{}, base...)
+	for i, k := range goKeys {
 		if i < len(vals) && vals[i] != "" && !have[k] {
-			out2 = append(out2, k+"="+strings.TrimRight(vals[i], "\r"))
+			res = append(res, k+"="+vals[i])
 		}
 	}
-	return out2
+	return res
 }
 
-// Build compiles the checkout at srcRepo into the sandbox. It writes only the
-// binary, under the sandbox bin dir; the source tree is read.
+// Build compiles the checkout at srcRepo into the sandbox. It runs with the
+// sandbox environment, so even the Go toolchain's own telemetry lands in the
+// sandbox HOME; the source tree is only read and the binary goes in the
+// sandbox bin dir.
 func Build(s Sandbox, srcRepo string, env []string, goos string) error {
 	if _, err := os.Stat(filepath.Join(srcRepo, "go.mod")); err != nil {
 		return fmt.Errorf("%s is not a Go source checkout (no go.mod): dev mode builds aval from source", srcRepo)
@@ -256,7 +266,7 @@ func Prepare(o PrepareOptions) (Sandbox, []string, error) {
 			return s, nil, err
 		}
 	}
-	if err := Build(s, o.SrcRepo, realEnv, goos); err != nil {
+	if err := Build(s, o.SrcRepo, env, goos); err != nil {
 		return s, nil, err
 	}
 
@@ -288,16 +298,8 @@ func Run(s Sandbox, env []string, argv []string, in io.Reader, out, errOut io.Wr
 	c.Dir = s.Home()
 	c.Env = env
 	c.Stdin, c.Stdout, c.Stderr = in, out, errOut
-	// LookPath must use the sandbox PATH, not ours: `aval` has to resolve to the
-	// sandbox build.
-	if !strings.ContainsAny(argv[0], `/\`) {
-		for _, e := range env {
-			if k, v, ok := strings.Cut(e, "="); ok && strings.EqualFold(k, "PATH") {
-				if p, err := lookIn(argv[0], v); err == nil {
-					c.Path = p
-				}
-			}
-		}
+	if argv[0] == "aval" { // resolve to the sandbox build, not whatever is on our PATH
+		c.Path = s.AvalBin(runtime.GOOS)
 	}
 	err := c.Run()
 	var ee *exec.ExitError
@@ -308,20 +310,4 @@ func Run(s Sandbox, env []string, argv []string, in io.Reader, out, errOut io.Wr
 		return 127, err
 	}
 	return 0, nil
-}
-
-func lookIn(name, pathList string) (string, error) {
-	exts := []string{""}
-	if runtime.GOOS == "windows" {
-		exts = []string{".exe", ".cmd", ".bat", ""}
-	}
-	for _, dir := range filepath.SplitList(pathList) {
-		for _, ext := range exts {
-			p := filepath.Join(dir, name+ext)
-			if fi, err := os.Stat(p); err == nil && !fi.IsDir() && (runtime.GOOS == "windows" || fi.Mode()&0o111 != 0) {
-				return p, nil
-			}
-		}
-	}
-	return "", exec.ErrNotFound
 }

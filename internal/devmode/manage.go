@@ -6,14 +6,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 )
 
 // Info describes one sandbox on disk.
 type Info struct {
 	Name, Root string
 	Ready      bool
-	Modified   time.Time
 }
 
 // List returns the sandboxes under base, by name. A directory without the
@@ -36,9 +34,6 @@ func List(base string) ([]Info, error) {
 			continue
 		}
 		info := Info{Name: s.Name, Root: s.Root, Ready: s.Ready()}
-		if fi, err := os.Stat(s.Root); err == nil {
-			info.Modified = fi.ModTime()
-		}
 		out = append(out, info)
 	}
 	return out, nil

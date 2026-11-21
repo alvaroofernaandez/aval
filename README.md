@@ -113,6 +113,7 @@ Lo privado (nombres de empresa, skills de cliente) vive fuera del repo, en `~/.c
 | `aval kiri up` · `aval docker cleanup` | Deja Docker listo sobre Kiri · prunes seguros (`--dry-run`) |
 | `aval pdf init` · `aval pdf assets` | Proyecto de informe PDF · `assets/brand.css` |
 | `aval reap-orphan-tests` | Termina procesos de test huérfanos (`--min-age`, `--dry-run`) |
+| `aval dev` | Prueba aval en un sandbox sin tocar tu máquina: [modo dev](docs/devmode.md) |
 
 Detalle de cada una en la [guía](docs/guide.md#️-comandos).
 

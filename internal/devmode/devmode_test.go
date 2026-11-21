@@ -56,11 +56,11 @@ func TestBaseDir(t *testing.T) {
 	get := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
 	home := filepath.Join(string(filepath.Separator), "h")
 
-	got := BaseDir(get(map[string]string{"XDG_CACHE_HOME": "/x/cache"}), home, "linux")
+	got := BaseDir(get(map[string]string{"XDG_CACHE_HOME": "/x/cache"}), home)
 	if want := filepath.Join("/x/cache", "aval", "dev"); got != want {
 		t.Errorf("XDG_CACHE_HOME: got %q, want %q", got, want)
 	}
-	got = BaseDir(get(nil), home, "linux")
+	got = BaseDir(get(nil), home)
 	if want := filepath.Join(home, ".cache", "aval", "dev"); got != want {
 		t.Errorf("default: got %q, want %q", got, want)
 	}
