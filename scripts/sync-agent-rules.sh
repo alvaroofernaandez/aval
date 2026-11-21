@@ -40,4 +40,28 @@ else
   { printf '\n%s\n' "$BEGIN"; printf '%s\n' "$block"; printf '%s\n' "$END"; } >>"$DST"
 fi
 
+# OpenCode has no lessons hook (Claude Code injects ~/.claude/lessons per
+# edit/command). So the lesson bodies are mirrored into AGENTS.md between
+# their own markers: OpenCode keeps every rule, Claude keeps the token saving.
+LBEGIN='<!-- aval:lessons -->'
+LEND='<!-- /aval:lessons -->'
+{
+  printf '## Scoped lessons (mirrored for OpenCode)\n'
+  for l in "$REPO"/config/claude/lessons/*.md; do
+    [ -f "$l" ] || continue
+    printf '\n### %s\n' "$(basename "$l" .md)"
+    awk 'c==2 {print} /^---$/ && c<2 {c++}' "$l" | awk 'NF{p=1} p'
+  done
+} >"$tmp.block"
+if rg -qF -- "$LBEGIN" "$DST"; then
+  awk -v b="$LBEGIN" -v e="$LEND" -v file="$tmp.block" '
+    $0==b { print; while ((getline line < file) > 0) print line; close(file); skip=1; next }
+    $0==e { skip=0 }
+    !skip { print }
+  ' "$DST" >"$tmp.out"
+  mv "$tmp.out" "$DST"
+else
+  { printf '\n%s\n' "$LBEGIN"; cat "$tmp.block"; printf '%s\n' "$LEND"; } >>"$DST"
+fi
+
 printf 'sync-agent-rules: %d lines mirrored into AGENTS.md\n' "$(printf '%s\n' "$block" | wc -l | tr -d ' ')"

@@ -63,5 +63,17 @@ if [ -x "$SYNC" ]; then
   assert_eq "the sync is idempotent" "$BEFORE" "$AFTER"
 fi
 
+# OpenCode has no lessons hook, so the scoped lessons that left the always-on
+# block must reach it another way: their bodies are mirrored into AGENTS.md.
+LESSONS="$REPO/config/claude/lessons"
+lesson_block="$(awk '$0=="<!-- aval:lessons -->"{f=1;next} $0=="<!-- /aval:lessons -->"{f=0} f' "$REPO/config/opencode/AGENTS.md")"
+missing=""
+for l in "$LESSONS"/*.md; do
+  [ -f "$l" ] || continue
+  first="$(awk 'c==2 && NF {print; exit} /^---$/ {c++}' "$l")"
+  printf '%s\n' "$lesson_block" | rg -qF -- "$first" || missing="$missing $(basename "$l")"
+done
+assert_eq "every scoped lesson reaches OpenCode's AGENTS.md" "" "$missing"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
