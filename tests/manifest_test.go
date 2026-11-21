@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -13,7 +14,7 @@ import (
 // where. The contract: it parses, every group declares a platform and a label,
 // every source exists, and the Go installer installs exactly what it says.
 
-type manifestEntry struct{ src, dest string }
+type manifestEntry struct{ src, dest, group string }
 
 type manifestDoc struct {
 	groups       []string
@@ -21,7 +22,14 @@ type manifestDoc struct {
 	labels       map[string]string
 	entries      []manifestEntry
 	fanoutSource string
+	fanoutGroup  string
 	fanoutDests  []string
+}
+
+// applies reports whether a group is installed on this OS: Windows takes only
+// the platforms = all groups.
+func (m manifestDoc) applies(group string) bool {
+	return runtime.GOOS != "windows" || m.platforms[group] == "all"
 }
 
 var (
@@ -51,13 +59,14 @@ func parseManifest(text string) manifestDoc {
 				m.labels[cur] = v
 			case "fanout-source":
 				m.fanoutSource = v
+				m.fanoutGroup = cur
 			case "fanout-dests":
 				m.fanoutDests = strings.Fields(v)
 			}
 			continue
 		}
 		if f := strings.Fields(line); len(f) == 2 {
-			m.entries = append(m.entries, manifestEntry{f[0], f[1]})
+			m.entries = append(m.entries, manifestEntry{f[0], f[1], cur})
 		}
 	}
 	return m
@@ -114,9 +123,11 @@ func TestManifestMatchesWhatTheInstallerInstalls(t *testing.T) {
 
 	want := map[string]bool{}
 	for _, e := range m.entries {
-		want[e.dest] = true
+		if m.applies(e.group) {
+			want[e.dest] = true
+		}
 	}
-	if m.fanoutSource != "" {
+	if m.fanoutSource != "" && m.applies(m.fanoutGroup) {
 		for _, d := range m.fanoutDests {
 			for _, s := range subdirs(t, m.fanoutSource) {
 				want[d+"/"+s] = true
@@ -147,7 +158,11 @@ func TestManifestMatchesWhatTheInstallerInstalls(t *testing.T) {
 	if len(missing)+len(extra) > 0 {
 		t.Errorf("installer and manifest disagree\n  declared but not installed: %v\n  installed but not declared: %v", missing, extra)
 	}
-	isTrue(t, "the destination count is non-trivial (>= 40)", len(got) >= 40)
+	floor := 40
+	if runtime.GOOS == "windows" {
+		floor = 20 // the terminal groups are not installed there
+	}
+	isTrue(t, "the destination count is non-trivial", len(got) >= floor)
 	if _, err := os.Stat(filepath.Join(home, ".claude")); err == nil {
 		t.Errorf("--dry-run created %s/.claude", home)
 	}

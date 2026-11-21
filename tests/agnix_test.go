@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // Lint every agent config in the repo (skills, CLAUDE.md, hooks, MCP, plugins)
@@ -14,6 +16,7 @@ import (
 const agnixVersion = "0.61.0"
 
 func TestAgnixReportsNoErrorsInAnyAgentConfig(t *testing.T) {
+	testenv.SkipWindows(t, "npx is a .cmd shim and the check needs the network; covered on Linux and macOS")
 	t.Parallel()
 	needTool(t, "npx")
 	slow(t)

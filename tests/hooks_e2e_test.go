@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // Fake-agent end to end: play a scripted Claude Code session against the REAL
@@ -141,6 +143,7 @@ func TestHooksE2ESettingsWiring(t *testing.T) {
 }
 
 func TestHooksE2EScriptedSession(t *testing.T) {
+	testenv.SkipWindows(t, "runs the shell-form hook commands through sh; Windows uses exec-form hooks (internal/core/sync/winhooks_test.go)")
 	t.Parallel()
 	a := newFakeAgent(t)
 	btn := filepath.Join(a.proj, "src/components/Button.tsx")
@@ -195,6 +198,7 @@ func TestHooksE2EScriptedSession(t *testing.T) {
 
 // A non-UI edit runs before every Edit/Write, so its cost is paid constantly.
 func TestHooksE2ENonUIEditCostsUnder150msThroughTheGate(t *testing.T) {
+	testenv.SkipWindows(t, "runs the shell-form hook commands through sh; Windows uses exec-form hooks (internal/core/sync/winhooks_test.go)")
 	slow(t)
 	a := newFakeAgent(t)
 	payload := a.prePayload("Edit", filepath.Join(a.proj, "src/util.ts"), "s-main", "")

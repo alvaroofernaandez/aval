@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // `aval tmux launch`, the Ghostty launch command. Ghostty starts it with
@@ -22,6 +24,7 @@ func launchEnv(home string, kv ...string) []string {
 }
 
 func TestLaunchResolvesTmuxUnderLaunchdMinimalPath(t *testing.T) {
+	testenv.SkipWindows(t, "tests the tmux/Ghostty launcher")
 	needTool(t, "tmux")
 	r := run(repo, launchEnv(t.TempDir(), "PATH="+minimalPath, "LAUNCH_RESOLVE_ONLY=1"), "", avalBin(t), "tmux", "launch")
 	resolved := strings.TrimSpace(r.Stdout)
@@ -31,6 +34,7 @@ func TestLaunchResolvesTmuxUnderLaunchdMinimalPath(t *testing.T) {
 }
 
 func TestLaunchFallsBackInsteadOfLeavingADeadTerminal(t *testing.T) {
+	testenv.SkipWindows(t, "tests the tmux/Ghostty launcher")
 	aval := avalBin(t)
 	tmp := t.TempDir()
 	env := launchEnv(tmp, "PATH="+tmp, "TMUX_BIN="+tmp+"/absent", "LAUNCH_RESOLVE_ONLY=1")
@@ -47,6 +51,7 @@ func TestLaunchFallsBackInsteadOfLeavingADeadTerminal(t *testing.T) {
 }
 
 func TestLaunchExplicitOverrideWins(t *testing.T) {
+	testenv.SkipWindows(t, "tests the tmux/Ghostty launcher")
 	tmp := t.TempDir()
 	fake := filepath.Join(tmp, "tmux")
 	write(t, fake, "#!/bin/sh\necho \"TMUX_RAN $*\"\n")
@@ -64,6 +69,7 @@ func TestLaunchExplicitOverrideWins(t *testing.T) {
 // means they render the same window: changing directory in one changes the
 // other, the opposite of working on two projects in parallel.
 func TestLaunchEveryTabGetsItsOwnSession(t *testing.T) {
+	testenv.SkipWindows(t, "tests the tmux/Ghostty launcher")
 	t.Parallel()
 	needTool(t, "tmux")
 	aval := avalBin(t)

@@ -25,7 +25,7 @@ func TestRendersWhatTheMetersDoNotShow(t *testing.T) {
 	os.MkdirAll(filepath.Join(d, "odd", "tasks"), 0o755)
 	os.WriteFile(filepath.Join(d, "odd", "tasks", "plan.md"), []byte("- [x] a\n- [x] b\n- [ ] c\n"), 0o644)
 	in := `{"model":{"display_name":"Opus 5.5"},"effort":{"level":"high"},
-	  "workspace":{"current_dir":"` + d + `","project_dir":"` + d + `"},
+	  "workspace":{"current_dir":"` + filepath.ToSlash(d) + `","project_dir":"` + filepath.ToSlash(d) + `"},
 	  "rate_limits":{"five_hour":{"used_percentage":42.4,"resets_at":0}},
 	  "prompt_cache":{"warm":false,"caching_observed":true}}`
 	got := plain(Render(strings.NewReader(in)))
@@ -41,7 +41,7 @@ func TestRendersWhatTheMetersDoNotShow(t *testing.T) {
 
 func TestOptionalPartsAreOmitted(t *testing.T) {
 	d := repo(t, "main")
-	in := `{"model":{"display_name":"Sonnet"},"workspace":{"current_dir":"` + d + `","project_dir":"` + d + `"},
+	in := `{"model":{"display_name":"Sonnet"},"workspace":{"current_dir":"` + filepath.ToSlash(d) + `","project_dir":"` + filepath.ToSlash(d) + `"},
 	  "prompt_cache":{"warm":true,"caching_observed":true}}`
 	got := plain(Render(strings.NewReader(in)))
 	for _, bad := range []string{"5h", "cache", "odd"} {
@@ -58,7 +58,7 @@ func TestWorktreeAndGitFile(t *testing.T) {
 	os.WriteFile(filepath.Join(gitdir, "HEAD"), []byte("ref: refs/heads/wt-branch\n"), 0o644)
 	wt := t.TempDir()
 	os.WriteFile(filepath.Join(wt, ".git"), []byte("gitdir: "+gitdir+"\n"), 0o644)
-	in := `{"model":{"display_name":"M"},"workspace":{"current_dir":"` + wt + `","git_worktree":"wt1"}}`
+	in := `{"model":{"display_name":"M"},"workspace":{"current_dir":"` + filepath.ToSlash(wt) + `","git_worktree":"wt1"}}`
 	got := plain(Render(strings.NewReader(in)))
 	if !strings.Contains(got, "wt-branch") || !strings.Contains(got, "wt1") {
 		t.Errorf("worktree branch not shown: %q", got)

@@ -19,7 +19,7 @@ func w(t *testing.T, p, s string) {
 func context(t *testing.T, dir string) string {
 	t.Helper()
 	var out strings.Builder
-	Run(strings.NewReader(`{"hook_event_name":"SessionStart","cwd":"`+dir+`"}`), &out)
+	Run(strings.NewReader(`{"hook_event_name":"SessionStart","cwd":"`+filepath.ToSlash(dir)+`"}`), &out)
 	if out.Len() == 0 {
 		return ""
 	}

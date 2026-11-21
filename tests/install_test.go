@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // End-to-end tests of the Go installer (`aval --yes`). Every run happens
@@ -110,6 +112,7 @@ func globCount(t *testing.T, dir, pattern string) int {
 }
 
 func TestInstallCleanMachine(t *testing.T) {
+	testenv.SkipWindows(t, "asserts the Unix terminal groups and symlinks; Windows installs the platforms=all groups in copy mode (TestInstallCopyMode*)")
 	s := newSandbox(t)
 	s.install()
 	for dest, src := range map[string]string{
@@ -128,6 +131,7 @@ func TestInstallCleanMachine(t *testing.T) {
 }
 
 func TestInstallExistingConfigIsPreservedNeverDestroyed(t *testing.T) {
+	testenv.SkipWindows(t, "asserts the Unix terminal groups and symlinks; Windows installs the platforms=all groups in copy mode (TestInstallCopyMode*)")
 	s := newSandbox(t)
 	s.put(".config/yazi/precious.conf", "MINE\n")
 	s.put(".tmux.conf", "MY TMUX\n")
@@ -158,6 +162,7 @@ func readAbsOrEmpty(path string) string {
 }
 
 func TestInstallIsIdempotent(t *testing.T) {
+	testenv.SkipWindows(t, "asserts the Unix terminal groups and symlinks; Windows installs the platforms=all groups in copy mode (TestInstallCopyMode*)")
 	s := newSandbox(t)
 	s.install()
 	before := s.countBackups()
@@ -168,6 +173,7 @@ func TestInstallIsIdempotent(t *testing.T) {
 }
 
 func TestInstallDryRunTouchesNothing(t *testing.T) {
+	testenv.SkipWindows(t, "asserts the Unix terminal groups and symlinks; Windows installs the platforms=all groups in copy mode (TestInstallCopyMode*)")
 	s := newSandbox(t)
 	s.put(".config/yazi/precious.conf", "UNTOUCHED\n")
 	out := s.install("--dry-run")
@@ -180,6 +186,7 @@ func TestInstallDryRunTouchesNothing(t *testing.T) {
 // ~/.claude holds credentials and gigabytes of session history next to the
 // configs worth versioning, so only individual subpaths may be linked.
 func TestInstallAgentConfigsAreLinkedPerPathNeverWholesale(t *testing.T) {
+	testenv.SkipWindows(t, "asserts the Unix terminal groups and symlinks; Windows installs the platforms=all groups in copy mode (TestInstallCopyMode*)")
 	s := newSandbox(t)
 	s.put(".claude/.credentials.json", "SECRET\n")
 	s.put(".claude/projects/session.jsonl", "log\n")
@@ -328,4 +335,28 @@ func copyRepo(t *testing.T, dst string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// Copy mode is what Windows without symlink rights gets, and the only mode a
+// Windows runner can be relied on for. Forcing it with --copy makes every OS
+// exercise the same path: platforms = all groups become real files, a rerun
+// changes nothing, and nothing is ever deleted.
+func TestInstallCopyModeProducesRealFilesAndIsIdempotent(t *testing.T) {
+	s := newSandbox(t)
+	s.put(".claude/skills/some-vendor-skill/SKILL.md", "vendor\n")
+	r := s.install("--copy")
+	eq(t, "exit code of install --copy", 0, r.Code)
+
+	for _, dest := range []string{".claude/agents", ".claude/CLAUDE.md", ".config/opencode/agents", ".gitconfig"} {
+		isTrue(t, "~/"+dest+" is a real file or directory, not a link", exists(s.path(dest)) && !s.isLink(dest))
+	}
+	isTrue(t, "~/.claude/settings.json is a real file", exists(s.path(".claude/settings.json")))
+	eq(t, "agents are copied byte for byte", read(t, "config/claude/CLAUDE.md"), readAbsOrEmpty(s.path(".claude/CLAUDE.md")))
+	eq(t, "leaves third-party skills untouched", "vendor", s.cat(".claude/skills/some-vendor-skill/SKILL.md"))
+
+	before := s.countBackups()
+	again := s.install("--copy")
+	eq(t, "exit code of the second run", 0, again.Code)
+	eq(t, "a second run displaces nothing", before, s.countBackups())
+	mustHave(t, `(?i)already installed`, again.Out(), "the second run reports the copies as already installed")
 }

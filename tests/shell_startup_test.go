@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // Interactive zsh startup stays fast without losing behaviour. Measured
@@ -17,6 +19,7 @@ import (
 const startupBudget = 80 * time.Millisecond
 
 func TestShellStartupStructure(t *testing.T) {
+	testenv.SkipWindows(t, "drives zsh and the zsh startup files")
 	zshrc := read(t, "home/zshrc")
 	eq(t, "oh-my-zsh is not loaded", 0, count(`oh-my-zsh\.sh`, zshrc))
 	mustNotHave(t, `eval "\$\(|source <\(`, zshrc, "no tool init is evaluated from a subprocess at startup")
@@ -38,6 +41,7 @@ func zshProbe(t *testing.T, env []string, script string) string {
 }
 
 func TestShellStartupBehaviourSurvives(t *testing.T) {
+	testenv.SkipWindows(t, "drives zsh and the zsh startup files")
 	needTool(t, "zsh")
 	env := zshEnv(t)
 	probe := zshProbe(t, env, `
@@ -83,6 +87,7 @@ func TestShellStartupBehaviourSurvives(t *testing.T) {
 // A cache older than its binary (what `brew upgrade` produces) is regenerated,
 // so an upgrade is never silently masked by a stale init script.
 func TestShellStartupStaleInitCacheIsRegenerated(t *testing.T) {
+	testenv.SkipWindows(t, "drives zsh and the zsh startup files")
 	needTool(t, "zsh", "zoxide")
 	env := zshEnv(t)
 	cacheHome := ""
@@ -111,6 +116,7 @@ func TestShellStartupStaleInitCacheIsRegenerated(t *testing.T) {
 }
 
 func TestShellStartupBudget(t *testing.T) {
+	testenv.SkipWindows(t, "drives zsh and the zsh startup files")
 	needTool(t, "zsh")
 	slow(t)
 	env := zshEnv(t)
