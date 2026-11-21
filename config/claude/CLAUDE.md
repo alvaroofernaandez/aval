@@ -171,6 +171,19 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 - Do not install Kubernetes unless explicitly asked.
 - Skills: `kiri-docker`, `docker-space-optimizer`, `kiri-health`, `docker-build-optimized`.
 
+## Recurring failures (measured over 174 sessions, 2026-11)
+
+- **Visual "fixed" needs pixels.** Never call a visual bug fixed from reading
+  code. Render it (Chromium screenshot at the user's viewport) and look, or say
+  "not visually verified". ~1 in 5 user messages was a screenshot saying "sigue igual".
+- **Fix the class, not the instance.** After fixing a bug, `rg` for the same
+  pattern repo-wide and fix every sibling in the same change; list the files.
+- **"Del tirón" means no stops.** A multi-phase plan runs phase after phase
+  without asking to continue; report at the end or on a real blocker.
+- **Absolute paths** in every Read/Edit/Bash call; never rely on an earlier `cd`.
+- **Re-read before writing** a file or artifact another session may have touched.
+- **AskUserQuestion needs 2+ options**; with one, ask in plain text.
+- **Engram conflicts:** resolve with one `mem_judge_many`, never a `mem_judge` loop.
 <!-- /shared:agent-rules -->
 
 <!-- gentle-ai:orchestrator-pointer -->

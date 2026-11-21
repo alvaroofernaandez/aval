@@ -31,19 +31,18 @@
     "clerk-setup": "off",
     "clerk-webhooks": "off",
     "clerk-tanstack-patterns": "off",
-    "react-doctor": "off"
+    "react-doctor": "off",
+    "accessibility": "off",
+    "owasp-security": "off",
+    "tailwind-4": "off",
+    "zod-4": "off",
+    "clerk-custom-ui": "off",
+    "browse": "off",
+    "clerk-backend-api": "off",
+    "land-and-deploy": "off",
+    "repo-prep": "off"
   },
   "hooks": {
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "[ -n \"$TERAX_TERMINAL\" ] && printf '{\"terminalSequence\":\"\\\\u001b]777;notify;Terax;attention\\\\u0007\"}' || true"
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
@@ -106,10 +105,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -n \"$TERAX_TERMINAL\" ] && printf '{\"terminalSequence\":\"\\\\u001b]777;notify;Terax;finished\\\\u0007\"}' || true"
-          },
-          {
-            "type": "command",
             "command": "[ -x \"$HOME/.gstack/bin/gstack-verify-gate\" ] && \"$HOME/.gstack/bin/gstack-verify-gate\" || true",
             "timeout": 900
           }
@@ -149,16 +144,6 @@
           }
         ]
       }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "[ -n \"$TERAX_TERMINAL\" ] && printf '{\"terminalSequence\":\"\\\\u001b]777;notify;Terax;working\\\\u0007\"}' || true"
-          }
-        ]
-      }
     ]
   },
   "enabledPlugins": {
@@ -172,7 +157,11 @@
     "hasdata@synced": false,
     "flightseatmap@synced": false,
     "variflight@synced": false,
-    "alvaro-toolkit@synced": false
+    "alvaro-toolkit@synced": false,
+    "quick-peek@better-claude": true,
+    "image-preview@better-claude": true,
+    "sub-meter@better-claude": true,
+    "context-meter@better-claude": true
   },
   "extraKnownMarketplaces": {
     "bencium-marketplace": {
@@ -204,6 +193,12 @@
         "source": "git",
         "url": "https://github.com/wakatime/claude-code-wakatime.git"
       }
+    },
+    "better-claude": {
+      "source": {
+        "source": "github",
+        "repo": "midudev/better-claude"
+      }
     }
   },
   "outputStyle": "Neutral",
@@ -225,5 +220,9 @@
   "skipDangerousModePermissionPrompt": true,
   "theme": "custom:soft-dark",
   "skipAutoPermissionPrompt": true,
-  "effort": "medium"
+  "effort": "medium",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
 }

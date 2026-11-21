@@ -39,12 +39,24 @@ assert_eq "code-review-graph update runs async" "true" "${sync_graph:-missing}"
 # that must never drift — on 2026-11-21 the live copy still called a retired
 # `gentle-ai sdd-preflight-hook`, and every Agent call failed with
 # "unknown command". So aval owns the hooks and the live copy must match them.
+# 21 commits in 60 days carried Co-Authored-By despite the rule: Claude Code
+# itself injects the trailer unless the setting hides it. A rule the harness
+# contradicts on every commit is a coin flip; the setting is not.
+attr() { jq -r '[.attribution.commit, .attribution.pr] | map(. // "unset") | join(",")' "$1"; }
+assert_eq "aval hides commit and PR attribution" "," "$(attr "$SETTINGS")"
+
+# Terax is not installed; its three hooks still forked a shell on every
+# prompt, notification and stop just to test an empty variable.
+assert_eq "no hook serves the uninstalled Terax terminal" "0" \
+  "$(jq '[.hooks // {} | .[][] | .hooks[] | select(.command | test("TERAX"))] | length' "$SETTINGS")"
+
 LIVE="${AVAL_LIVE_SETTINGS:-$HOME/.claude/settings.json}"
 if [ -f "$LIVE" ]; then
   hooks_of() { jq -S '[.hooks // {} | to_entries[] | .key as $e | .value[] | .hooks[] | "\($e) \(.command)"] | sort' "$1"; }
   assert_eq "the live settings run exactly aval's hooks" "$(hooks_of "$SETTINGS")" "$(hooks_of "$LIVE")"
   retired="$(jq -r '.hooks // {} | .[][] | .hooks[] | .command' "$LIVE" | rg 'sdd-|skill-registry' || true)"
   assert_eq "no live hook calls a retired SDD command" "" "$retired"
+  assert_eq "the live settings hide commit and PR attribution" "," "$(attr "$LIVE")"
 fi
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
