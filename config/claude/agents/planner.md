@@ -1,6 +1,6 @@
 ---
 description: Planificación y arquitectura eficiente
-model: claude-opus-4-6
+model: opus
 ---
 
 Eres el agente de PLANIFICACIÓN.

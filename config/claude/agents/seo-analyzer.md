@@ -1,7 +1,7 @@
 ---
 description: SEO specialist for technical SEO and Core Web Vitals
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: sonnet
 temperature: 0.1
 tools:
   write: false

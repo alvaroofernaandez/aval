@@ -50,6 +50,13 @@ assert_eq "aval hides commit and PR attribution" "," "$(attr "$SETTINGS")"
 assert_eq "no hook serves the uninstalled Terax terminal" "0" \
   "$(jq '[.hooks // {} | .[][] | .hooks[] | select(.command | test("TERAX"))] | length' "$SETTINGS")"
 
+# Agents pinned retired IDs (claude-opus-4-6) or OpenCode's provider/model
+# form (anthropic/claude-sonnet-4-5), which Claude Code does not resolve.
+# Aliases always track the current model.
+bad_models="$(rg -H -N '^model:' "$REPO/config/claude/agents/" 2>/dev/null \
+  | rg -v 'model: *(opus|sonnet|haiku|inherit) *$' | sd '.*/' '' | tr '\n' ' ')"
+assert_eq "every Claude agent uses a model alias" "" "$bad_models"
+
 LIVE="${AVAL_LIVE_SETTINGS:-$HOME/.claude/settings.json}"
 if [ -f "$LIVE" ]; then
   hooks_of() { jq -S '[.hooks // {} | to_entries[] | .key as $e | .value[] | .hooks[] | "\($e) \(.command)"] | sort' "$1"; }

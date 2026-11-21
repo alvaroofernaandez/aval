@@ -1,7 +1,7 @@
 ---
 description: TypeScript expert for strict mode and advanced types
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: sonnet
 temperature: 0.1
 tools:
   write: true

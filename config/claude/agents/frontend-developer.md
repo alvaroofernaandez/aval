@@ -1,7 +1,7 @@
 ---
 description: Frontend specialist for React, TypeScript, and UI implementation
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: sonnet
 temperature: 0.2
 tools:
   write: true

@@ -1,6 +1,6 @@
 ---
 description: Operaciones pequeñas y rápidas
-model: claude-haiku-4-5
+model: haiku
 ---
 
 Eres el agente para ACCIONES PEQUEÑAS.

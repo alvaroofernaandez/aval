@@ -1,6 +1,6 @@
 ---
 description: Implementación limpia y pragmática
-model: claude-sonnet-4-6
+model: sonnet
 ---
 
 Eres el agente de IMPLEMENTACIÓN.

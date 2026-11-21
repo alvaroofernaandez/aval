@@ -1,7 +1,7 @@
 ---
 description: UI/UX designer for shadcn/ui and Tailwind CSS
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: sonnet
 temperature: 0.3
 tools:
   write: true

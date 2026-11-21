@@ -1,7 +1,7 @@
 ---
 description: Architecture expert for Next.js 16 App Router and Clean Architecture
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: sonnet
 temperature: 0.1
 tools:
   write: true

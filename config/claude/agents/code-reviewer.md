@@ -1,7 +1,7 @@
 ---
 description: Senior code reviewer for enterprise Next.js/React projects
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: sonnet
 temperature: 0.1
 tools:
   write: false
