@@ -6,6 +6,8 @@
 //	aval update     pull the repo, then re-apply
 //	aval doctor     check this machine against the repo (--fix, --json)
 //	aval sync       merge repo-managed settings into the live config (--dry-run)
+//	aval restore    list or restore backup runs (--list, latest, <id>, --pin <id>)
+//	aval uninstall  remove aval's links and restore what they displaced (--dry-run, --yes)
 //	aval --version  print the version
 //
 // The non-interactive paths matter as much as the TUI: --yes makes it usable
@@ -78,6 +80,10 @@ func run() error {
 		return runDoctor(repo, home, flag.Args()[1:], os.Stdout)
 	case "sync":
 		return runSync(repo, home, flag.Args()[1:], *dryRun, os.Stdout)
+	case "restore":
+		return runRestore(repo, home, flag.Args()[1:], *dryRun, os.Stdout)
+	case "uninstall":
+		return runUninstall(repo, home, flag.Args()[1:], *dryRun, *yes, os.Stdin, os.Stdout)
 	}
 
 	if flag.Arg(0) == "update" {

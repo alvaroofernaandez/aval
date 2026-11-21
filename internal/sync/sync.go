@@ -310,6 +310,35 @@ func ApplyRules(block, content string) (string, bool) {
 	return out, out != content
 }
 
+// RemoveRules is the inverse of ApplyRules: it cuts the aval block (and the one
+// blank line ApplyRules put before it) and nothing else. The bool reports
+// whether content changed.
+func RemoveRules(content string) (string, bool) {
+	lines := strings.Split(content, "\n")
+	begin, end := -1, -1
+	for i, l := range lines {
+		switch strings.TrimSpace(l) {
+		case dstBegin:
+			if begin < 0 {
+				begin = i
+			}
+		case dstEnd:
+			if begin >= 0 && end < 0 {
+				end = i
+			}
+		}
+	}
+	if begin < 0 || end < begin {
+		return content, false
+	}
+	cut := begin
+	if cut > 0 && lines[cut-1] == "" {
+		cut--
+	}
+	out := append(append([]string{}, lines[:cut]...), lines[end+1:]...)
+	return strings.Join(out, "\n"), true
+}
+
 func sharedBlock(repo string) (string, error) {
 	path := filepath.Join(repo, "config", "claude", "CLAUDE.md")
 	b, err := os.ReadFile(path)

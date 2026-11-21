@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"flag"
 	"fmt"
@@ -9,9 +10,11 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/alvaroofernaandez/aval/internal/backup"
 	"github.com/alvaroofernaandez/aval/internal/doctor"
 	avalsync "github.com/alvaroofernaandez/aval/internal/sync"
 	"github.com/alvaroofernaandez/aval/internal/txsync"
+	"github.com/alvaroofernaandez/aval/internal/uninstall"
 )
 
 // errChecksFailed makes main exit 1 without printing "error:" — the doctor
@@ -94,6 +97,142 @@ func runSync(repo, home string, args []string, dryRun bool, out io.Writer) error
 		}
 	}
 	return err
+}
+
+// runRestore is `aval restore [--list|latest|<id>] [--pin <id>]`.
+func runRestore(repo, home string, args []string, dryRun bool, out io.Writer) error {
+	fs := newFlagSet("restore", out)
+	list := fs.Bool("list", false, "list backup runs")
+	pin := fs.String("pin", "", "protect a backup run from retention")
+	unpin := fs.String("unpin", "", "lift the protection from a backup run")
+	dry := fs.Bool("dry-run", dryRun, "show what would be restored, write nothing")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	store := backup.NewStore(home)
+
+	switch {
+	case *pin != "" || *unpin != "":
+		id, on := *pin, true
+		if *unpin != "" {
+			id, on = *unpin, false
+		}
+		run, err := store.Resolve(id)
+		if err != nil {
+			return err
+		}
+		if err := store.Pin(run.ID, on); err != nil {
+			return err
+		}
+		verb := "pinned"
+		if !on {
+			verb = "unpinned"
+		}
+		fmt.Fprintf(out, "%s %s\n", verb, run.ID)
+		return nil
+	case *list || fs.NArg() == 0:
+		return printBackups(out, store)
+	}
+
+	run, err := store.Resolve(fs.Arg(0))
+	if err != nil {
+		return err
+	}
+	actions, err := store.Restore(run, backup.RestoreOptions{Repo: repo, DryRun: *dry})
+	for _, a := range actions {
+		fmt.Fprintf(out, "%-22s %s\n", a.Action, short(home, a.Path))
+	}
+	if err != nil {
+		return err
+	}
+	if *dry {
+		fmt.Fprintln(out, "\nDry run — nothing was written.")
+	} else {
+		fmt.Fprintf(out, "\nrestored backup %s\n", run.ID)
+	}
+	return nil
+}
+
+// runUninstall is `aval uninstall [--dry-run] [--yes]`.
+func runUninstall(repo, home string, args []string, dryRun, yes bool, in io.Reader, out io.Writer) error {
+	fs := newFlagSet("uninstall", out)
+	dry := fs.Bool("dry-run", dryRun, "show what would be removed, write nothing")
+	assume := fs.Bool("yes", yes, "do not ask for confirmation")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	opt := uninstall.Options{Repo: repo, Home: home, GOOS: runtime.GOOS}
+
+	// Always preview first: the prompt is only meaningful if it shows the plan.
+	preview := opt
+	preview.DryRun = true
+	items, err := uninstall.Run(preview)
+	if err != nil {
+		return err
+	}
+	printUninstall(out, home, items)
+	if *dry {
+		fmt.Fprintln(out, "\nDry run — nothing was written.")
+		return nil
+	}
+	if len(items) == 0 {
+		return nil
+	}
+	if !*assume {
+		fmt.Fprint(out, "\nProceed? [y/N] ")
+		line, _ := bufio.NewReader(in).ReadString('\n')
+		if a := strings.ToLower(strings.TrimSpace(line)); a != "y" && a != "yes" {
+			fmt.Fprintln(out, "aborted, nothing was changed")
+			return nil
+		}
+	}
+
+	items, err = uninstall.Run(opt)
+	fmt.Fprintln(out)
+	printUninstall(out, home, items)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(out, "\nundo with: aval restore latest")
+	return nil
+}
+
+func printUninstall(out io.Writer, home string, items []uninstall.Item) {
+	if len(items) == 0 {
+		fmt.Fprintln(out, "nothing to uninstall: no manifest link points into this repo")
+		return
+	}
+	for _, it := range items {
+		fmt.Fprintf(out, "%-60s %s\n", short(home, it.Path), it.Action)
+	}
+}
+
+func printBackups(out io.Writer, store *backup.Store) error {
+	runs, err := store.List()
+	if err != nil {
+		return err
+	}
+	if len(runs) == 0 {
+		fmt.Fprintln(out, "no backups yet")
+		return nil
+	}
+	fmt.Fprintf(out, "%-18s  %-16s  %-7s  %-6s  %s\n", "ID", "DATE", "ENTRIES", "PINNED", "STATE")
+	for _, r := range runs {
+		pinned, state := "no", "ok"
+		if r.Pinned {
+			pinned = "yes"
+		}
+		switch {
+		case r.Pending:
+			state = "pending (interrupted?)"
+		case r.Failed:
+			state = "failed: " + r.Reason
+		case r.Legacy:
+			state = "legacy (no manifest, restore by hand)"
+		}
+		fmt.Fprintf(out, "%-18s  %-16s  %-7d  %-6s  %s\n", r.ID, r.Time.Format("2006-01-02 15:04"), r.Entries, pinned, state)
+	}
+	return nil
 }
 
 func printSync(out io.Writer, home string, rep *avalsync.Report, dry bool) {
