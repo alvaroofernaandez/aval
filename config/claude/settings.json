@@ -1,6 +1,7 @@
 {
   "env": {
-    "USER": "alvaroofernaandez"
+    "USER": "alvaroofernaandez",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
   },
   "permissions": {
     "allow": [
@@ -22,6 +23,16 @@
     "defaultMode": "bypassPermissions"
   },
   "model": "opus",
+  "skillOverrides": {
+    "judgment-day": "off",
+    "hallmark": "off",
+    "design-shotgun": "off",
+    "ai-sdk-5": "off",
+    "clerk-setup": "off",
+    "clerk-webhooks": "off",
+    "clerk-tanstack-patterns": "off",
+    "react-doctor": "off"
+  },
   "hooks": {
     "Notification": [
       {
@@ -53,7 +64,7 @@
           {
             "type": "command",
             "command": "\"$HOME/.claude/hooks/design-pipeline-gate.sh\"",
-            "timeout": 5000
+            "timeout": 30
           }
         ]
       }
@@ -75,7 +86,7 @@
           {
             "type": "command",
             "command": "code-review-graph status",
-            "timeout": 3000
+            "timeout": 15
           }
         ]
       },
@@ -100,7 +111,7 @@
           {
             "type": "command",
             "command": "[ -x \"$HOME/.gstack/bin/gstack-verify-gate\" ] && \"$HOME/.gstack/bin/gstack-verify-gate\" || true",
-            "timeout": 120000
+            "timeout": 900
           }
         ]
       },
@@ -147,14 +158,6 @@
             "command": "[ -n \"$TERAX_TERMINAL\" ] && printf '{\"terminalSequence\":\"\\\\u001b]777;notify;Terax;working\\\\u0007\"}' || true"
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "codegraph prompt-hook"
-          }
-        ]
       }
     ]
   },
@@ -163,9 +166,13 @@
     "claude-code-wakatime@wakatime": true,
     "claude-security@claude-plugins-official": true,
     "engram@engram": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": false,
     "typescript-lsp@claude-plugins-official": true,
-    "warp@claude-code-warp": false
+    "warp@claude-code-warp": false,
+    "hasdata@synced": false,
+    "flightseatmap@synced": false,
+    "variflight@synced": false,
+    "alvaro-toolkit@synced": false
   },
   "extraKnownMarketplaces": {
     "bencium-marketplace": {
