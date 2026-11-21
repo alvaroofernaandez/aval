@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/core/manifest"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
@@ -103,7 +104,7 @@ func Fix(opt Options) ([]string, error) {
 		}
 		removed = append(removed, p)
 	}
-	_, err := avalsync.Run(avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir})
+	_, err := avalsync.Run(avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS})
 	return removed, err
 }
 
@@ -203,6 +204,11 @@ func checkLink(home, root string, a plan.Action) *linkProblem {
 		return &linkProblem{label, true, "missing"}
 	}
 	if fi.Mode()&os.ModeSymlink == 0 {
+		// Copy mode (Windows without symlink rights): a copy is healthy while
+		// it still equals the repo.
+		if backup.SameContent(a.Source, a.Dest) {
+			return nil
+		}
 		return &linkProblem{label, false, "replaced by a real file or directory"}
 	}
 	resolved, err := filepath.EvalSymlinks(a.Dest)
@@ -298,7 +304,12 @@ func checkBroken(opt Options) Result {
 
 // --- hooks ------------------------------------------------------------------
 
-type hookCmd struct{ event, command string }
+type hookCmd struct {
+	event, command string
+	// prog is set for the exec form (command + args, no shell): it is the
+	// program itself, not a shell line to parse.
+	prog string
+}
 
 func hookCommands(settings map[string]any) []hookCmd {
 	var out []hookCmd
@@ -311,7 +322,16 @@ func hookCommands(settings map[string]any) []hookCmd {
 			for _, h := range hl {
 				hm, _ := h.(map[string]any)
 				if c, ok := hm["command"].(string); ok {
-					out = append(out, hookCmd{event, c})
+					hc := hookCmd{event: event, command: c}
+					if args, ok := hm["args"].([]any); ok {
+						hc.prog = c
+						for _, a := range args {
+							if as, ok := a.(string); ok {
+								hc.command += " " + as
+							}
+						}
+					}
+					out = append(out, hc)
 				}
 			}
 		}
@@ -345,7 +365,11 @@ func checkHooks(opt Options, live map[string]any, liveErr error) []Result {
 
 	var unresolved, retired []string
 	for _, h := range cmds {
-		for _, ex := range executables(h.command, opt.Home) {
+		exes := executables(h.command, opt.Home)
+		if h.prog != "" {
+			exes = []string{expand(h.prog, opt.Home)}
+		}
+		for _, ex := range exes {
 			if !resolves(ex, opt.Home, lookPath) {
 				unresolved = append(unresolved, h.event+": "+tilde(opt.Home, ex))
 			}
@@ -367,7 +391,7 @@ func checkHooks(opt Options, live map[string]any, liveErr error) []Result {
 		rs = append(rs, result("hooks-retired", Fail, false, "%d retired: %s", len(retired), list(retired)))
 	}
 
-	repo, err := readJSON(filepath.Join(opt.Repo, "config", "claude", "settings.json"))
+	repo, err := avalsync.RepoSettings(avalsync.Options{Repo: opt.Repo, Home: opt.Home, GOOS: opt.GOOS})
 	if err != nil {
 		return append(rs, result("hooks-drift", Fail, false, "cannot read repo settings: %v", err))
 	}
@@ -540,7 +564,7 @@ func checkPlugins(opt Options, live map[string]any, liveErr error) Result {
 }
 
 func checkSettingsDrift(opt Options) Result {
-	keys, err := avalsync.SettingsDrift(avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir})
+	keys, err := avalsync.SettingsDrift(avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS})
 	if err != nil {
 		return result("settings-drift", Fail, false, "%v", err)
 	}

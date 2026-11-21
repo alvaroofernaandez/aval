@@ -57,7 +57,7 @@ func Run(opt Options) ([]Item, error) {
 	var items []Item
 	for _, g := range p.Groups {
 		for _, a := range g.Actions {
-			it, err := removeLink(store, rec, opt, ropt, a.Dest)
+			it, err := removeLink(store, rec, opt, ropt, a)
 			if err != nil {
 				return items, err
 			}
@@ -87,14 +87,26 @@ func Run(opt Options) ([]Item, error) {
 }
 
 // removeLink handles one manifest destination.
-func removeLink(store *backup.Store, rec *backup.Recorder, opt Options, ropt backup.RestoreOptions, dest string) (*Item, error) {
+func removeLink(store *backup.Store, rec *backup.Recorder, opt Options, ropt backup.RestoreOptions, a plan.Action) (*Item, error) {
+	dest := a.Dest
 	fi, err := os.Lstat(dest)
-	if err != nil || fi.Mode()&os.ModeSymlink == 0 {
-		return nil, nil // missing, or a real file/dir: not ours to remove
+	if err != nil {
+		return nil, nil // missing
 	}
-	target, err := os.Readlink(dest)
-	if err != nil || !backup.IntoRepo(dest, target, opt.Repo) {
+	isCopy := fi.Mode()&os.ModeSymlink == 0
+	if isCopy {
+		// A real file or directory is ours only when it is an untouched copy
+		// of the repo source (copy-mode install, Windows without symlinks).
+		// Anything the user edited or put there themselves is left alone.
+		if !backup.SameContent(a.Source, dest) {
+			return nil, nil
+		}
+	} else if target, err := os.Readlink(dest); err != nil || !backup.IntoRepo(dest, target, opt.Repo) {
 		return nil, nil // someone else's link
+	}
+	noun := "link"
+	if isCopy {
+		noun = "copy"
 	}
 
 	prev, entry, found, err := store.FindPrevious(dest, opt.Repo, rec.Dir())
@@ -104,9 +116,9 @@ func removeLink(store *backup.Store, rec *backup.Recorder, opt Options, ropt bac
 	restore := found && entry.Existed
 
 	if opt.DryRun {
-		action := "would remove link"
+		action := "would remove " + noun
 		if restore {
-			action = "would remove link and restore the previous " + entry.Kind + " (backup " + prev.ID + ")"
+			action = "would remove " + noun + " and restore the previous " + entry.Kind + " (backup " + prev.ID + ")"
 		}
 		return &Item{Path: dest, Action: action}, nil
 	}
@@ -114,10 +126,14 @@ func removeLink(store *backup.Store, rec *backup.Recorder, opt Options, ropt bac
 	if _, err := rec.Snapshot(dest); err != nil {
 		return nil, fmt.Errorf("uninstall: backup %s: %w", dest, err)
 	}
-	if err := os.Remove(dest); err != nil {
+	remove := os.Remove
+	if isCopy {
+		remove = os.RemoveAll // a directory copy; SameContent proved it is ours
+	}
+	if err := remove(dest); err != nil {
 		return nil, fmt.Errorf("uninstall: remove %s: %w", dest, err)
 	}
-	action := "removed link"
+	action := "removed " + noun
 	if restore {
 		if _, err := store.RestorePath(prev, dest, ropt); err != nil {
 			return nil, fmt.Errorf("uninstall: restore %s: %w", dest, err)
@@ -125,7 +141,7 @@ func removeLink(store *backup.Store, rec *backup.Recorder, opt Options, ropt bac
 		if err := rec.Wrote(dest); err != nil {
 			return nil, err
 		}
-		action = "removed link, restored the previous " + entry.Kind
+		action = "removed " + noun + ", restored the previous " + entry.Kind
 	}
 	return &Item{Path: dest, Action: action}, nil
 }

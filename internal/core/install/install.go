@@ -118,6 +118,11 @@ func (r *Runner) Apply(a plan.Action) (Result, error) {
 			res.Status = StatusAlready
 			return res, nil
 		}
+	} else if backup.SameContent(a.Source, a.Dest) {
+		// Copy mode: a destination that still equals the repo needs no new
+		// copy (and no new backup of the previous, identical, copy).
+		res.Status = StatusAlready
+		return res, nil
 	}
 
 	if r.opt.DryRun {
