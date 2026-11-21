@@ -35,6 +35,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/manifest"
 	"github.com/alvaroofernaandez/aval/internal/plan"
 	"github.com/alvaroofernaandez/aval/internal/platform"
+	"github.com/alvaroofernaandez/aval/internal/statusline"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 	"github.com/alvaroofernaandez/aval/internal/update"
 )
@@ -65,6 +66,12 @@ func run() error {
 
 	if *showVer {
 		fmt.Printf("aval %s (%s/%s)\n", version, runtime.GOOS, runtime.GOARCH)
+		return nil
+	}
+
+	// The status line refreshes constantly: no repo lookup, no network.
+	if flag.Arg(0) == "statusline" {
+		fmt.Fprintln(os.Stdout, statusline.Render(os.Stdin))
 		return nil
 	}
 

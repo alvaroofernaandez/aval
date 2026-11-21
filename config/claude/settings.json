@@ -32,7 +32,6 @@
   "model": "opus",
   "skillOverrides": {
     "hallmark": "off",
-    "design-shotgun": "off",
     "ai-sdk-5": "off",
     "clerk-setup": "off",
     "clerk-webhooks": "off",
@@ -45,7 +44,6 @@
     "clerk-custom-ui": "off",
     "browse": "off",
     "clerk-backend-api": "off",
-    "land-and-deploy": "off",
     "repo-prep": "off",
     "high-end-visual-design": "off",
     "anthropic-skills:skill-creator": "off"
@@ -116,18 +114,19 @@
             "timeout": 30
           }
         ]
-      }
-    ],
-    "Stop": [
+      },
       {
+        "matcher": "startup|resume|clear",
         "hooks": [
           {
             "type": "command",
-            "command": "[ -x \"$HOME/.gstack/bin/gstack-verify-gate\" ] && \"$HOME/.gstack/bin/gstack-verify-gate\" || true",
-            "timeout": 900
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook repo-profile || true",
+            "timeout": 5
           }
         ]
-      },
+      }
+    ],
+    "Stop": [
       {
         "matcher": "",
         "hooks": [
@@ -264,5 +263,10 @@
       ".venv"
     ]
   },
-  "spinnerTipsEnabled": false
+  "spinnerTipsEnabled": false,
+  "statusLine": {
+    "type": "command",
+    "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" statusline || echo claude",
+    "padding": 0
+  }
 }

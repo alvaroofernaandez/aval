@@ -50,10 +50,10 @@ func TestMergeSettings(t *testing.T) {
 	}{
 		{
 			name:        "managed keys are replaced",
-			repo:        `{"hooks":{"Stop":[1]},"attribution":{"commit":""},"worktree":{"a":1},"spinnerTipsEnabled":false,"subagentPromptCacheTtl":"1h"}`,
+			repo:        `{"hooks":{"Stop":[1]},"attribution":{"commit":""},"worktree":{"a":1},"spinnerTipsEnabled":false,"subagentPromptCacheTtl":"1h","statusLine":{"type":"command","command":"aval statusline"}}`,
 			live:        `{"hooks":{"Old":[2]},"attribution":{"commit":"x"},"worktree":{"a":0},"spinnerTipsEnabled":true,"subagentPromptCacheTtl":"5m"}`,
-			want:        `{"hooks":{"Stop":[1]},"attribution":{"commit":""},"worktree":{"a":1},"spinnerTipsEnabled":false,"subagentPromptCacheTtl":"1h"}`,
-			wantChanged: []string{"attribution", "hooks", "spinnerTipsEnabled", "subagentPromptCacheTtl", "worktree"},
+			want:        `{"hooks":{"Stop":[1]},"attribution":{"commit":""},"worktree":{"a":1},"spinnerTipsEnabled":false,"subagentPromptCacheTtl":"1h","statusLine":{"type":"command","command":"aval statusline"}}`,
+			wantChanged: []string{"attribution", "hooks", "spinnerTipsEnabled", "statusLine", "subagentPromptCacheTtl", "worktree"},
 		},
 		{
 			name:        "maps merge, repo wins per key, live-only kept",

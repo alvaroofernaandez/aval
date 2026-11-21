@@ -65,7 +65,7 @@ type Report struct {
 }
 
 // replaceKeys are owned by the repo: the live value is overwritten.
-var replaceKeys = []string{"hooks", "attribution", "worktree", "spinnerTipsEnabled", "subagentPromptCacheTtl"}
+var replaceKeys = []string{"hooks", "attribution", "worktree", "spinnerTipsEnabled", "subagentPromptCacheTtl", "statusLine"}
 
 // mergeKeys are maps where the repo wins per entry but live-only entries
 // survive (plugins and overrides added by hand or by a marketplace).
