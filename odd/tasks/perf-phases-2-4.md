@@ -21,9 +21,13 @@ Continues odd/tasks/perf-phase1-agents.md. Every change measured before/after.
 - [x] brew cleanup -s --prune=all: 41 MB
 - [x] ~/.oh-my-zsh (22 MB) → Trash, unused after phase 2
 - [x] 80 clean, integrated worktrees removed: 31 GB (phase 1, T6)
-- [ ] Left for the owner: postgresql@17 brew service (24 MB, a project may
-      depend on localhost:5432), Kiri/Docker prune (rule: show and confirm),
-      ~/.gentle-ai/backups (58 MB), Steam launch agent.
+- [x] 37 more clean worktrees removed after a per-worktree audit: ~2.1 GB.
+      103 kept: local-only commits, tracked changes or activity in 14 days.
+- [x] SDD retired in work repos on a `chore/retire-sdd` branch each; .atl
+      registries trashed; openspec/ trashed where nothing links to it.
+- [x] postgresql@17 kept: several projects' .env point at localhost:5432.
+- [ ] Kiri/Docker prune pending owner confirmation (rule: show and confirm).
+- [ ] Left for the owner: ~/.gentle-ai/backups (58 MB), Steam launch agent.
 
 ## Safety
 - Pre-push hook (.githooks/pre-push) refuses employer material and secrets in
