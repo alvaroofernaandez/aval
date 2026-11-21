@@ -32,7 +32,7 @@ func newSandbox(t *testing.T) *sandbox {
 func (s *sandbox) install(args ...string) result {
 	s.t.Helper()
 	a := append([]string{"--yes", "--repo", s.repo}, args...)
-	return run(s.repo, isoEnv(s.home), "", avalBin(s.t), a...)
+	return run(s.repo, isoEnv(s.home, withHookTools(s.t)), "", avalBin(s.t), a...)
 }
 
 func (s *sandbox) path(rel string) string { return filepath.Join(s.home, rel) }

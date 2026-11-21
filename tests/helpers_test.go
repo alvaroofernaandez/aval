@@ -419,3 +419,23 @@ func regexpFind(re, s string) string {
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }
+
+// withHookTools is a PATH= entry that adds stand-ins for the programs the
+// repo's own hooks call (gentle-ai, code-review-graph). Every sync ends with
+// the doctor's hooks-resolve check, which rolls back on a machine, like a CI
+// runner, that lacks them. Copies of the aval binary resolve exactly like the
+// real tools and are never run by these tests.
+func withHookTools(t testing.TB) string {
+	t.Helper()
+	dir := t.TempDir()
+	bin, err := os.ReadFile(avalBin(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"gentle-ai", "code-review-graph"} {
+		if err := os.WriteFile(filepath.Join(dir, name+exeSuffix), bin, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return "PATH=" + dir + string(os.PathListSeparator) + os.Getenv("PATH")
+}
