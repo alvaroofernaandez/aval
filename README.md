@@ -128,6 +128,7 @@ Detalle de cada una en la [guía](docs/guide.md#️-comandos).
 | `home/` | zsh, p10k, git | [Shell](docs/guide.md#-shell-y-herramientas) |
 | `cmd/aval` · `internal/` · `npm/` | El binario, por dominios, y su empaquetado | [Mapa](docs/guide.md#️-mapa-del-repositorio) |
 | `install.manifest` | Qué se instala y dónde: fuente única | [Instalación](docs/guide.md#-instalación) |
+| `.goreleaser.yaml` · `.github/workflows/release.yml` | Versiones SemVer, binarios con procedencia verificable y paquetes npm | [Releases](docs/releasing.md) · [Changelog](CHANGELOG.md) |
 | `tests/` | Tests de integración en Go | [Tests](docs/guide.md#-tests) |
 
 <br/>
