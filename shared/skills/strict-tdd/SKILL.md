@@ -3,8 +3,7 @@ name: strict-tdd
 description: >
   The full strict-TDD contract: RED/GREEN/REFACTOR discipline, per-layer scope
   (backend, frontend, infra), the setup-first rule for projects with no runner,
-  the [tdd-gate] pre-flight block, why after-the-fact tests are forbidden, and
-  how this interacts with SDD. Invoke when starting any feature, bug fix or
+  the [tdd-gate] pre-flight block, why after-the-fact tests are forbidden. Invoke when starting any feature, bug fix or
   behavioural refactor, or when a project has no test runner configured yet.
 ---
 
@@ -47,8 +46,3 @@ If you cannot fill this block honestly, you are not allowed to write implementat
 ### After-the-fact tests are forbidden
 
 Writing the code first and then "covering it with tests" is NOT TDD. It is regression testing of code you already trust — which means you skipped the design feedback that TDD provides. Do not do this. If you catch yourself doing it, STOP, delete the implementation, and restart from RED.
-
-### Interaction with SDD
-
-- The SDD `strict_tdd` flag in `sdd-init` is a project-level enforcement. This global rule is stricter: TDD is on by default for ALL projects, SDD or not.
-- When SDD is active, the `sdd-apply` agent already enforces TDD. This rule extends that enforcement to every other task (non-SDD changes, quick fixes, scripts).

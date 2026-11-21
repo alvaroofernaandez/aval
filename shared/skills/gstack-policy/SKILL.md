@@ -32,7 +32,7 @@ either alone. Do not install them, and do not reach for them:
 
 | Rejected | Because this already covers it |
 | -------- | ------------------------------ |
-| `/office-hours`, `/plan-*`, `/autoplan`, `/spec` | the SDD chain — 15 KB across seven subagents against 401 KB running in the main thread |
+| `/office-hours`, `/plan-*`, `/autoplan`, `/spec` | the native plan mode and `odd/tasks` task files — planning stays in the main thread, no extra skill competing for the trigger |
 | `/design-consultation`, `/design-review`, `/design-html` | `frontend-design` + `ui-ux-pro-max` + `impeccable` + `DESIGN.md` |
 | `/learn`, `/context-save`, `/context-restore`, GBrain | **engram** |
 | `/document-generate`, `/document-release` | `docs-guardian`, `readme-guardian`, `cognitive-doc-design` |

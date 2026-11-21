@@ -369,9 +369,8 @@ Before submitting any issue, verify:
 ## Agent Instructions Section (MANDATORY — always append at the end)
 
 Every issue MUST end with a collapsible `<details>` block containing:
-1. A machine-readable **SDD spec seed** — acceptance criteria extracted from the issue, ready to feed into `sdd-spec`
-2. A **ready-to-run prompt** for Claude Code / OpenCode to kick off the full SDD cycle
-3. A **quick-start command block** the developer can copy-paste immediately
+1. A machine-readable **acceptance-criteria seed** extracted from the issue
+2. A **ready-to-run prompt** for Claude Code / OpenCode to implement it directly
 
 ### Template to append (adapt content to the actual issue)
 
@@ -381,9 +380,9 @@ Every issue MUST end with a collapsible `<details>` block containing:
 <details>
 <summary>🤖 Agent Instructions — Claude Code / OpenCode</summary>
 
-## 📋 SDD Spec Seed
+## 📋 Acceptance Criteria Seed
 
-> Pre-extracted acceptance criteria from this issue. Feed directly into `/issue-sdd <N>` or paste into `sdd-spec`.
+> Pre-extracted acceptance criteria from this issue.
 
 ### Acceptance Criteria
 
@@ -405,21 +404,9 @@ Every issue MUST end with a collapsible `<details>` block containing:
 
 ---
 
-## 🚀 Claude Code / OpenCode — Quick Start
+## 🧠 Prompt para implementación directa
 
-Para planificar e implementar este issue con SDD completo, ejecuta en Claude Code u OpenCode:
-
-```
-/issue-sdd <N>
-```
-
-Esto arranca el ciclo completo: **explore → propose → spec → design → tasks** con análisis exhaustivo del codebase antes de tocar una sola línea.
-
----
-
-## 🧠 Prompt para implementación directa (sin SDD)
-
-Si prefieres implementar sin el ciclo SDD completo, usa este prompt como punto de partida:
+Usa este prompt como punto de partida:
 
 ```
 Implementa el fix del issue #<N>: <título del issue>
@@ -442,7 +429,6 @@ Reglas obligatorias:
 ## 🔗 Referencias útiles
 
 - Issue: `gh issue view <N> --repo OWNER/REPO`
-- SDD skill: `/issue-sdd <N>`
 - Pre-PR gate: `tools/pre_pr_runtime_gate.sh`
 
 </details>
@@ -453,7 +439,6 @@ Reglas obligatorias:
 1. **AC table**: extract one row per acceptance criterion from «Comportamiento esperado» or «Criterios de aceptación». Make each AC independently verifiable.
 2. **Regresiones**: list the existing behaviour that must NOT break — pull from «Comportamiento actual» (the parts that work) and known related tests.
 3. **Scope IN/OUT**: derive directly from the issue's explicit fix proposal. If the issue says "only change X", OUT must say "no refactor of Y".
-4. **Quick-start command**: always `issue-sdd <N>` — this is non-negotiable. Replace `<N>` with the actual issue number after creating it.
-5. **Direct implementation prompt**: summarise root cause + fix in 2-3 lines. Pull from «💡 Fix propuesto» and «🎯 Dato clave» sections.
-6. **Never invent** file paths or root causes — use only what the issue body already states.
-7. The `<details>` block must be **collapsed by default** — it's for agents, not humans skimming the issue.
+4. **Direct implementation prompt**: summarise root cause + fix in 2-3 lines. Pull from «💡 Fix propuesto» and «🎯 Dato clave» sections.
+5. **Never invent file paths or root causes — use only what the issue body already states.
+6. The `<details>` block must be **collapsed by default** — it's for agents, not humans skimming the issue.
