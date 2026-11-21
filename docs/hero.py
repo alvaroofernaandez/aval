@@ -21,6 +21,8 @@ byte, and a change to the image is a change someone made on purpose.
 import math
 import random
 
+import logo
+
 # Canvas. 3:1 is about as tall as a README hero can be before it pushes the
 # first line of prose off a laptop screen.
 W, H = 1200, 400
@@ -119,7 +121,7 @@ def build(theme="dark"):
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
         f'width="{W}" height="{H}" role="img" '
-        f'aria-label="Alvaro\'s Dotfiles">',
+        f'aria-label="aval — harness personal">',
         "<defs>",
         # A vignette so the ink fades at the edges instead of being cropped,
         # which is what a real tray looks like.
@@ -166,19 +168,17 @@ def build(theme="dark"):
         f'fill="url(#scrim)"/>'
     )
 
-    font = (
-        "ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',"
-        "Helvetica,Arial,sans-serif"
-    )
     mono = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
 
+    # The wordmark is drawn, not typeset, so the hero looks the same on every
+    # machine. Only the tagline is text, and it is set in the system mono.
+    ww, wh = logo.word_size()
+    scale = 1.0
+    parts.append(logo.word_group(t["title"], W / 2 - ww * scale / 2, 78, scale))
     parts += [
-        f'<text x="50%" y="47%" text-anchor="middle" font-family="{font}" '
-        f'font-size="76" font-weight="800" fill="{t['title']}" '
-        f'letter-spacing="-2">Álvaro\'s Dotfiles</text>',
-        f'<text x="50%" y="64%" text-anchor="middle" font-family="{mono}" '
-        f'font-size="22" fill="{t['sub']}" letter-spacing="6">'
-        f'TERMINAL · AGENTES · MACOS</text>',
+        f'<text x="50%" y="70%" text-anchor="middle" font-family="{mono}" '
+        f'font-size="22" fill="{t["sub"]}" letter-spacing="6">'
+        f'HARNESS PERSONAL · NADA SIN PRUEBAS</text>',
         "</svg>",
     ]
     return "\n".join(parts)

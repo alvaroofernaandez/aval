@@ -9,7 +9,9 @@
 Outputs, each in a light and a dark variant so the README can swap them with
 <picture> to follow the reader's GitHub theme:
 
-    hero-{light,dark}.svg    suminagashi rings in black and white (docs/hero.py)
+    hero-{light,dark}.svg    suminagashi rings and the aval wordmark (docs/hero.py)
+    mark-{light,dark}.svg    the aval isotype (docs/logo.py)
+    wordmark-{light,dark}.svg  the aval wordmark (docs/logo.py)
     stack-{light,dark}.svg   every tool's real, coloured logo
 
 Logos are vendored under docs/logos/ (provenance in docs/logos/SOURCES.md) and
@@ -28,6 +30,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import hero  # noqa: E402
+import logo  # noqa: E402
 
 LOGOS = HERE / "logos"
 
@@ -117,19 +120,19 @@ def esc(text):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def tile(x, y, label, logo, mono, t):
+def tile(x, y, label, logo_file, mono, t):
     cx = x + TILE_W / 2
     top = y + HEAD
     out = [
         f'<rect x="{cx - CARD / 2:.1f}" y="{top}" width="{CARD}" height="{CARD}" '
         f'rx="20" fill="{t["card"]}" stroke="{t["edge"]}" stroke-width="1"/>'
     ]
-    if logo:
+    if logo_file:
         off = (CARD - LOGO) / 2
         out.append(
             f'<image class="logo" width="{LOGO}" height="{LOGO}" '
             f'x="{cx - CARD / 2 + off:.1f}" y="{top + off:.1f}" '
-            f'preserveAspectRatio="xMidYMid meet" href="{data_uri(logo)}"/>'
+            f'preserveAspectRatio="xMidYMid meet" href="{data_uri(logo_file)}"/>'
         )
     else:
         # No published logo: a plain monogram, never a drawn mark, so it can't
@@ -162,8 +165,8 @@ def stack(theme):
             f'font-size="12" letter-spacing="3" fill="{t["muted"]}">'
             f'{esc(group.upper())}</text>'
         )
-        for col, (label, logo, mono) in enumerate(tools):
-            parts.extend(tile(col * TILE_W, y, label, logo, mono, t))
+        for col, (label, logo_file, mono) in enumerate(tools):
+            parts.extend(tile(col * TILE_W, y, label, logo_file, mono, t))
     parts.append("</svg>")
     return "\n".join(parts) + "\n"
 
@@ -177,8 +180,8 @@ def main():
 
     if args.list or args.no_logo:
         for _, tools in STACK:
-            for label, logo, _ in tools:
-                if args.list or not logo:
+            for label, logo_file, _ in tools:
+                if args.list or not logo_file:
                     print(label)
         return
 
@@ -187,6 +190,8 @@ def main():
     for theme in THEMES:
         (out / f"hero-{theme}.svg").write_text(hero.build(theme) + "\n")
         (out / f"stack-{theme}.svg").write_text(stack(theme))
+        (out / f"mark-{theme}.svg").write_text(logo.mark(theme))
+        (out / f"wordmark-{theme}.svg").write_text(logo.wordmark(theme))
 
 
 if __name__ == "__main__":

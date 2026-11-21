@@ -28,20 +28,42 @@ gen_status=0
 python3 "$REPO/docs/brand.py" --out "$out" >/dev/null 2>&1 || gen_status=$?
 assert_eq "docs/brand.py runs" "0" "$gen_status"
 
-for f in hero-light.svg hero-dark.svg stack-light.svg stack-dark.svg; do
+IMAGES="hero-light.svg hero-dark.svg stack-light.svg stack-dark.svg
+mark-light.svg mark-dark.svg wordmark-light.svg wordmark-dark.svg"
+
+for f in $IMAGES; do
   assert_eq "generator emits $f" "yes" "$([ -s "$out/$f" ] && echo yes || echo no)"
 done
 
+# The brand is drawn, not typeset: a wordmark set in a font renders in whatever
+# fallback the viewer has, so the logo would change from machine to machine.
+assert_eq "wordmark is drawn with paths, not text" "0" \
+  "$(rg -c '<text' "$out/wordmark-light.svg" || echo 0)"
+assert_eq "hero carries the aval wordmark" "yes" \
+  "$(rg -q 'aria-label="aval' "$out/hero-light.svg" && echo yes || echo no)"
+assert_eq "hero no longer says Dotfiles" "0" \
+  "$(rg -c -i 'dotfiles' "$out/hero-light.svg" || echo 0)"
+# Legible as a 16px favicon: the stroke must be at least 1/8 of the canvas.
+stroke_ok="$(python3 - "$out/mark-light.svg" <<'PY'
+import re, sys
+s = open(sys.argv[1]).read()
+w = float(re.search(r'viewBox="0 0 ([\d.]+)', s).group(1))
+widths = [float(x) for x in re.findall(r'stroke-width="([\d.]+)"', s)]
+print("yes" if widths and min(widths) >= w / 8 else "no")
+PY
+)"
+assert_eq "mark strokes survive a 16px favicon" "yes" "$stroke_ok"
+
 # Committed images must be exactly what the generator produces, or the README
 # shows something no command can rebuild.
-for f in hero-light.svg hero-dark.svg stack-light.svg stack-dark.svg; do
+for f in $IMAGES; do
   same="$(cmp -s "$out/$f" "$REPO/docs/assets/$f" && echo yes || echo no)"
   assert_eq "committed $f matches the generator" "yes" "$same"
 done
 
 # The hero is monochrome: every colour literal must be a pure grey (r=g=b).
 # The logo wall is not — it shows each tool's real, coloured mark.
-non_grey="$(rg -o --no-filename '#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b' "$out"/hero-*.svg 2>/dev/null \
+non_grey="$(rg -o --no-filename '#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b' "$out"/hero-*.svg "$out"/mark-*.svg "$out"/wordmark-*.svg 2>/dev/null \
   | tr 'A-F' 'a-f' \
   | awk '{h=substr($0,2); if (length(h)==3) {r=substr(h,1,1); g=substr(h,2,1); b=substr(h,3,1)} else {r=substr(h,1,2); g=substr(h,3,2); b=substr(h,5,2)} if (r!=g || g!=b) print $0}' \
   | sort -u | tr '\n' ' ')"
