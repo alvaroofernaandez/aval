@@ -5,7 +5,7 @@ mode = "dark"
 tabRailAppIcons = false
 
 [borders]
-enabled = true
+enabled = false
 width = 5.0
 
 [borders.color]
@@ -75,7 +75,7 @@ overviewGestureEnabled = false
 overviewGestureFingerCount = 4
 resizePreviewStyle = "live"
 scrollEnabled = true
-scrollModifierKey = "optionShift"
+scrollModifierKey = "controlOptionCommandShift"
 scrollSensitivity = 5.0
 trackpadScrollStyle = "snap"
 windowGestureSensitivity = 1.0

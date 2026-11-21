@@ -37,6 +37,11 @@ assert_eq "workspace 1 is on Hyper+1" "yes" \
 assert_eq "moving a window to workspace 1 is Hyper+Shift+1" "yes" \
   "$(rg -U -q 'binding = "Hyper\+Shift\+1"\nid = "moveToWorkspace\.0"' "$CONF" 2>/dev/null && echo yes || echo no)"
 
+assert_eq "no focus border around the active window" "yes" \
+  "$(rg -U -q '^\[borders\]\nenabled = false$' "$CONF" 2>/dev/null && echo yes || echo no)"
+assert_eq "Caps Lock+Shift with the thumb wheel scrolls columns" "yes" \
+  "$(rg -q '^scrollModifierKey = "controlOptionCommandShift"$' "$CONF" 2>/dev/null && echo yes || echo no)"
+
 dups="$(rg -o '^binding = "(.*)"' -r '$1' "$CONF" 2>/dev/null | rg -v '^Unassigned$' | sort | uniq -d)"
 assert_eq "no two actions share a binding" "" "$dups"
 dup_ids="$(rg -o '^id = "(.*)"' -r '$1' "$CONF" 2>/dev/null | sort | uniq -d | rg -v '^[0-9A-F-]{36}$')"
