@@ -21,7 +21,7 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEST="$REPO/shared/skills/ui-ux-pro-max"
-PIN_FILE="$REPO/vendor/pins/UIUX_PIN"
+PIN_FILE="$REPO/pins/UIUX_PIN"
 UPSTREAM="https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git"
 
 say() { printf '\033[36m%s\033[0m\n' "$*"; }

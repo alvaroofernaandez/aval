@@ -31,7 +31,7 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEST="$REPO/shared/skills/design-gates"
-PIN_FILE="$REPO/vendor/pins/P87_PIN"
+PIN_FILE="$REPO/pins/P87_PIN"
 UPSTREAM="https://github.com/plugin87/ux-ui-agent-skills.git"
 # Five review skills (judge a surface) plus four refactor skills (improve one).
 # The split matters: design-gates began as review-only, which is good for saying
@@ -161,7 +161,7 @@ description: >
 
 # Design gates
 
-Vendored from plugin87/ux-ui-agent-skills at the commit in `vendor/pins/P87_PIN`. Regenerate
+Vendored from plugin87/ux-ui-agent-skills at the commit in `pins/P87_PIN`. Regenerate
 with `scripts/p87-sync.sh` — **never edit `scripts/`, `skills/` or this file by
 hand**, the next sync overwrites them.
 

@@ -61,7 +61,7 @@ Your own address is `$HC_TERMINAL_ID` (not a pane ID).
 
 ## Templates
 
-`hc templates` lists them. Versioned in `dotfiles/config/herdr-core/templates`:
+`hc templates` lists them. Versioned in `config/herdr-core/templates` of the aval repo:
 
 - `reviewer`: Claude Sonnet in plan mode, read-only review of an exact scope.
 - `implementer`: Claude Sonnet, one bounded change with strict TDD.

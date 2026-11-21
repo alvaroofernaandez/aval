@@ -337,7 +337,7 @@ aval/
 │   └── gstack-sync.sh         Clona gstack al pin, compila y regenera las skills
 │
 ├── 📁 third_party/gstack/     ⛔ No versionado. Runtime de gstack, 42 MB
-├── 📌 vendor/pins/            Commit exacto de gstack, plugin87 y ui-ux-pro-max
+├── 📌 pins/            Commit exacto de gstack, plugin87 y ui-ux-pro-max
 ├── 📋 install.manifest        Qué se instala y dónde — fuente única
 ├── ⚙️  install.sh              Instalador shell: lee el mismo manifiesto
 └── 🧪 tests/                  10 suites transversales
@@ -864,7 +864,7 @@ escaneo informó «sin credenciales».
 | `~/.local/share/opencode/opencode.db` | 💾 4,5 GB |
 | `~/.claude/settings.local.json` | 💻 Permisos de una máquina concreta |
 | `.agents/` | 📓 Notas de diseño, solo locales |
-| `third_party/gstack/` | ♻️ 42 MB reproducibles desde `vendor/pins/GSTACK_PIN` |
+| `third_party/gstack/` | ♻️ 42 MB reproducibles desde `pins/GSTACK_PIN` |
 | `node_modules`, `*.bak` | ♻️ Regenerables |
 
 ---

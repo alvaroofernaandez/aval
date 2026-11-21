@@ -91,7 +91,7 @@ jobs:
       # ~/.config, not the ones in the repo, so they need a real installation
       # first. This is the same instruction the README gives for a fresh machine.
       # The runner is throwaway, so linking into its $HOME is free.
-      - name: install the dotfiles
+      - name: install aval
         run: ./install.sh
 
       # Individually bounded as well as at the job level, so a hang is

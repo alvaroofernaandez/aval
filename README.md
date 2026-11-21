@@ -104,7 +104,7 @@ aval update   # git pull + enlaza lo nuevo
 | `home/` | zsh, p10k, git | [Shell](docs/guide.md#-shell-y-herramientas) |
 | `cmd/aval` · `internal/` · `npm/` | Instalador TUI en Go | [Instalación](docs/guide.md#-instalación) |
 | `install.manifest` | Qué se instala y dónde: fuente única | [Mapa](docs/guide.md#️-mapa-del-repositorio) |
-| `vendor/pins` | Commit exacto de cada skill de terceros | [Agentes](docs/guide.md#-agentes) |
+| `pins/` | Commit exacto de cada skill de terceros | [Agentes](docs/guide.md#-agentes) |
 | `tests/` | Shell, Go y npm en una sola orden: `./tests/run-all.sh` | [Tests](docs/guide.md#-tests) |
 
 <br/>

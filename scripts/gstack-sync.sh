@@ -38,7 +38,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENDOR="$REPO/third_party/gstack"
 SKILLS="$REPO/shared/skills"
 PATCH="$REPO/scripts/gstack-patch.sh"
-PIN_FILE="$REPO/vendor/pins/GSTACK_PIN"
+PIN_FILE="$REPO/pins/GSTACK_PIN"
 LINK="$HOME/.gstack"
 UPSTREAM="https://github.com/garrytan/gstack.git"
 

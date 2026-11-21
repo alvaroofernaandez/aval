@@ -23,7 +23,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS="$REPO/shared/skills"
 VENDOR="$REPO/third_party/gstack"
 PATCH="$REPO/scripts/gstack-patch.sh"
-PIN="$REPO/vendor/pins/GSTACK_PIN"
+PIN="$REPO/pins/GSTACK_PIN"
 
 # The three skills adopted from gstack, and the reason each one earned its
 # place. They were chosen because nothing in this configuration already covers
