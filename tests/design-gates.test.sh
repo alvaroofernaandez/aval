@@ -314,6 +314,15 @@ if [ -f "$SHOT" ] && command -v node >/dev/null 2>&1; then
     assert_eq "it prints measured numbers (scrollWidth)" "yes" \
       "$(printf '%s' "$OUT" | rg -q 'scrollWidth=[0-9]+' && echo yes || echo no)"
 
+    # Playwright's downloaded Chromium drifts per project version (16 runs failed
+    # on "Browser was not found at .../chromium-1234"). An installed Chromium
+    # browser (Chrome, Brave, Edge, Chromium) must be enough to render.
+    if [ -d "/Applications/Brave Browser.app" ] || [ -d "/Applications/Google Chrome.app" ]; then
+      rm -rf "$SP/.design"
+      OUT2="$(cd "$SP" && PLAYWRIGHT_BROWSERS_PATH=/nonexistent node "$SHOT" clean.html 2>&1)"; RC2=$?
+      assert_eq "it renders with an installed browser when Playwright's Chromium is missing" "0" "$RC2"
+    fi
+
     OUT="$(cd "$SP" && node "$SHOT" wide.html 2>&1)"; RC=$?
     assert_eq "a page that scrolls sideways at 390px fails" "1" "$RC"
     assert_eq "...and says so with the number" "yes" \

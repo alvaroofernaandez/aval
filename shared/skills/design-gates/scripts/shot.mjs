@@ -80,8 +80,32 @@ if (!isUrl) {
 const slug = (isUrl ? new URL(url).host + new URL(url).pathname : basename(target).replace(/\.[^.]+$/, ''))
   .replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'page';
 
+// Playwright's own Chromium is pinned per Playwright version, so a project on
+// another version finds no browser. Any installed Chromium-based browser renders
+// the same pixels, so try those before giving up. SHOT_BROWSER overrides.
+const INSTALLED = [
+  process.env.SHOT_BROWSER,
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+  '/Applications/Chromium.app/Contents/MacOS/Chromium',
+  '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/brave-browser',
+].filter((p) => p && existsSync(p));
+
+async function launchAny() {
+  const chrome = await chromium.launch({ channel: 'chrome' }).catch(() => null);
+  if (chrome) return chrome;
+  const attempts = [() => chromium.launch(),
+    ...INSTALLED.map((executablePath) => () => chromium.launch({ executablePath }))];
+  let last;
+  for (const attempt of attempts) {
+    try { return await attempt(); } catch (e) { last = e; }
+  }
+  throw last;
+}
+
 let browser;
-try { browser = await chromium.launch({ channel: 'chrome' }).catch(() => chromium.launch()); }
+try { browser = await launchAny(); }
 catch (e) {
   fail(`Chromium could not start (${String(e.message).split('\n')[0]}) - cannot render, so this is NOT a pass. npx playwright install chromium`);
 }

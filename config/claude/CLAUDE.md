@@ -119,7 +119,7 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 ## Headless browser
 
 - Lightpanda is the default headless browser for Playwright/Puppeteer (via CDP), E2E flows, scraping and page reading.
-- It has no rendering engine: screenshots, visual/layout gates and PDF generation stay on Chromium.
+- Its screenshots and PDFs ignore CSS and its layout is approximate (measured 2026-11-21), so anything visual stays on a Chromium browser; `shot.mjs` uses any installed one (Chrome, Brave, Edge).
 - Skill: `lightpanda-browser` — load it before launching any headless browser.
 
 ## Terminal and agent workspace
