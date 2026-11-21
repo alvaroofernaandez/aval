@@ -12,9 +12,9 @@ and Gemini instructions, employer material that can't live in the public repo.
 - [ ] `--fix`: remove broken links, run sync; exit 1 on any failure
 
 ## T2 — `aval sync [--dry-run]`
-- [ ] Merge repo-managed keys into ~/.claude/settings.json, keep personal keys,
+- [x] Merge repo-managed keys into ~/.claude/settings.json, keep personal keys,
       back up first
-- [ ] Shared agent-rules block into ~/.codex/AGENTS.md and ~/.gemini/GEMINI.md
+- [x] Shared agent-rules block into ~/.codex/AGENTS.md and ~/.gemini/GEMINI.md
 
 ## T3 — private overlay `~/.config/aval/private`
 - [ ] settings.json fragment merged by sync; links manifest applied by sync
