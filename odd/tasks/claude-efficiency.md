@@ -11,9 +11,9 @@ Inputs: history audit of 174 sessions (2026-09-22..2026-11-21) and ecosystem res
       "fixed" needs a screenshot, mem_judge_many)
 
 ## T2 — design pipeline audit → simplify
-- [ ] Gate survives compaction and sub-agents (229 denials / 53 sessions)
-- [ ] Fewer skills, fewer tokens, same guarantees
+- [x] Gate survives compaction and sub-agents (229 denials / 53 sessions)
+- [x] Fewer skills, fewer tokens, same guarantees
 
 ## T3 — skills audit (global, per project, per agent)
-- [ ] Inventory, duplicates, dead, unused; always-loaded token cost
-- [ ] Apply: remove/disable what adds cost without value
+- [x] Inventory, duplicates, dead, unused; always-loaded token cost
+- [x] Apply: remove/disable what adds cost without value
