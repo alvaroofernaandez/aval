@@ -128,4 +128,10 @@ for entry in "${LINKS[@]}"; do
   say "$name" "linked"
 done
 
+# Versioned git hooks: pre-push refuses employer material and secrets in
+# outgoing commits. Skipped on --dry-run and outside a git checkout.
+if [ "${DRY_RUN:-0}" != 1 ] && git -C "$REPO_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+  git -C "$REPO_ROOT" config core.hooksPath .githooks
+fi
+
 [ "$failed" -eq 0 ] || exit 1

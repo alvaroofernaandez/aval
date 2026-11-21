@@ -60,6 +60,7 @@ SUITES=(
   "$REPO/tests/agent-hooks.test.sh"
   "$REPO/tests/no-sdd.test.sh"
   "$REPO/tests/shell-startup.test.sh"
+  "$REPO/tests/pre-push.test.sh"
 )
 
 total_pass=0
