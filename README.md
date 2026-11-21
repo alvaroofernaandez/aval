@@ -1,18 +1,11 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg?v=8630dbf5">
-  <img src="docs/assets/hero-light.svg?v=54b8bc88" alt="aval — harness personal" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg?v=6704cc71">
+  <img src="docs/assets/hero-light.svg?v=100c6ed4" alt="aval. Nada sin pruebas." width="100%">
 </picture>
 
 <br/>
-<br/>
-
-**aval** /a·ˈβal/ — en español, una **garantía**: alguien responde por algo.
-
-Mi harness personal para agentes de IA, terminal y macOS.<br/>
-Aquí nada se da por bueno sin pruebas.
-
 <br/>
 
 ![harness](https://img.shields.io/badge/harness-personal-000000?style=flat-square)
@@ -45,7 +38,8 @@ instrucciones, memoria, skills, hooks, gates y el entorno donde corre.
 aval es el mío, versionado y con tests, instalable en una máquina nueva con
 un comando.
 
-El nombre es la tesis. Un aval responde por algo, y aquí cada afirmación
+El nombre es la tesis. En español, un aval es una **garantía**: alguien
+responde por algo. Aquí cada afirmación
 tiene detrás un mecanismo que la comprueba. Por eso, en el logo, la **v** es
 un check: la garantía está dentro del nombre.
 

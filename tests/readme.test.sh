@@ -48,8 +48,11 @@ assert_eq "hero builds the mark from a check matrix" "yes" \
 inked="$(rg -c 'class="ck on"' "$out/hero-light.svg" || echo 0)"
 assert_eq "the matrix inks enough cells to trace the mark" "yes" \
   "$([ "$inked" -ge 25 ] && echo yes || echo no)"
-assert_eq "hero defines the word" "yes" \
-  "$(rg -q 'Garantía' "$out/hero-light.svg" && echo yes || echo no)"
+# Presented as a brand, not as a document: a claim, no labelled fields.
+assert_eq "hero carries the brand claim" "yes" \
+  "$(rg -q 'Nada sin pruebas\.' "$out/hero-light.svg" && echo yes || echo no)"
+assert_eq "hero has no document labels" "0" \
+  "$(rg -c 'DEFINICIÓN|TESIS|>PARA<|NOMBRE MASCULINO' "$out/hero-light.svg" || echo 0)"
 assert_eq "hero drops the old guilloché and suminagashi" "0" \
   "$(rg -c -i 'guilloche|suminagashi|id="vig"' "$out/hero-light.svg" || echo 0)"
 assert_eq "hero no longer says Dotfiles" "0" \

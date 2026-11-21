@@ -3,9 +3,9 @@
 
     python3 docs/brand.py          # writes hero-light.svg and hero-dark.svg
 
-An editorial, Swiss-grid composition. The wordmark is set large and flush
-left; mono metadata sits above and below on hairline rules. On the right,
-the isotype is drawn as a matrix of tiny check marks: the cells that fall on
+A brand lockup, not a document: the wordmark set large and flush left with
+the claim "Nada sin pruebas." beneath it, and on the right the isotype drawn
+as a matrix of tiny check marks: the cells that fall on
 the mark's stroke are inked, every other cell is a faint check. The mark is
 literally made of passed checks — "nada sin pruebas" as a picture.
 
@@ -30,7 +30,7 @@ MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
 
 # The matrix: a square of CELLS x CELLS checks on the right of the grid.
 CELLS = 20
-CELL = 15
+CELL = 17
 MX = W - PAD - CELLS * CELL      # left edge of the matrix
 
 
@@ -79,52 +79,35 @@ def matrix(t, top):
     return out
 
 
-def meta(t, x, y, text, anchor="start", colour=None):
-    return (
-        f'<text x="{x}" y="{y}" text-anchor="{anchor}" font-family="{MONO}" '
-        f'font-size="13" letter-spacing="2.5" fill="{colour or t["muted"]}">{text}</text>'
-    )
+SANS = "ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
 
 
 def build(theme="light"):
     t = THEMES[theme]
-    top, bottom = PAD + 8, H - PAD
-    rule_top, rule_bottom = top + 20, bottom - 52
-    scale = 1.6
+    scale = 1.45
     ww, wh = logo.word_size()
+
+    # The lockup: wordmark, claim, descriptor — one block, centred vertically.
+    claim_gap, claim_size, desc_gap = 74, 36, 42
+    block = wh * scale + claim_gap + desc_gap
+    top = (H - block) / 2
+    claim_y = top + wh * scale + claim_gap
+    desc_y = claim_y + desc_gap
 
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
         f'width="{W}" height="{H}" role="img" '
-        f'aria-label="aval — Garantía: alguien responde por algo. Harness personal.">',
+        f'aria-label="aval. Nada sin pruebas. Harness personal para agentes de IA.">',
         f'<rect width="{W}" height="{H}" fill="{t["bg"]}"/>',
-        # Header: name of the thing on the left, what kind of word it is on the right.
-        meta(t, PAD, top, "AVAL — HARNESS PERSONAL", colour=t["ink"]),
-        meta(t, W - PAD, top, "/aˈβal/ · NOMBRE MASCULINO", anchor="end"),
-        f'<line x1="{PAD}" y1="{rule_top}" x2="{W - PAD}" y2="{rule_top}" '
-        f'stroke="{t["ink"]}" stroke-width="1"/>',
-        # The wordmark, flush left, vertically centred between the rules.
-        logo.word_group(
-            t["ink"], PAD - 4, (rule_top + rule_bottom) / 2 - wh * scale / 2, scale
-        ),
+        logo.word_group(t["ink"], PAD - 4, top, scale),
+        f'<text x="{PAD}" y="{claim_y:.0f}" font-family="{SANS}" font-size="{claim_size}" '
+        f'font-weight="600" letter-spacing="-0.8" fill="{t["ink"]}">Nada sin pruebas.</text>',
+        f'<text x="{PAD + 2}" y="{desc_y:.0f}" font-family="{MONO}" font-size="13" '
+        f'letter-spacing="3" fill="{t["muted"]}">HARNESS PERSONAL PARA AGENTES DE IA</text>',
     ]
-    # The matrix is centred between the rules, so it never touches either.
-    parts += matrix(t, (rule_top + rule_bottom) / 2 - CELLS * CELL / 2)
-    # Footer: three columns, the definition first.
-    parts += [
-        f'<line x1="{PAD}" y1="{rule_bottom}" x2="{W - PAD}" y2="{rule_bottom}" '
-        f'stroke="{t["ink"]}" stroke-width="1"/>',
-        meta(t, PAD, rule_bottom + 30, "DEFINICIÓN"),
-        f'<text x="{PAD}" y="{bottom}" font-family="{MONO}" font-size="16" '
-        f'fill="{t["ink"]}">Garantía: alguien responde por algo.</text>',
-        meta(t, 560, rule_bottom + 30, "TESIS"),
-        f'<text x="560" y="{bottom}" font-family="{MONO}" font-size="16" '
-        f'fill="{t["ink"]}">Nada se da por bueno sin pruebas.</text>',
-        meta(t, W - PAD, rule_bottom + 30, "PARA", anchor="end"),
-        f'<text x="{W - PAD}" y="{bottom}" text-anchor="end" font-family="{MONO}" '
-        f'font-size="16" fill="{t["ink"]}">Claude Code · OpenCode</text>',
-        "</svg>",
-    ]
+    # The brand visual: the isotype built from checks, as tall as the lockup.
+    parts += matrix(t, (H - CELLS * CELL) / 2)
+    parts.append("</svg>")
     return "\n".join(parts)
 
 
