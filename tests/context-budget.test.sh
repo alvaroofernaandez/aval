@@ -36,36 +36,11 @@ echo "context-budget"
 
 # --- the @import that cost the most ------------------------------------------
 
-assert_eq "CLAUDE.md does not @import sdd-orchestrator" "no" \
-  "$(rg -q '^@sdd-orchestrator\.md' "$CLAUDE_MD" && echo yes || echo no)"
+assert_eq "CLAUDE.md does not @import an orchestrator" "no" \
+  "$(rg -q '^@[a-z-]*orchestrator\.md' "$CLAUDE_MD" && echo yes || echo no)"
 
-assert_eq "the sdd-orchestrator skill exists" "yes" \
-  "$([ -f "$SKILLS/sdd-orchestrator/SKILL.md" ] && echo yes || echo no)"
-
-assert_eq "the skill declares frontmatter name" "yes" \
-  "$(rg -q '^name: sdd-orchestrator$' "$SKILLS/sdd-orchestrator/SKILL.md" 2>/dev/null \
-      && echo yes || echo no)"
-
-# Moving a file must not quietly lose its content. These are the load-bearing
-# rules an orchestrator cannot work without; if the move drops one, the skill is
-# a stub wearing the old file's name.
-if [ -f "$SKILLS/sdd-orchestrator/SKILL.md" ]; then
-  MISSING=""
-  while IFS= read -r rule; do
-    [ -z "$rule" ] && continue
-    rg -qF -- "$rule" "$SKILLS/sdd-orchestrator/SKILL.md" || MISSING="$MISSING | $rule"
-  done <<'RULES'
-Mandatory Delegation Triggers
-Review Workload Guard
-Model Assignments
-Sub-Agent Context Protocol
-Strict TDD Forwarding
-Apply-Progress Continuity
-Engram Topic Key Format
-UI delegation carries the laws
-RULES
-  assert_eq "the skill keeps every load-bearing section" "" "$MISSING"
-fi
+assert_eq "the retired SDD orchestrator skill is gone" "no" \
+  "$([ -e "$SKILLS/sdd-orchestrator" ] && echo yes || echo no)"
 
 # --- the budget --------------------------------------------------------------
 # Anthropic's own guidance is ~200 lines for CLAUDE.md. This ceiling is set

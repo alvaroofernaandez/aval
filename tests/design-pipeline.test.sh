@@ -3,7 +3,7 @@
 #
 # The 4-skill design pipeline in config/claude/CLAUDE.md declares itself "STRICT"
 # and "BLOCKING", but for months nothing blocked: it was prose inside ~42 KB of
-# always-on instructions, competing with an SDD orchestrator that pushes the
+# always-on instructions, competing with an orchestrator that pushes the
 # opposite way ("delegate ALL real work to sub-agents" — and sub-agents start
 # with a clean context, without the checklist). A rule that cannot deny an edit
 # is a reminder, not a gate.
