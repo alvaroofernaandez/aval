@@ -13,7 +13,7 @@ twice per tool call; warp plugin 6–8 ms per hook with Warp not installed.
 - [x] T3 SDD outside the repo: copies in ~/.agents, ~/.codex, ~/.gemini moved to ~/.Trash/sdd-retired-*; SDD orchestrator block stripped from GEMINI.md and Codex AGENTS.md (82–99 KB → 33 KB)
 - [x] T4 SDD inside the repo: skills retired, agents/prompts removed, instructions cleaned (tests/no-sdd.test.sh)
 - [x] T5 Plugins: warp disabled (no Warp installed); wakatime kept — the company tracks time with it (112 ms x2 per tool call, hooks owned by the plugin)
-- [ ] T6 Projects: .atl/ (29 repos), openspec/ (7), project CLAUDE.md/AGENTS.md SDD mentions, stale worktrees (~4 GB) — needs owner decisions per repo
+- [x] T6 Projects: 23 untracked .atl/ → ~/.Trash/atl-retired-*; SDD removed from agent instructions in six work repos (left uncommitted for owner review); 80 clean, fully-integrated worktrees removed with `git worktree remove` (31 GB freed, branches kept). Left: 8 tracked .atl/, openspec/ (7 repos), 141 worktrees with unique work.
 
 Note: gentle-ai 4.6.0 reports the `sdd` component as retired, so `sync` does
 not reinstall it.
