@@ -32,15 +32,16 @@
   <img src="docs/assets/mark-light.22afeffc.svg" alt="Isotipo de aval: la a y el check en un solo trazo" width="96" align="right">
 </picture>
 
-Un **harness** es todo lo que rodea a un agente de IA para que trabaje bien:
-instrucciones, memoria, skills, hooks, gates y el entorno donde corre.
-aval es el mío, versionado y con tests, instalable en una máquina nueva con
-un comando.
+aval es un **harness de ingeniería para agentes de IA**: las reglas, la
+memoria, las skills, los hooks y los controles de calidad con los que Claude
+Code y OpenCode trabajan, junto con el entorno de terminal donde se ejecutan.
+Está versionado, cubierto por tests e instalable en macOS, Linux y Windows con
+un solo comando.
 
-El nombre es la tesis. En español, un aval es una **garantía**: alguien
-responde por algo. Aquí cada afirmación
-tiene detrás un mecanismo que la comprueba. Por eso, en el logo, la **v** es
-un check: la garantía está dentro del nombre.
+Su principio está en el nombre: un aval es una **garantía**. Ninguna regla
+depende de la buena voluntad del agente; cada una tiene detrás un mecanismo que
+la verifica, ya sea un test, un hook o un control con resultados medidos. Por eso
+la **v** del logotipo es un check.
 
 <br/>
 
