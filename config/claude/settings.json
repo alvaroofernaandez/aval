@@ -240,5 +240,13 @@
     "commit": "",
     "pr": ""
   },
-  "subagentPromptCacheTtl": "1h"
+  "subagentPromptCacheTtl": "1h",
+  "worktree": {
+    "symlinkDirectories": [
+      "node_modules",
+      ".pnpm-store",
+      ".venv"
+    ]
+  },
+  "spinnerTipsEnabled": false
 }
