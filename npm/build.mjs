@@ -11,6 +11,7 @@
 import { mkdir, writeFile, copyFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { TARGETS, CLI_PACKAGE, binaryName } from "./cli/lib/resolve.js";
 
@@ -24,7 +25,7 @@ function arg(name, fallback) {
 const version = arg("version");
 const distDir = path.resolve(arg("dist", "dist"));
 const outDir = path.resolve(arg("out", "dist-npm"));
-const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 // A malformed version is rejected here rather than by the registry, so a bad CI
 // run fails at build time instead of half-publishing.
