@@ -42,10 +42,9 @@ var themes = map[string]theme{
 var themeOrder = []string{"light", "dark"}
 
 var (
-	darkAdapt = map[string]bool{"apple.svg": true, "github.svg": true, "zsh.svg": true, "bash.svg": true, "tmux.svg": true}
-	darkFiles = map[string]string{"bat.png": "bat-dark.png"}
-	tiles     = map[string]bool{"engram.png": true, "eza.png": true, "rtk.png": true, "opencode.svg": true,
-		"herdr.svg": true, "zoxide.svg": true, "fzf.png": true}
+	darkAdapt = map[string]bool{"apple.svg": true, "tmux.svg": true}
+	darkFiles = map[string]string{}
+	tiles     = map[string]bool{"engram.png": true, "rtk.png": true, "opencode.svg": true, "herdr.svg": true}
 )
 
 const lightInk = "#f0f0f0"

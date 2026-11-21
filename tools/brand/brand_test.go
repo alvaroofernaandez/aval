@@ -69,8 +69,8 @@ func TestList(t *testing.T) {
 		t.Fatal(err)
 	}
 	lines := strings.Split(strings.TrimRight(so.String(), "\n"), "\n")
-	if len(lines) != 33 {
-		t.Fatalf("want 33 tools, got %d", len(lines))
+	if len(lines) != 17 {
+		t.Fatalf("want 17 tools, got %d", len(lines))
 	}
 	if lines[0] != "Ghostty" || lines[len(lines)-1] != "Windows" {
 		t.Errorf("unexpected order: %q ... %q", lines[0], lines[len(lines)-1])
@@ -82,7 +82,7 @@ func TestNoLogo(t *testing.T) {
 	if err := run([]string{"--docs", repoDocs(t), "--no-logo"}, &so, &se); err != nil {
 		t.Fatal(err)
 	}
-	if so.String() != "ripgrep\ndelta\n" {
+	if so.String() != "" {
 		t.Errorf("got %q", so.String())
 	}
 }

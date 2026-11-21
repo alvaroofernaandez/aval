@@ -21,7 +21,7 @@ import (
 //
 // Already unit-tested in tools/brand and not repeated here: the committed
 // images are byte-identical to the generator's output, the tools with no
-// published logo are exactly ripgrep and delta, and stale versions are pruned.
+// published logo are listed, and stale versions are pruned.
 
 var imageNames = []string{"hero-light", "hero-dark", "stack-light", "stack-dark", "mark-light", "mark-dark", "wordmark-light", "wordmark-dark", "desktop-light", "desktop-dark"}
 
@@ -168,7 +168,7 @@ func TestReadmeStackEmbedsRealLogos(t *testing.T) {
 	out := generated(t)
 	stack := svg(t, out, "stack-light")
 	embedded := count(`<image `, stack)
-	eq(t, "every other tool embeds its logo (tools minus ripgrep and delta)", len(tools(t))-2, embedded)
+	eq(t, "every tool embeds its logo", len(tools(t)), embedded)
 	eq(t, "logos are not loaded from outside the SVG", 0, count(`href="(https?:|\.\.?/|docs/)`, stack))
 	size := 0
 	for _, m := range regexp.MustCompile(`class="logo" width="([0-9]+)"`).FindAllStringSubmatch(stack, -1) {
@@ -192,9 +192,9 @@ func TestReadmeStackCardsAndAdaptedLogos(t *testing.T) {
 		}
 		eq(t, "stack-"+theme+" cards that are not neutral grey", "", strings.Join(tint, " "))
 	}
-	eq(t, "dark stack adapts the six logos that vanish on dark grey", 6, count(`data-adapted="dark"`, svg(t, out, "stack-dark")))
+	eq(t, "dark stack adapts the two logos that vanish on dark grey (Apple, tmux)", 2, count(`data-adapted="dark"`, svg(t, out, "stack-dark")))
 	eq(t, "light stack keeps every logo original", 0, count(`data-adapted=`, svg(t, out, "stack-light")))
-	isTrue(t, "app-icon logos are clipped to a rounded tile (>= 7)", count(`clip-path="url\(#tile`, svg(t, out, "stack-light")) >= 7)
+	isTrue(t, "app-icon logos are clipped to a rounded tile (>= 4)", count(`clip-path="url\(#tile`, svg(t, out, "stack-light")) >= 4)
 }
 
 // Every vendored logo says where it came from; one labelled tile per tool so
@@ -212,7 +212,7 @@ func TestReadmeLogosAreSourcedAndTilesLabelled(t *testing.T) {
 	eq(t, "logos without a source", "", strings.Join(unsourced, " "))
 
 	list := tools(t)
-	isTrue(t, "generator lists at least 20 tools (is "+strconv.Itoa(len(list))+")", len(list) >= 20)
+	isTrue(t, "generator lists at least 15 tools (is "+strconv.Itoa(len(list))+")", len(list) >= 15)
 	stack := svg(t, generated(t), "stack-light")
 	var missing []string
 	for _, tool := range list {
@@ -337,5 +337,9 @@ func TestReadmeStackShowsTheRoadmap(t *testing.T) {
 	eq(t, "every lane names the version that ships it", lanes, count(`data-version="v[0-9]+\.[0-9]+\.[0-9]+`, stack))
 	mustHave(t, `data-part="kept"`, stack, "the tools aval keeps are a separate section")
 	mustHave(t, `data-target="aval desktop"`, stack, "the terminal window lane ends in the desktop app")
+	// Only what the product builds on, ships through or drives: no personal
+	// toolbox (other languages, container runtimes, CLI preferences).
+	eq(t, "kept tools are product dependencies only", 0,
+		count(`>(Bun|Python|Bash|Zsh|Node\.js|Docker|Kiri|GitHub CLI|ripgrep|fd|bat|eza|fzf|zoxide|atuin|delta)<`, stack))
 	eq(t, "stack is in English", 0, count(`[áéíóúñ]|AGENTES|PLATAFORMAS|Herramientas`, stack))
 }

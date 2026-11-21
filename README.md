@@ -64,15 +64,15 @@ check mark.
 
 aval runs today on a set of proven tools. The roadmap moves every piece of the
 **workspace** into aval itself, so that the only external dependency left is the
-AI provider you choose. Standard tools (languages, git, CLI utilities) stay:
-aval drives them and does not reinvent them.
+AI provider you choose. What stays is what the product is built with, ships
+through or drives: Go, npm and Homebrew; Git, gitleaks and a headless browser.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.58991889.svg">
-  <img src="docs/assets/stack-light.5a6dbd14.svg" alt="Today: Ghostty is replaced by aval desktop (v0.9.0); tmux, Herdr and yazi by aval core and the aval TUI (v0.7.0); Engram and RTK move behind aval memory and context ports (v0.3.0); Claude Code and OpenCode are driven through aval agent adapters (v0.4.0). Kept: Go, Node.js, npm, Bun, Python, Bash, Zsh, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux and Windows" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.d49559e6.svg">
+  <img src="docs/assets/stack-light.0ef176bf.svg" alt="Today: Ghostty is replaced by aval desktop (v0.9.0); tmux, Herdr and yazi by aval core and the aval TUI (v0.7.0); Engram and RTK move behind aval memory and context ports (v0.3.0); Claude Code and OpenCode are driven through aval agent adapters (v0.4.0). Kept: Go, npm, Homebrew, Git, gitleaks, Lightpanda, macOS, Linux and Windows" width="100%">
 </picture>
 
-<sub>Official logos of each project (<a href="docs/logos/SOURCES.md">sources</a>). ripgrep and delta publish no logo, so they show their initials instead of an invented one.</sub>
+<sub>Official logos of each project (<a href="docs/logos/SOURCES.md">sources</a>).</sub>
 
 ### What is configured today and what replaces it
 

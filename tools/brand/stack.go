@@ -34,18 +34,14 @@ var lanes = []lane{
 		"aval agents", "v0.4.0", "one config, one adapter per agent", markGroup},
 }
 
+// kept is only what the product itself builds on, ships through or drives;
+// the owner's personal toolbox does not belong in the product's picture.
 var kept = []group{
-	{"languages and packages", []tool{
-		{"Go", "go.svg", ""}, {"Node.js", "nodejs.svg", ""}, {"npm", "npm.svg", ""}, {"Bun", "bun.svg", ""},
-		{"Python", "python.svg", ""}, {"Bash", "bash.svg", ""}, {"Zsh", "zsh.svg", ""}, {"Homebrew", "homebrew.svg", ""},
+	{"build and distribution", []tool{
+		{"Go", "go.svg", ""}, {"npm", "npm.svg", ""}, {"Homebrew", "homebrew.svg", ""},
 	}},
-	{"runtime and git", []tool{
-		{"Docker", "docker.svg", ""}, {"Kiri", "kiri.svg", ""}, {"Lightpanda", "lightpanda.png", ""},
-		{"Git", "git.svg", ""}, {"GitHub CLI", "github.svg", ""}, {"gitleaks", "gitleaks.png", ""},
-	}},
-	{"cli", []tool{
-		{"ripgrep", "", "rg"}, {"fd", "fd.svg", ""}, {"bat", "bat.png", ""}, {"eza", "eza.png", ""},
-		{"fzf", "fzf.png", ""}, {"zoxide", "zoxide.svg", ""}, {"atuin", "atuin.png", ""}, {"delta", "", "Δ"},
+	{"checks and integrations", []tool{
+		{"Git", "git.svg", ""}, {"gitleaks", "gitleaks.png", ""}, {"Lightpanda", "lightpanda.png", ""},
 	}},
 	{"platforms", []tool{
 		{"macOS", "apple.svg", ""}, {"Linux", "linux.svg", ""}, {"Windows", "windows.svg", ""},
