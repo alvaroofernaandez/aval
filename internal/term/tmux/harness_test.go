@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -53,6 +54,7 @@ type harness struct {
 	runner     *fakeRunner
 	runnerBin  string
 	runnerSock string
+	outMu      sync.Mutex // Env.Output is called from parallel probes (readDarwin)
 	outCalls   []string
 	execCalls  [][]string
 	execErr    error
@@ -97,7 +99,9 @@ func (h *harness) env() Env {
 		},
 		Output: func(bin string, args ...string) (string, error) {
 			key := strings.Join(append([]string{bin}, args...), " ")
+			h.outMu.Lock()
 			h.outCalls = append(h.outCalls, key)
+			h.outMu.Unlock()
 			if h.outErr[key] {
 				return "", errors.New("failed")
 			}

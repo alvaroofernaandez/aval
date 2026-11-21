@@ -31,7 +31,7 @@ type Env struct {
 	IsDir      func(path string) bool
 	LookPath   func(name string) (string, error)
 	NewRunner  func(bin, socket string) Runner
-	Output     func(bin string, args ...string) (string, error) // stdout of an external tool
+	Output     func(bin string, args ...string) (string, error) // stdout of an external tool; must be safe for concurrent use (probes run in parallel)
 	Exec       func(path string, argv []string) error           // replaces the process; returns only on failure
 	Spawn      func(path string, args, env []string) error      // detached background child
 	Executable func() (string, error)

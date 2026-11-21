@@ -31,7 +31,7 @@ func TestPasteRouterUnderMinimalPATH(t *testing.T) {
 		dir := t.TempDir()
 		env := append([]string{
 			"PATH=" + minimalPATH, "HOME=" + t.TempDir(), "E2E_FAKE_DIR=" + dir,
-			"TMUX_BIN=" + fakeTool("tmux-stub"), "CLIPBOARD_INFO=" + clip,
+			"TMUX_BIN=" + fakeTool("tmux-stub"), "CLIPBOARD_INFO=" + clip, "PASTE_OS=Darwin", // the fixtures are macOS `clipboard info`; the host OS must not pick the parser
 		}, extra...)
 		r := runCmd(t, env, 30*time.Second, avalBin, "tmux", "paste-router")
 		b, _ := os.ReadFile(filepath.Join(dir, "tmux-stub.txt"))
@@ -40,6 +40,15 @@ func TestPasteRouterUnderMinimalPATH(t *testing.T) {
 
 	t.Run("the image path exits cleanly and sends the 0x16 byte", func(t *testing.T) {
 		rc, calls := run(t, clipScreenshot)
+		eq(t, "rc", 0, rc)
+		wantText(t, "sends 0x16 through send-keys", "send-keys", calls)
+		wantText(t, "carries the 0x16 byte", "0x16", calls)
+	})
+
+	// The same decision on the Linux parser (wl-paste/xclip list MIME targets),
+	// pinned so it runs identically on every host.
+	t.Run("the image path on the Linux parser also sends 0x16", func(t *testing.T) {
+		rc, calls := run(t, "image/png\nimage/bmp", "PASTE_OS=Linux")
 		eq(t, "rc", 0, rc)
 		wantText(t, "sends 0x16 through send-keys", "send-keys", calls)
 		wantText(t, "carries the 0x16 byte", "0x16", calls)
