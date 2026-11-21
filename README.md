@@ -84,7 +84,12 @@ curl -fsSL https://raw.githubusercontent.com/alvaroofernaandez/aval/main/scripts
 aval update   # git pull + enlaza lo nuevo
 aval doctor   # revisa enlaces, hooks, agentes y settings (--fix repara, --json para scripts)
 aval sync     # vuelca lo que gestiona el repo en ~/.claude/settings.json y en Codex/Gemini (--dry-run)
+aval budget   # contexto siempre activo por agente (chars, ≈tokens) y latencia de cada hook; sale con 1 si se pasa (--json)
+aval review assess  # nivel de riesgo del diff solo con git (low/medium/high) y qué revisores lanzar (--base, --json)
 ```
+
+`aval hook lessons` es el hook PreToolUse que inyecta una lección de `~/.claude/lessons` solo cuando la edición o el
+comando la activan (0 tokens si no hay coincidencia, ~3 ms). Funciona con `aval` en `~/.local/bin` o en el `PATH`; sin él, no hace nada.
 
 Lo privado (nombres de empresa, skills de cliente) vive fuera del repo, en `~/.config/aval/private`
 (o `$AVAL_PRIVATE_DIR`): un `settings.json` que `aval sync` fusiona encima y un `links.manifest` que enlaza.

@@ -10,10 +10,10 @@ and others (2026-11-21). Three parallel worktrees, merged by the coordinator.
 - [ ] Deny-list coverage test; private overlay can narrow, never widen denies
 
 ## B — fewer tokens, faster (branch feat/lean)
-- [ ] Lessons hook (`aval hook lessons`): path-triggered lessons instead of
+- [x] Lessons hook (`aval hook lessons`): path-triggered lessons instead of
       always-on rules; 0 tokens on no match, < 10 ms
-- [ ] `aval budget`: always-on tokens per agent + hook latency vs budget
-- [ ] `aval review assess`: git-only risk tier → how many reviewers
+- [x] `aval budget`: always-on tokens per agent + hook latency vs budget
+- [x] `aval review assess`: git-only risk tier → how many reviewers
 
 ## C — guarantees (branch feat/quality)
 - [ ] `aval sync --check` wired into the pre-push hook
