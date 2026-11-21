@@ -63,6 +63,7 @@ SUITES=(
   "$REPO/tests/shell-startup.test.sh"
   "$REPO/tests/pre-push.test.sh"
   "$REPO/tests/agnix.test.sh"
+  "$REPO/tests/screenshot-clipboard.test.sh"
 )
 
 total_pass=0
