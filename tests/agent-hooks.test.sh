@@ -34,5 +34,18 @@ sync_graph="$(jq -r '.hooks.PostToolUse // [] | .[].hooks[]
   | select(.command | test("code-review-graph update")) | (.async // false)' "$SETTINGS")"
 assert_eq "code-review-graph update runs async" "true" "${sync_graph:-missing}"
 
+# The live settings file is a separate copy, not a symlink: gentle-ai rewrites
+# it, and it holds personal keys that cannot be published. Hooks are the part
+# that must never drift — on 2026-11-21 the live copy still called a retired
+# `gentle-ai sdd-preflight-hook`, and every Agent call failed with
+# "unknown command". So aval owns the hooks and the live copy must match them.
+LIVE="${AVAL_LIVE_SETTINGS:-$HOME/.claude/settings.json}"
+if [ -f "$LIVE" ]; then
+  hooks_of() { jq -S '[.hooks // {} | to_entries[] | .key as $e | .value[] | .hooks[] | "\($e) \(.command)"] | sort' "$1"; }
+  assert_eq "the live settings run exactly aval's hooks" "$(hooks_of "$SETTINGS")" "$(hooks_of "$LIVE")"
+  retired="$(jq -r '.hooks // {} | .[][] | .hooks[] | .command' "$LIVE" | rg 'sdd-|skill-registry' || true)"
+  assert_eq "no live hook calls a retired SDD command" "" "$retired"
+fi
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
