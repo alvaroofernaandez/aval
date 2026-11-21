@@ -92,7 +92,10 @@ func openFile(files []string, env Env) int {
 		return runEditorHere(env, editorBin, files)
 	}
 
-	quoted := shellQuote(editorBin)
+	// exec: tmux runs this through sh, and dash (Linux's /bin/sh) does not
+	// replace itself with the last command, so the pane would report "sh" and
+	// closeFile could not tell the editor is there.
+	quoted := "exec " + shellQuote(editorBin)
 	for _, f := range files {
 		quoted += " " + shellQuote(f)
 	}

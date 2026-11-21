@@ -117,6 +117,9 @@ func TestOpenFile(t *testing.T) {
 		}
 	}
 
+	// "exec": tmux runs the command through sh, and dash (Linux /bin/sh) does
+	// not exec the last command itself, so pane_current_command read "sh" and
+	// close-file never recognised the editor (caught by CI on ubuntu).
 	cases := []struct {
 		name    string
 		files   []string
@@ -124,15 +127,15 @@ func TestOpenFile(t *testing.T) {
 		wantCmd string
 		wantNm  string
 	}{
-		{"plain path", []string{"/w/.env"}, "", "new-window -P -F #{window_id} -n .env /usr/bin/nano /w/.env", ".env"},
+		{"plain path", []string{"/w/.env"}, "", "new-window -P -F #{window_id} -n .env exec /usr/bin/nano /w/.env", ".env"},
 		{"spaces survive as one argument", []string{"/w/my notes.md"}, "",
-			"new-window -P -F #{window_id} -n my notes.md /usr/bin/nano '/w/my notes.md'", "my notes.md"},
+			"new-window -P -F #{window_id} -n my notes.md exec /usr/bin/nano '/w/my notes.md'", "my notes.md"},
 		{"every file is passed", []string{"/w/a.md", "/w/b.md"}, "",
-			"new-window -P -F #{window_id} -n a.md /usr/bin/nano /w/a.md /w/b.md", "a.md"},
+			"new-window -P -F #{window_id} -n a.md exec /usr/bin/nano /w/a.md /w/b.md", "a.md"},
 		{"metacharacters are quoted", []string{"/w/a'b;$x"}, "",
-			`new-window -P -F #{window_id} -n a'b;$x /usr/bin/nano '/w/a'\''b;$x'`, "a'b;$x"},
+			`new-window -P -F #{window_id} -n a'b;$x exec /usr/bin/nano '/w/a'\''b;$x'`, "a'b;$x"},
 		{"FILE_EDITOR overrides", []string{"/w/a"}, "/opt/ed",
-			"new-window -P -F #{window_id} -n a /opt/ed /w/a", "a"},
+			"new-window -P -F #{window_id} -n a exec /opt/ed /w/a", "a"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -186,7 +189,7 @@ func TestOpenFile(t *testing.T) {
 		tmuxUp(h)
 		h.exec["/home/u/.nix-profile/bin/nano"] = true
 		h.run("open-file", "/w/a")
-		assertEq(t, "uses nix nano", true, h.runner.called("new-window -P -F #{window_id} -n a /home/u/.nix-profile/bin/nano /w/a"))
+		assertEq(t, "uses nix nano", true, h.runner.called("new-window -P -F #{window_id} -n a exec /home/u/.nix-profile/bin/nano /w/a"))
 	})
 }
 
