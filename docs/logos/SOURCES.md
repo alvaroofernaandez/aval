@@ -29,7 +29,6 @@ to at most 192 px so the generated SVGs stay small.
 | `opencode.svg` | anomalyco/opencode — `packages/ui/src/assets/favicon/favicon-v3.svg` |
 | `yazi.png` | sxyazi/yazi — `assets/logo.png` |
 | `herdr.svg` | herdrdev/herdr — `assets/logo.svg` |
-| `omniwm.svg` | OmniNull/OmniWM — `assets/brand/app/omniwm-app-icon.svg` (the app icon reads on both themes; the bare mark's dark brown vanishes on dark grey) |
 | `engram.png` | Gentleman-Programming/engram — `assets/branding/engram-logo-only.png` |
 | `rtk.png` | rtk-ai — GitHub organization avatar |
 | `gstack.png` | garrytan/gstack — `extension/icons/icon-128.png` |

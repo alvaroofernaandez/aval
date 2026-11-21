@@ -60,8 +60,8 @@ un check: la garantía está dentro del nombre.
 ## Stack
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.00b41a7d.svg">
-  <img src="docs/assets/stack-light.57ef0a81.svg" alt="Ghostty, tmux, Zsh, Neovim, yazi, Herdr, OmniWM, Claude Code, OpenCode, Engram, RTK, gstack, Go, Node.js, npm, Bun, Python, Bash, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux y Windows" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.49b8b937.svg">
+  <img src="docs/assets/stack-light.5a7a65d3.svg" alt="Ghostty, tmux, Zsh, Neovim, yazi, Herdr, Claude Code, OpenCode, Engram, RTK, gstack, Go, Node.js, npm, Bun, Python, Bash, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux y Windows" width="100%">
 </picture>
 
 <sub>Logos oficiales de cada proyecto (<a href="docs/logos/SOURCES.md">procedencia</a>). ripgrep y delta no publican logo: llevan sus iniciales en vez de uno inventado.</sub>

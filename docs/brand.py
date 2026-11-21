@@ -44,7 +44,6 @@ STACK = [
         ("Neovim", "neovim.svg", None),
         ("yazi", "yazi.png", None),
         ("Herdr", "herdr.svg", None),
-        ("OmniWM", "omniwm.svg", None),
     ]),
     ("agentes", [
         ("Claude Code", "claude.svg", None),
@@ -108,7 +107,7 @@ DARK_FILES = {"bat.png": "bat-dark.png"}
 # Logos that are app icons with their own square background: clipped to a
 # rounded tile so they present as icons, not as hard-edged screenshots.
 TILES = {"engram.png", "eza.png", "rtk.png", "opencode.svg", "herdr.svg",
-         "omniwm.svg", "gstack.png", "zoxide.svg", "fzf.png"}
+         "gstack.png", "zoxide.svg", "fzf.png"}
 
 FONT = "ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
 MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
