@@ -9,13 +9,51 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/release"
 )
 
 // LatestURL is the npm registry endpoint for the CLI package. The registry is
 // the right source even for a curl-installed binary: it is the same version
 // stream, it is CDN-backed, and it needs no authentication or rate-limit token
 // the way the GitHub API does.
-const LatestURL = "https://registry.npmjs.org/@alvaroofernaandez/aval/latest"
+const LatestURL = PackageURL + "/latest"
+
+// PackageURL is the registry document of the CLI package; a dist-tag is
+// appended to it.
+const PackageURL = "https://registry.npmjs.org/@alvaroofernaandez/aval"
+
+// endpointsFor lists the dist-tags worth asking for, by the running build's
+// channel. Stable builds follow `latest`. Prerelease builds follow `next`, and
+// also `latest` so a release candidate learns when its stable ships. Dev builds
+// never ask: a checkout or `go run` is not something to nag.
+func endpointsFor(base, current string) []string {
+	switch release.Channel(current) {
+	case release.ChannelStable:
+		return []string{base + "/latest"}
+	case release.ChannelPrerelease:
+		return []string{base + "/next", base + "/latest"}
+	}
+	return nil
+}
+
+// checkFor asks every endpoint of the build's channel and keeps the highest
+// version it hears about.
+func checkFor(ctx context.Context, base, current string) Notice {
+	n := Notice{Current: current, Command: updateCommand()}
+	var best release.Version
+	for _, url := range endpointsFor(base, current) {
+		got := checkAt(ctx, url, current)
+		v, err := release.Parse(got.Latest)
+		if err != nil {
+			continue
+		}
+		if n.Latest == "" || v.Compare(best) > 0 {
+			best, n.Latest = v, got.Latest
+		}
+	}
+	return n
+}
 
 // checkInterval bounds how often the network is touched. An installer that
 // phones home on every invocation is an installer people stop running.
@@ -33,6 +71,13 @@ func (n Notice) String() string {
 	if n.Latest == "" || n.Latest == n.Current {
 		return ""
 	}
+	// A dist-tag can lag behind what is installed (a stale `next`, or a build
+	// newer than the registry): only a strictly newer version is an update.
+	if l, lerr := release.Parse(n.Latest); lerr == nil {
+		if c, cerr := release.Parse(n.Current); cerr == nil && l.Compare(c) <= 0 {
+			return ""
+		}
+	}
 	return fmt.Sprintf("A newer version is available: %s → %s\nUpdate with: %s",
 		n.Current, n.Latest, n.Command)
 }
@@ -43,7 +88,7 @@ func (n Notice) String() string {
 // has to handle: being offline, behind a proxy, or on a machine with no DNS
 // must never stop someone installing their dotfiles.
 func CheckLatest(ctx context.Context, current string) Notice {
-	return checkAt(ctx, LatestURL, current)
+	return checkFor(ctx, PackageURL, current)
 }
 
 // checkAt is CheckLatest with the endpoint injected, so the failure paths can

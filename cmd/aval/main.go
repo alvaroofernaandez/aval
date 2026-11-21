@@ -42,6 +42,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
 	"github.com/alvaroofernaandez/aval/internal/core/platform"
 	"github.com/alvaroofernaandez/aval/internal/core/update"
+	"github.com/alvaroofernaandez/aval/internal/release"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 )
 
@@ -185,7 +186,8 @@ func run() error {
 // AVAL_NO_UPDATE_CHECK, and silent on every failure — being offline must
 // not stop anyone installing their dotfiles.
 func notifyIfOutdated() {
-	if version == "dev" || !update.ShouldCheck(time.Now()) {
+	v := currentBuild().Version
+	if release.Channel(v) == release.ChannelDev || !update.ShouldCheck(time.Now()) {
 		return
 	}
 
@@ -194,7 +196,7 @@ func notifyIfOutdated() {
 
 	// Printed to stderr so it never contaminates the output of --dry-run when
 	// that is piped somewhere.
-	if notice := update.CheckLatest(ctx, version).String(); notice != "" {
+	if notice := update.CheckLatest(ctx, v).String(); notice != "" {
 		fmt.Fprintf(os.Stderr, "\n%s\n\n", notice)
 	}
 }
