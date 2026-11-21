@@ -62,6 +62,11 @@ func run() error {
 		return nil
 	}
 
+	// Agent hooks run on every tool call: no repo lookup, no network.
+	if flag.Arg(0) == "hook" {
+		return runHook(flag.Args()[1:], os.Stdin, os.Stdout)
+	}
+
 	repo, err := resolveRepo(*repoFlag)
 	if err != nil {
 		return err

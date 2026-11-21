@@ -40,6 +40,7 @@ SUITES=(
   "$REPO/tests/provenance.test.sh"
   "$REPO/tests/context-budget.test.sh"
   "$REPO/tests/agent-rules-sync.test.sh"
+  "$REPO/tests/lessons.test.sh"
   "$REPO/tests/opencode-design-gate.test.sh"
   "$REPO/config/tmux/tests/wait-helpers.test.sh"
   "$REPO/config/tmux/tests/sidebar-toggle.test.sh"
