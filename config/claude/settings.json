@@ -13,7 +13,13 @@
       "Bash(rm -rf /)",
       "Bash(sudo rm -rf /)",
       "Bash(rm -rf ~)",
-      "Bash(sudo rm -rf ~)"
+      "Bash(sudo rm -rf ~)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.claude/.credentials.json)",
+      "Read(**/.credentials.json)",
+      "Read(**/.env)",
+      "Read(**/.env.*)"
     ],
     "ask": [
       "Edit(.env.*)",

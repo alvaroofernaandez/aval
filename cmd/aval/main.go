@@ -6,6 +6,8 @@
 //	aval update     pull the repo, then re-apply
 //	aval doctor     check this machine against the repo (--fix, --json)
 //	aval sync       merge repo-managed settings into the live config (--dry-run)
+//	aval restore    list or restore backup runs (--list, latest, <id>, --pin <id>)
+//	aval uninstall  remove aval's links and restore what they displaced (--dry-run, --yes)
 //	aval --version  print the version
 //
 // The non-interactive paths matter as much as the TUI: --yes makes it usable
@@ -78,6 +80,10 @@ func run() error {
 		return runDoctor(repo, home, flag.Args()[1:], os.Stdout)
 	case "sync":
 		return runSync(repo, home, flag.Args()[1:], *dryRun, os.Stdout)
+	case "restore":
+		return runRestore(repo, home, flag.Args()[1:], *dryRun, os.Stdout)
+	case "uninstall":
+		return runUninstall(repo, home, flag.Args()[1:], *dryRun, *yes, os.Stdin, os.Stdout)
 	}
 
 	if flag.Arg(0) == "update" {
@@ -207,13 +213,17 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 	runner := install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: dryRun})
 
 	if yes {
-		return runHeadless(p, pf, runner, symlinks, dryRun)
+		err := runHeadless(p, pf, runner, symlinks, dryRun)
+		return finish(runner, err)
 	}
 
 	model := ui.NewModel(p, pf, runner, symlinks, dryRun)
 	model.Unavailable = unavailableGroups(m)
 
 	final, err := tea.NewProgram(model, tea.WithAltScreen()).Run()
+	if ferr := runner.Finish(); err == nil {
+		err = ferr
+	}
 	if err != nil {
 		return err
 	}
@@ -221,6 +231,14 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 		return fmt.Errorf("%d action(s) failed", len(fm.Errs()))
 	}
 	return nil
+}
+
+// finish closes the runner's backup run without hiding the original error.
+func finish(r *install.Runner, err error) error {
+	if ferr := r.Finish(); err == nil {
+		return ferr
+	}
+	return err
 }
 
 // runHeadless is the provisioning path: no TUI, one line per action, and a
@@ -304,6 +322,9 @@ func runUpdate(repo, home string, dryRun, forceCopy bool) error {
 		}
 	}
 
+	if ferr := runner.Finish(); ferr != nil {
+		return ferr
+	}
 	if changed == 0 && failed == 0 {
 		fmt.Println("Everything already linked.")
 	}
