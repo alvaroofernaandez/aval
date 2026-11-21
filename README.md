@@ -1,8 +1,8 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
-  <img src="docs/assets/hero-light.svg" alt="aval — harness personal" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg?v=8630dbf5">
+  <img src="docs/assets/hero-light.svg?v=54b8bc88" alt="aval — harness personal" width="100%">
 </picture>
 
 <br/>
@@ -36,8 +36,8 @@ Aquí nada se da por bueno sin pruebas.
 ## Qué es aval
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/mark-dark.svg">
-  <img src="docs/assets/mark-light.svg" alt="Isotipo de aval: la a y el check en un solo trazo" width="96" align="right">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/mark-dark.svg?v=a2bb352f">
+  <img src="docs/assets/mark-light.svg?v=22afeffc" alt="Isotipo de aval: la a y el check en un solo trazo" width="96" align="right">
 </picture>
 
 Un **harness** es todo lo que rodea a un agente de IA para que trabaje bien:
@@ -67,8 +67,8 @@ un check: la garantía está dentro del nombre.
 ## Stack
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.svg">
-  <img src="docs/assets/stack-light.svg" alt="Ghostty, tmux, Zsh, Neovim, yazi, Herdr, OmniWM, Claude Code, OpenCode, Engram, RTK, gstack, Go, Node.js, npm, Bun, Python, Bash, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux y Windows" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/stack-dark.svg?v=9ba0aca2">
+  <img src="docs/assets/stack-light.svg?v=717250a6" alt="Ghostty, tmux, Zsh, Neovim, yazi, Herdr, OmniWM, Claude Code, OpenCode, Engram, RTK, gstack, Go, Node.js, npm, Bun, Python, Bash, Homebrew, Docker, Kiri, Lightpanda, Git, GitHub CLI, gitleaks, ripgrep, fd, bat, eza, fzf, zoxide, atuin, delta, macOS, Linux y Windows" width="100%">
 </picture>
 
 <sub>Logos oficiales de cada proyecto (<a href="docs/logos/SOURCES.md">procedencia</a>). ripgrep y delta no publican logo: llevan sus iniciales en vez de uno inventado.</sub>
@@ -112,8 +112,8 @@ aval update   # git pull + enlaza lo nuevo
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg">
-  <img src="docs/assets/wordmark-light.svg" alt="aval" width="88">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg?v=3ba4fd49">
+  <img src="docs/assets/wordmark-light.svg?v=8ec8a19c" alt="aval" width="88">
 </picture>
 
 <sub>Imágenes generadas con <code>python3 docs/brand.py</code> · cada logo del stack es marca registrada de su proyecto</sub>

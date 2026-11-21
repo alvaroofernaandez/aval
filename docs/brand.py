@@ -23,6 +23,7 @@ committed images drift from this output.
 
 import argparse
 import base64
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -192,6 +193,29 @@ def main():
         (out / f"stack-{theme}.svg").write_text(stack(theme))
         (out / f"mark-{theme}.svg").write_text(logo.mark(theme))
         (out / f"wordmark-{theme}.svg").write_text(logo.wordmark(theme))
+
+    # Only the committed assets are referenced by the README.
+    if out.resolve() == (HERE / "assets").resolve():
+        version_readme(HERE.parent / "README.md", out)
+
+
+def version_readme(readme, assets):
+    """Stamp every README asset URL with ?v=<sha256[:8]> of the file.
+
+    GitHub serves README images with max-age=300, so an image regenerated
+    under an unchanged URL keeps showing the old version. Tying the URL to
+    the content makes a new image a new URL.
+    """
+    text = readme.read_text()
+
+    def stamp(match):
+        name = match.group(1)
+        digest = hashlib.sha256((assets / f"{name}.svg").read_bytes()).hexdigest()[:8]
+        return f"docs/assets/{name}.svg?v={digest}"
+
+    new = re.sub(r"docs/assets/([a-z-]+)\.svg(?:\?v=[0-9a-f]+)?", stamp, text)
+    if new != text:
+        readme.write_text(new)
 
 
 if __name__ == "__main__":

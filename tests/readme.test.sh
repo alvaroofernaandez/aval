@@ -138,10 +138,23 @@ for doc in "$README" "$GUIDE" "$REPO/npm/cli/README.md"; do
     "$(rg -c 'dotfiles-installer|\.dotfiles-backup|DOTFILES_' "$doc" || echo 0)"
 done
 
+# Cache busting: GitHub serves README images with max-age=300, so an image
+# regenerated under the same URL keeps showing the old version. Every asset
+# URL carries ?v=<first 8 hex of its sha256>, rewritten by docs/brand.py.
+stale=""
+while IFS= read -r ref; do
+  file="${ref%%\?*}"; v="${ref#*\?v=}"
+  want="$(shasum -a 256 "$REPO/$file" 2>/dev/null | cut -c1-8)"
+  [ "$v" = "$want" ] || stale="$stale $file"
+done < <(rg -o --no-filename 'docs/assets/[a-z-]+\.svg\?v=[0-9a-f]+' "$README")
+assert_eq "README image URLs carry their content hash" "" "$stale"
+unversioned="$(rg -o 'docs/assets/[a-z-]+\.svg"' "$README" | tr '\n' ' ')"
+assert_eq "no README image URL lacks a version" "" "$unversioned"
+
 # Every relative link and image in the README resolves to a real file.
 broken=""
 while IFS= read -r ref; do
-  path="${ref%%#*}"
+  path="${ref%%#*}"; path="${path%%\?*}"
   [ -n "$path" ] || continue
   [ -e "$REPO/$path" ] || broken="$broken $path"
 done < <(rg -o --no-filename '(?:\]\(|src="|srcset=")([^")#][^")]*)' -r '$1' "$README" | rg -v '^(https?:|mailto:)')
