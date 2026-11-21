@@ -74,6 +74,7 @@ un check: la garantía está dentro del nombre.
 ```sh
 git clone https://github.com/alvaroofernaandez/aval.git ~/aval
 cd ~/aval && ./install.sh --dry-run && ./install.sh
+brew bundle --file=Brewfile   # macOS/Linux: todo lo instalado a propósito
 ```
 
 Con Go instalado, el arranque de un comando compila la TUI multiplataforma:
