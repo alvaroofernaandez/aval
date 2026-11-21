@@ -44,6 +44,10 @@ type Options struct {
 	Home       string
 	PrivateDir string
 	GOOS       string
+	// Security enables the extra checks of `aval doctor --security`.
+	Security bool
+	// Allow lists suppressed check ids ("id" or "id:subject").
+	Allow []string
 	// LookPath resolves a bare command name; nil means exec.LookPath.
 	LookPath func(string) (string, error)
 }
@@ -69,6 +73,9 @@ func Run(opt Options) []Result {
 		checkSettingsDrift(opt),
 	)
 	rs = append(rs, checkOverlay(opt)...)
+	if opt.Security {
+		rs = append(rs, checkSecurity(opt)...)
+	}
 	return rs
 }
 

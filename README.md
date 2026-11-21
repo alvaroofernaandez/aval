@@ -86,6 +86,7 @@ aval doctor   # revisa enlaces, hooks, agentes y settings (--fix repara, --json 
 aval sync     # vuelca lo que gestiona el repo en ~/.claude/settings.json y en Codex/Gemini (--dry-run)
 aval restore  # --list | latest | <id> | --pin <id>: deshace cualquier instalación o sync desde ~/.aval-backup
 aval uninstall --dry-run   # quita solo los enlaces que apuntan a este repo y devuelve lo que desplazaron
+aval sync --check / aval doctor --security / aval update --dry-run   # drift (sale 1), chequeos de seguridad, vista previa sin cambios
 ```
 
 `sync` es transaccional: copia de seguridad, aplica, comprueba con `doctor` y, si algo falla, restaura sola y sale con 1.

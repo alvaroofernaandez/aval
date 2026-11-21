@@ -27,6 +27,12 @@ func newFlagSet(name string, out io.Writer) *flag.FlagSet {
 	return fs
 }
 
+// stringList is a repeatable string flag.
+type stringList []string
+
+func (l *stringList) String() string     { return strings.Join(*l, ",") }
+func (l *stringList) Set(v string) error { *l = append(*l, v); return nil }
+
 func short(home, p string) string {
 	if rel, err := filepath.Rel(home, p); err == nil && !strings.HasPrefix(rel, "..") {
 		return "~/" + filepath.ToSlash(rel)
@@ -39,11 +45,17 @@ func runDoctor(repo, home string, args []string, out io.Writer) error {
 	fs := newFlagSet("doctor", out)
 	fix := fs.Bool("fix", false, "remove broken links and run sync")
 	asJSON := fs.Bool("json", false, "print the results as a JSON array")
+	security := fs.Bool("security", false, "also run the security checks")
+	var allow stringList
+	fs.Var(&allow, "allow", "suppress a security check id (`id[:subject]`, repeatable); also read from the overlay's doctor-allow")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	opt := doctor.Options{Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS}
+	opt := doctor.Options{
+		Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS,
+		Security: *security, Allow: allow,
+	}
 
 	if *fix {
 		removed, err := doctor.Fix(opt)
@@ -78,8 +90,13 @@ func runDoctor(repo, home string, args []string, out io.Writer) error {
 func runSync(repo, home string, args []string, dryRun bool, out io.Writer) error {
 	fs := newFlagSet("sync", out)
 	dry := fs.Bool("dry-run", dryRun, "show what would change, write nothing")
+	check := fs.Bool("check", false, "read-only: exit 1 if sync would change anything")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	if *check {
+		return checkSync(repo, home, out)
 	}
 
 	res, err := txsync.Run(txsync.Options{
@@ -269,4 +286,42 @@ func printSync(out io.Writer, home string, rep *avalsync.Report, dry bool) {
 	if dry {
 		fmt.Fprintln(out, "\nDry run — nothing was written.")
 	}
+}
+
+// checkSync is `aval sync --check`: a forced dry run that prints only what
+// drifted and fails when anything did.
+func checkSync(repo, home string, out io.Writer) error {
+	rep, err := avalsync.Run(avalsync.Options{
+		Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), DryRun: true,
+	})
+	if err != nil {
+		return err
+	}
+	var drift []string
+	if s := rep.Settings; s.Created || len(s.Changed) > 0 {
+		keys := strings.Join(s.Changed, ", ")
+		if s.Created {
+			keys = "file missing; " + keys
+		}
+		drift = append(drift, "settings  ~/.claude/settings.json would change: "+keys)
+	}
+	for _, r := range rep.Rules {
+		if !r.Skipped && r.Changed {
+			drift = append(drift, "rules     "+short(home, r.Path)+" is out of date")
+		}
+	}
+	for _, l := range rep.Links {
+		if l.Status == "would link" {
+			drift = append(drift, "overlay   "+short(home, l.Dest)+" is not linked")
+		}
+	}
+	if len(drift) == 0 {
+		fmt.Fprintln(out, "sync: no drift")
+		return nil
+	}
+	for _, d := range drift {
+		fmt.Fprintln(out, "drift  "+d)
+	}
+	fmt.Fprintln(out, "\nRun `aval sync` to apply.")
+	return errChecksFailed
 }
