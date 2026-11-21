@@ -3,6 +3,7 @@ package manifest
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -184,5 +185,30 @@ func TestLoadReadsTheRealManifest(t *testing.T) {
 		if g.Label == "" {
 			t.Errorf("group %q has no label", g.ID)
 		}
+	}
+}
+
+func TestParseLinks(t *testing.T) {
+	cases := []struct {
+		name    string
+		in      string
+		want    []Entry
+		wantErr bool
+	}{
+		{"pairs, comments and blanks", "# top\n\na/b   .c/d # trailing\n  e  .f\n", []Entry{{"a/b", ".c/d"}, {"e", ".f"}}, false},
+		{"empty", "", nil, false},
+		{"one field is an error", "only-one\n", nil, true},
+		{"three fields is an error", "a b c\n", nil, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := ParseLinks(strings.NewReader(c.in))
+			if (err != nil) != c.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, c.wantErr)
+			}
+			if !reflect.DeepEqual(got, c.want) {
+				t.Errorf("got %v, want %v", got, c.want)
+			}
+		})
 	}
 }

@@ -167,3 +167,28 @@ func Parse(r io.Reader) (*Manifest, error) {
 	}
 	return m, nil
 }
+
+// ParseLinks reads a flat links manifest: one "<source> <dest>" pair per line,
+// with # comments. The private overlay uses it, so it has no groups.
+func ParseLinks(r io.Reader) ([]Entry, error) {
+	var out []Entry
+	sc := bufio.NewScanner(r)
+	for line := 1; sc.Scan(); line++ {
+		text := sc.Text()
+		if i := strings.IndexByte(text, '#'); i >= 0 {
+			text = text[:i]
+		}
+		fields := strings.Fields(text)
+		if len(fields) == 0 {
+			continue
+		}
+		if len(fields) != 2 {
+			return nil, fmt.Errorf("links: line %d: expected \"<source> <dest>\", got %q", line, strings.TrimSpace(text))
+		}
+		out = append(out, Entry{Source: fields[0], Dest: fields[1]})
+	}
+	if err := sc.Err(); err != nil {
+		return nil, fmt.Errorf("links: %w", err)
+	}
+	return out, nil
+}

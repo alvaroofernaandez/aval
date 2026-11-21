@@ -17,5 +17,5 @@ and Gemini instructions, employer material that can't live in the public repo.
 - [x] Shared agent-rules block into ~/.codex/AGENTS.md and ~/.gemini/GEMINI.md
 
 ## T3 — private overlay `~/.config/aval/private`
-- [ ] settings.json fragment merged by sync; links manifest applied by sync
+- [x] settings.json fragment merged by sync; links manifest applied by sync
 - [ ] Employer material moves there; no-proprietary goes green

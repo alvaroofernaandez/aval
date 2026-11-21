@@ -16,6 +16,10 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/install"
+	"github.com/alvaroofernaandez/aval/internal/manifest"
+	"github.com/alvaroofernaandez/aval/internal/plan"
 )
 
 // Options configures a run. Everything is a parameter so tests can point at a
@@ -49,6 +53,7 @@ type RulesResult struct {
 type Report struct {
 	Settings SettingsResult
 	Rules    []RulesResult
+	Links    []LinkResult
 }
 
 // replaceKeys are owned by the repo: the live value is overwritten.
@@ -375,5 +380,78 @@ func Run(opt Options) (*Report, error) {
 	if rep.Rules, err = syncRules(opt); err != nil {
 		return rep, err
 	}
+	if rep.Links, err = syncLinks(opt); err != nil {
+		return rep, err
+	}
 	return rep, nil
+}
+
+// LinkResult describes one private-overlay link.
+type LinkResult struct {
+	Source string
+	Dest   string
+	Status string
+	Backup string
+}
+
+// PrivateLinks reads the overlay's links.manifest and resolves both sides to
+// absolute paths. A missing manifest is not an error: the overlay is optional.
+func PrivateLinks(privateDir, home string) ([]plan.Action, error) {
+	if privateDir == "" {
+		return nil, nil
+	}
+	f, err := os.Open(filepath.Join(privateDir, "links.manifest"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("sync: %w", err)
+	}
+	defer f.Close()
+	entries, err := manifest.ParseLinks(f)
+	if err != nil {
+		return nil, fmt.Errorf("sync: %w", err)
+	}
+	out := make([]plan.Action, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, plan.Action{
+			Source: filepath.Join(privateDir, filepath.FromSlash(e.Source)),
+			Dest:   filepath.Join(home, filepath.FromSlash(e.Dest)),
+			Label:  "~/" + e.Dest,
+		})
+	}
+	return out, nil
+}
+
+func syncLinks(opt Options) ([]LinkResult, error) {
+	actions, err := PrivateLinks(opt.PrivateDir, opt.Home)
+	if err != nil || len(actions) == 0 {
+		return nil, err
+	}
+	now := time.Now
+	if opt.Now != nil {
+		now = opt.Now
+	}
+	runner := install.New(install.Options{
+		Home:       opt.Home,
+		Symlinks:   true,
+		DryRun:     opt.DryRun,
+		BackupRoot: filepath.Join(opt.Home, ".aval-backup", now().Format("20060102-150405")),
+	})
+	var out []LinkResult
+	for _, a := range actions {
+		res, err := runner.Apply(a)
+		if err != nil {
+			return out, fmt.Errorf("sync: %w", err)
+		}
+		status := "linked"
+		switch res.Status {
+		case install.StatusAlready:
+			status = "already linked"
+		case install.StatusWould:
+			status = "would link"
+		}
+		out = append(out, LinkResult{Source: a.Source, Dest: a.Dest, Status: status, Backup: res.Backup})
+	}
+	return out, nil
 }

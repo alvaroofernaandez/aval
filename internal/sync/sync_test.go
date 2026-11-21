@@ -293,3 +293,111 @@ func TestRunFailsWithoutSharedBlock(t *testing.T) {
 		t.Error("expected an error when CLAUDE.md has no shared block")
 	}
 }
+
+func TestRunMergesPrivateOverlaySettings(t *testing.T) {
+	opt := fakeEnv(t)
+	write(t, filepath.Join(opt.PrivateDir, "settings.json"), `{"skillOverrides":{"secret-skill":"off"},"env":{"A":"private"}}`)
+	if _, err := Run(opt); err != nil {
+		t.Fatal(err)
+	}
+	m := decode(t, read(t, filepath.Join(opt.Home, ".claude/settings.json")))
+	if m["skillOverrides"].(map[string]any)["secret-skill"] != "off" {
+		t.Errorf("overlay skillOverrides missing: %v", m)
+	}
+	if m["env"].(map[string]any)["A"] != "private" {
+		t.Errorf("overlay must win over the repo: %v", m["env"])
+	}
+}
+
+func TestRunWithoutOverlayIsFine(t *testing.T) {
+	opt := fakeEnv(t)
+	opt.PrivateDir = filepath.Join(opt.Home, "nope")
+	if _, err := Run(opt); err != nil {
+		t.Fatalf("absent overlay must not fail: %v", err)
+	}
+}
+
+func TestRunRejectsInvalidOverlay(t *testing.T) {
+	opt := fakeEnv(t)
+	write(t, filepath.Join(opt.PrivateDir, "settings.json"), `{broken`)
+	if _, err := Run(opt); err == nil {
+		t.Error("expected an error for an invalid overlay fragment")
+	}
+}
+
+func overlayLinks(t *testing.T) Options {
+	opt := fakeEnv(t)
+	write(t, filepath.Join(opt.PrivateDir, "skills/secret/SKILL.md"), "x")
+	write(t, filepath.Join(opt.PrivateDir, "links.manifest"), "# c\nskills/secret  .claude/skills/secret\n")
+	return opt
+}
+
+func TestRunLinksPrivateSkill(t *testing.T) {
+	opt := overlayLinks(t)
+	rep, err := Run(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dest := filepath.Join(opt.Home, ".claude/skills/secret")
+	got, err := os.Readlink(dest)
+	if err != nil {
+		t.Fatalf("not a symlink: %v", err)
+	}
+	if want := filepath.Join(opt.PrivateDir, "skills/secret"); got != want {
+		t.Errorf("link -> %q, want %q", got, want)
+	}
+	if len(rep.Links) != 1 || rep.Links[0].Status != "linked" {
+		t.Errorf("links = %+v", rep.Links)
+	}
+
+	rep, err = Run(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Links[0].Status != "already linked" {
+		t.Errorf("second run status = %q, want already linked", rep.Links[0].Status)
+	}
+}
+
+func TestRunBacksUpARealFileAtLinkDest(t *testing.T) {
+	opt := overlayLinks(t)
+	dest := filepath.Join(opt.Home, ".claude/skills/secret")
+	write(t, filepath.Join(dest, "SKILL.md"), "mine")
+
+	rep, err := Run(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Links[0].Backup == "" {
+		t.Fatal("expected a backup of the displaced directory")
+	}
+	if read(t, filepath.Join(rep.Links[0].Backup, "SKILL.md")) != "mine" {
+		t.Error("backup lost the original content")
+	}
+	if _, err := os.Readlink(dest); err != nil {
+		t.Errorf("dest is not a symlink after the run: %v", err)
+	}
+}
+
+func TestDryRunDoesNotLink(t *testing.T) {
+	opt := overlayLinks(t)
+	opt.DryRun = true
+	rep, err := Run(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(filepath.Join(opt.Home, ".claude/skills/secret")); err == nil {
+		t.Error("dry run created a link")
+	}
+	if rep.Links[0].Status != "would link" {
+		t.Errorf("status = %q, want would link", rep.Links[0].Status)
+	}
+}
+
+func TestRunErrorsOnMissingLinkSource(t *testing.T) {
+	opt := fakeEnv(t)
+	write(t, filepath.Join(opt.PrivateDir, "links.manifest"), "gone .claude/gone\n")
+	if _, err := Run(opt); err == nil {
+		t.Error("expected an error for a link whose source is missing")
+	}
+}
