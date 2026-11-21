@@ -32,6 +32,7 @@ config/yazi-sidebar                .config/yazi-sidebar
 config/ghostty                     .config/ghostty
 config/herdr-core/templates        .config/herdr-core/templates
 config/herdr-app/keys.json         .config/herdr-app/keys.json
+config/herdr-app/mods/diff-review  .config/herdr-app/mods/diff-review
 shared/skills/kiri-docker/scripts/kiri-up.sh .local/bin/kiri-up
 home/tmux.conf                     .tmux.conf
 home/zshrc                         .zshrc

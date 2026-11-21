@@ -78,6 +78,13 @@
           "--web"
         ]
       }
+    },
+    "cmd-shift-r": {
+      "command": "tab.new",
+      "args": {
+        "name": "review",
+        "mod": "diff-review"
+      }
     }
   },
   "terminal": {
