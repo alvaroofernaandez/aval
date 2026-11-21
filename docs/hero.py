@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Generate the README hero: suminagashi ink rings in the Tokyo Night palette.
+"""Generate the README hero: suminagashi ink rings, in black and white.
 
-    python3 docs/hero.py > docs/assets/hero.svg
-    rsvg-convert -w 2400 docs/assets/hero.svg -o docs/assets/hero.png
+    python3 docs/brand.py          # writes hero-light.svg and hero-dark.svg
+
+Two themes, one per GitHub colour scheme: black ink on white paper, and white
+ink on black. The README swaps them with <picture> so the hero never sits as a
+bright slab on a dark page or the reverse.
 
 Suminagashi (墨流し, "floating ink") is made by touching concentric rings of ink
 onto still water and then disturbing the surface, so every ring deforms along
@@ -23,16 +26,13 @@ import random
 W, H = 1200, 400
 SEED = 20260825
 
-# Tokyo Night. The same palette as the installer TUI and the terminal this repo
-# configures, so the hero belongs to the same world as the thing it introduces.
-BG = "#1a1b26"
-INKS = [
-    ("#7aa2f7", 0.95),  # blue
-    ("#7dcfff", 0.80),  # cyan
-    ("#bb9af7", 0.78),  # magenta
-    ("#2ac3de", 0.70),  # teal
-    ("#9ece6a", 0.40),  # green, sparingly: it reads as "success" elsewhere
-]
+# Monochrome. Each ring carries one ink at a different strength, so the depth
+# comes from opacity rather than hue — the same rule as the rest of the README.
+THEMES = {
+    "light": {"bg": "#ffffff", "ink": "#000000", "title": "#000000", "sub": "#525252"},
+    "dark": {"bg": "#000000", "ink": "#ffffff", "title": "#ffffff", "sub": "#a3a3a3"},
+}
+STRENGTHS = [0.95, 0.80, 0.78, 0.70, 0.40]
 
 rng = random.Random(SEED)
 
@@ -113,7 +113,9 @@ def drop(cx, cy, count, step, colour, base_alpha):
     return out
 
 
-def build():
+def build(theme="dark"):
+    t = THEMES[theme]
+    BG = t["bg"]
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" '
         f'width="{W}" height="{H}" role="img" '
@@ -150,8 +152,9 @@ def build():
         (1105, 95, 5, 14, 0),
     ]
     for cx, cy, count, step, ink in drops:
-        colour, alpha = INKS[ink]
-        parts.extend(drop(cx, cy, count, step, colour, alpha))
+        # Thinner ink than the colour version: on pure black and white a full
+        # stroke reads as a diagram, not as marbling.
+        parts.extend(drop(cx, cy, count, step, t["ink"], STRENGTHS[ink] * 0.5))
 
     parts.append("</g>")
 
@@ -171,15 +174,17 @@ def build():
 
     parts += [
         f'<text x="50%" y="47%" text-anchor="middle" font-family="{font}" '
-        f'font-size="76" font-weight="800" fill="#c0caf5" '
+        f'font-size="76" font-weight="800" fill="{t['title']}" '
         f'letter-spacing="-2">Álvaro\'s Dotfiles</text>',
         f'<text x="50%" y="64%" text-anchor="middle" font-family="{mono}" '
-        f'font-size="22" fill="#7dcfff" letter-spacing="6">'
-        f'TMUX · YAZI · GHOSTTY · CLAUDE CODE</text>',
+        f'font-size="22" fill="{t['sub']}" letter-spacing="6">'
+        f'TERMINAL · AGENTES · MACOS</text>',
         "</svg>",
     ]
     return "\n".join(parts)
 
 
 if __name__ == "__main__":
-    print(build())
+    import sys
+
+    print(build(sys.argv[1] if len(sys.argv) > 1 else "dark"))
