@@ -88,6 +88,19 @@ func TestManifestEverySourceExists(t *testing.T) {
 	}
 }
 
+// A source that exists only in one checkout (an empty or ignored directory)
+// is missing from every fresh clone: CI caught config/opencode/plugins, an
+// empty local folder, failing `aval --yes` on a clean runner.
+func TestManifestEverySourceIsTracked(t *testing.T) {
+	m := parseManifest(read(t, "install.manifest"))
+	for _, e := range m.entries {
+		r := run(repo, nil, "", "git", "ls-files", "--", e.src)
+		if r.Code == 0 && strings.TrimSpace(r.Out()) == "" {
+			t.Errorf("manifest source not tracked by git (missing in a clean clone): %s", e.src)
+		}
+	}
+}
+
 func TestManifestFanoutSourceDirectoryExists(t *testing.T) {
 	m := parseManifest(read(t, "install.manifest"))
 	isTrue(t, "fanout-source is declared and a directory", m.fanoutSource != "" && isDir(p(m.fanoutSource)))
