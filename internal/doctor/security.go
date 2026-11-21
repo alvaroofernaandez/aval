@@ -297,7 +297,10 @@ var (
 // isReference reports whether a value defers to the environment instead of
 // holding the secret itself.
 func isReference(v string) bool {
-	return v == "" || strings.Contains(v, "${") || strings.HasPrefix(v, "$")
+	// Quotes around the value do not make it literal: "$(security ...)" and
+	// '${VAR}' are still resolved at launch.
+	v = strings.TrimLeft(v, `"'`)
+	return v == "" || strings.Contains(v, "${") || strings.HasPrefix(v, "$") || strings.HasPrefix(v, "`")
 }
 
 func literalSecret(name, value string) bool {

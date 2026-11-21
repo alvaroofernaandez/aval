@@ -209,3 +209,15 @@ func TestAllowCanTargetOneSubject(t *testing.T) {
 		t.Errorf("only server a should be allowed: %s %s", r.Status, r.Message)
 	}
 }
+
+// A token read at launch from the keychain (sh -c 'TOKEN="$(security ...)" exec srv')
+// is a reference, not an inline secret.
+func TestSecretReadFromACommandIsNotInline(t *testing.T) {
+	opt := secMachine(t)
+	w(t, filepath.Join(opt.Home, ".claude.json"), `{"mcpServers": {"kc": {"command":"/bin/sh",
+	  "args":["-c","TURING_TOKEN=\"$(security find-generic-password -s x -w)\" exec srv"]}}}`)
+	r := find(checkSecurity(opt), "sec-mcp-inline-secrets")
+	if r.Status == Fail {
+		t.Fatalf("keychain lookup reported as an inline secret: %s", r.Message)
+	}
+}
