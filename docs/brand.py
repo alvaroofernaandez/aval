@@ -87,13 +87,28 @@ STACK = [
     ]),
 ]
 
-# Every logo sits on a light card in both themes. Many marks are drawn for a
-# white page (Apple, GitHub, Bash, Zsh are black), and a light card keeps them
-# legible on GitHub's dark theme without recolouring anyone's logo.
+# Neutral grey cards (r=g=b), one per theme, measured against every logo: no
+# single grey works for both — mid grey fails most colour logos, dark grey
+# fails the black ones. So each theme gets its own grey and the logos that
+# vanish on it are adapted (see DARK_ADAPT and TILES).
 THEMES = {
-    "light": {"fg": "#1f2328", "muted": "#59636e", "card": "#f6f8fa", "edge": "#d1d9e0"},
-    "dark": {"fg": "#f0f6fc", "muted": "#9198a1", "card": "#f6f8fa", "edge": "#3d444d"},
+    "light": {"fg": "#1f2328", "muted": "#59636e", "card": "#ededed", "edge": "#d4d4d4", "mono": "#1f2328"},
+    "dark": {"fg": "#f0f6fc", "muted": "#9198a1", "card": "#262626", "edge": "#3a3a3a", "mono": "#f0f0f0"},
 }
+
+# Marks drawn in black or near-black. On the dark card their dark tones are
+# lightened; brand colours (tmux and Bash green, Zsh orange) are kept.
+DARK_ADAPT = {"apple.svg", "github.svg", "zsh.svg", "bash.svg", "tmux.svg"}
+LIGHT_INK = "#f0f0f0"
+
+# Raster marks too dark for the dark card get a vendored, lightened variant
+# (same hue, more lightness) instead of a recolour at build time.
+DARK_FILES = {"bat.png": "bat-dark.png"}
+
+# Logos that are app icons with their own square background: clipped to a
+# rounded tile so they present as icons, not as hard-edged screenshots.
+TILES = {"engram.png", "eza.png", "rtk.png", "opencode.svg", "herdr.svg",
+         "omniwm.svg", "gstack.png", "zoxide.svg", "fzf.png"}
 
 FONT = "ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
 MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
@@ -111,29 +126,84 @@ ROW_H = HEAD + CARD + 52
 MIME = {".svg": "image/svg+xml", ".png": "image/png"}
 
 
-def data_uri(name):
+def _luminance(hex6):
+    def c(v):
+        v /= 255
+        return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (int(hex6[i:i + 2], 16) for i in (0, 2, 4))
+    return 0.2126 * c(r) + 0.7152 * c(g) + 0.0722 * c(b)
+
+
+def lighten_darks(svg):
+    """Turn the dark tones of a mark light, leave its brand colours alone.
+
+    Shapes with no fill default to black, so the root gets a light fill that
+    they inherit; explicit dark hex fills are swapped for the same light ink.
+    """
+    def swap(m):
+        h = m.group(1)
+        if len(h) == 3:
+            h = "".join(ch * 2 for ch in h)
+        return LIGHT_INK if _luminance(h) < 0.05 else m.group(0)
+
+    svg = re.sub(r"#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b", swap, svg)
+    return re.sub(r"<svg\b", f'<svg fill="{LIGHT_INK}"', svg, count=1)
+
+
+def aspect(name):
+    """Width / height of a vendored logo, from the PNG header or SVG viewBox."""
+    path = LOGOS / name
+    if path.suffix == ".png":
+        head = path.read_bytes()[16:24]
+        return int.from_bytes(head[:4], "big") / int.from_bytes(head[4:], "big")
+    vb = re.search(r'viewBox="[\d.\-]+[ ,]+[\d.\-]+[ ,]+([\d.]+)[ ,]+([\d.]+)"', path.read_text())
+    return float(vb.group(1)) / float(vb.group(2)) if vb else 1.0
+
+
+def data_uri(name, theme="light"):
+    if theme == "dark" and name in DARK_FILES:
+        name = DARK_FILES[name]
     path = LOGOS / name
     mime = MIME[path.suffix]
-    return f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode()
+    data = path.read_bytes()
+    if theme == "dark" and name in DARK_ADAPT:
+        data = lighten_darks(data.decode()).encode()
+    return f"data:{mime};base64," + base64.b64encode(data).decode()
 
 
 def esc(text):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def tile(x, y, label, logo_file, mono, t):
+def tile(x, y, label, logo_file, mono, t, theme):
     cx = x + TILE_W / 2
     top = y + HEAD
     out = [
-        f'<rect x="{cx - CARD / 2:.1f}" y="{top}" width="{CARD}" height="{CARD}" '
+        f'<rect class="card" x="{cx - CARD / 2:.1f}" y="{top}" width="{CARD}" height="{CARD}" '
         f'rx="20" fill="{t["card"]}" stroke="{t["edge"]}" stroke-width="1"/>'
     ]
     if logo_file:
         off = (CARD - LOGO) / 2
+        ix, iy = cx - CARD / 2 + off, top + off
+        extra = ""
+        if logo_file in TILES:
+            cid = "tile-" + logo_file.split(".")[0]
+            # Clip to the image's own box inside the square, so a wide mark
+            # gets a rounded band rather than an invisible rounded square.
+            r = aspect(logo_file)
+            cw, ch = (LOGO, LOGO / r) if r >= 1 else (LOGO * r, LOGO)
+            cx0, cy0 = ix + (LOGO - cw) / 2, iy + (LOGO - ch) / 2
+            out.append(
+                f'<clipPath id="{cid}"><rect x="{cx0:.1f}" y="{cy0:.1f}" width="{cw:.1f}" '
+                f'height="{ch:.1f}" rx="{min(14, min(cw, ch) * 0.25):.1f}"/></clipPath>'
+            )
+            extra += f' clip-path="url(#{cid})"'
+        if theme == "dark" and (logo_file in DARK_ADAPT or logo_file in DARK_FILES):
+            extra += ' data-adapted="dark"'
         out.append(
             f'<image class="logo" width="{LOGO}" height="{LOGO}" '
-            f'x="{cx - CARD / 2 + off:.1f}" y="{top + off:.1f}" '
-            f'preserveAspectRatio="xMidYMid meet" href="{data_uri(logo_file)}"/>'
+            f'x="{ix:.1f}" y="{iy:.1f}"{extra} '
+            f'preserveAspectRatio="xMidYMid meet" href="{data_uri(logo_file, theme)}"/>'
         )
     else:
         # No published logo: a plain monogram, never a drawn mark, so it can't
@@ -141,7 +211,7 @@ def tile(x, y, label, logo_file, mono, t):
         out.append(
             f'<text x="{cx:.1f}" y="{top + CARD / 2 + 9:.1f}" text-anchor="middle" '
             f'font-family="{MONO}" font-size="26" font-weight="700" '
-            f'fill="#1f2328">{esc(mono)}</text>'
+            f'fill="{t["mono"]}">{esc(mono)}</text>'
         )
     out.append(
         f'<text x="{cx:.1f}" y="{top + CARD + 28}" text-anchor="middle" '
@@ -167,7 +237,7 @@ def stack(theme):
             f'{esc(group.upper())}</text>'
         )
         for col, (label, logo_file, mono) in enumerate(tools):
-            parts.extend(tile(col * TILE_W, y, label, logo_file, mono, t))
+            parts.extend(tile(col * TILE_W, y, label, logo_file, mono, t, theme))
     parts.append("</svg>")
     return "\n".join(parts) + "\n"
 

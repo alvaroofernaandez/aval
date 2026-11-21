@@ -29,7 +29,7 @@ to at most 192 px so the generated SVGs stay small.
 | `opencode.svg` | anomalyco/opencode — `packages/ui/src/assets/favicon/favicon-v3.svg` |
 | `yazi.png` | sxyazi/yazi — `assets/logo.png` |
 | `herdr.svg` | herdrdev/herdr — `assets/logo.svg` |
-| `omniwm.svg` | OmniNull/OmniWM — `assets/brand/source/omniwm-mark-color.svg` |
+| `omniwm.svg` | OmniNull/OmniWM — `assets/brand/app/omniwm-app-icon.svg` (the app icon reads on both themes; the bare mark's dark brown vanishes on dark grey) |
 | `engram.png` | Gentleman-Programming/engram — `assets/branding/engram-logo-only.png` |
 | `rtk.png` | rtk-ai — GitHub organization avatar |
 | `gstack.png` | garrytan/gstack — `extension/icons/icon-128.png` |
@@ -37,12 +37,17 @@ to at most 192 px so the generated SVGs stay small.
 | `lightpanda.png` | lightpanda-io/browser — README logo, `cdn.lightpanda.io/assets/images/logo/lpd-logo.png` |
 | `gitleaks.png` | gitleaks/gitleaks — README logo image |
 | `fd.svg` | sharkdp/fd — `doc/logo.svg` |
-| `bat.png` | sharkdp/bat — `doc/logo-header.svg`, cropped to the wings mark |
+| `bat.png` | sharkdp/bat — `doc/logo-header.svg`, cropped to the wings mark, grey header band made transparent |
+| `bat-dark.png` | `bat.png` lightened for the dark theme (ImageMagick `-modulate 175,150,100`): the navy mark measured 2% legible on `#262626` |
 | `eza.png` | eza-community — GitHub organization avatar |
 | `fzf.png` | junegunn/i — `fzf.png`, cropped to the mark |
 | `zoxide.svg` | ajeetdsouza/zoxide — `contrib/logo-light.svg` |
-| `atuin.png` | atuinsh — GitHub organization avatar |
+| `atuin.png` | atuinsh — GitHub organization avatar, white background made transparent (flood fill from the corners) |
 
 **No published logo:** ripgrep (BurntSushi/ripgrep has no image assets) and
 delta (dandavison/delta; its docs favicon is mdBook's default). Both get a
 monogram tile rather than an invented mark.
+
+On the dark theme, `docs/brand.py` lightens the dark tones of apple, github,
+zsh, bash and tmux (brand colours are kept), because those marks are drawn
+black and disappear on a dark card. The files here stay untouched.

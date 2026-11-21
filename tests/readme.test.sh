@@ -109,6 +109,21 @@ assert_eq "logos are not loaded from outside the SVG" "0" \
 size="$(rg -o 'class="logo" width="([0-9]+)"' -r '$1' "$(asset "$out" stack-light)" | sort -n | head -1)"
 assert_eq "logos render at least 56px" "yes" "$([ "${size:-0}" -ge 56 ] && echo yes || echo no)"
 
+# Cards are a neutral grey (r=g=b) in each theme, and the logos are adapted
+# to them: black marks are lightened on the dark card, app icons are clipped.
+for theme in light dark; do
+  f="$(asset "$out" "stack-$theme")"
+  tint="$(rg -o 'class="card"[^>]*fill="#([0-9a-f]{6})"' -r '$1' "$f" | sort -u \
+    | awk '{ if (substr($0,1,2)!=substr($0,3,2) || substr($0,3,2)!=substr($0,5,2)) print }' | tr '\n' ' ')"
+  assert_eq "stack-$theme cards are neutral grey" "" "$tint"
+done
+assert_eq "dark stack adapts the six logos that vanish on dark grey" "6" \
+  "$(rg -c 'data-adapted="dark"' "$(asset "$out" stack-dark)" || echo 0)"
+assert_eq "light stack keeps every logo original" "0" \
+  "$(rg -c 'data-adapted=' "$(asset "$out" stack-light)" || echo 0)"
+assert_eq "app-icon logos are clipped to a rounded tile" "yes" \
+  "$([ "$(rg -c 'clip-path="url\(#tile' "$(asset "$out" stack-light)" || echo 0)" -ge 7 ] && echo yes || echo no)"
+
 # Every vendored logo says where it came from.
 unsourced=""
 for f in "$REPO"/docs/logos/*.*; do
