@@ -110,6 +110,8 @@ alias csmall='claude --agent smallops --permission-mode default'
 alias ccr='claude --resume'
 alias ll='eza -l --git'
 alias la='eza -la --git'
+# Helpers from the habits audit, next to this file in the repo (follows the symlink).
+source "${${(%):-%x}:A:h}/zsh/helpers.zsh"
 
 export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
 zstyle ':completion:*' format $'\e[2;37mCompleting %d\e[m'
