@@ -23,6 +23,12 @@ func newFlagSet(name string, out io.Writer) *flag.FlagSet {
 	return fs
 }
 
+// stringList is a repeatable string flag.
+type stringList []string
+
+func (l *stringList) String() string     { return strings.Join(*l, ",") }
+func (l *stringList) Set(v string) error { *l = append(*l, v); return nil }
+
 func short(home, p string) string {
 	if rel, err := filepath.Rel(home, p); err == nil && !strings.HasPrefix(rel, "..") {
 		return "~/" + filepath.ToSlash(rel)
@@ -35,11 +41,17 @@ func runDoctor(repo, home string, args []string, out io.Writer) error {
 	fs := newFlagSet("doctor", out)
 	fix := fs.Bool("fix", false, "remove broken links and run sync")
 	asJSON := fs.Bool("json", false, "print the results as a JSON array")
+	security := fs.Bool("security", false, "also run the security checks")
+	var allow stringList
+	fs.Var(&allow, "allow", "suppress a security check id (`id[:subject]`, repeatable); also read from the overlay's doctor-allow")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	opt := doctor.Options{Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS}
+	opt := doctor.Options{
+		Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS,
+		Security: *security, Allow: allow,
+	}
 
 	if *fix {
 		removed, err := doctor.Fix(opt)
