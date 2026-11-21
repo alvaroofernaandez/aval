@@ -146,6 +146,8 @@ func run() error {
 		return runDocker(flag.Args()[1:])
 	case "pdf":
 		return runPDF(flag.Args()[1:], os.Stdout)
+	case "dev":
+		return runDev(*repoFlag, flag.Args()[1:])
 	}
 
 	repo, err := resolveRepo(*repoFlag)

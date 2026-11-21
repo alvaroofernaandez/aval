@@ -258,6 +258,7 @@ Referencia completa. `aval --help` lista las banderas globales (`--dry-run`, `--
 | `aval docker cleanup [--dry-run]` | Prunes seguros, solo sobre el contexto `kiri` | no |
 | `aval pdf init <dir>` · `aval pdf assets [dir]` | Proyecto de informe PDF · `assets/brand.css` | no |
 | `aval reap-orphan-tests [--min-age s] [--dry-run]` | Termina procesos de test huérfanos (lo lanza un LaunchAgent) | no |
+| `aval dev [shell\|run\|diff\|project\|ls\|reset\|rm]` | Prueba aval en un sandbox sin tocar tu máquina ([modo dev](devmode.md)) | sí |
 
 ### 🩺 Doctor, sync y la capa privada
 
