@@ -6,9 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 func TestMacosScreenshotClipboardCopyUsesClipCmdAndStateDir(t *testing.T) {
+	testenv.SkipWindows(t, "macOS LaunchAgent and clipboard helpers")
 	dir, state := t.TempDir(), t.TempDir()
 	writeFile(t, filepath.Join(dir, "Captura 1.png"), "x")
 	log := filepath.Join(t.TempDir(), "clip.log")
@@ -36,6 +39,7 @@ func TestMacosScreenshotClipboardCopyUsesClipCmdAndStateDir(t *testing.T) {
 }
 
 func TestMacosScreenshotClipboardInstallPointsAtLocalBinAval(t *testing.T) {
+	testenv.SkipWindows(t, "macOS LaunchAgent and clipboard helpers")
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("SKIP_DEFAULTS", "1")
@@ -53,6 +57,7 @@ func TestMacosScreenshotClipboardInstallPointsAtLocalBinAval(t *testing.T) {
 }
 
 func TestMacosUsage(t *testing.T) {
+	testenv.SkipWindows(t, "macOS LaunchAgent and clipboard helpers")
 	for _, args := range [][]string{nil, {"nope"}, {"screenshot-clipboard"}, {"screenshot-clipboard", "x"}} {
 		if err := runMacos(args, &bytes.Buffer{}); err == nil {
 			t.Errorf("%v: want a usage error", args)

@@ -104,7 +104,7 @@ func expandFanout(g manifest.Group, opt Options) ([]Action, error) {
 			actions = append(actions, Action{
 				Source: filepath.Join(root, e.Name()),
 				Dest:   filepath.Join(opt.Home, rel),
-				Label:  "~/" + rel,
+				Label:  "~/" + filepath.ToSlash(rel),
 			})
 		}
 	}

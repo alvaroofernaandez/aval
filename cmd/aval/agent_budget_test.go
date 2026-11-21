@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 func budgetHome(t *testing.T, script string) string {
@@ -23,6 +25,7 @@ func budgetHome(t *testing.T, script string) string {
 }
 
 func TestRunBudgetOverBudgetExitsNonZero(t *testing.T) {
+	testenv.SkipWindows(t, "the fixture hook is a POSIX shell script")
 	home := budgetHome(t, "#!/bin/sh\nsleep 0.2\n")
 	var out bytes.Buffer
 	err := runBudget(home, []string{"--runs", "2"}, &out)
@@ -35,6 +38,7 @@ func TestRunBudgetOverBudgetExitsNonZero(t *testing.T) {
 }
 
 func TestRunBudgetUnderBudgetAndJSON(t *testing.T) {
+	testenv.SkipWindows(t, "the fixture hook is a POSIX shell script")
 	home := budgetHome(t, "#!/bin/sh\nexit 0\n")
 	var out bytes.Buffer
 	// A generous ceiling keeps this independent of machine load; the budget

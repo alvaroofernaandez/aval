@@ -42,7 +42,7 @@ type Outcome struct {
 // Run applies sync transactionally.
 func Run(opt Options) (*Outcome, error) {
 	out := &Outcome{}
-	syncOpt := avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, Now: opt.Now}
+	syncOpt := avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS, Now: opt.Now}
 
 	if opt.DryRun {
 		syncOpt.DryRun = true

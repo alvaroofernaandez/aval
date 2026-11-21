@@ -2,11 +2,21 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
+
+// q is a JSON string literal: Windows paths hold backslashes, so a path cannot
+// be pasted between quotes.
+func q(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
+}
 
 func fileExists(p string) bool {
 	_, err := os.Stat(p)
@@ -15,7 +25,7 @@ func fileExists(p string) bool {
 
 func TestRunHookLessonsUsesEnvDirsAndXDGState(t *testing.T) {
 	dir, state, home := t.TempDir(), t.TempDir(), t.TempDir()
-	t.Setenv("HOME", home)
+	testenv.SetHome(t, home)
 	t.Setenv("AVAL_LESSONS_DIR", dir)
 	t.Setenv("XDG_STATE_HOME", state)
 	writeFile(t, filepath.Join(dir, "commit.md"), "---\ncommands:\n  - 'git commit'\n---\nNo trailers.\n")
@@ -35,7 +45,7 @@ func TestRunHookLessonsUsesEnvDirsAndXDGState(t *testing.T) {
 
 func TestRunHookLessonsDefaultsToHomeClaudeLessons(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	testenv.SetHome(t, home)
 	t.Setenv("AVAL_LESSONS_DIR", "")
 	t.Setenv("XDG_STATE_HOME", "")
 	writeFile(t, filepath.Join(home, ".claude", "lessons", "x.md"), "---\ntriggers:\n  - '**/*.tsx'\n---\nHi.\n")
@@ -63,7 +73,7 @@ func TestRunHookDesignGateReadsEnvAndDenies(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", cache)
 	t.Setenv("DESIGN_PIPELINE_OFF", "")
 	t.Setenv("DESIGN_ACK_TTL", "")
-	in := `{"session_id":"s","cwd":"` + proj + `","tool_name":"Edit","tool_input":{"file_path":"` + proj + `/Button.tsx"}}`
+	in := `{"session_id":"s","cwd":` + q(proj) + `,"tool_name":"Edit","tool_input":{"file_path":` + q(filepath.Join(proj, "Button.tsx")) + `}}`
 
 	var out bytes.Buffer
 	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil {
@@ -88,7 +98,7 @@ func TestRunHookDesignGateAllowsAfterAck(t *testing.T) {
 	if err := runDesign([]string{"ack", "pricing"}, proj, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	in := `{"session_id":"s","cwd":"` + proj + `","tool_name":"Write","tool_input":{"file_path":"` + proj + `/app.css"}}`
+	in := `{"session_id":"s","cwd":` + q(proj) + `,"tool_name":"Write","tool_input":{"file_path":` + q(filepath.Join(proj, "app.css")) + `}}`
 	var out bytes.Buffer
 	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil || out.Len() != 0 {
 		t.Errorf("an acked project must be allowed, got %q err=%v", out.String(), err)

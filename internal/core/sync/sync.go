@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -31,6 +32,10 @@ type Options struct {
 	Home       string
 	PrivateDir string
 	DryRun     bool
+	// GOOS selects the hook flavour (see ForOS); empty means runtime.GOOS.
+	GOOS string
+	// AvalBin is the executable Windows hooks run; empty means ResolveAvalBin.
+	AvalBin string
 	// Now stamps the backup directory; nil means time.Now.
 	Now func() time.Time
 	// Recorder receives everything sync overwrites or creates. Nil means Run
@@ -355,11 +360,25 @@ func encode(m map[string]any) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// planSettings computes the merged settings without writing anything.
-func planSettings(opt Options) (merged map[string]any, changed []string, old []byte, exists bool, warnings []string, err error) {
+// RepoSettings reads the repo's settings.json as it must look on opt.GOOS:
+// hooks and status line rewritten for Windows, untouched elsewhere.
+func RepoSettings(opt Options) (map[string]any, error) {
 	repo, _, err := readJSONFile(filepath.Join(opt.Repo, "config", "claude", "settings.json"))
 	if err != nil {
-		return nil, nil, nil, false, nil, fmt.Errorf("sync: repo settings: %w", err)
+		return nil, fmt.Errorf("sync: repo settings: %w", err)
+	}
+	goos := opt.GOOS
+	if goos == "" {
+		goos = runtime.GOOS
+	}
+	return ForOS(repo, goos, opt.AvalBin, opt.Home), nil
+}
+
+// planSettings computes the merged settings without writing anything.
+func planSettings(opt Options) (merged map[string]any, changed []string, old []byte, exists bool, warnings []string, err error) {
+	repo, err := RepoSettings(opt)
+	if err != nil {
+		return nil, nil, nil, false, nil, err
 	}
 	live := map[string]any{}
 	livePath := filepath.Join(opt.Home, ".claude", "settings.json")

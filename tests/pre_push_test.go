@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // The pre-push hook is the last gate before anything reaches the public repo.
@@ -18,6 +20,7 @@ import (
 // pinned here is the shim and a real `git push` through it.
 
 func TestPrePushHookShim(t *testing.T) {
+	testenv.SkipWindows(t, "the git pre-push hook shim is a POSIX shell script that needs aval on PATH")
 	hook := p(".githooks", "pre-push")
 	st, err := os.Stat(hook)
 	if err != nil {
@@ -35,6 +38,7 @@ func TestPrePushHookShim(t *testing.T) {
 }
 
 func TestPrePushThisCloneUsesTheVersionedHooks(t *testing.T) {
+	testenv.SkipWindows(t, "the git pre-push hook shim is a POSIX shell script that needs aval on PATH")
 	needGit(t)
 	r := run(repo, nil, "", "git", "config", "--get", "core.hooksPath")
 	eq(t, "core.hooksPath of this clone", ".githooks", strings.TrimSpace(r.Stdout))
@@ -43,6 +47,7 @@ func TestPrePushThisCloneUsesTheVersionedHooks(t *testing.T) {
 // Behaviour: in a scratch clone, a commit carrying employer material is refused,
 // and sync drift warns (or blocks under AVAL_PREPUSH_STRICT=1).
 func TestPrePushRealGitPushThroughTheHook(t *testing.T) {
+	testenv.SkipWindows(t, "the git pre-push hook shim is a POSIX shell script that needs aval on PATH")
 	t.Parallel()
 	needGit(t)
 	slow(t)

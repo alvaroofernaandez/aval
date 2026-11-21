@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 var fixedNow = func() time.Time { return time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC) }
@@ -333,6 +335,7 @@ func overlayLinks(t *testing.T) Options {
 }
 
 func TestRunLinksPrivateSkill(t *testing.T) {
+	testenv.NeedSymlinks(t)
 	opt := overlayLinks(t)
 	rep, err := Run(opt)
 	if err != nil {
@@ -360,6 +363,7 @@ func TestRunLinksPrivateSkill(t *testing.T) {
 }
 
 func TestRunBacksUpARealFileAtLinkDest(t *testing.T) {
+	testenv.NeedSymlinks(t)
 	opt := overlayLinks(t)
 	dest := filepath.Join(opt.Home, ".claude/skills/secret")
 	write(t, filepath.Join(dest, "SKILL.md"), "mine")

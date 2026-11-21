@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // seedBackup records one run in which ~/f went from "before" to "after".
@@ -80,6 +81,7 @@ func TestRestoreUnknownIDFails(t *testing.T) {
 // installedMachine is fakeMachine with its one manifest link in place.
 func installedMachine(t *testing.T) (repo, home, dest string) {
 	t.Helper()
+	testenv.NeedSymlinks(t)
 	repo, home = fakeMachine(t)
 	dest = filepath.Join(home, ".claude", "agents")
 	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {

@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -167,6 +168,7 @@ func TestDesignPipelineAlwaysOnSection(t *testing.T) {
 // Chromium at 390/768/1440, writes screenshots into .design/shots/, runs the
 // overflow audit and never passes silently when it cannot render.
 func TestDesignPipelineShotMjs(t *testing.T) {
+	testenv.SkipWindows(t, "drives node and Playwright Chromium; covered on Linux and macOS")
 	shot := p("skills/design-pipeline/scripts/shot.mjs")
 	isTrue(t, "shot.mjs exists", exists(shot))
 	needTool(t, "node", "git")

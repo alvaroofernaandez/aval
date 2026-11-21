@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -52,23 +52,40 @@ jobs:
       - name: install test tools (macos)
         if: runner.os == 'macOS'
         run: brew install tmux
+      # Windows has no tmux or zsh: the suites that need them skip there with
+      # a reason (testenv.SkipWindows). Git for Windows provides bash and sh.
       - name: install gitleaks
+        shell: bash
         run: |
           go install github.com/zricethezav/gitleaks/v8@v8.30.1
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
+      # Windows installs in copy mode (--copy): the same path a user without
+      # symlink rights takes, instead of whatever the runner's privileges allow.
       - name: install aval
+        shell: bash
         run: |
+          ext=""; copy=""
+          if [ "$RUNNER_OS" = "Windows" ]; then ext=".exe"; copy="--copy"; fi
           mkdir -p "$HOME/.local/bin"
-          go build -o "$HOME/.local/bin/aval" ./cmd/aval
-          "$HOME/.local/bin/aval" --yes
+          go build -o "$HOME/.local/bin/aval$ext" ./cmd/aval
+          "$HOME/.local/bin/aval$ext" --yes $copy
 
       - name: go vet
         run: go vet ./...
       - name: gofmt
+        shell: bash
         run: test -z "$(gofmt -l .)"
       - name: go test
+        if: runner.os != 'Windows'
         timeout-minutes: 10
         run: go test ./... -race
+      # -race needs cgo and a C toolchain, which a Windows runner does not
+      # reliably provide; Linux and macOS keep the race detector.
+      - name: go test (windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 15
+        run: go test ./...
       - name: npm tests
+        shell: bash
         run: node --test npm/cli/lib/*.test.js

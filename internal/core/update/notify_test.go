@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 func TestNoticeIsSilentWhenCurrent(t *testing.T) {
@@ -112,7 +114,7 @@ func TestShouldCheckHonoursTheOptOut(t *testing.T) {
 func TestShouldCheckBacksOffWithinTheInterval(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", dir)
-	t.Setenv("HOME", dir) // macOS derives the cache dir from HOME
+	testenv.SetHome(t, dir) // macOS derives the cache dir from HOME, Windows from LocalAppData
 
 	now := time.Now()
 	if !ShouldCheck(now) {
@@ -128,7 +130,7 @@ func TestShouldCheckRecordsTheAttemptBeforeChecking(t *testing.T) {
 	// interrupts, the next run should back off rather than hang again.
 	dir := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", dir)
-	t.Setenv("HOME", dir)
+	testenv.SetHome(t, dir)
 
 	ShouldCheck(time.Now())
 

@@ -15,6 +15,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/manifest"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 const manifestText = `[all]
@@ -135,6 +136,7 @@ func TestUninstallLeavesHomeIdenticalToBeforeInstall(t *testing.T) {
 }
 
 func TestUninstallLeavesForeignContentAlone(t *testing.T) {
+	testenv.NeedSymlinks(t)
 	opt := machine(t)
 	installAll(t, opt)
 	// The user later replaced two installed links with their own things.

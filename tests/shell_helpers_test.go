@@ -7,6 +7,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // Shell helpers born from the habits audit (14,391 atuin commands, 2026-11-21):
@@ -22,6 +24,7 @@ func helpers(t *testing.T) string {
 }
 
 func TestShellHelpersAreSourcedByZshrc(t *testing.T) {
+	testenv.SkipWindows(t, "tests the zsh helpers")
 	mustHave(t, `zsh/helpers\.zsh`, read(t, "home/zshrc"), "zshrc sources the helpers")
 }
 
@@ -68,6 +71,7 @@ func (b *zshBox) read() string {
 func (b *zshBox) reset() { _ = os.WriteFile(b.calls, nil, 0o644) }
 
 func TestShellHelpersStackUpAndDown(t *testing.T) {
+	testenv.SkipWindows(t, "tests the zsh helpers")
 	b := newZshBox(t)
 	mk, dc, np := filepath.Join(b.root, "mk"), filepath.Join(b.root, "dc"), filepath.Join(b.root, "np")
 	write(t, mk+"/Makefile", "up-build:\n\techo\n")
@@ -98,6 +102,7 @@ func TestShellHelpersStackUpAndDown(t *testing.T) {
 }
 
 func TestShellHelpersWaitforReturnsOnceTheConditionHolds(t *testing.T) {
+	testenv.SkipWindows(t, "tests the zsh helpers")
 	t.Parallel()
 	b := newZshBox(t)
 	flag := filepath.Join(b.root, "flag")
@@ -115,6 +120,7 @@ func TestShellHelpersWaitforReturnsOnceTheConditionHolds(t *testing.T) {
 }
 
 func TestShellHelpersGitAndReactDoctorShortcuts(t *testing.T) {
+	testenv.SkipWindows(t, "tests the zsh helpers")
 	b := newZshBox(t)
 	b.reset()
 	b.z(b.root, "gp", "")
@@ -126,6 +132,7 @@ func TestShellHelpersGitAndReactDoctorShortcuts(t *testing.T) {
 }
 
 func TestShellHelpersTypoAliasesExist(t *testing.T) {
+	testenv.SkipWindows(t, "tests the zsh helpers")
 	b := newZshBox(t)
 	for _, a := range []string{"cñear", "ckear", "clea", "clar", "exir", "exirt"} {
 		r := b.z(b.root, "alias -- "+a+" >/dev/null && echo yes || echo no", "")
@@ -135,6 +142,7 @@ func TestShellHelpersTypoAliasesExist(t *testing.T) {
 
 // wt: one worktree per task, with the repo's ignored .env files and its own port.
 func TestShellHelpersWorktreePerTask(t *testing.T) {
+	testenv.SkipWindows(t, "tests the zsh helpers")
 	needTool(t, "git")
 	b := newZshBox(t)
 	R := filepath.Join(b.root, "repo")
@@ -173,6 +181,7 @@ func TestShellHelpersWorktreePerTask(t *testing.T) {
 
 // forrepos: one command across every repo.
 func TestShellHelpersForrepos(t *testing.T) {
+	testenv.SkipWindows(t, "tests the zsh helpers")
 	needTool(t, "git")
 	b := newZshBox(t)
 	F := filepath.Join(b.root, "projects")

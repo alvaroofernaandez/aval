@@ -71,6 +71,7 @@ var uiExts = []string{
 // isUISurface: tests assert behaviour and are not design surfaces, since
 // blocking them would deadlock against strict TDD, which demands the test first.
 func isUISurface(file string) bool {
+	file = filepath.ToSlash(file) // Windows hands the hook C:\proj\src\x.tsx
 	base := file[strings.LastIndex(file, "/")+1:]
 	if strings.Contains(base, ".test.") || strings.Contains(base, ".spec.") {
 		return false
@@ -137,7 +138,7 @@ func Gate(in io.Reader, out io.Writer, o GateOptions) {
 		if cwd == "" {
 			cwd, _ = os.Getwd()
 		}
-		file = cwd + "/" + file
+		file = filepath.Join(cwd, file)
 	}
 	root := projectRoot(file, h.Cwd)
 

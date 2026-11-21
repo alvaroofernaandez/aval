@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // The lessons hook wiring and the lessons themselves.
@@ -89,6 +91,7 @@ func TestLessonsWiring(t *testing.T) {
 // The binary may be absent (fresh machine, npm not installed): the hook must
 // then be invisible, not an error on every single edit.
 func TestLessonsHookWithNoBinaryIsASilentNoOp(t *testing.T) {
+	testenv.SkipWindows(t, "runs the shell-form hook command through sh")
 	needTool(t, "sh")
 	h, ok := lessonsHook(t)
 	if !ok {

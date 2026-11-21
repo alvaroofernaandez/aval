@@ -21,12 +21,21 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 )
+
+// exeSuffix is the executable extension of the platform the suite runs on.
+var exeSuffix = func() string {
+	if runtime.GOOS == "windows" {
+		return ".exe"
+	}
+	return ""
+}()
 
 var (
 	repo string
@@ -78,7 +87,7 @@ func avalBin(t testing.TB) string {
 		if buildErr != nil {
 			return
 		}
-		avalPath = filepath.Join(binDir, "aval")
+		avalPath = filepath.Join(binDir, "aval"+exeSuffix)
 		cmd := exec.Command("go", "build", "-o", avalPath, "./cmd/aval")
 		cmd.Dir = repo
 		if out, err := cmd.CombinedOutput(); err != nil {
@@ -186,17 +195,21 @@ func isoEnv(home string, kv ...string) []string {
 	for _, e := range os.Environ() {
 		k := strings.SplitN(e, "=", 2)[0]
 		if strings.HasPrefix(k, "AVAL_") || strings.HasPrefix(k, "DESIGN_") ||
-			strings.HasPrefix(k, "XDG_") || k == "TMUX" || k == "HOME" || k == "ZDOTDIR" {
+			strings.HasPrefix(k, "XDG_") || k == "TMUX" || k == "HOME" || k == "ZDOTDIR" ||
+			strings.EqualFold(k, "USERPROFILE") || strings.EqualFold(k, "LocalAppData") || strings.EqualFold(k, "AppData") {
 			continue
 		}
 		clean = append(clean, e)
 	}
 	base := append(clean,
 		"HOME="+home,
+		"USERPROFILE="+home, // os.UserHomeDir on Windows
+		"LocalAppData="+filepath.Join(home, "AppData", "Local"),
+		"AppData="+filepath.Join(home, "AppData", "Roaming"),
 		"XDG_CACHE_HOME="+filepath.Join(home, ".cache"),
 		"XDG_STATE_HOME="+filepath.Join(home, ".state"),
 		"XDG_CONFIG_HOME="+filepath.Join(home, ".config"),
-		"GIT_CONFIG_GLOBAL=/dev/null",
+		"GIT_CONFIG_GLOBAL="+os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
 	)
 	return withEnv(base, kv...)
@@ -205,7 +218,7 @@ func isoEnv(home string, kv ...string) []string {
 // git runs git in dir with a neutral identity and no global config.
 func git(t testing.TB, dir string, args ...string) string {
 	t.Helper()
-	env := withEnv(os.Environ(), "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_NOSYSTEM=1",
+	env := withEnv(os.Environ(), "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
 		"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
 	r := run(dir, env, "", "git", args...)
 	if r.Code != 0 {

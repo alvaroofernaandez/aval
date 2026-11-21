@@ -46,7 +46,7 @@ func env(t *testing.T) Options {
 	put(t, filepath.Join(repo, "install.manifest"),
 		"[claude]\nlabel = c\ndetail = d\nplatforms = all\n\nconfig/claude/hooks .claude/hooks\n", 0o644)
 	put(t, filepath.Join(repo, "config/claude/settings.json"),
-		`{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"`+hook+`"}]}]}}`, 0o644)
+		`{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"`+filepath.ToSlash(hook)+`"}]}]}}`, 0o644)
 	put(t, filepath.Join(repo, "config/claude/CLAUDE.md"),
 		"x\n<!-- shared:agent-rules -->\nrule\n<!-- /shared:agent-rules -->\n", 0o644)
 	return Options{
@@ -85,7 +85,7 @@ func TestFailingCheckRestoresSettingsAndMarksTheRunFailed(t *testing.T) {
 	put(t, filepath.Join(opt.Home, ".codex/AGENTS.md"), "mine\n", 0o644)
 	// The overlay adds a hook whose command does not exist.
 	put(t, filepath.Join(opt.PrivateDir, "settings.json"),
-		`{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"`+filepath.Join(opt.Home, "nope", "missing.sh")+`"}]}]}}`, 0o644)
+		`{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"`+filepath.ToSlash(filepath.Join(opt.Home, "nope", "missing.sh"))+`"}]}]}}`, 0o644)
 
 	out, err := Run(opt)
 	if err == nil {

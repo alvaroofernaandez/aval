@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // Hygiene checks on the versioned shell and git configuration: the rot that
@@ -73,6 +75,7 @@ func TestShellHygieneDeltaIsWiredIntoGit(t *testing.T) {
 }
 
 func TestShellHygieneZshrcStillParsesAsZsh(t *testing.T) {
+	testenv.SkipWindows(t, "drives zsh")
 	needTool(t, "zsh")
 	r := run(repo, nil, "", "zsh", "-n", p("home", "zshrc"))
 	eq(t, "zsh -n home/zshrc\n"+r.Out(), 0, r.Code)
@@ -87,10 +90,12 @@ func TestShellHygieneGitconfigStillParses(t *testing.T) {
 // The file declaring each entry once is not enough: nested shells prepend to an
 // inherited PATH that already contains them.
 func TestShellHygieneZshKeepsPathUnique(t *testing.T) {
+	testenv.SkipWindows(t, "drives zsh")
 	mustHave(t, `typeset -U path`, read(t, "home/zshrc"), "zsh is told to keep PATH unique")
 }
 
 func TestShellHygieneInteractiveShellHasNoRepeatedPathEntry(t *testing.T) {
+	testenv.SkipWindows(t, "drives zsh")
 	needTool(t, "zsh")
 	// Start with a PATH that deliberately repeats an entry: typeset -U must fix it.
 	env := withEnv(zshEnv(t), "PATH=/usr/bin:/bin:/usr/bin:"+os.Getenv("PATH"))

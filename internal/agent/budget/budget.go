@@ -126,9 +126,10 @@ type settingsFile struct {
 	Hooks          map[string][]struct {
 		Matcher string `json:"matcher"`
 		Hooks   []struct {
-			Type    string `json:"type"`
-			Command string `json:"command"`
-			Async   bool   `json:"async"`
+			Type    string   `json:"type"`
+			Command string   `json:"command"`
+			Args    []string `json:"args"`
+			Async   bool     `json:"async"`
 		} `json:"hooks"`
 	} `json:"hooks"`
 }
@@ -313,7 +314,10 @@ func frontmatter(path string) (map[string]string, bool) {
 
 type hookSpec struct {
 	event, matcher, command string
-	async                   bool
+	// args is set for the exec form (command + args, no shell), which is how
+	// `aval sync` writes hooks on Windows.
+	args  []string
+	async bool
 }
 
 func hookSpecs(s settingsFile) []hookSpec {
@@ -327,7 +331,7 @@ func hookSpecs(s settingsFile) []hookSpec {
 		for _, g := range s.Hooks[e] {
 			for _, h := range g.Hooks {
 				if h.Type == "command" && h.Command != "" {
-					out = append(out, hookSpec{e, g.Matcher, h.Command, h.Async})
+					out = append(out, hookSpec{e, g.Matcher, h.Command, h.Args, h.Async})
 				}
 			}
 		}
@@ -376,11 +380,11 @@ func measure(h hookSpec, opt Options) Hook {
 	// One discarded run first, like hyperfine --warmup: the first exec of a
 	// script pays page-cache and code-signing costs (140 ms measured on macOS
 	// for a fresh file) that a steady-state hook never does. Capped by Timeout.
-	runOnce(h.command, in, opt)
+	runOnce(h, in, opt)
 
 	var samples []float64
 	for i := 0; i < opt.Runs; i++ {
-		d, timedOut := runOnce(h.command, in, opt)
+		d, timedOut := runOnce(h, in, opt)
 		m.TimedOut = m.TimedOut || timedOut
 		samples = append(samples, float64(d)/float64(time.Millisecond))
 	}
@@ -391,13 +395,15 @@ func measure(h hookSpec, opt Options) Hook {
 	return m
 }
 
-func runOnce(command string, stdin []byte, opt Options) (time.Duration, bool) {
+func runOnce(h hookSpec, stdin []byte, opt Options) (time.Duration, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), opt.Timeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "sh", "-c", command)
+	name, args := hookArgv(h)
+	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stdin = strings.NewReader(string(stdin))
 	cmd.Dir = os.TempDir()
-	cmd.Env = append(os.Environ(), "HOME="+opt.Home)
+	// USERPROFILE is what os.UserHomeDir (and so aval itself) reads on Windows.
+	cmd.Env = append(os.Environ(), "HOME="+opt.Home, "USERPROFILE="+opt.Home)
 	// No pipes for output: a grandchild holding one would make Wait outlive
 	// the timeout.
 	cmd.WaitDelay = 50 * time.Millisecond
@@ -486,4 +492,15 @@ func RenderJSON(w io.Writer, r *Report) error {
 	enc.SetIndent("", "  ")
 	enc.SetEscapeHTML(false)
 	return enc.Encode(r)
+}
+
+// hookArgv is how a hook is launched, the way Claude Code launches it: the
+// exec form (command + args, what `aval sync` writes on Windows) runs the
+// program directly; the shell form goes through `sh -c` on every OS (Git for
+// Windows ships sh; without it on PATH a shell-form hook cannot be measured).
+func hookArgv(h hookSpec) (string, []string) {
+	if h.args != nil {
+		return h.command, h.args
+	}
+	return "sh", []string{"-c", h.command}
 }

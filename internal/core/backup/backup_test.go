@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 func skipWindows(t *testing.T) {
@@ -33,6 +35,7 @@ func put(t *testing.T, path, content string) {
 
 func link(t *testing.T, target, path string) {
 	t.Helper()
+	testenv.NeedSymlinks(t)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -129,6 +132,7 @@ func TestRestoreRoundTripIsByteIdentical(t *testing.T) {
 }
 
 func TestRestoreRemovesOnlyWhatAvalWrote(t *testing.T) {
+	testenv.NeedSymlinks(t)
 	skipWindows(t)
 	s, home := newStore(t)
 	repo := t.TempDir()

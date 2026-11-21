@@ -481,7 +481,7 @@ func uniquePath(p string) string {
 // moveOrCopy renames, falling back to copy-then-remove across filesystems so
 // the original always survives a failure.
 func moveOrCopy(src, dst string) error {
-	if err := os.Rename(src, dst); err == nil {
+	if err := renameReplace(src, dst); err == nil {
 		return nil
 	}
 	if err := CopyPath(src, dst); err != nil {
@@ -636,9 +636,9 @@ func hashTree(root string) (string, error) {
 		switch {
 		case fi.Mode()&os.ModeSymlink != 0:
 			t, _ := os.Readlink(p)
-			fmt.Fprintf(h, "L %s %s\n", rel, t)
+			fmt.Fprintf(h, "L %s %s\n", filepath.ToSlash(rel), t)
 		case fi.IsDir():
-			fmt.Fprintf(h, "D %s %o\n", rel, fi.Mode().Perm())
+			fmt.Fprintf(h, "D %s %o\n", filepath.ToSlash(rel), fi.Mode().Perm())
 			des, err := os.ReadDir(p)
 			if err != nil {
 				return err
@@ -653,7 +653,7 @@ func hashTree(root string) (string, error) {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(h, "F %s %o %s\n", rel, fi.Mode().Perm(), sum)
+			fmt.Fprintf(h, "F %s %o %s\n", filepath.ToSlash(rel), fi.Mode().Perm(), sum)
 		}
 		return nil
 	}
@@ -746,7 +746,7 @@ func WriteFileAtomic(path string, data []byte, perm os.FileMode) error {
 	if err := tmp.Close(); err != nil {
 		return cleanup(err)
 	}
-	if err := os.Rename(name, path); err != nil {
+	if err := renameReplace(name, path); err != nil {
 		return cleanup(err)
 	}
 	return nil
@@ -1016,7 +1016,7 @@ func placeSymlink(path, target string) error {
 	if err := os.Symlink(target, tmp); err != nil {
 		return err
 	}
-	if err := os.Rename(tmp, path); err != nil {
+	if err := renameReplace(tmp, path); err != nil {
 		os.Remove(tmp)
 		return err
 	}
@@ -1029,7 +1029,7 @@ func placeFile(saved, path string, mode os.FileMode) error {
 		os.Remove(tmp)
 		return err
 	}
-	if err := os.Rename(tmp, path); err != nil {
+	if err := renameReplace(tmp, path); err != nil {
 		os.Remove(tmp)
 		return err
 	}
@@ -1046,7 +1046,7 @@ func placeDir(saved, path string, mode os.FileMode) error {
 		os.RemoveAll(tmp)
 		return err
 	}
-	if err := os.Rename(tmp, path); err != nil {
+	if err := renameReplace(tmp, path); err != nil {
 		os.RemoveAll(tmp)
 		return err
 	}

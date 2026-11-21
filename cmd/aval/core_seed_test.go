@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // ~/.claude/settings.json is owned by `aval sync`: the installer seeds a real
@@ -27,6 +29,9 @@ func TestSeedClaudeSettings(t *testing.T) {
 	}
 	for name, setup := range cases {
 		t.Run(name, func(t *testing.T) {
+			if name == "old link" {
+				testenv.NeedSymlinks(t)
+			}
 			home := t.TempDir()
 			setup(home)
 			if err := seedClaudeSettings(repo, home, false); err != nil {
