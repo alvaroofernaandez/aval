@@ -21,8 +21,8 @@ context-relay deck iterations (2026-11-22).
 - [x] GREEN: chrome.go
 
 ## T4 — `aval deck build|check|example`
-- [ ] RED: build writes the PDF and the spec beside it; --plan records the ack; usage errors
-- [ ] GREEN: cmd/aval/deck.go
+- [x] RED: build writes the PDF and the spec beside it; --plan records the ack; usage errors
+- [x] GREEN: cmd/aval/deck.go
 
 ## T5 — plan gate
 - [ ] RED: source edits denied while the active odd/tasks plan has no deck for its

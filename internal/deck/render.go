@@ -52,3 +52,10 @@ func Render(d Deck) (string, error) {
 	}
 	return b.String(), nil
 }
+
+//go:embed assets/example.deck.json
+var exampleSpec string
+
+// Example is a complete, valid spec that uses every layout and the full story
+// arc; agents copy its shape.
+func Example() string { return exampleSpec }

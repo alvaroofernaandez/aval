@@ -1,0 +1,56 @@
+{
+  "title": "Saved searches",
+  "lang": "en",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · saved searches", "title": "Find it again in one click", "lede": "People repeat the same searches every day. We will let them save a search and run it again from the home page.", "note": "One sentence: what changes for the person, not how it is built."},
+    {"layout": "statement", "eyebrow": "First, one word", "title": "A saved search is a question you keep", "lede": "The words, the filters and the order, stored under a name you choose."},
+    {"layout": "cards", "eyebrow": "The problem", "title": "Searching again costs time every day", "items": [
+      {"title": "Typed again and again", "text": "The same filters are rebuilt by hand several times a day.", "tone": "warn"},
+      {"title": "Easy to get wrong", "text": "One forgotten filter and the results are different.", "tone": "warn"},
+      {"title": "Nothing to share", "text": "A useful search lives only in one person's head.", "tone": "warn"}
+    ]},
+    {"layout": "steps", "eyebrow": "The solution", "title": "Four steps, all from the results page", "items": [
+      {"title": "Search as today", "text": "Nothing changes in how people search."},
+      {"title": "Press Save", "text": "Give it a name; filters and order are kept."},
+      {"title": "Find it on Home", "text": "Saved searches appear as one-click cards."},
+      {"title": "Get told when new results appear", "text": "Optional, one email a day at most.", "tone": "good"}
+    ]},
+    {"layout": "timeline", "eyebrow": "An example", "title": "A normal Monday", "items": [
+      {"tag": "09:00", "title": "Ana opens Home", "text": "Her three saved searches are at the top."},
+      {"tag": "09:01", "title": "One click on Open invoices", "text": "The same filters as last week, no typing.", "tone": "good"},
+      {"tag": "11:30", "title": "She shares it with Luis", "text": "He gets the same results, not a description of them."}
+    ]},
+    {"layout": "checklist", "eyebrow": "What is guaranteed", "title": "What a saved search always keeps", "items": [
+      {"title": "The exact words", "text": "Nothing is rewritten."},
+      {"title": "Every filter", "text": "Including dates relative to today."},
+      {"title": "The order", "text": "Newest first stays newest first."},
+      {"title": "Who can see it", "text": "Private unless shared."}
+    ]},
+    {"layout": "compare", "eyebrow": "Better than today", "title": "From six steps to one click", "items": [
+      {"tag": "today", "title": "Rebuild the search", "text": "Type, add filters, sort: about a minute, every time.", "tone": "muted"},
+      {"tag": "with this plan", "title": "Open the saved search", "text": "One click on Home: about a second.", "tone": "good"}
+    ]},
+    {"layout": "section", "eyebrow": "Part two", "title": "Inside: how it is built", "lede": "The pieces, how they talk and why it is designed this way."},
+    {"layout": "flow", "eyebrow": "The pieces", "title": "Three parts, one store", "items": [
+      {"title": "Results page", "text": "Adds the Save button."},
+      {"title": "Saved search store", "text": "Keeps name, filters and owner.", "tone": "good"},
+      {"title": "Home cards", "text": "Lists them and runs one on click."}
+    ]},
+    {"layout": "tree", "eyebrow": "How it decides", "title": "When a saved search runs", "items": [
+      {"title": "Do all its filters still exist?", "tag": "Run it as saved", "tone": "good"},
+      {"title": "Was a filter renamed?", "tag": "Map it and tell the owner"},
+      {"title": "Was a filter removed?", "tag": "Run without it and warn", "tone": "warn"}
+    ]},
+    {"layout": "groups", "eyebrow": "Who gets it", "title": "Rolled out in three waves", "items": [
+      {"title": "Week 1", "text": "Internal teams.", "chips": ["Support", "Sales"], "tone": "good"},
+      {"title": "Week 2", "text": "Customers who asked for it.", "chips": ["Beta list"]},
+      {"title": "Week 4", "text": "Everyone.", "chips": ["All plans"], "tone": "muted"}
+    ]},
+    {"layout": "table", "eyebrow": "Decisions taken", "title": "Why it is built this way", "columns": ["We decided", "Because", "Instead of"], "rows": [
+      ["Store filters, not results", "Results change; the question does not", "Caching result lists"],
+      ["One email a day at most", "Alerts must not become noise", "An email per new result"],
+      ["Private by default", "Searches can reveal work in progress", "Shared with the team"]
+    ]},
+    {"layout": "closing", "eyebrow": "Next step", "title": "Build the store first", "lede": "It unblocks the button and the Home cards."}
+  ]
+}

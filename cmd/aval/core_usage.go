@@ -35,6 +35,7 @@ var commands = []command{
 	{"reap-orphan-tests", "[--min-age] [--dry-run]", "end orphaned test processes"},
 	{"kiri", "up", "make Docker ready on Kiri"},
 	{"docker", "cleanup [--dry-run]", "safe Docker prunes on the kiri context"},
+	{"deck", "<build|check|example> ...", "turn a plan into a PDF slide deck, rendered locally"},
 	{"pdf", "<init|assets> ...", "scaffold PDF report projects and their brand assets"},
 	{"release", "<status|next|patch|minor|major|rc|beta|promote>", "cut a release"},
 	{"version", "", "version, commit, build date and channel"},
