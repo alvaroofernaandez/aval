@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -92,11 +93,11 @@ func FindBrowser(e Env) (string, error) {
 	case "darwin":
 		dirs := []string{"/Applications"}
 		if h := e.Getenv("HOME"); h != "" {
-			dirs = append(dirs, filepath.Join(h, "Applications"))
+			dirs = append(dirs, joinFor(e.GOOS, h, "Applications"))
 		}
 		for _, d := range dirs {
 			for _, a := range macApps {
-				if p := filepath.Join(d, a); try(p) {
+				if p := joinFor(e.GOOS, d, a); try(p) {
 					return p, nil
 				}
 			}
@@ -111,7 +112,7 @@ func FindBrowser(e Env) (string, error) {
 				{"Microsoft", "Edge", "Application", "msedge.exe"},
 				{"BraveSoftware", "Brave-Browser", "Application", "brave.exe"},
 			} {
-				if p := filepath.Join(append([]string{base}, rel...)...); try(p) {
+				if p := joinFor(e.GOOS, append([]string{base}, rel...)...); try(p) {
 					return p, nil
 				}
 			}
@@ -124,6 +125,19 @@ func FindBrowser(e Env) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("no Chromium-based browser found to print the PDF (tried %d places); install Chrome, Brave, Edge or Chromium, or set AVAL_CHROME to its executable", len(tried))
+}
+
+// joinFor joins path parts with the separator of the target OS, which is not
+// always the OS running the code (tests check every OS from one machine).
+func joinFor(goos string, parts ...string) string {
+	if goos != "windows" {
+		return path.Join(parts...)
+	}
+	out := strings.TrimRight(parts[0], `\/`)
+	for _, p := range parts[1:] {
+		out += `\` + strings.Trim(p, `\/`)
+	}
+	return out
 }
 
 var overflowAttr = regexp.MustCompile(`data-overflow="([^"]*)"`)

@@ -39,7 +39,8 @@ func TestFindBrowser(t *testing.T) {
 		{"brave when chrome is missing", env("darwin", nil, braveMac), braveMac},
 		{"user Applications folder", env("darwin", map[string]string{"HOME": "/Users/u"}, "/Users/u"+braveMac), "/Users/u" + braveMac},
 		{"linux PATH", env("linux", nil, "PATH:chromium"), "/usr/bin/chromium"},
-		{"windows program files", env("windows", map[string]string{"ProgramFiles": `C:\PF`}, filepath.Join(`C:\PF`, "Google", "Chrome", "Application", "chrome.exe")), filepath.Join(`C:\PF`, "Google", "Chrome", "Application", "chrome.exe")},
+		// Paths follow the target OS, not the OS running the test.
+		{"windows program files", env("windows", map[string]string{"ProgramFiles": `C:\PF`}, `C:\PF\Google\Chrome\Application\chrome.exe`), `C:\PF\Google\Chrome\Application\chrome.exe`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
