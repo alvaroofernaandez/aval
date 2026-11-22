@@ -42,11 +42,9 @@ h3 { font: 600 32px/1.2 var(--display); }
 .text { font-size: 26px; line-height: 1.4; color: var(--muted); }
 .tag { font-size: 24px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
 
-.cover .bar { height: 24px; width: 1664px; border-radius: 12px; background: var(--card); margin-top: auto; }
-.cover .bar span { display: block; height: 24px; width: 60%; border-radius: 12px; background: var(--warn); }
-.cover .bar span.good { width: 6%; background: var(--good); }
-.cover .bars { display: flex; flex-direction: column; gap: 16px; }
-.statement .lede { font-size: 56px; color: var(--ink); }
+.layout-cover .bar { height: 24px; width: 1664px; border-radius: 12px; background: var(--card); }
+.layout-cover .bar span { display: block; height: 24px; width: 60%; border-radius: 12px; background: var(--warn); }
+.layout-statement .lede { font-size: 56px; color: var(--ink); }
 
 /* items: tone sets the stroke */
 .box { background: var(--card); border: 2px solid var(--line); border-radius: 20px; padding: 40px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }

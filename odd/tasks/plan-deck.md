@@ -16,9 +16,9 @@ context-relay deck iterations (2026-11-22).
 - [x] GREEN: render.go + embedded template and stylesheet
 
 ## T3 — internal/deck: browser lookup, overflow check, PDF print
-- [ ] RED: lookup order (AVAL_CHROME, then OS paths), argv for print and dump-dom,
+- [x] RED: lookup order (AVAL_CHROME, then OS paths), argv for print and dump-dom,
       overflow report parsing
-- [ ] GREEN: chrome.go
+- [x] GREEN: chrome.go
 
 ## T4 — `aval deck build|check|example`
 - [ ] RED: build writes the PDF and the spec beside it; --plan records the ack; usage errors
