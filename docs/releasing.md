@@ -77,5 +77,5 @@ tar -xzf aval_0.2.0_linux_amd64.tar.gz && ./aval version
 ## One-time requirements
 
 A `release` environment with owner approval and the `NPM_TOKEN` secret (an automation token with
-publish permission on `@alvaroofernaandez`). The moving `latest` tag and the "Latest build" release
-that predate this system are not used: delete them once the first release is out.
+publish permission on `@alvaroofernaandez`). The moving `latest` tag and its "Latest build"
+release from before this system were deleted when v0.1.0 shipped.

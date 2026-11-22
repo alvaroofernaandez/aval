@@ -165,6 +165,17 @@ func TestGoReleaserBuildsTheTagBeingReleased(t *testing.T) {
 	}
 }
 
+// Versions are annotated, immutable vX.Y.Z tags. The moving `latest` tag and its
+// "Latest build" release were removed at v0.1.0 and must not come back.
+func TestNoMovingLatestTag(t *testing.T) {
+	re := regexp.MustCompile(`git tag\b[^\n]*\blatest\b|refs/tags/latest|releases/download/latest`)
+	for name, wf := range workflows(t) {
+		if m := re.FindString(wf); m != "" {
+			t.Errorf("%s: %q reintroduces the moving latest tag", name, m)
+		}
+	}
+}
+
 // The binaries npm ships and the ones GoReleaser builds are the same six.
 func TestGoReleaserTargetsMatchNpm(t *testing.T) {
 	cfg, err := os.ReadFile(filepath.Join(repo, ".goreleaser.yaml"))

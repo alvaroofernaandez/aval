@@ -7,7 +7,10 @@ From the first tagged release on, entries come from the GitHub release notes, wh
 `aval release` and GoReleaser generate from conventional commits. This file is not
 edited by hand after that point; the section below is the history before versions existed.
 
-## Unreleased (before the first tag)
+## Before v0.1.0
+
+The moving `latest` tag and its "Latest build" release, which every push to `main` used to
+update, were deleted when v0.1.0 shipped. Only annotated `vX.Y.Z` tags remain.
 
 ### Breaking changes
 
