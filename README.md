@@ -54,28 +54,24 @@ code edits until the deck exists.
 
 ## Plan decks
 
-**You see the plan before the agent runs it.** Every plan an agent writes in
-`odd/tasks/` becomes a short, very visual deck: what changes, how it works, a
-concrete example, then the inside (the pieces, how it decides, the decisions and
-what was rejected) and the next step. Plain language first, technical second.
+**You see the plan before the agent runs it.**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/plan-deck-flow-dark.fa10f771.svg">
+  <img src="docs/assets/plan-deck-flow-light.5b82f93b.svg" alt="Plan decks: 1 the agent writes the plan, 2 aval builds the deck in about 3 seconds, 3 you read the PDF, 4 the plan runs. Code stays locked until the deck exists." width="100%">
+</picture>
 
 <img src="docs/assets/plan-deck.bb25538f.png" alt="Four slides of a plan deck: the cover, five numbered steps, the pieces joined by arrows, and a table of decisions" width="100%">
 
-- **Local and vendor-free.** `aval deck build` renders a small JSON spec with the
-  Chrome, Brave, Edge or Chromium already on the machine. No Node, no cloud, no
-  design tool; the output is always a PDF, with its source beside it.
-- **Fast and always the same look.** The agent writes only content; the dark
-  aval layout is fixed, and a slide that would overflow is caught before printing
-  (16 slides in about 3 seconds).
-- **Enforced.** The `plan-gate` hook denies edits outside `odd/` until the active
-  plan has its deck. Ticking boxes keeps it valid; a new section asks for a new one.
-- **Any project, any agent.** The `plan-deck` skill is linked into every agent's
-  skills folder and asks where to save each deck.
+| Local | Fast | Enforced | Everywhere |
+| :--- | :--- | :--- | :--- |
+| Your own browser prints the PDF. No cloud, no Node. | 16 slides in about 3 s, the same dark look every time. | Code stays locked until the deck exists. | Every agent, every project. You choose where it is saved. |
 
 ```sh
-aval deck example > plan.deck.json        # the shape: every layout, valid
 aval deck build plan.deck.json -o docs/decks/plan.pdf --plan odd/tasks/plan.md --open
 ```
+
+How it decides, the layouts and the bypass: [guide → Plan decks](docs/guide.md#️-plan-decks).
 
 <br/>
 
