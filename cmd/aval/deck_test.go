@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -128,7 +129,8 @@ func TestRunDeckBuildPlanUnlocksTheGate(t *testing.T) {
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
 
-	payload := `{"tool_name":"Edit","cwd":"` + repo + `","tool_input":{"file_path":"` + filepath.Join(repo, "main.go") + `"}}`
+	raw, _ := json.Marshal(map[string]any{"tool_name": "Edit", "cwd": repo, "tool_input": map[string]string{"file_path": filepath.Join(repo, "main.go")}})
+	payload := string(raw) // marshalled: Windows paths carry backslashes
 	gate := func() string {
 		var out bytes.Buffer
 		deck.Gate(strings.NewReader(payload), &out, deck.GateOptions{Cache: cache})

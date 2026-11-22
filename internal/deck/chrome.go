@@ -172,7 +172,7 @@ func Build(d Deck, pdf string, o BuildOptions) error {
 	if err := os.WriteFile(page, []byte(html), 0o644); err != nil {
 		return err
 	}
-	pageURL := (&url.URL{Scheme: "file", Path: filepath.ToSlash(page)}).String()
+	pageURL := fileURL(page)
 	// No --user-data-dir: headless=new already runs on a throwaway profile, and a
 	// fresh --user-data-dir makes Chrome, Chrome for Testing and Brave hang on their
 	// first launch for ~30 s (measured on macOS, 2026-11-22).
@@ -208,4 +208,14 @@ func Build(d Deck, pdf string, o BuildOptions) error {
 		return err
 	}
 	return os.WriteFile(pdf, b, 0o644)
+}
+
+// fileURL turns an absolute path into a file URL; a Windows drive path gets
+// the leading slash file URLs need (file:///C:/...).
+func fileURL(p string) string {
+	p = filepath.ToSlash(p)
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p
+	}
+	return (&url.URL{Scheme: "file", Path: p}).String()
 }

@@ -157,3 +157,17 @@ func TestBuildRejectsAnInvalidDeck(t *testing.T) {
 		t.Error("the browser must not start for an invalid spec")
 	}
 }
+
+// A Windows path needs the third slash: file:///C:/..., never file://C:/...
+func TestFileURL(t *testing.T) {
+	cases := map[string]string{
+		"/tmp/aval-deck-1/deck.html": "file:///tmp/aval-deck-1/deck.html",
+		"C:/Users/x/deck.html":       "file:///C:/Users/x/deck.html",
+		"/tmp/a b/deck.html":         "file:///tmp/a%20b/deck.html",
+	}
+	for in, want := range cases {
+		if got := fileURL(in); got != want {
+			t.Errorf("fileURL(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
