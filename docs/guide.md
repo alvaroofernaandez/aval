@@ -625,6 +625,32 @@ between them is Ghostty's job: tmux never sees those keys.
 
 ---
 
+## 🗂️ Plan decks
+
+aval's rule is that **nobody runs a plan they have not seen**. After an agent writes
+`odd/tasks/<feature>.md` and before it executes it, the `plan-deck` skill turns the plan
+into a short PDF deck and the `plan-gate` hook keeps code edits closed until it exists.
+
+| Step | What happens |
+| :--- | :--- |
+| 1 | The agent asks where to save the deck (`<project>/docs/decks/`, `~/Documents/aval/decks/<project>/` or a path you give) |
+| 2 | It writes only content: a JSON spec of slides with a closed set of layouts (`aval deck example` prints one using all of them) |
+| 3 | `aval deck build <spec> -o <pdf> --plan odd/tasks/<feature>.md --open` validates the spec, checks that no slide overflows, prints the PDF with the local Chromium-based browser and opens it |
+| 4 | `--plan` records the deck for the plan's current sections; the gate opens |
+
+**Layouts:** `cover`, `statement`, `cards`, `steps`, `timeline`, `checklist`, `compare`,
+`groups`, `section`, `flow`, `tree`, `table`, `closing`. Tones carry meaning: `good` (new,
+kept), `warn` (threshold, problem), `muted` (the old way, an alternative).
+
+**The gate.** The active plan is the newest `odd/tasks/*.md` with an open `- [ ]` item,
+changed in the last 72 hours. Its identity is its headings, so ticking boxes keeps the deck
+valid and a new or renamed section asks for a new deck. Edits under `odd/` and to
+`*.deck.json` are always allowed; the gate fails open on anything it cannot read. Bypass
+deliberately with `AVAL_PLAN_DECK_OFF=1`.
+
+**Browser.** `AVAL_CHROME` overrides the lookup (Chrome, Chromium, Brave, Edge). The brand
+fonts load from Google Fonts; offline, the deck falls back to system fonts.
+
 ## 🤖 Agents
 
 ### 🧩 Shared skills
