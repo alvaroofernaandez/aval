@@ -25,9 +25,9 @@ context-relay deck iterations (2026-11-22).
 - [x] GREEN: cmd/aval/deck.go
 
 ## T5 — plan gate
-- [ ] RED: source edits denied while the active odd/tasks plan has no deck for its
+- [x] RED: source edits denied while the active odd/tasks plan has no deck for its
       current headings; odd/ and deck specs always allowed; fails open; bypass env
-- [ ] GREEN: `aval hook plan-gate` + Claude Code settings hook
+- [x] GREEN: `aval hook plan-gate` + Claude Code settings hook
 
 ## T6 — skill, rules and docs
 - [ ] skills/plan-deck/SKILL.md (story arc, tone, layouts, checklist, where to save)

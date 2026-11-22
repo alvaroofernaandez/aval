@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/deck"
 )
@@ -71,7 +72,7 @@ func readSpec(path string) (deck.Deck, error) {
 }
 
 func deckBuild(args []string, out io.Writer, d deckDeps) error {
-	var spec, pdf string
+	var spec, pdf, plan string
 	open := false
 	for i := 0; i < len(args); i++ {
 		switch a := args[i]; {
@@ -81,6 +82,12 @@ func deckBuild(args []string, out io.Writer, d deckDeps) error {
 			}
 			i++
 			pdf = args[i]
+		case a == "--plan":
+			if i+1 >= len(args) {
+				return usageErr()
+			}
+			i++
+			plan = args[i]
 		case a == "--open":
 			open = true
 		case strings.HasPrefix(a, "-"):
@@ -129,6 +136,18 @@ func deckBuild(args []string, out io.Writer, d deckDeps) error {
 		}
 	}
 	fmt.Fprintf(out, "deck: %d slides → %s\n      source: %s\n", len(dk.Slides), pdf, keep)
+
+	// --plan records the deck for the plan: the plan gate lets the work start.
+	if plan != "" {
+		cache, err := deck.PlanCacheDir()
+		if err != nil {
+			return err
+		}
+		if err := deck.AckPlan(cache, plan, time.Now()); err != nil {
+			return fmt.Errorf("the PDF is built but the plan could not be recorded: %w", err)
+		}
+		fmt.Fprintf(out, "      plan: %s recorded, execution unlocked\n", plan)
+	}
 
 	if open {
 		if err := d.open(pdf); err != nil {

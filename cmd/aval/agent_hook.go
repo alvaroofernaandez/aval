@@ -10,6 +10,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/agent/lessons"
 	"github.com/alvaroofernaandez/aval/internal/agent/repoprofile"
 	"github.com/alvaroofernaandez/aval/internal/agent/rtkhook"
+	"github.com/alvaroofernaandez/aval/internal/deck"
 	"github.com/alvaroofernaandez/aval/internal/design/ack"
 	"github.com/alvaroofernaandez/aval/internal/design/hook"
 )
@@ -34,6 +35,13 @@ func runHook(args []string, in io.Reader, out io.Writer) error {
 		hook.Gate(in, out, hook.GateOptions{
 			Off: os.Getenv("DESIGN_PIPELINE_OFF") != "", Cache: cache, TTL: ack.TTLFromEnv(), Now: time.Now(),
 		})
+	case "plan-gate":
+		// PreToolUse, sync: fails open, exits 0 whatever happens.
+		cache, err := deck.PlanCacheDir()
+		if err != nil {
+			return nil
+		}
+		deck.Gate(in, out, deck.GateOptions{Off: os.Getenv("AVAL_PLAN_DECK_OFF") != "", Now: time.Now(), Cache: cache})
 	case "design-shot-stop":
 		cache, err := ack.CacheDir()
 		if err != nil {
@@ -49,7 +57,7 @@ func runHook(args []string, in io.Reader, out io.Writer) error {
 		// can be mistaken for a block.
 		_ = lessons.Run(in, out, lessonsOptions())
 	default:
-		return fmt.Errorf("usage: aval hook lessons|repo-profile|design-gate|design-shot-stop|rtk-rewrite|pre-push (reads hook JSON on stdin)")
+		return fmt.Errorf("usage: aval hook lessons|repo-profile|design-gate|plan-gate|design-shot-stop|rtk-rewrite|pre-push (reads hook JSON on stdin)")
 	}
 	return nil
 }

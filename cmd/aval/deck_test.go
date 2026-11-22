@@ -114,3 +114,34 @@ func TestRunDeckUsage(t *testing.T) {
 		}
 	}
 }
+
+// --plan records the deck for the plan, which is what unlocks the plan gate.
+func TestRunDeckBuildPlanUnlocksTheGate(t *testing.T) {
+	repo := t.TempDir()
+	if err := os.Mkdir(filepath.Join(repo, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	plan := filepath.Join(repo, "odd", "tasks", "f.md")
+	writeFile(t, plan, "## T1\n- [ ] RED\n")
+	spec := filepath.Join(repo, "odd", "f.json")
+	writeFile(t, spec, tinySpec)
+	cache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+
+	payload := `{"tool_name":"Edit","cwd":"` + repo + `","tool_input":{"file_path":"` + filepath.Join(repo, "main.go") + `"}}`
+	gate := func() string {
+		var out bytes.Buffer
+		deck.Gate(strings.NewReader(payload), &out, deck.GateOptions{Cache: cache})
+		return out.String()
+	}
+	if gate() == "" {
+		t.Fatal("precondition: the gate must block before the deck")
+	}
+	var opened string
+	if err := runDeck([]string{"build", spec, "-o", filepath.Join(t.TempDir(), "f.pdf"), "--plan", plan}, &bytes.Buffer{}, fakeDeckDeps(&opened)); err != nil {
+		t.Fatal(err)
+	}
+	if g := gate(); g != "" {
+		t.Errorf("after build --plan the gate must allow, got %s", g)
+	}
+}
