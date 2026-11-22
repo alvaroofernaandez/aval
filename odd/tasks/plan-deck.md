@@ -35,4 +35,4 @@ context-relay deck iterations (2026-11-22).
 - [x] docs/guide.md and README
 
 ## T7 — live on this machine
-- [ ] build and install the binary, `aval install --yes`, deck of this very plan as smoke test
+- [x] build and install the binary, `aval install --yes`, deck of this very plan as smoke test

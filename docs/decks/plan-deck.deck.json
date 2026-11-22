@@ -1,0 +1,79 @@
+{
+  "title": "plan-deck: ningún plan sin verlo",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "aval · plan-deck", "title": "Ningún plan se ejecuta sin que lo hayas visto", "lede": "Antes de tocar código, el agente convierte su plan en unas diapositivas cortas y muy visuales, en PDF, hechas en tu ordenador.", "note": "Es la regla nueva de aval: entender primero, ejecutar después."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "Un plan es la lista de lo que el agente va a hacer", "lede": "Lo escribe en odd/tasks antes de empezar, paso a paso. Ahora, además, te lo enseña en diapositivas.", "note": "Definimos la palabra clave antes de usarla."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "Hoy los planes se aprueban sin entenderlos", "items": [
+      {"title": "Texto largo y técnico", "text": "Un fichero de tareas no explica por qué ni cómo encaja todo.", "tone": "warn"},
+      {"title": "Lo descubres al final", "text": "Lo que no entendiste al principio aparece cuando ya está hecho.", "tone": "warn"},
+      {"title": "Cada presentación, distinta", "text": "Hacerlas a mano dependía de un servicio externo y tardaba mucho.", "tone": "warn"}
+    ]},
+    {"layout": "compare", "eyebrow": "La idea", "title": "Del documento suelto al PDF de siempre", "items": [
+      {"tag": "antes", "title": "Diapositivas a mano", "text": "Varias horas, en un servicio externo y con un diseño distinto cada vez.", "tone": "muted"},
+      {"tag": "ahora", "title": "Un PDF en segundos", "text": "Hecho en tu ordenador, siempre con el mismo diseño oscuro de aval.", "tone": "good"}
+    ]},
+    {"layout": "steps", "eyebrow": "Cómo funciona", "title": "Cinco pasos antes de ejecutar un plan", "items": [
+      {"title": "El agente escribe el plan", "text": "En odd/tasks, como hasta ahora."},
+      {"title": "Te pregunta dónde guardarlo", "text": "En el proyecto o en Documentos."},
+      {"title": "Escribe solo el contenido", "text": "Títulos y textos cortos; el diseño lo pone aval."},
+      {"title": "aval crea el PDF y lo abre", "text": "Comprueba que nada se sale del margen."},
+      {"title": "Se desbloquea la ejecución", "text": "Hasta entonces, el agente no puede tocar código.", "tone": "good"}
+    ]},
+    {"layout": "timeline", "eyebrow": "Un ejemplo real", "title": "Así fue hoy con este mismo plan", "items": [
+      {"tag": "16:51", "title": "Plan escrito en odd/tasks", "text": "Siete tareas, de la A a la puesta en marcha."},
+      {"tag": "18:07", "title": "Primer PDF real", "text": "13 diapositivas en 2,9 segundos, con Brave."},
+      {"tag": "después", "title": "El bloqueo actúa", "text": "Editar main.go queda bloqueado: este plan aún no tenía deck.", "tone": "warn"},
+      {"tag": "ahora", "title": "Este deck", "text": "Al generarlo, el trabajo se desbloquea.", "tone": "good"}
+    ]},
+    {"layout": "checklist", "eyebrow": "Qué garantiza", "title": "Lo que cada presentación cumple siempre", "items": [
+      {"title": "El mismo diseño", "text": "Oscuro, con la marca de aval; el agente no puede cambiarlo."},
+      {"title": "Nada se sale del margen", "text": "Si una diapositiva no cabe, no se imprime y te dice cuál."},
+      {"title": "Siempre en PDF", "text": "Con su fuente en JSON al lado, para editarla luego."},
+      {"title": "En cualquier proyecto", "text": "Es un comando de aval y una skill global."}
+    ]},
+    {"layout": "groups", "eyebrow": "Dónde funciona", "title": "Agentes y navegadores que ya sirven", "items": [
+      {"title": "Skill y bloqueo", "text": "Lo hace y lo exige.", "chips": ["Claude Code"], "tone": "good"},
+      {"title": "Skill y regla", "text": "Lo hace; el bloqueo aún falta.", "chips": ["OpenCode"], "tone": "warn"},
+      {"title": "Navegador para el PDF", "text": "Cualquiera de estos, ya instalado.", "chips": ["Chrome", "Brave", "Edge", "Chromium"]}
+    ]},
+    {"layout": "section", "eyebrow": "Segunda parte", "title": "Por dentro: cómo está construido", "lede": "Las piezas, cómo decide el bloqueo y por qué se hizo así."},
+    {"layout": "flow", "eyebrow": "Las piezas", "title": "Del contenido al PDF en cuatro piezas", "items": [
+      {"title": "Agente", "text": "Escribe un JSON con títulos y textos."},
+      {"title": "Validador", "text": "Revisa campos y límites de texto."},
+      {"title": "Maquetador", "text": "Lo convierte en páginas con el diseño de aval.", "tone": "good"},
+      {"title": "Navegador", "text": "Mide los márgenes e imprime el PDF."}
+    ]},
+    {"layout": "tree", "eyebrow": "Cómo decide el bloqueo", "title": "Cuatro preguntas antes de cada edición", "items": [
+      {"title": "¿Editas el plan o la especificación del deck?", "tag": "Permitido", "tone": "good"},
+      {"title": "¿Hay un plan abierto de los últimos 3 días?", "tag": "Si no, permitido", "tone": "good"},
+      {"title": "¿Tiene deck para sus secciones actuales?", "tag": "Permitido", "tone": "good"},
+      {"title": "Ninguna de las anteriores", "tag": "Bloqueado, con instrucciones", "tone": "warn"}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones tomadas", "title": "Por qué está hecho así", "columns": ["Decidimos", "Porque", "En vez de"], "rows": [
+      ["JSON con diseños cerrados", "El agente escribe poco y el diseño no se desvía", "HTML a mano o Claude Artifacts"],
+      ["El navegador que ya tienes", "Sin Node ni Playwright: aval sigue siendo solo Go", "Instalar un navegador propio"],
+      ["Bloqueo por secciones del plan", "Marcar una casilla no pide un deck nuevo", "Un deck por cada cambio"],
+      ["Medir márgenes antes de imprimir", "Nos pasó con la diapositiva de agentes", "Revisarlo a ojo"]
+    ]},
+    {"layout": "table", "eyebrow": "Dónde vive cada cosa", "title": "El mapa del código", "columns": ["Carpeta o fichero", "Qué hay"], "rows": [
+      ["internal/deck/", "Formato, diseño, navegador y bloqueo"],
+      ["cmd/aval/deck.go", "aval deck build, check y example"],
+      ["skills/plan-deck/", "La skill: relato, tono y pasos"],
+      ["config/claude/settings.json", "El hook plan-gate"],
+      ["docs/decks/", "Los PDF y su JSON"]
+    ]},
+    {"layout": "checklist", "eyebrow": "Seguro", "title": "Obliga, pero nunca te deja tirado", "items": [
+      {"title": "Si duda, no bloquea", "text": "Ante cualquier error de lectura, deja pasar."},
+      {"title": "Salida de emergencia", "text": "AVAL_PLAN_DECK_OFF=1, solo si tú lo pides."},
+      {"title": "Nunca se cuelga", "text": "Cada llamada al navegador tiene un tope de 90 segundos."},
+      {"title": "Nada a medias", "text": "Si algo falla, no se escribe ningún PDF."}
+    ]},
+    {"layout": "steps", "eyebrow": "Lo que queda", "title": "Tres mejoras pendientes", "items": [
+      {"title": "Bloqueo en OpenCode", "text": "Hoy solo tiene la skill y la regla.", "tone": "warn"},
+      {"title": "Fuentes incluidas", "text": "Sin internet, el PDF usa fuentes del sistema."},
+      {"title": "Llevarlo a una versión", "text": "Publicarlo en la próxima release de aval."}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Usarlo en el próximo plan", "lede": "A partir de ahora, cada plan llega con su presentación antes de ejecutarse."}
+  ]
+}
