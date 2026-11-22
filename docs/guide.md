@@ -255,6 +255,7 @@ Full reference. `aval` or `aval help` prints the usage. Global flags: `--repo`, 
 | `aval macos <…>` | `defaults` · `screenshot-clipboard install` · `screenshot-clipboard copy` | no |
 | `aval kiri up` | Gets Docker ready on Kiri (idempotent, deletes nothing) | no |
 | `aval docker cleanup [--dry-run]` | Safe prunes, only against the `kiri` context | no |
+| `aval deck build <spec.json> -o <out.pdf> [--plan <plan.md>] [--open]` · `check` · `example` | Plan deck: a JSON spec rendered as a dark aval-brand PDF with the local Chrome, Brave, Edge or Chromium (`AVAL_CHROME` overrides); `--plan` unlocks the `plan-gate` hook | no |
 | `aval pdf init <dir>` · `aval pdf assets [dir]` | PDF report project · `assets/brand.css` | no |
 | `aval reap-orphan-tests [--min-age s] [--dry-run]` | Terminates orphaned test processes (launched by a LaunchAgent) | no |
 | `aval dev [shell\|run\|diff\|project\|ls\|reset\|rm]` | Tries aval in a sandbox without touching your machine ([dev mode](devmode.md)) | yes |
@@ -635,7 +636,7 @@ each tool reinstalls them on its own. Those that ship with a licence carry their
 
 | Family | Skills |
 | :--- | :--- |
-| Discipline | `strict-tdd` · `cognitive-doc-design` · `skill-creator` |
+| Discipline | `plan-deck` · `strict-tdd` · `cognitive-doc-design` · `skill-creator` |
 | Design and UI | `design-pipeline` · `design-refactor` · `laws-of-ux` · `accessibility` · `react-19` · `tailwind-4` · `typescript` · `zod-4` · `ai-sdk-5` |
 | Git and delivery | `ship` · `branch-pr` · `chained-pr` · `prs-pro` · `work-unit-commits` · `issue-creation-pro` · `repo-prep` |
 | Documents | `pdf-report` · `readme-portal` · `readme-guardian` |

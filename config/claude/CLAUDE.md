@@ -68,6 +68,11 @@ This section carries only tooling and workflow directives — it does not restat
   edits without a fresh ack. Bypass: `DESIGN_PIPELINE_OFF=1`.
 - Prove the result with `aval design gate`, never by claim.
 
+## Plan deck (BLOCKING before executing a plan)
+
+- Before executing an `odd/tasks` plan, run the `plan-deck` skill (a local PDF via
+  `aval deck build … --plan <plan>`). `plan-gate` blocks other edits until then.
+
 ## Strict TDD (MANDATORY for ALL projects — frontend AND backend)
 
 Iron law, for any feature, bug fix, or refactor with behavioural change:

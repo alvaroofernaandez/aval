@@ -54,6 +54,7 @@ check mark.
 | No secret reaches git | `gitleaks` scans the tree **and the full history** on every test run |
 | Nothing ships without a test | Strict TDD: the agent writes a `[tdd-gate]` naming the failing test before any code |
 | Nothing visual is approved by eye | A hook blocks UI edits until the design pipeline runs; the gates **measure** contrast |
+| No plan runs unseen | Every plan becomes a short PDF deck (`plan-deck` skill, `aval deck`, rendered locally); a hook blocks edits until it exists |
 | One source of truth | The TUI, `--yes`, `update`, `doctor` and `uninstall` all read `install.manifest`; nothing keeps its own list |
 | Installing deletes nothing | Anything in the way moves to `~/.aval-backup/<date>/` before linking |
 | The agent does not forget | Persistent memory with Engram across sessions and compactions |
@@ -157,6 +158,7 @@ Private material (company names, client skills) lives outside the repo, in `~/.c
 | `aval rules sync` | Mirrors the shared rules of `CLAUDE.md` and the lessons into OpenCode's `AGENTS.md` (`--check`) |
 | `aval hook <name>` | `lessons` · `design-gate` · `design-shot-stop` · `rtk-rewrite` · `repo-profile` · `pre-push` |
 | `aval statusline` | Claude Code status line |
+| `aval deck build <spec> -o <pdf> --plan <plan>` | Plan deck as a PDF, rendered with the local browser; unlocks the plan gate |
 | `aval design ack <surface>` · `aval design gate <…>` | Design pipeline ack · measured gates: `contrast`, `tokens`, `pairs`, `hardcodes`, `theme-refs`, `component`, `emoji`, `native` |
 | `aval tmux <…>` | `sidebar-toggle`, `sidebar-follow`, `sidebar-watch`, `open-file`, `close-file`, `paste-router`, `statusbar`, `launch` |
 | `aval macos <…>` | `defaults`, `screenshot-clipboard install` / `copy` |

@@ -30,9 +30,9 @@ context-relay deck iterations (2026-11-22).
 - [x] GREEN: `aval hook plan-gate` + Claude Code settings hook
 
 ## T6 — skill, rules and docs
-- [ ] skills/plan-deck/SKILL.md (story arc, tone, layouts, checklist, where to save)
-- [ ] global rule in config/claude/CLAUDE.md, mirrored with `aval rules sync`
-- [ ] docs/guide.md and README
+- [x] skills/plan-deck/SKILL.md (story arc, tone, layouts, checklist, where to save)
+- [x] global rule in config/claude/CLAUDE.md, mirrored with `aval rules sync`
+- [x] docs/guide.md and README
 
 ## T7 — live on this machine
 - [ ] build and install the binary, `aval install --yes`, deck of this very plan as smoke test
