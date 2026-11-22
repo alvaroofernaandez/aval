@@ -34,6 +34,9 @@ env:
   GORELEASER_VERSION: v2.20.2
   GORELEASER_SHA256: f3d24969a7389a46613875711d15a96d8f6ef1553d84c6ace09d69ac1e7d44c0
   TAG: ${{ inputs.tag || github.ref_name }}
+  # A promoted stable tag shares its commit with the rc; without this GoReleaser
+  # picks whichever tag it finds first.
+  GORELEASER_CURRENT_TAG: ${{ inputs.tag || github.ref_name }}
 
 concurrency:
   group: release-${{ inputs.tag || github.ref_name }}
@@ -137,7 +140,15 @@ jobs:
       - name: build and publish the release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: goreleaser release --clean
+        run: |
+          set -euo pipefail
+          # A stable release lists everything since the previous stable one (or
+          # the whole history), not just the commits since its own rc.
+          if [[ "$TAG" != *-* ]]; then
+            prev="$(git tag -l 'v*' --sort=-v:refname | grep -v -- '-' | grep -vx "$TAG" | head -n1 || true)"
+            export GORELEASER_PREVIOUS_TAG="${prev:-$(git rev-list --max-parents=0 HEAD | tail -n1)}"
+          fi
+          goreleaser release --clean
 
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:

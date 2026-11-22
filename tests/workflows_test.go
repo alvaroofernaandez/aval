@@ -152,6 +152,19 @@ func TestGoReleaserIsPinnedAndVerified(t *testing.T) {
 	}
 }
 
+// `aval release promote` puts the stable tag on the rc's commit, so two tags
+// point at it. Left alone, GoReleaser picks one by itself (it picked the rc and
+// re-uploaded the rc's assets instead of creating v0.1.0). The workflow must name
+// the tag it is releasing.
+func TestGoReleaserBuildsTheTagBeingReleased(t *testing.T) {
+	re := regexp.MustCompile(`(?m)^  GORELEASER_CURRENT_TAG: \$\{\{ inputs\.tag \|\| github\.ref_name \}\}$`)
+	for name, wf := range workflows(t) {
+		if strings.Contains(wf, "goreleaser release") && !re.MatchString(wf) {
+			t.Errorf("%s: set GORELEASER_CURRENT_TAG to the released tag at the top level", name)
+		}
+	}
+}
+
 // The binaries npm ships and the ones GoReleaser builds are the same six.
 func TestGoReleaserTargetsMatchNpm(t *testing.T) {
 	cfg, err := os.ReadFile(filepath.Join(repo, ".goreleaser.yaml"))
