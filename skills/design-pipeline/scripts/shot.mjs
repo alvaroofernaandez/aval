@@ -38,17 +38,28 @@ const widths = opt('widths', '390,768,1440').split(',').map(Number).filter(Boole
 
 const fail = (msg) => { console.log(`shot: FAIL - ${msg}`); process.exit(1); };
 
-// --- Playwright: next to this script, else in the project, else not at all ----
+// --- Playwright: next to this script, else in the project, else global ----------
 const spec = process.env.SHOT_PLAYWRIGHT || 'playwright';
-let chromium;
-try { ({ chromium } = await import(spec)); }
-catch {
+// ESM entries export chromium; CommonJS ones (playwright-core) put it under default.
+const pick = (m) => m?.chromium ?? m?.default?.chromium;
+const load = async (href) => { try { return pick(await import(href)); } catch { return undefined; } };
+const fromDir = async (dir, name) => {
+  try { return await load(pathToFileURL(createRequire(join(dir, 'noop.js')).resolve(name)).href); }
+  catch { return undefined; }
+};
+
+let chromium = (await load(spec)) ?? (await fromDir(process.cwd(), spec));
+// A global install works in every project: `npm i -g playwright-core` is enough,
+// since an installed Chrome, Brave or Edge does the rendering. Only for the
+// default spec: SHOT_PLAYWRIGHT means exactly that module.
+if (!chromium && !process.env.SHOT_PLAYWRIGHT) {
   try {
-    const req = createRequire(join(process.cwd(), 'noop.js'));
-    ({ chromium } = await import(pathToFileURL(req.resolve(spec)).href));
-  } catch {
-    fail(`playwright not installed (${spec}) - cannot render, so this is NOT a pass. npm i -D playwright && npx playwright install chromium`);
-  }
+    const root = execFileSync('npm', ['root', '-g'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    chromium = (await fromDir(root, 'playwright')) ?? (await fromDir(root, 'playwright-core'));
+  } catch {}
+}
+if (!chromium) {
+  fail(`playwright not installed (${spec}) - cannot render, so this is NOT a pass. npm i -g playwright-core (uses the installed Chrome, Brave or Edge)`);
 }
 
 // --- the audit: verify_overflow.mjs's own function -----------------------------

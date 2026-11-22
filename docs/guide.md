@@ -797,7 +797,7 @@ design pipeline, context budget, and the README itself (content-addressed images
 **Tools that enable tests.** Without `tmux`, `zsh`, `gitleaks`, `git`, `node`, `bun`, `atuin`, `zoxide`,
 `fzf`, `delta`, `hyperfine` or `go`, the tests that use them are **skipped** instead of failing; install them
 (`brew bundle --file=Brewfile`) so they run. `AVAL_LIVE_CHECKS=1` enables the few that read the real
-`$HOME` (live settings and the secrets file); they are skipped by default because they depend on the machine. The `shot.mjs` renders are skipped if there is no Playwright Chromium.
+`$HOME` (live settings and the secrets file); they are skipped by default because they depend on the machine. The `shot.mjs` renders are skipped if Playwright is missing; `npm i -g playwright-core` is enough, since an installed Chrome, Brave or Edge does the rendering.
 
 > [!NOTE]
 > The install tests use `t.TempDir()` for both the repo and `$HOME`, and the tmux ones use an isolated server

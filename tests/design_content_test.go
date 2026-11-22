@@ -210,3 +210,15 @@ func TestDesignPipelineShotMjs(t *testing.T) {
 	eq(t, "a page that scrolls sideways at 390px fails", 1, r.Code)
 	isTrue(t, "...and says so with the number", has(`(?i)overflow.*390|390.*overflow`, r.Out()))
 }
+
+// shot.mjs loads its overflow audit from verify_overflow.mjs (one source of
+// truth). The file was lost once in a cleanup and every render then failed
+// with "cannot load the overflow audit", while the render test skipped
+// silently on machines without Playwright. Guard the contract itself.
+func TestShotMjsOverflowAuditExists(t *testing.T) {
+	audit := p("skills/design-pipeline/scripts/verify_overflow.mjs")
+	isTrue(t, "verify_overflow.mjs sits next to shot.mjs", exists(audit))
+	src := read(t, "skills/design-pipeline/scripts/verify_overflow.mjs")
+	mustHave(t, `const AUDIT = `, src, "it defines the AUDIT function shot.mjs extracts")
+	mustHave(t, "\nconst browser", src, "the AUDIT block ends where shot.mjs expects")
+}
