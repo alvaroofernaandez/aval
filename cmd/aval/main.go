@@ -1,8 +1,8 @@
 // Command aval installs this repository's configs on macOS,
 // Linux and Windows.
 //
-//	aval            interactive TUI
-//	aval --dry-run  show what would happen, change nothing
+//	aval            print the usage; never installs
+//	aval install    interactive TUI (--yes: none, --dry-run: change nothing, --copy)
 //	aval update     pull the repo, then re-apply
 //	aval doctor     check this machine against the repo (--fix, --json)
 //	aval update --dry-run  preview what update would change
@@ -73,11 +73,23 @@ func run() error {
 		showVer   = flag.Bool("version", false, "print the version and exit")
 		forceCopy = flag.Bool("copy", false, "copy files instead of symlinking them")
 	)
+	flag.Usage = func() { printUsage(flag.CommandLine.Output()) }
 	_ = flag.CommandLine.Parse(hoistRepo(os.Args[1:])) // ExitOnError: never returns an error
 
 	if *showVer {
 		fmt.Print(currentBuild().text(runtime.GOOS, runtime.GOARCH))
 		return nil
+	}
+
+	// A bare `aval` prints the usage: installing writes to HOME, so it is never
+	// the default. Unknown commands fail here, before any repository lookup.
+	legacyInstall := flag.NArg() == 0 && installFlagsGiven()
+	if flag.Arg(0) == "help" || (flag.NArg() == 0 && !legacyInstall) {
+		printUsage(os.Stdout)
+		return nil
+	}
+	if !legacyInstall && !knownCommand(flag.Arg(0)) {
+		return fmt.Errorf("unknown command %q; run 'aval help'", flag.Arg(0))
 	}
 
 	// version and release need no aval repository: release works on the
@@ -151,6 +163,14 @@ func run() error {
 		return runDev(*repoFlag, flag.Args()[1:])
 	}
 
+	opts := installOpts{dryRun: *dryRun, yes: *yes, copy: *forceCopy}
+	if flag.Arg(0) == "install" {
+		var err error
+		if opts, err = parseInstallArgs(opts, flag.Args()[1:]); err != nil {
+			return err
+		}
+	}
+
 	repo, err := resolveRepo(*repoFlag)
 	if err != nil {
 		return err
@@ -181,9 +201,25 @@ func run() error {
 		return runUpdate(repo, home, *dryRun, *forceCopy, os.Stdout)
 	}
 
+	if legacyInstall {
+		fmt.Fprintln(os.Stderr, "notice: running aval with only flags is deprecated; use 'aval install [--dry-run] [--yes] [--copy]'")
+	}
 	notifyIfOutdated()
 
-	return runInstall(repo, home, *dryRun, *yes, *forceCopy)
+	return runInstall(repo, home, opts.dryRun, opts.yes, opts.copy)
+}
+
+// installFlagsGiven reports whether an install flag was set without a
+// subcommand, the form scripts used before install was a subcommand.
+func installFlagsGiven() bool {
+	given := false
+	flag.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "dry-run", "yes", "copy":
+			given = true
+		}
+	})
+	return given
 }
 
 // notifyIfOutdated tells the user when a newer release exists.

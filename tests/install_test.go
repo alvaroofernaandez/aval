@@ -31,7 +31,7 @@ func newSandbox(t *testing.T) *sandbox {
 
 func (s *sandbox) install(args ...string) result {
 	s.t.Helper()
-	a := append([]string{"--yes", "--repo", s.repo}, args...)
+	a := append([]string{"install", "--yes", "--repo", s.repo}, args...)
 	return run(s.repo, isoEnv(s.home, withHookTools(s.t)), "", avalBin(s.t), a...)
 }
 
@@ -289,7 +289,7 @@ func TestInstallEnablesVersionedGitHooksInACheckout(t *testing.T) {
 	copyRepo(t, clone)
 	git(t, clone, "init", "-q")
 	_ = run(clone, nil, "", "git", "config", "--unset", "core.hooksPath")
-	run(repo, isoEnv(s.home), "", avalBin(t), "--yes", "--repo", clone)
+	run(repo, isoEnv(s.home), "", avalBin(t), "install", "--yes", "--repo", clone)
 	eq(t, "enables the versioned git hooks in a checkout", ".githooks", git(t, clone, "config", "--get", "core.hooksPath"))
 }
 
@@ -299,7 +299,7 @@ func TestInstallDryRunLeavesHooksPathAndSettingsAlone(t *testing.T) {
 	clone := s.path("clone")
 	copyRepo(t, clone)
 	git(t, clone, "init", "-q")
-	run(repo, isoEnv(s.home), "", avalBin(t), "--yes", "--dry-run", "--repo", clone)
+	run(repo, isoEnv(s.home), "", avalBin(t), "install", "--yes", "--dry-run", "--repo", clone)
 	r := run(clone, nil, "", "git", "config", "--get", "core.hooksPath")
 	eq(t, "dry-run leaves core.hooksPath alone", "", strings.TrimSpace(r.Stdout))
 	isTrue(t, "dry-run seeds no settings", !exists(s.path(".claude/settings.json")))
@@ -364,4 +364,68 @@ func TestInstallCopyModeProducesRealFilesAndIsIdempotent(t *testing.T) {
 		t.Errorf("a second run displaces nothing: backups %v -> %v\n%s", before, after, again.Out())
 	}
 	mustHave(t, `(?i)already installed`, again.Out(), "the second run reports the copies as already installed")
+}
+
+// A bare `aval` is a question, not an order: it prints the usage and leaves
+// HOME untouched, wherever it runs.
+func TestBareAvalPrintsUsageAndChangesNothing(t *testing.T) {
+	s := newSandbox(t)
+	r := run(s.repo, isoEnv(s.home), "", avalBin(t))
+	if r.Code != 0 {
+		t.Fatalf("exit %d: %s", r.Code, r.Out())
+	}
+	if !strings.Contains(r.Stdout, "Usage:") || !strings.Contains(r.Stdout, "aval install") {
+		t.Errorf("no usage on stdout:\n%s", r.Out())
+	}
+	entries, err := os.ReadDir(s.home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("bare aval wrote to HOME: %v", entries)
+	}
+}
+
+func TestUnknownCommandFails(t *testing.T) {
+	s := newSandbox(t)
+	r := run(t.TempDir(), isoEnv(s.home), "", avalBin(t), "instal")
+	if r.Code == 0 || !strings.Contains(r.Stderr, `unknown command "instal"`) {
+		t.Errorf("want an unknown-command error, got exit %d: %s", r.Code, r.Out())
+	}
+}
+
+// The pre-v0.2 form keeps working for provisioning scripts, with a notice.
+func TestLegacyFlagsStillInstallWithNotice(t *testing.T) {
+	s := newSandbox(t)
+	r := run(s.repo, isoEnv(s.home), "", avalBin(t), "--yes", "--dry-run", "--repo", s.repo)
+	if r.Code != 0 {
+		t.Fatalf("exit %d: %s", r.Code, r.Out())
+	}
+	if !strings.Contains(r.Stderr, "aval install") || !strings.Contains(r.Stderr, "deprecated") {
+		t.Errorf("no deprecation notice on stderr:\n%s", r.Stderr)
+	}
+	if !strings.Contains(r.Stdout, "~/") {
+		t.Errorf("legacy dry run did not show the plan:\n%s", r.Stdout)
+	}
+}
+
+// After one install, a copy of the binary outside the checkout finds the
+// repository from any directory: the bug that started this.
+func TestInstalledRepoIsFoundFromAnywhere(t *testing.T) {
+	s := newSandbox(t)
+	if r := s.install(); r.Code != 0 {
+		t.Fatalf("install: exit %d: %s", r.Code, r.Out())
+	}
+	elsewhere := filepath.Join(t.TempDir(), "aval"+exeSuffix)
+	bin, err := os.ReadFile(avalBin(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(elsewhere, bin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	r := run(t.TempDir(), isoEnv(s.home), "", elsewhere, "install", "--yes", "--dry-run")
+	if r.Code != 0 {
+		t.Fatalf("exit %d: %s", r.Code, r.Out())
+	}
 }

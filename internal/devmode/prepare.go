@@ -272,7 +272,7 @@ func Prepare(o PrepareOptions) (Sandbox, []string, error) {
 
 	if !s.Ready() {
 		fmt.Fprintf(o.Out, "aval dev: first entry, installing into the sandbox (%s)\n", s.Root)
-		for _, args := range [][]string{{"--yes"}, {"sync"}} {
+		for _, args := range [][]string{{"install", "--yes"}, {"sync"}} {
 			c := exec.Command(s.AvalBin(goos), args...)
 			c.Dir = s.Repo()
 			c.Env = env

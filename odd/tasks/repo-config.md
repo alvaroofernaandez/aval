@@ -15,8 +15,8 @@ installed dotfiles, a write to $HOME as the default action.
 - [x] GREEN: core_seed.go
 
 ## T3 — bare `aval` prints help; `aval install` is the explicit command
-- [ ] RED: no args → usage on stdout; `install` parses --dry-run/--yes/--copy;
+- [x] RED: no args → usage on stdout; `install` parses --dry-run/--yes/--copy;
       legacy `aval --yes` still installs with a deprecation notice
-- [ ] GREEN: main.go dispatch, devmode bootstrap uses `install --yes`
+- [x] GREEN: main.go dispatch, devmode bootstrap uses `install --yes`
 
 ## T4 — docs: README, guide, npm README, devmode, CHANGELOG breaking note

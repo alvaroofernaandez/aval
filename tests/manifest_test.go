@@ -136,7 +136,7 @@ func TestManifestMatchesWhatTheInstallerInstalls(t *testing.T) {
 	}
 
 	home := t.TempDir()
-	r := run(repo, isoEnv(home), "", aval, "--yes", "--dry-run", "--repo", repo)
+	r := run(repo, isoEnv(home), "", aval, "install", "--yes", "--dry-run", "--repo", repo)
 	got := map[string]bool{}
 	for _, d := range regexp.MustCompile(`~/\S+`).FindAllString(r.Stdout, -1) {
 		got[strings.TrimPrefix(d, "~/")] = true
