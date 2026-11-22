@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>{{.CSS}}</style>
+</head>
+<body>
+{{- $total := len .Slides}}
+{{- range $i, $s := .Slides}}
+{{- $n := inc $i}}
+<section class="slide layout-{{$s.Layout}} {{bg $s.Layout $i}}" data-n="{{$n}}">
+{{- if or (eq $s.Layout "cover") (eq $s.Layout "section") (eq $s.Layout "closing")}}
+<div class="head">
+{{- with $s.Eyebrow}}<p class="eyebrow">{{.}}</p>{{end}}
+<h1>{{$s.Title}}</h1>
+{{- with $s.Lede}}<p class="lede">{{.}}</p>{{end}}
+</div>
+{{- if eq $s.Layout "cover"}}<div class="bar"><span></span></div>{{end}}
+{{- else}}
+<div class="head">
+{{- with $s.Eyebrow}}<p class="eyebrow">{{.}}</p>{{end}}
+<h2>{{$s.Title}}</h2>
+{{- if ne $s.Layout "statement"}}{{with $s.Lede}}<p class="lede">{{.}}</p>{{end}}{{end}}
+</div>
+{{- end}}
+
+{{- if eq $s.Layout "statement"}}<p class="lede">{{$s.Lede}}</p>{{end}}
+
+{{- if eq $s.Layout "cards"}}
+<div class="row">{{range $s.Items}}<div class="box {{tone .Tone}}">{{with .Tag}}<p class="tag">{{.}}</p>{{end}}<h3>{{.Title}}</h3>{{with .Text}}<p class="text">{{.}}</p>{{end}}</div>{{end}}</div>
+{{- end}}
+
+{{- if eq $s.Layout "steps"}}
+<div class="row">{{range $j, $it := $s.Items}}<div class="box {{tone $it.Tone}}"><p class="num">{{inc $j}}</p><h3>{{$it.Title}}</h3>{{with $it.Text}}<p class="text">{{.}}</p>{{end}}</div>{{end}}</div>
+{{- end}}
+
+{{- if eq $s.Layout "timeline"}}
+<div class="timeline">{{range $s.Items}}<div class="moment {{tone .Tone}}"><p class="when">{{.Tag}}</p><div class="what"><h3>{{.Title}}</h3>{{with .Text}}<p class="text">{{.}}</p>{{end}}</div></div>{{end}}</div>
+{{- end}}
+
+{{- if eq $s.Layout "checklist"}}
+<div class="checks">{{range $s.Items}}<div class="check"><svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="20" fill="none" stroke="#98BB6C" stroke-width="3"/><path d="M13 23 L19 29 L31 16" fill="none" stroke="#98BB6C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><h3>{{.Title}}</h3>{{with .Text}}<p class="text">{{.}}</p>{{end}}</div></div>{{end}}</div>
+{{- end}}
+
+{{- if eq $s.Layout "table"}}
+<table><thead><tr>{{range $s.Columns}}<th>{{.}}</th>{{end}}</tr></thead><tbody>{{range $s.Rows}}<tr>{{range .}}<td>{{.}}</td>{{end}}</tr>{{end}}</tbody></table>
+{{- end}}
+
+{{- if eq $s.Layout "flow"}}
+<div class="flow">{{range $j, $it := $s.Items}}{{if $j}}{{template "arrow"}}{{end}}<div class="box {{tone $it.Tone}}">{{with $it.Tag}}<p class="tag">{{.}}</p>{{end}}<h3>{{$it.Title}}</h3>{{with $it.Text}}<p class="text">{{.}}</p>{{end}}</div>{{end}}</div>
+{{- end}}
+
+{{- if eq $s.Layout "tree"}}
+<div class="tree">{{range $s.Items}}<div class="branch"><p class="q">{{.Title}}</p>{{template "arrow"}}<p class="a {{tone .Tone}}">{{.Tag}}</p></div>{{end}}</div>
+{{- end}}
+
+{{- if eq $s.Layout "groups"}}
+<div class="groups">{{range $s.Items}}<div class="group {{tone .Tone}}"><div class="label"><h3>{{.Title}}</h3>{{with .Text}}<p class="text">{{.}}</p>{{end}}</div><div class="chips">{{range .Chips}}<span class="chip">{{.}}</span>{{end}}</div></div>{{end}}</div>
+{{- end}}
+
+{{- if eq $s.Layout "compare"}}
+<div class="compare">{{range $j, $it := $s.Items}}{{if $j}}{{template "arrow"}}{{end}}<div class="box {{tone $it.Tone}}">{{with $it.Tag}}<p class="tag">{{.}}</p>{{end}}<h3>{{$it.Title}}</h3>{{with $it.Text}}<p class="text">{{.}}</p>{{end}}</div>{{end}}</div>
+{{- end}}
+
+<p class="brand">aval</p>
+<p class="page">{{$n}} / {{$total}}</p>
+</section>
+{{- end}}
+<script>
+(function () {
+  function check() {
+    var bad = [];
+    document.querySelectorAll('section.slide').forEach(function (s) {
+      var r = s.getBoundingClientRect(), maxB = 0, maxR = 0;
+      s.querySelectorAll('.head, .head *, .row, .row *, .timeline *, .checks *, table, .flow *, .tree *, .groups *, .compare *, .bar, .lede').forEach(function (e) {
+        var b = e.getBoundingClientRect();
+        if (b.bottom - r.top > maxB) maxB = b.bottom - r.top;
+        if (b.right - r.left > maxR) maxR = b.right - r.left;
+      });
+      if (maxB > 1080 - 160 + 2 || maxR > 1920 - 128 + 2) bad.push(s.getAttribute('data-n'));
+    });
+    document.documentElement.setAttribute('data-overflow', bad.join(','));
+  }
+  document.documentElement.setAttribute('data-overflow', 'pending');
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(check); } else { check(); }
+})();
+</script>
+</body>
+</html>
+{{define "arrow"}}<svg class="arrow" viewBox="0 0 56 32" aria-hidden="true"><path d="M0 11 H34 V0 L56 16 L34 32 V21 H0 Z"/></svg>{{end}}

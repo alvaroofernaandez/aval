@@ -12,8 +12,8 @@ context-relay deck iterations (2026-11-22).
 - [x] GREEN: spec.go
 
 ## T2 — internal/deck: HTML render (dark aval brand)
-- [ ] RED: each layout renders its content; escaping; one page per slide at 1920x1080
-- [ ] GREEN: render.go + embedded template and stylesheet
+- [x] RED: each layout renders its content; escaping; one page per slide at 1920x1080
+- [x] GREEN: render.go + embedded template and stylesheet
 
 ## T3 — internal/deck: browser lookup, overflow check, PDF print
 - [ ] RED: lookup order (AVAL_CHROME, then OS paths), argv for print and dump-dom,

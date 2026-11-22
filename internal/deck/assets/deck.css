@@ -1,0 +1,105 @@
+/* aval deck: dark aval brand (see .agents/DESIGN.md), fixed for every deck.
+   Green marks what is new or good, orange marks a threshold or something to watch,
+   dashed grey marks the old way or an alternative. Text is light ink or grey
+   (16:1 and 9:1 on the slide background); colours are strokes and marks. */
+:root {
+  --ink: #F2F2EE;
+  --paper: #14161A;
+  --tone: #1A1D22;
+  --card: #22252B;
+  --muted: #B4B8BF;
+  --line: #3A3F47;
+  --good: #98BB6C;
+  --warn: #E6C384;
+  --deep: #0E1013;
+  --grey: #8C929A;
+  --display: 'Space Grotesk', 'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif;
+  --body: 'IBM Plex Sans', 'Helvetica Neue', 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+@page { size: 1920px 1080px; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); }
+body { color: var(--ink); font-family: var(--body); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+h1, h2, h3, p { margin: 0; }
+
+.slide {
+  position: relative; width: 1920px; height: 1080px; overflow: hidden;
+  padding: 128px 128px 160px; display: flex; flex-direction: column; gap: 48px;
+  background: var(--paper); break-after: page; page-break-after: always;
+}
+.slide:last-of-type { break-after: auto; page-break-after: auto; }
+.slide.alt { background: var(--tone); }
+.slide.deep { background: var(--deep); justify-content: center; }
+.page { position: absolute; right: 128px; bottom: 64px; font-size: 24px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.brand { position: absolute; left: 128px; bottom: 64px; font: 600 24px var(--display); color: var(--muted); letter-spacing: 1px; }
+
+.head { display: flex; flex-direction: column; gap: 20px; }
+.eyebrow { font-size: 24px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+h1 { font: 700 120px/1.05 var(--display); max-width: 1560px; }
+h2 { font: 700 72px/1.1 var(--display); max-width: 1664px; }
+h3 { font: 600 32px/1.2 var(--display); }
+.lede { font-size: 44px; line-height: 1.3; color: var(--muted); max-width: 1500px; }
+.text { font-size: 26px; line-height: 1.4; color: var(--muted); }
+.tag { font-size: 24px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+
+.cover .bar { height: 24px; width: 1664px; border-radius: 12px; background: var(--card); margin-top: auto; }
+.cover .bar span { display: block; height: 24px; width: 60%; border-radius: 12px; background: var(--warn); }
+.cover .bar span.good { width: 6%; background: var(--good); }
+.cover .bars { display: flex; flex-direction: column; gap: 16px; }
+.statement .lede { font-size: 56px; color: var(--ink); }
+
+/* items: tone sets the stroke */
+.box { background: var(--card); border: 2px solid var(--line); border-radius: 20px; padding: 40px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tone-good { border: 4px solid var(--good); }
+.tone-warn { border: 4px solid var(--warn); }
+.tone-muted { border: 4px dashed var(--grey); }
+.row { display: flex; gap: 32px; flex: 1; align-items: stretch; }
+.row > .box { flex: 1; }
+.num { font: 700 72px/1 var(--display); color: var(--good); }
+
+.timeline { display: flex; flex-direction: column; gap: 28px; border-left: 4px solid var(--line); padding-left: 48px; }
+.moment { display: flex; gap: 40px; align-items: flex-start; position: relative; }
+.moment::before { content: ""; position: absolute; left: -62px; top: 10px; width: 24px; height: 24px; border-radius: 12px; background: var(--paper); border: 4px solid var(--grey); }
+.moment.tone-good, .moment.tone-warn, .moment.tone-muted { border: 0; }
+.moment.tone-good::before { border-color: var(--good); background: var(--good); }
+.moment.tone-warn::before { border-color: var(--warn); }
+.moment .when { width: 200px; flex: none; font-size: 30px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.moment.tone-good .when { color: var(--good); }
+.moment.tone-warn .when { color: var(--warn); }
+.moment .what { display: flex; flex-direction: column; gap: 4px; }
+
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 36px 64px; }
+.check { display: flex; gap: 24px; align-items: flex-start; }
+.check svg { flex: none; width: 44px; height: 44px; margin-top: 2px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 28px; }
+th { text-align: left; font-size: 22px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); padding: 0 24px 16px 0; border-bottom: 2px solid var(--line); }
+td { padding: 20px 24px 20px 0; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.35; }
+td:first-child { font-weight: 600; }
+td + td { color: var(--muted); }
+
+.flow { display: flex; align-items: center; gap: 20px; flex: 1; }
+.flow .box { flex: 1; align-self: center; }
+.arrow { flex: none; width: 56px; height: 32px; }
+.arrow path { fill: var(--ink); }
+
+.tree { display: flex; flex-direction: column; gap: 22px; }
+.branch { display: flex; align-items: center; gap: 28px; }
+.branch .q { flex: 1.6; background: var(--card); border: 3px solid var(--ink); border-radius: 16px; padding: 24px 32px; font-size: 30px; line-height: 1.3; }
+.branch .a { flex: 1; background: var(--card); border: 3px solid var(--line); border-radius: 16px; padding: 24px 32px; font: 600 30px/1.3 var(--display); }
+.branch .a.tone-good { border: 4px solid var(--good); }
+.branch .a.tone-warn { border: 4px solid var(--warn); }
+.branch .a.tone-muted { border: 4px dashed var(--grey); }
+
+.groups { display: flex; flex-direction: column; gap: 20px; }
+.group { display: flex; gap: 40px; align-items: center; background: var(--card); border: 2px solid var(--line); border-left: 12px solid var(--line); border-radius: 20px; padding: 24px 32px; }
+.group.tone-good { border-left: 12px solid var(--good); }
+.group.tone-warn { border-left: 12px solid var(--warn); }
+.group.tone-muted { border-left: 12px dashed var(--grey); }
+.group .label { width: 460px; flex: none; display: flex; flex-direction: column; gap: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 12px; }
+.chip { font-size: 24px; padding: 6px 20px; border-radius: 999px; border: 2px solid var(--line); background: var(--paper); }
+
+.compare { display: flex; gap: 32px; align-items: stretch; flex: 1; }
+.compare .box { flex: 1; }
+.compare .arrow { align-self: center; }
