@@ -177,6 +177,7 @@ func fakeMachine(t *testing.T) (repo, home string) {
 	t.Helper()
 	repo, home = t.TempDir(), t.TempDir()
 	t.Setenv("AVAL_PRIVATE_DIR", filepath.Join(home, "private"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config")) // install records the repo there
 	writeFile(t, filepath.Join(repo, "install.manifest"),
 		"[claude]\nlabel = c\ndetail = d\nplatforms = all\n\nconfig/claude/agents .claude/agents\n")
 	writeFile(t, filepath.Join(repo, "config/claude/agents/a.md"), "---\nmodel: opus\n---\n")

@@ -11,8 +11,8 @@ installed dotfiles, a write to $HOME as the default action.
 - [x] GREEN: repoloc.go; cmd/aval resolveRepo delegates to it
 
 ## T2 — install records the repo location
-- [ ] RED: finishInstall writes the config; --dry-run does not
-- [ ] GREEN: core_seed.go
+- [x] RED: finishInstall writes the config; --dry-run does not
+- [x] GREEN: core_seed.go
 
 ## T3 — bare `aval` prints help; `aval install` is the explicit command
 - [ ] RED: no args → usage on stdout; `install` parses --dry-run/--yes/--copy;

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/core/repoloc"
 )
 
 func hooksPath(dir string) string {
@@ -60,6 +62,7 @@ func TestConfigureHooksPath(t *testing.T) {
 // the hooks, in that order; a failing merge never fails the install.
 func TestFinishInstall(t *testing.T) {
 	repo, home := t.TempDir(), t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	gitIn(t, repo, "init", "-q")
 	os.MkdirAll(filepath.Join(repo, ".githooks"), 0o755)
 	writeFile(t, filepath.Join(repo, "config/claude/settings.json"), `{"hooks":{}}`+"\n")
@@ -72,5 +75,31 @@ func TestFinishInstall(t *testing.T) {
 	}
 	if got := hooksPath(repo); got != ".githooks" {
 		t.Fatalf("core.hooksPath = %q", got)
+	}
+}
+
+// install records where the repository is, so a release binary outside the
+// checkout finds it from any directory afterwards. A dry run records nothing.
+func TestFinishInstallRecordsRepo(t *testing.T) {
+	for _, dry := range []bool{false, true} {
+		repo, home := t.TempDir(), t.TempDir()
+		cfg := filepath.Join(home, "cfg")
+		t.Setenv("XDG_CONFIG_HOME", cfg)
+		writeFile(t, filepath.Join(repo, "config/claude/settings.json"), `{"hooks":{}}`+"\n")
+
+		if err := finishInstall(repo, home, dry); err != nil {
+			t.Fatal(err)
+		}
+		got, err := repoloc.Load(filepath.Join(cfg, "aval", "config"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := repo
+		if dry {
+			want = ""
+		}
+		if got != want {
+			t.Errorf("dry=%v: recorded repo = %q, want %q", dry, got, want)
+		}
 	}
 }

@@ -1,16 +1,21 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+
+	"github.com/alvaroofernaandez/aval/internal/core/repoloc"
 )
 
 // finishInstall is what install.sh did after linking: seed the Claude settings,
 // let `aval sync` merge the repo-managed keys into them, and turn the versioned
 // git hooks on. The merge is best-effort (the install already worked); the
-// seed is not.
+// seed is not. It also records where the repository is, so later commands
+// find it from any directory; failing to record it only warns.
 func finishInstall(repo, home string, dryRun bool) error {
 	if err := seedClaudeSettings(repo, home, dryRun); err != nil {
 		return err
@@ -19,6 +24,7 @@ func finishInstall(repo, home string, dryRun bool) error {
 		return nil
 	}
 	_ = runSync(repo, home, nil, false, io.Discard)
+	recordRepo(repo, home)
 	return configureHooksPath(repo, dryRun)
 }
 
@@ -60,4 +66,15 @@ func seedClaudeSettings(repo, home string, dryRun bool) error {
 	}
 	_ = os.Remove(dst) // an old link; the target stays in the repo
 	return os.WriteFile(dst, b, 0o644)
+}
+
+// recordRepo writes the repository location to aval's config file.
+func recordRepo(repo, home string) {
+	abs, err := filepath.Abs(repo)
+	if err == nil {
+		err = repoloc.Save(repoloc.ConfigPath(os.Getenv, home, runtime.GOOS), abs)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not record the repository location: %v\n", err)
+	}
 }
