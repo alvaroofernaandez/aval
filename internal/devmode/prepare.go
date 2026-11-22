@@ -245,7 +245,7 @@ type PrepareOptions struct {
 // Prepare makes the sandbox ready to use and returns it with the environment
 // to run commands in: directories, a fresh copy of the repo, the git identity
 // (first time only), a fresh build, the environment self-check, and on first
-// entry `aval --yes` plus `aval sync` so it mirrors a new machine.
+// entry `aval install --yes` plus `aval sync` so it mirrors a new machine.
 func Prepare(o PrepareOptions) (Sandbox, []string, error) {
 	goos := runtime.GOOS
 	s, err := Create(o.Base, o.Name, o.RealHome)

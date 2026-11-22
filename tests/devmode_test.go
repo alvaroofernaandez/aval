@@ -228,7 +228,7 @@ func TestDevDiffIsReadOnly(t *testing.T) {
 	if r.Code != 0 {
 		t.Fatalf("dev diff: exit %d\n%s", r.Code, r.Out())
 	}
-	for _, want := range []string{"aval --yes", "aval sync", "read-only"} {
+	for _, want := range []string{"aval install --yes", "aval sync", "read-only"} {
 		if !strings.Contains(r.Out(), want) {
 			t.Errorf("diff output is missing %q:\n%s", want, r.Out())
 		}

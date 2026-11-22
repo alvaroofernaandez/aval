@@ -5,7 +5,7 @@ Installer for [aval](https://github.com/alvaroofernaandez/aval), a personal agen
 ## Use it
 
 ```sh
-npx @alvaroofernaandez/aval
+npx @alvaroofernaandez/aval install
 ```
 
 `npx` always resolves the latest published version, so this is the way to stay current: every push to `main` publishes a new build.
@@ -14,7 +14,7 @@ npx @alvaroofernaandez/aval
 
 ```sh
 npm install -g @alvaroofernaandez/aval
-aval
+aval install
 ```
 
 A globally installed copy does **not** update itself — npm never pushes updates to a machine. The binary checks for a newer version when it starts and tells you when there is one:
@@ -34,12 +34,13 @@ Existing files are never deleted. Anything in the way is moved to `~/.aval-backu
 
 ## Commands
 
-`aval` looks for `install.manifest`: run it inside a clone of the repository or pass `--repo <path>`.
+`aval` on its own prints the usage. The first `aval install` runs inside a clone of the repository (or with
+`--repo <path>`) and records its location, so later commands work from any directory. `$AVAL_REPO` overrides it.
 
 ```sh
-aval              # interactive TUI
-aval --dry-run    # show what would happen, change nothing
-aval --yes        # install everything applicable, no TUI
+aval install              # interactive TUI
+aval install --dry-run    # show what would happen, change nothing
+aval install --yes        # install everything applicable, no TUI
 aval update       # pull the repo and re-link what is new
 aval doctor       # check links, hooks, agents and settings (--fix, --json)
 aval sync         # merge repo-managed settings into ~/.claude/settings.json

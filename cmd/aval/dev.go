@@ -128,7 +128,7 @@ func devLs(base string) error {
 	return nil
 }
 
-// devDiff shows what `aval --yes` and `aval sync` would change on the real
+// devDiff shows what `aval install --yes` and `aval sync` would change on the real
 // machine, using the same dry-run paths as `aval --dry-run` and
 // `aval sync --dry-run`. The symlink probe runs in a temp dir, not in HOME.
 func devDiff(repoFlag, home string, out io.Writer) error {
@@ -147,7 +147,7 @@ func devDiff(repoFlag, home string, out io.Writer) error {
 	defer os.RemoveAll(probe)
 	symlinks := pf.SupportsSymlinks(probe)
 
-	fmt.Fprintf(out, "aval dev diff (read-only, nothing is written): what would change in %s\n\n== aval --yes ==\n", home)
+	fmt.Fprintf(out, "aval dev diff (read-only, nothing is written): what would change in %s\n\n== aval install --yes ==\n", home)
 	if err := runHeadless(p, pf, install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: true}), symlinks, true); err != nil {
 		return err
 	}

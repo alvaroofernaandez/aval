@@ -121,16 +121,18 @@ plan lives in the [pinned roadmap issue](https://github.com/alvaroofernaandez/av
 ## Install
 
 ```sh
-npx @alvaroofernaandez/aval@next   # prerelease from npm, or a binary from Releases
+npx @alvaroofernaandez/aval@next install   # prerelease from npm, or a binary from Releases
 go install github.com/alvaroofernaandez/aval/cmd/aval@latest
 git clone https://github.com/alvaroofernaandez/aval.git ~/aval && cd ~/aval
 
-aval                  # TUI: choose what to install
-aval --yes --dry-run  # no TUI: shows what it would do, touches nothing
-aval --yes            # no TUI: installs everything that applies (--copy copies instead of linking)
+aval install                  # TUI: choose what to install
+aval install --yes --dry-run  # no TUI: shows what it would do, touches nothing
+aval install --yes            # no TUI: installs everything that applies (--copy copies instead of linking)
 ```
 
-`aval` looks for `install.manifest` in the repo: run it inside the clone or pass `--repo <path>`.
+`aval` on its own prints the usage and changes nothing. The first `aval install` runs inside the clone (or
+with `--repo <path>`) and records where the repo is in `~/.config/aval/config`, so later commands work from
+any directory. `$AVAL_REPO` overrides it.
 Subcommands that do not depend on the repo (`hook`, `design`, `tmux`, `pdf`…) work with the binary alone.
 Everything installed on purpose with Homebrew is in the `Brewfile` (`brew bundle --file=Brewfile`).
 

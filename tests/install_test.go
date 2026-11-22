@@ -12,7 +12,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
-// End-to-end tests of the Go installer (`aval --yes`). Every run happens
+// End-to-end tests of the Go installer (`aval install --yes`). Every run happens
 // inside a throwaway $HOME, so the real dotfiles of whoever runs the suite are
 // never touched. Unit-level cases live in internal/core/install and cmd/aval.
 

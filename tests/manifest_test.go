@@ -99,7 +99,7 @@ func TestManifestEverySourceExists(t *testing.T) {
 
 // A source that exists only in one checkout (an empty or ignored directory)
 // is missing from every fresh clone: CI caught config/opencode/plugins, an
-// empty local folder, failing `aval --yes` on a clean runner.
+// empty local folder, failing `aval install --yes` on a clean runner.
 func TestManifestEverySourceIsTracked(t *testing.T) {
 	m := parseManifest(read(t, "install.manifest"))
 	for _, e := range m.entries {
@@ -115,7 +115,7 @@ func TestManifestFanoutSourceDirectoryExists(t *testing.T) {
 	isTrue(t, "fanout-source is declared and a directory", m.fanoutSource != "" && isDir(p(m.fanoutSource)))
 }
 
-// The heart of it: `aval --yes --dry-run` prints one destination per line; the
+// The heart of it: `aval install --yes --dry-run` prints one destination per line; the
 // manifest plus its fan-out must expand to exactly that set.
 func TestManifestMatchesWhatTheInstallerInstalls(t *testing.T) {
 	aval := avalBin(t)

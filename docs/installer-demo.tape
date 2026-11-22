@@ -35,7 +35,7 @@ Type "D=$(mktemp -d) && go build -o $D/aval ./cmd/aval && export PATH=$D:$PATH H
 Type "clear" Enter
 Show
 
-Type "aval"
+Type "aval install"
 Sleep 700ms
 Enter
 Sleep 3s

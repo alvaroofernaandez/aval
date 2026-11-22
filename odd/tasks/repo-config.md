@@ -19,4 +19,5 @@ installed dotfiles, a write to $HOME as the default action.
       legacy `aval --yes` still installs with a deprecation notice
 - [x] GREEN: main.go dispatch, devmode bootstrap uses `install --yes`
 
-## T4 — docs: README, guide, npm README, devmode, CHANGELOG breaking note
+## T4 — docs: README, guide, npm README, devmode, demo tape
+- [x] Updated; CHANGELOG is generated from commits, the BREAKING CHANGE footer covers it

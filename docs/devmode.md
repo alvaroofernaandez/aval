@@ -6,9 +6,9 @@
 
 | Command | What it does |
 | :--- | :--- |
-| `aval dev` | Opens your `$SHELL` inside the sandbox (prompt `[aval dev:default]`). The first time, it runs `aval --yes` and `aval sync` there. |
+| `aval dev` | Opens your `$SHELL` inside the sandbox (prompt `[aval dev:default]`). The first time, it runs `aval install --yes` and `aval sync` there. |
 | `aval dev run -- <cmd>` | A single command in the same environment: `aval dev run -- aval doctor`. Returns its exit code. |
-| `aval dev diff` | What `aval --yes` and `aval sync` would change on your **real** machine. Read-only: it is the gate between "works in dev" and "safe to apply". |
+| `aval dev diff` | What `aval install --yes` and `aval sync` would change on your **real** machine. Read-only: it is the gate between "works in dev" and "safe to apply". |
 | `aval dev project <path>` | Clones a real project into the sandbox so you can test hooks and commands against real code. |
 | `aval dev ls` · `reset` · `rm` | Lists, recreates from scratch, or deletes sandboxes. |
 
@@ -34,5 +34,5 @@ The sandbox installs from a **copy** of the repo (without `.git`), so the symlin
 ## Limits
 
 - The network is not blocked: `git fetch`, `npm`, `gh` and hooks that call out still go out. Environment tokens (`GH_TOKEN`, `SSH_AUTH_SOCK`) are inherited.
-- The sandbox has no `.git`: `aval update` does not work inside it. It rebuilds on every entry; the repo is copied again, but what is already installed is updated with `aval --yes` or `aval dev reset`.
+- The sandbox has no `.git`: `aval update` does not work inside it. It rebuilds on every entry; the repo is copied again, but what is already installed is updated with `aval install --yes` or `aval dev reset`.
 - Docker, Homebrew, the macOS Keychain and LaunchAgents are not isolated.

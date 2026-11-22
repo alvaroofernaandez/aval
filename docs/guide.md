@@ -52,23 +52,24 @@ Three ways to get the binary; everything else is the same.
 | Route | Command |
 | :--- | :--- |
 | Go | `go install github.com/alvaroofernaandez/aval/cmd/aval@latest` |
-| npm | `npx @alvaroofernaandez/aval` (or `npm i -g @alvaroofernaandez/aval`) |
+| npm | `npx @alvaroofernaandez/aval install` (or `npm i -g @alvaroofernaandez/aval`) |
 | Binary | The Releases page, with `SHA256SUMS` |
 
 > [!NOTE]
 > The npm package named `aval` and the prebuilt binaries are published by CI and are not yet
 > available under the new name.
 
-Then, from a clone of the repo (`aval` looks for `install.manifest` in the current directory, next to the
-binary, or at `--repo <path>`):
+Then, from a clone of the repo. The repository is found from, in order: `--repo <path>`, `$AVAL_REPO`,
+the location the first `aval install` recorded in `~/.config/aval/config`, then the current directory.
+`aval` on its own prints the usage and changes nothing.
 
 ```sh
 git clone https://github.com/alvaroofernaandez/aval.git ~/aval && cd ~/aval
 
-aval                   # TUI: detects your system and lets you choose what to install
-aval --yes --dry-run   # no TUI: shows what it would do, touches nothing
-aval --yes             # no TUI: actually links everything
-aval --yes --copy      # copy instead of linking
+aval install                   # TUI: detects your system and lets you choose what to install
+aval install --yes --dry-run   # no TUI: shows what it would do, touches nothing
+aval install --yes             # no TUI: actually links everything
+aval install --yes --copy      # copy instead of linking
 ```
 
 <div align="center">
@@ -233,11 +234,11 @@ Everything deliberately installed with Homebrew is in the `Brewfile`: `brew bund
 
 ## ⌨️ Commands
 
-Full reference. `aval --help` lists the global flags (`--dry-run`, `--yes`, `--repo`, `--copy`, `--version`).
+Full reference. `aval` or `aval help` prints the usage. Global flags: `--repo`, `--version`.
 
 | Command | What it does | Needs the repo |
 | :--- | :--- | :---: |
-| `aval` · `--yes` · `--dry-run` · `--copy` | Installs (with or without the TUI) | yes |
+| `aval install [--yes] [--dry-run] [--copy]` | Installs (with or without the TUI) and records the repo location | yes |
 | `aval update [--dry-run]` | `git pull` + link anything new | yes |
 | `aval doctor [--fix] [--json] [--security]` | Checks the machine against the repo | yes |
 | `aval sync [--dry-run] [--check]` | Pushes managed settings into the live `settings.json` and into Codex/Gemini | yes |
