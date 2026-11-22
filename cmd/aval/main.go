@@ -41,6 +41,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/manifest"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
 	"github.com/alvaroofernaandez/aval/internal/core/platform"
+	"github.com/alvaroofernaandez/aval/internal/core/repoloc"
 	"github.com/alvaroofernaandez/aval/internal/core/update"
 	"github.com/alvaroofernaandez/aval/internal/release"
 	"github.com/alvaroofernaandez/aval/internal/ui"
@@ -68,7 +69,7 @@ func run() error {
 	var (
 		dryRun    = flag.Bool("dry-run", false, "show what would happen, change nothing")
 		yes       = flag.Bool("yes", false, "install everything applicable without the TUI")
-		repoFlag  = flag.String("repo", "", "path to the aval repository (default: the binary's repository)")
+		repoFlag  = flag.String("repo", "", "path to the aval repository (default: $AVAL_REPO, then the one aval install recorded)")
 		showVer   = flag.Bool("version", false, "print the version and exit")
 		forceCopy = flag.Bool("copy", false, "copy files instead of symlinking them")
 	)
@@ -208,46 +209,21 @@ func notifyIfOutdated() {
 	}
 }
 
-// resolveRepo finds the repository. The binary normally lives inside it, so
-// walking up from the executable finds it without configuration — but a
-// go-installed binary sits in GOPATH/bin, so the working directory and the
-// flag are both honoured.
+// resolveRepo finds the repository: --repo, $AVAL_REPO, the location that
+// install recorded, then the working directory and the binary's own checkout.
+// See internal/core/repoloc for the order and why explicit sources fail loudly.
 func resolveRepo(flagValue string) (string, error) {
-	candidates := []string{}
-	if flagValue != "" {
-		candidates = append(candidates, flagValue)
-	}
-	if exe, err := os.Executable(); err == nil {
-		candidates = append(candidates, filepath.Dir(exe), filepath.Join(filepath.Dir(exe), ".."))
+	s := repoloc.Sources{Flag: flagValue, Env: os.Getenv(repoloc.EnvVar)}
+	if home, err := os.UserHomeDir(); err == nil {
+		s.ConfigFile = repoloc.ConfigPath(os.Getenv, home, runtime.GOOS)
 	}
 	if wd, err := os.Getwd(); err == nil {
-		candidates = append(candidates, wd)
+		s.Wd = wd
 	}
-
-	for _, c := range candidates {
-		if root := walkUpToManifest(c); root != "" {
-			return root, nil
-		}
+	if exe, err := os.Executable(); err == nil {
+		s.Exe = filepath.Dir(exe)
 	}
-	return "", fmt.Errorf("cannot find install.manifest; run from the repository or pass --repo")
-}
-
-func walkUpToManifest(start string) string {
-	dir, err := filepath.Abs(start)
-	if err != nil {
-		return ""
-	}
-	for i := 0; i < 6; i++ {
-		if _, err := os.Stat(filepath.Join(dir, "install.manifest")); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-	return ""
+	return repoloc.Resolve(s)
 }
 
 // buildPlan is shared by install and update so the two can never disagree
