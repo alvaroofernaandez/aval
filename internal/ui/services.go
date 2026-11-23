@@ -78,6 +78,11 @@ type Services struct {
 	// FinishInstall runs the post-install steps after a completed run and
 	// returns warnings instead of writing to stderr.
 	FinishInstall func(m Model) ([]string, error)
+	// FinishReapply closes the backup run of the update view's re-apply when
+	// its done screen closes, completed or stopped. Unlike FinishInstall it
+	// does no post-install steps: `aval update` re-applies the links and
+	// commits the run, nothing more.
+	FinishReapply func() error
 	// Settings is where the settings screen reads and writes.
 	Settings func() SettingsEnv
 	// CachedNotice is the update line from the last check's cache; it never

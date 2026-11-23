@@ -10,11 +10,15 @@ import tea "github.com/charmbracelet/bubbletea"
 //
 // Closing the done screen of a completed install runs finish once, before the
 // pop; quitting at select or welcome, or closing a stopped run, never does.
+// A re-apply flow (reapplyFlow) also finishes when stopped.
 type flow struct {
 	m Model
 	// finish is Services.FinishInstall; nil for settings, or when the
 	// install needs no post-install steps.
 	finish func(Model) ([]string, error)
+	// finishStopped runs finish when a stopped run closes too: a re-apply's
+	// backup run must be committed whatever happened, so it can be undone.
+	finishStopped bool
 	// finishing is set while finish runs: keys are inert and the flow pops
 	// when installFinishedMsg arrives.
 	finishing bool
@@ -36,6 +40,18 @@ type installFinishedMsg struct {
 func newFlow(m Model, finish func(Model) ([]string, error)) flow {
 	m.hosted = true
 	return flow{m: m, finish: finish}
+}
+
+// reapplyFlow hosts the re-apply: finish only closes the run's backup (the
+// service's FinishReapply), completed or stopped. Without the service it is a
+// plain flow.
+func reapplyFlow(m Model, finish func() error) flow {
+	f := newFlow(m, nil)
+	if finish != nil {
+		f.finish = func(Model) ([]string, error) { return nil, finish() }
+		f.finishStopped = true
+	}
+	return f
 }
 
 // installFlow builds the hosted installer from the services: select when a
@@ -72,7 +88,8 @@ func (f flow) update(msg tea.Msg) (screen, tea.Cmd) {
 	left := f.m.Quitting
 	next, cmd := f.m.Update(msg)
 	f.m = next.(Model)
-	if !left && f.m.Quitting && f.m.Completed() && f.finish != nil {
+	closed := f.m.Completed() || (f.finishStopped && f.m.Screen() == ScreenDone)
+	if !left && f.m.Quitting && closed && f.finish != nil {
 		// The Model asked to pop; the flow pops once finish has answered.
 		f.finishing = true
 		finish, m := f.finish, f.m

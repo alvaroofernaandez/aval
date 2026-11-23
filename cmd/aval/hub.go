@@ -256,6 +256,11 @@ func newHubServices(e hubEnv, home, repoFlag string, us uiSettings) (ui.Services
 		m.Unavailable = prep.Unavailable
 		return m, nil
 	}
+	// A re-apply only commits its backup run, as `aval update` does: no
+	// settings seed, hooksPath or recorded repo (an install's concerns; the
+	// repo is already known and linked). closeRunner is idempotent, so the
+	// hub closing afterwards finds nothing open.
+	svc.FinishReapply = closeRunner
 
 	syncOpt := txsync.Options{Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: goos}
 	svc.SyncPreview = func() (*txsync.Outcome, error) {

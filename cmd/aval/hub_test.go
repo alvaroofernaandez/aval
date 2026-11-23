@@ -19,6 +19,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
+	"github.com/alvaroofernaandez/aval/internal/ui"
 )
 
 // repoRoot is this checkout: a real aval repository the hub can resolve.
@@ -378,5 +379,77 @@ func TestHubSyncRollbackReportsItsBackupID(t *testing.T) {
 	}
 	if out.RunID == "" {
 		t.Fatalf("rollback outcome has an empty backup id: %+v", out)
+	}
+}
+
+// reapplyOnce plays the update view's re-apply: the hosted installer model
+// run to its done screen against the real services.
+func reapplyOnce(t *testing.T, svc ui.Services) {
+	t.Helper()
+	m, err := svc.Reapply()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The update view flips the model to its progress screen; here enter on
+	// select starts the same default selection.
+	var cur tea.Model = m
+	cur, cmd := cur.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	for i := 0; i < 500 && cmd != nil && cur.(ui.Model).Screen() != ui.ScreenDone; i++ {
+		var next tea.Cmd
+		cur, next = cur.Update(cmd())
+		cmd = next
+	}
+	if got := cur.(ui.Model); got.Screen() != ui.ScreenDone || !got.Completed() {
+		t.Fatalf("the re-apply did not complete: screen %v", got.Screen())
+	}
+}
+
+// A re-apply that closes commits its backup run the way the installer does:
+// an identical run is dropped (Commit's dedupe), so one run is left, and the
+// hub closing afterwards must not commit it a second time.
+func TestHubReapplyCommitsItsRunWhenItCloses(t *testing.T) {
+	home, _ := hubFixture(t)
+	e := fakeEnv(true, "xterm", nil)
+	svc, closeFn := newHubServices(e, home, "", uiSettings{})
+	defer closeFn()
+
+	reapplyOnce(t, svc)
+	if err := svc.FinishReapply(); err != nil {
+		t.Fatal(err)
+	}
+	runs, err := svc.Backups()
+	if err != nil || len(runs) != 1 {
+		t.Fatalf("after the first re-apply: runs %d, err %v, want 1", len(runs), err)
+	}
+	if runs[0].Pending {
+		t.Error("the closed re-apply is still pending")
+	}
+	entries, err := svc.RunEntries(runs[0])
+	if err != nil || len(entries) == 0 {
+		t.Fatalf("fixture: the first run recorded nothing (%v)", err)
+	}
+	// Back to the starting point, so the next re-apply records the same run.
+	for i := len(entries) - 1; i >= 0; i-- {
+		if err := os.RemoveAll(entries[i].Path); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	reapplyOnce(t, svc)
+	if err := svc.FinishReapply(); err != nil {
+		t.Fatal(err)
+	}
+	if runs, _ := svc.Backups(); len(runs) != 1 {
+		t.Errorf("after closing the second re-apply: %d runs, want 1 (committed, identical run dropped)", len(runs))
+	}
+
+	if err := svc.FinishReapply(); err != nil {
+		t.Fatal(err)
+	}
+	if err := closeFn(); err != nil {
+		t.Fatal(err)
+	}
+	if runs, _ := svc.Backups(); len(runs) != 1 {
+		t.Errorf("after closing the hub: %d runs, want exactly 1", len(runs))
 	}
 }

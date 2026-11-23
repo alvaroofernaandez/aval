@@ -388,3 +388,88 @@ func TestNewHubCarriesTheMotionSetting(t *testing.T) {
 		}
 	}
 }
+
+// reapplyFlow runs the update view's hand-over and returns the pushed flow.
+func reapplyFlowOf(t *testing.T, svc Services) flow {
+	t.Helper()
+	s := loaded(t, newUpdateView(svc))
+	_, out := opStep(s, key("enter"))
+	for _, m := range out {
+		if pm, ok := m.(pushMsg); ok {
+			return pm.s.(flow)
+		}
+	}
+	t.Fatalf("no hand-over: %v", out)
+	return flow{}
+}
+
+func TestClosingTheReapplyFinishesItsRunExactlyOnce(t *testing.T) {
+	calls := 0
+	svc := updateServices(t, &updateProbe{}, behindPreview(), nil)
+	svc.FinishReapply = func() error { calls++; return nil }
+	f := reapplyFlowOf(t, svc)
+	f.m = drain(t, f.m, f.init())
+	a, _ := hostedApp(t, f)
+
+	// Two closes before the result lands: the second must not finish again.
+	next, cmd1 := a.Update(key("enter"))
+	a = next.(App)
+	next, cmd2 := a.Update(key("enter"))
+	a = next.(App)
+	for _, cmd := range []tea.Cmd{cmd1, cmd2} {
+		for _, msg := range drainCmd(cmd) {
+			a, _ = routerStep(a, msg)
+		}
+	}
+	if calls != 1 {
+		t.Errorf("FinishReapply ran %d times, want 1", calls)
+	}
+	if a.depth() != 1 {
+		t.Errorf("depth = %d after closing the re-apply, want 1", a.depth())
+	}
+}
+
+func TestClosingAStoppedReapplyStillFinishesItsRun(t *testing.T) {
+	calls := 0
+	svc := updateServices(t, &updateProbe{}, behindPreview(), nil)
+	svc.FinishReapply = func() error { calls++; return nil }
+	f := reapplyFlowOf(t, svc)
+	// Pushed without running its init, so the first step stays in flight.
+	a := testApp(t, newFake("hub"))
+	a.stack = append(a.stack, f)
+
+	inFlight := f.init()
+	a, _ = routerStep(a, key("q"))
+	for _, msg := range drainCmd(inFlight) {
+		a, _ = routerStep(a, msg)
+	}
+	fm := a.top().(flow).m
+	if fm.Screen() != ScreenDone || !fm.Stopped() {
+		t.Fatalf("fixture: screen %v stopped %v, want a stopped done screen", fm.Screen(), fm.Stopped())
+	}
+	next, cmd := a.Update(key("enter"))
+	a = next.(App)
+	for _, msg := range drainCmd(cmd) {
+		a, _ = routerStep(a, msg)
+	}
+	if calls != 1 || a.depth() != 1 {
+		t.Errorf("calls %d depth %d, want 1 and 1", calls, a.depth())
+	}
+}
+
+func TestReapplyFinishErrorReachesTheHub(t *testing.T) {
+	boom := errors.New("boom")
+	svc := updateServices(t, &updateProbe{}, behindPreview(), nil)
+	svc.FinishReapply = func() error { return boom }
+	f := reapplyFlowOf(t, svc)
+	f.m = drain(t, f.m, f.init())
+	a, hub := hostedApp(t, f)
+	next, cmd := a.Update(key("enter"))
+	a = next.(App)
+	for _, msg := range drainCmd(cmd) {
+		a, _ = routerStep(a, msg)
+	}
+	if !hub.received(installFinishedMsg{err: boom}) {
+		t.Errorf("the hub never got the error; it received %v", *hub.log)
+	}
+}

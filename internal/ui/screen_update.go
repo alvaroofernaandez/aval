@@ -152,7 +152,7 @@ func (u updateView) update(msg tea.Msg) (screen, tea.Cmd) {
 	}
 	u.handed = true
 	lead := strings.ReplaceAll(u.op.result.Summary, "→", u.op.c.arrow())
-	return u, tea.Batch(cmd, push(newFlow(m.reapplying(lead), nil)))
+	return u, tea.Batch(cmd, push(reapplyFlow(m.reapplying(lead), u.svc.FinishReapply)))
 }
 
 func (u updateView) keys() keyMap   { return u.op.keys() }
