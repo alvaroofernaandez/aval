@@ -1,0 +1,15 @@
+ aval 0.2.0
+ Backups     ~/.aval-backup  4 runs
+
+ > 11-23 10:14 sync       3
+   11-23 09:02 install   12 pinned
+   11-20 18:40 uninstall 14
+   11-19 08:11 sync       2 x fa...
+
+ 20261123-101402 holds
+   ~/.cla...s.json  file
+   ~/.cod...NTS.md  file
+   ~/.gem...INI.md  created by aval
+ The newest 5 unpinned runs are...
+ enter preview restore  esc back
+ ? help

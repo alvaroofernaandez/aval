@@ -1,0 +1,15 @@
+ aval 0.2.0
+ Backups    ~/.aval-backup · 4 runs
+
+ › 11-23 10:14 sync       3
+   11-23 09:02 install   12 pinned
+   11-20 18:40 uninstall 14
+   11-19 08:11 sync       2 × fail…
+
+ 20261123-101402 holds
+   ~/.clau…gs.json  file
+   ~/.code…ENTS.md  file
+   ~/.gemi…MINI.md  created by aval
+ The newest 5 unpinned runs are ke…
+ enter preview restore · esc back
+ ? help

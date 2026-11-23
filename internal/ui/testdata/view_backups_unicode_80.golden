@@ -1,0 +1,19 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Backups                                              ~/.aval-backup · 4 runs
+
+  › 2026-11-23 10:14   sync         3 entries
+    2026-11-23 09:02   install     12 entries   pinned
+    2026-11-20 18:40   uninstall   14 entries
+    2026-11-19 08:11   sync         2 entries   × failed, rolled back
+
+  20261123-101402 holds
+    ~/.claude/settings.json  file
+    ~/.codex/AGENTS.md       file
+    ~/.gemini/GEMINI.md      created by aval
+
+  ────────────────────────────────────────────────────────────────────────────
+  The newest 5 unpinned runs are kept
+  ↑↓ move · enter preview restore · p pin · esc back · ? help · q quit
