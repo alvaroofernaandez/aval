@@ -860,3 +860,44 @@ func TestReleasePublishingJobsTakeTheChosenEnvironment(t *testing.T) {
 		t.Error("release.yml: preflight must output the environment its env step computes")
 	}
 }
+
+var fuzzFuncRe = regexp.MustCompile(`(?m)^func (Fuzz\w+)\(f \*testing\.F\)`)
+
+// TestCIFuzzesEveryFuzzTarget: every fuzz target in the repo gets a short
+// fuzzing pass in ci.yml, and the corpus it finds is kept as an artifact.
+func TestCIFuzzesEveryFuzzTarget(t *testing.T) {
+	var targets []string
+	walkRepo(repo, func(rel string, d os.DirEntry) {
+		if !strings.HasSuffix(rel, "_test.go") || strings.Contains("/"+rel, "/testdata/") {
+			return
+		}
+		b, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(rel)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range fuzzFuncRe.FindAllStringSubmatch(string(b), -1) {
+			targets = append(targets, m[1])
+		}
+	})
+	if len(targets) == 0 {
+		t.Fatal("no fuzz targets found; the walk is broken")
+	}
+	job, ok := jobs(workflows(t)["ci.yml"])["fuzz"]
+	if !ok {
+		t.Fatal("ci.yml has no fuzz job")
+	}
+	for _, name := range targets {
+		found := false
+		for _, s := range ciSteps(job) {
+			if strings.Contains(s.run, "-fuzz '^"+name+"$'") && strings.Contains(s.run, "-fuzztime=20s") {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("the fuzz job has no step running %s with -fuzz '^%s$' -fuzztime=20s", name, name)
+		}
+	}
+	if !strings.Contains(job, "actions/upload-artifact@") {
+		t.Error("the fuzz job must upload the corpus it found as an artifact")
+	}
+}

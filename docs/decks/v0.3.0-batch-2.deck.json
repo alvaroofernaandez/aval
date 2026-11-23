@@ -1,0 +1,61 @@
+{
+  "title": "v0.3.0 batch 2",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · v0.3.0 tanda 2", "title": "Siete issues medianas, cada una con su versión", "lede": "Cerramos las issues S y M de la milestone v0.3.0: fuzzing, OpenCode, fuentes del deck, inventario de dependencias, limpieza de gentle-ai y un hook de formato.", "note": "La promesa: avanzar la milestone con entregas que se pueden probar una a una."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "Un rc es una versión de prueba de la siguiente", "lede": "v0.3.0-rc.1, rc.2…: cada funcionalidad nueva sale como rc y espera la aprobación del dueño. La v0.3.0 estable llega al cerrar la milestone."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "Lo que falta duele en el día a día", "items": [
+      {"title": "OpenCode sin plan gate", "text": "Claude Code exige un deck antes de ejecutar un plan; OpenCode no.", "tone": "warn"},
+      {"title": "Decks que cambian sin red", "text": "Sin conexión, las fuentes de la marca caen a las del sistema.", "tone": "warn"},
+      {"title": "Dependencias invisibles", "text": "Nadie sabe qué herramientas externas necesita aval hasta que falta una.", "tone": "warn"}
+    ]},
+    {"layout": "steps", "eyebrow": "El orden", "title": "Primero lo que puede salir como parche", "items": [
+      {"title": "T1 · #45 fuzzing y un bug del plan gate", "text": "Si el bug se confirma, sale v0.2.4 sola. Es el último parche antes de las feats.", "tone": "good"},
+      {"title": "T2 · #63 spike del relay", "text": "Sin código en el repo: un kit de pruebas y un runbook para el dueño."},
+      {"title": "T3 y T4 · #72 y #73", "text": "Plan gate en OpenCode (rc.1) y fuentes embebidas (rc.2)."},
+      {"title": "T5 y T6 · #3 y #4", "text": "aval deps (rc.3) y la limpieza de gentle-ai, que #3 desbloquea."},
+      {"title": "T7 · #25 aval hook fmt", "text": "Formatea el archivo recién editado (rc.4)."}
+    ]},
+    {"layout": "timeline", "eyebrow": "Un ejemplo", "title": "Así viaja una issue hasta su versión", "items": [
+      {"tag": "1", "title": "Test en rojo", "text": "Falla en su aserción antes de escribir el arreglo."},
+      {"tag": "2", "title": "Verde y PR", "text": "go test -race, vet, gofmt; CI en verde en los tres sistemas.", "tone": "good"},
+      {"tag": "3", "title": "Merge y CI de main", "text": "Solo con main en verde se etiqueta."},
+      {"tag": "4", "title": "Tag", "text": "Un parche se publica solo; un rc espera al dueño y el trabajo sigue."}
+    ]},
+    {"layout": "compare", "eyebrow": "Parches y rc", "title": "Qué sale solo y qué espera", "items": [
+      {"tag": "automático", "title": "v0.2.4", "text": "Solo si T1 confirma el bug y antes de la primera feat.", "tone": "good"},
+      {"tag": "con aprobación", "title": "v0.3.0-rc.1 a rc.4", "text": "Una por feat. Un fix posterior viaja en el siguiente rc.", "tone": "muted"}
+    ]},
+    {"layout": "checklist", "eyebrow": "Garantías", "title": "Lo que cada entrega cumple", "items": [
+      {"title": "TDD estricto", "text": "RED en su aserción, luego GREEN, luego refactor.", "tone": "good"},
+      {"title": "Trinquete de tamaño", "text": "Ninguna función crece por encima de su techo; doctor y dispatch se refactorizan antes."},
+      {"title": "Notas bilingües", "text": "docs/releases y CHANGELOG en cada versión."},
+      {"title": "Nada se publica sin CI", "text": "El tag solo sale con main en verde."}
+    ]},
+    {"layout": "section", "eyebrow": "Parte dos", "title": "Por dentro: cómo se construye", "lede": "Las piezas nuevas y las decisiones que las sostienen."},
+    {"layout": "flow", "eyebrow": "Las piezas", "title": "Tres piezas nuevas sobre lo que ya existe", "items": [
+      {"title": "plan-gate.ts", "text": "Llama a aval hook plan-gate; no reimplementa nada en TypeScript."},
+      {"title": "core/deps", "text": "Inventario embebido, sondas concurrentes con timeout, un check en doctor.", "tone": "good"},
+      {"title": "agent/fmthook", "text": "Resuelve el formateador por extensión y solo entonces lo lanza."}
+    ]},
+    {"layout": "tree", "eyebrow": "Cómo decide el hook fmt", "title": "Nada se ejecuta en el camino vacío", "items": [
+      {"title": "¿Extensión conocida y formateador del proyecto?", "tag": "Formatear con timeout de 3 s", "tone": "good"},
+      {"title": "¿Archivo ignorado o binario?", "tag": "No hacer nada"},
+      {"title": "¿El formateador falla?", "tag": "Una línea en stderr, la edición sigue", "tone": "warn"}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones", "title": "Lo que el dueño decidió", "columns": ["Decidimos", "Porque", "En lugar de"], "rows": [
+      ["Un rc por feat", "Los números siguen a las milestones", "v0.4.0, v0.5.0 por cada feat"],
+      ["#73 como feat", "El fallback sin red está documentado", "Un parche sin aprobación"],
+      ["Hooks pueden lanzar una herramienta resuelta", "rtk-rewrite ya lo hace, con timeout", "Prohibir el hook fmt"],
+      ["Solo git bloquea el doctor", "El resto degrada, no rompe", "Bloquear por cada herramienta"],
+      ["Inventario solo de lo que usa aval", "Las apps personales no son dependencias", "Las 95 líneas del Brewfile"]
+    ]},
+    {"layout": "checklist", "eyebrow": "Frenos", "title": "Lo que necesita al dueño", "items": [
+      {"title": "Aprobar cada rc", "text": "En el entorno release; el trabajo no espera.", "tone": "warn"},
+      {"title": "Pruebas manuales del relay", "text": "TUI, sesión interactiva, Windows y 10 sesiones reales."},
+      {"title": "Revisar los sustitutos nativos", "text": "El agente los propone en la PR de #3."},
+      {"title": "gga", "text": "Sin respuesta: queda como está."}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Sesión nueva: empezar por T1", "lede": "Confirmar el bug del plan gate con su test en rojo y, si falla, publicar v0.2.4."}
+  ]
+}

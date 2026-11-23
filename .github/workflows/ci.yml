@@ -95,3 +95,30 @@ jobs:
       - name: npm tests
         shell: bash
         run: node --test npm/cli/lib/*.test.js
+
+  # A short fuzzing pass per fuzz target (#45). A finding turns CI red, which
+  # blocks releases; the corpus it wrote is kept as an artifact to reproduce it.
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version: "1.25"
+      - name: fuzz FuzzLessonMatch
+        run: go test ./internal/agent/lessons -run '^$' -fuzz '^FuzzLessonMatch$' -fuzztime=20s
+      - name: fuzz FuzzLessonBody
+        run: go test ./internal/agent/lessons -run '^$' -fuzz '^FuzzLessonBody$' -fuzztime=20s
+      - name: fuzz FuzzPlanGatePath
+        run: go test ./internal/deck -run '^$' -fuzz '^FuzzPlanGatePath$' -fuzztime=20s
+      - name: fuzz FuzzHookInput
+        run: go test ./cmd/aval -run '^$' -fuzz '^FuzzHookInput$' -fuzztime=20s
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: fuzz-corpus
+          path: "**/testdata/fuzz/**"
+          if-no-files-found: ignore

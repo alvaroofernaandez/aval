@@ -85,10 +85,10 @@ func Gate(in io.Reader, out io.Writer, o GateOptions) {
 		return
 	}
 	rel, err := filepath.Rel(root, physical(file))
-	if err != nil || strings.HasPrefix(rel, "..") {
+	rel = filepath.ToSlash(rel)
+	if err != nil || outside(rel) {
 		return
 	}
-	rel = filepath.ToSlash(rel)
 	if strings.HasPrefix(rel, "odd/") || strings.HasPrefix(rel, ".git/") || strings.HasSuffix(rel, ".deck.json") {
 		return
 	}
@@ -122,6 +122,10 @@ func Gate(in io.Reader, out io.Writer, o GateOptions) {
 		HookSpecificOutput specific `json:"hookSpecificOutput"`
 	}{specific{"PreToolUse", "deny", reason}})
 }
+
+// outside reports whether a root-relative path leaves the root. A name that
+// only starts with two dots ("..notes.go") is still inside.
+func outside(rel string) bool { return rel == ".." || strings.HasPrefix(rel, "../") }
 
 // AckPlan records that a deck exists for the plan at planPath, as it is now.
 func AckPlan(cache, planPath string, now time.Time) error {

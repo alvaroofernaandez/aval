@@ -9,6 +9,20 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.2.4 (2026-11-23)
+
+[Release notes](docs/releases/v0.2.4.md) · [Notas en español](docs/releases/v0.2.4.es.md)
+
+### Fixes
+
+- **deck:** the plan gate denies files whose name starts with two dots
+
+### Maintenance
+
+- **fuzz:** `FuzzHookInput` over every JSON hook and `FuzzPlanGatePath` against an independent oracle (#45 remainder)
+- **ci:** a 20 s fuzzing pass per fuzz target, the corpus kept as an artifact (#45)
+- **release:** stable patches publish without approval
+
 ## v0.2.3 (2026-11-23)
 
 [Release notes](docs/releases/v0.2.3.md) · [Notas en español](docs/releases/v0.2.3.es.md)
