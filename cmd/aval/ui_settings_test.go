@@ -317,3 +317,19 @@ func TestNewPrinterForCarriesTheLanguage(t *testing.T) {
 		t.Errorf("printer speaks %q, want es", got)
 	}
 }
+
+// The settings screen notes a language set by --lang the way it notes --theme,
+// so its Language row does not preview a value the flag overrides.
+func TestSettingsEnvReportsTheLangFlag(t *testing.T) {
+	env := uiSettings{flags: uiFlags{Lang: "es"}}.settingsEnv("/cfg", "/home", func(string) string { return "" }, false, 80, 24)
+	if got := env.Flags["language"]; got != "es" {
+		t.Errorf("Flags[language] = %q, want es", got)
+	}
+	if got := env.FlagNames["language"]; got != "--lang" {
+		t.Errorf("FlagNames[language] = %q, want --lang", got)
+	}
+	none := uiSettings{}.settingsEnv("/cfg", "/home", func(string) string { return "" }, false, 80, 24)
+	if _, ok := none.Flags["language"]; ok {
+		t.Error("language is reported as set by a flag when no flag was given")
+	}
+}
