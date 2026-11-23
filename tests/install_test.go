@@ -61,6 +61,9 @@ func (s *sandbox) cat(rel string) string {
 // countBackups mirrors the original `find -mindepth 2 -maxdepth 4`.
 func (s *sandbox) countBackups() int { return len(s.listBackups()) }
 
+// runMetadata are the files a backup run keeps about itself.
+var runMetadata = map[string]bool{"manifest.json": true, "PINNED": true, "ORIGIN": true}
+
 // listBackups names the backed-up items (relative to the backup root).
 func (s *sandbox) listBackups() []string {
 	root := s.path(backupRootName)
@@ -71,7 +74,8 @@ func (s *sandbox) listBackups() []string {
 		}
 		rel, _ := filepath.Rel(root, path)
 		depth := strings.Count(rel, string(filepath.Separator)) + 1
-		if depth >= 2 && depth <= 4 && d.Name() != "manifest.json" {
+		// manifest.json, PINNED and ORIGIN are run metadata, not backed-up items.
+		if depth >= 2 && depth <= 4 && !runMetadata[d.Name()] {
 			items = append(items, rel)
 		}
 		return nil
