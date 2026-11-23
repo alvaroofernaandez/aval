@@ -5,6 +5,7 @@ package pdfreport
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -162,7 +163,7 @@ func Assets(o AssetOptions) error {
 	}
 	st, err := os.Stat(o.BrandDir)
 	if err != nil || !st.IsDir() {
-		return fmt.Errorf("Brand image directory not found: %s", o.BrandDir)
+		return fmt.Errorf("%w: %s", ErrBrandDirMissing, o.BrandDir)
 	}
 	project, err := filepath.Abs(o.Project)
 	if err != nil {
@@ -319,3 +320,6 @@ func Assets(o AssetOptions) error {
 	}
 	return nil
 }
+
+// ErrBrandDirMissing is a --brand-dir that does not exist.
+var ErrBrandDirMissing = errors.New("Brand image directory not found")

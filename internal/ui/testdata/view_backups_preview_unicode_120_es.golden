@@ -1,0 +1,15 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Restaurar 20261123-101402                            sync · 2026-11-23 10:14
+
+  ! se restauraría  ~/.claude/settings.json
+  ! se quitaría     ~/.gemini/GEMINI.md
+  √ sin cambios     ~/.codex/AGENTS.md
+
+  1 por restaurar · 1 por quitar · 1 sin cambios
+
+  ────────────────────────────────────────────────────────────────────────────
+  Todavía no ha cambiado nada
+  enter continuar · esc volver · ? ayuda · q salir

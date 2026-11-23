@@ -161,15 +161,18 @@ func AckPlan(cache, planPath string, now time.Time) error {
 }
 
 // PlanCacheDir is XDG_CACHE_HOME, else ~/.cache (same base as the design gate).
-func PlanCacheDir() (string, error) {
-	if x := os.Getenv("XDG_CACHE_HOME"); x != "" {
+func PlanCacheDir() (string, error) { return PlanCacheDirFrom(os.Getenv, os.UserHomeDir) }
+
+// PlanCacheDirFrom is PlanCacheDir over an injected environment and home lookup.
+func PlanCacheDirFrom(getenv func(string) string, home func() (string, error)) (string, error) {
+	if x := getenv("XDG_CACHE_HOME"); x != "" {
 		return x, nil
 	}
-	home, err := os.UserHomeDir()
+	h, err := home()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".cache"), nil
+	return filepath.Join(h, ".cache"), nil
 }
 
 func markerPath(cache, root string) string {

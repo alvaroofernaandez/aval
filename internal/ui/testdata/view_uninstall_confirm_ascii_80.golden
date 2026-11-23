@@ -1,0 +1,10 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
+
+    Uninstall  remove the links, put back what was there
+  > Cancel     change nothing
+
+  ----------------------------------------------------------------------------
+  Everything is recorded in ~/.aval-backup first  undo: aval restore latest
+  up/down move  enter choose  esc back  ? help  q quit

@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -106,17 +105,26 @@ func TestShellHelpersWaitforReturnsOnceTheConditionHolds(t *testing.T) {
 	t.Parallel()
 	b := newZshBox(t)
 	flag := filepath.Join(b.root, "flag")
-	start := time.Now()
-	var wg sync.WaitGroup
-	wg.Add(1)
+	polled := filepath.Join(b.root, "polled")
+	done := make(chan struct{})
 	go func() {
-		defer wg.Done()
-		b.z(b.root, "WAITFOR_INTERVAL=1 WAITFOR_QUIET=1 waitfor '[[ -f "+flag+" ]]'", "")
+		defer close(done)
+		// The condition records that it ran, so the test knows waitfor is
+		// really waiting before it lets the flag appear.
+		b.z(b.root, "WAITFOR_INTERVAL=1 WAITFOR_QUIET=1 waitfor 'touch "+polled+"; [[ -f "+flag+" ]]'", "")
 	}()
-	time.Sleep(time.Second)
+	isTrue(t, "waitfor evaluated its condition", eventually(30*time.Second, func() bool { _, err := os.Stat(polled); return err == nil }))
+	select {
+	case <-done:
+		t.Fatal("waitfor returned before the condition held")
+	default:
+	}
 	write(t, flag, "")
-	wg.Wait()
-	isTrue(t, "waitfor returns within 10 s of the flag appearing", time.Since(start) < 10*time.Second)
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second): // hard stop, not an assertion on speed
+		t.Fatal("waitfor did not return after the condition held")
+	}
 }
 
 func TestShellHelpersGitAndReactDoctorShortcuts(t *testing.T) {

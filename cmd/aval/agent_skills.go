@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"io"
 	"strings"
 
@@ -27,7 +26,7 @@ asset flags:
 // runKiri is `aval kiri up`.
 func runKiri(args []string) error {
 	if len(args) != 1 || args[0] != "up" {
-		return errors.New(kiriUsage)
+		return newUsage(kiriUsage)
 	}
 	if kiri.Up(kiri.OSOptions()) != 0 {
 		return errChecksFailed
@@ -38,12 +37,12 @@ func runKiri(args []string) error {
 // runDocker is `aval docker cleanup`.
 func runDocker(args []string) error {
 	if len(args) == 0 || args[0] != "cleanup" {
-		return errors.New(dockerUsage)
+		return newUsage(dockerUsage)
 	}
 	pos, flags := splitFlags(args[1:])
 	_, dry := flags["--dry-run"]
 	if len(pos) != 0 || len(flags) > 1 || (len(flags) == 1 && !dry) {
-		return errors.New(dockerUsage)
+		return newUsage(dockerUsage)
 	}
 	if dockerclean.Cleanup(dockerclean.OSOptions(dry)) != 0 {
 		return errChecksFailed
@@ -91,7 +90,7 @@ func parseRGBFlag(v string, def [3]uint8) ([3]uint8, error) {
 // runPDF is `aval pdf init|assets`.
 func runPDF(args []string, out io.Writer) error {
 	if len(args) == 0 {
-		return errors.New(pdfUsage)
+		return newUsage(pdfUsage)
 	}
 	o, pos, err := parsePDFAssetFlags(args[1:])
 	if err != nil {
@@ -101,7 +100,7 @@ func runPDF(args []string, out io.Writer) error {
 	switch args[0] {
 	case "init":
 		if len(pos) != 1 {
-			return errors.New(pdfUsage)
+			return newUsage(pdfUsage)
 		}
 		return pdfreport.Init(pdfreport.InitOptions{
 			Dir: pos[0], Skill: pdfreport.SkillDir(), Assets: o, Out: out,
@@ -109,7 +108,7 @@ func runPDF(args []string, out io.Writer) error {
 		})
 	case "assets":
 		if len(pos) > 1 {
-			return errors.New(pdfUsage)
+			return newUsage(pdfUsage)
 		}
 		o.Project = "."
 		if len(pos) == 1 {
@@ -117,5 +116,5 @@ func runPDF(args []string, out io.Writer) error {
 		}
 		return pdfreport.Assets(o)
 	}
-	return errors.New(pdfUsage)
+	return newUsage(pdfUsage)
 }

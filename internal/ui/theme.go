@@ -1,39 +1,46 @@
 // Package ui renders the installer.
 //
-// The palette is Tokyo Night (the "Night" variant), used at its published hex
-// values rather than approximated, so the installer sits in the same visual
-// family as the editor and terminal configs this repository installs.
+// Themes are a table of palettes (palette.go) mapped onto one fixed set of
+// tokens: text, strong, muted, rule, ok, warn, fail, key and cursor. The views
+// only ever see the styles derived from those tokens, so a new palette never
+// touches a view.
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 
-// Tokyo Night — Night variant. Names follow the upstream theme so a value can
-// be checked against it directly instead of guessed at.
-const (
-	ColorBG        = "#1a1b26" // canvas
-	ColorBGDark    = "#16161e" // recessed surfaces
-	ColorBGHigh    = "#292e42" // selected row
-	ColorFG        = "#c0caf5" // primary text
-	ColorFGDark    = "#a9b1d6" // secondary text
-	ColorComment   = "#565f89" // de-emphasised text
-	ColorBlue      = "#7aa2f7" // primary accent
-	ColorCyan      = "#7dcfff" // headings
-	ColorMagenta   = "#bb9af7" // selection marker
-	ColorGreen     = "#9ece6a" // success
-	ColorYellow    = "#e0af68" // warning, backups
-	ColorOrange    = "#ff9e64" // emphasis
-	ColorRed       = "#f7768e" // failure
-	ColorTerminal3 = "#414868" // borders
+	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
+
+// DefaultThemeName is the theme used when none is configured.
+const DefaultThemeName = "aval"
+
+// themeCycle is what left and right step through in settings: the families,
+// not every variant. A pinned variant already in the file is shown and stays
+// valid.
+var themeCycle = []string{
+	"aval", "catppuccin", "tokyo-night", "gruvbox", "dracula", "nord", "kanagawa",
+	"rose-pine", "solarized", "one-dark", "everforest", "terminal", "mono",
+}
 
 // Theme carries every style the views use. It is a struct rather than a set of
 // package-level vars so tests can build one without a terminal attached.
 type Theme struct {
+	// Name is the resolved variant, for example "aval-dark" or "mono".
+	Name   string
+	Glyphs Glyphs
+
+	// Tokens.
+	Text, Strong, Muted, Rule lipgloss.Style
+	OK, Warn, Fail            lipgloss.Style
+	Key, Cursor               lipgloss.Style
+
+	// Derived styles the current views use. Each is one token, nothing more.
 	Title       lipgloss.Style
 	Subtitle    lipgloss.Style
 	Heading     lipgloss.Style
 	Body        lipgloss.Style
-	Muted       lipgloss.Style
 	Selected    lipgloss.Style
 	Marker      lipgloss.Style
 	Checked     lipgloss.Style
@@ -42,50 +49,119 @@ type Theme struct {
 	Warning     lipgloss.Style
 	Failure     lipgloss.Style
 	Box         lipgloss.Style
-	Key         lipgloss.Style
 	Bar         lipgloss.Style
 	BarEmpty    lipgloss.Style
 	Unavailable lipgloss.Style
+
+	// stateGlyph styles the glyph of each StateKind. A palette whose state
+	// token fell back to strong has no marker of its own, so the glyph is bold
+	// whenever the value equals strong. plain is set under an Ascii profile.
+	stateGlyph [3]lipgloss.Style
+	plain      bool
+	// renderer is the one the styles were built on, so a theme derived from
+	// this one (the settings preview) emits the same colour profile.
+	renderer *lipgloss.Renderer
 }
 
-// NewTheme builds the Tokyo Night theme.
+// NewTheme resolves name (a family that follows c.Dark, or a pinned variant)
+// and builds its styles on r. An Ascii profile (NO_COLOR, no TTY) overrides
+// every theme with mono, so no colour sequence is ever emitted; bold and
+// reverse survive.
 //
-// Nothing sets a background colour except the selected row. A TUI that paints
-// its own canvas fights the user's terminal — and looks broken in any theme but
-// the one it assumed. Foreground colours alone read correctly on both.
-func NewTheme() Theme {
-	return Theme{
-		Title:    lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(ColorCyan)),
-		Subtitle: lipgloss.NewStyle().Foreground(lipgloss.Color(ColorFGDark)),
-		Heading:  lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(ColorBlue)),
-		Body:     lipgloss.NewStyle().Foreground(lipgloss.Color(ColorFG)),
-		Muted:    lipgloss.NewStyle().Foreground(lipgloss.Color(ColorComment)),
+// Nothing paints a background. The cursor row is reverse video, which reads in
+// every terminal theme without assuming one.
+func NewTheme(name string, c caps.Caps, r *lipgloss.Renderer) (Theme, error) {
+	if r == nil {
+		r = lipgloss.DefaultRenderer()
+	}
+	p, err := LookupPalette(name, c.Dark)
+	if err != nil {
+		return Theme{}, err
+	}
+	if c.Profile == termenv.Ascii {
+		p = palettes["mono"]
+	}
 
-		Selected: lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorFG)).
-			Background(lipgloss.Color(ColorBGHigh)).
-			Bold(true),
-		Marker:    lipgloss.NewStyle().Foreground(lipgloss.Color(ColorMagenta)).Bold(true),
-		Checked:   lipgloss.NewStyle().Foreground(lipgloss.Color(ColorGreen)).Bold(true),
-		Unchecked: lipgloss.NewStyle().Foreground(lipgloss.Color(ColorTerminal3)),
+	fg := func(v string) lipgloss.Style {
+		s := r.NewStyle()
+		if v != "" {
+			s = s.Foreground(lipgloss.Color(v))
+		}
+		return s
+	}
 
-		Success: lipgloss.NewStyle().Foreground(lipgloss.Color(ColorGreen)),
-		Warning: lipgloss.NewStyle().Foreground(lipgloss.Color(ColorYellow)),
-		Failure: lipgloss.NewStyle().Foreground(lipgloss.Color(ColorRed)).Bold(true),
+	t := Theme{
+		Name:     p.Name,
+		renderer: r,
+		Glyphs:   GlyphsFor(c),
 
-		Box: lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color(ColorTerminal3)).
-			Padding(0, 1),
+		Text:   fg(p.Text),
+		Strong: fg(p.Strong).Bold(true),
+		Muted:  fg(p.Muted),
+		Rule:   fg(p.Rule),
+		OK:     fg(p.OK),
+		Warn:   fg(p.Warn),
+		Fail:   fg(p.Fail).Bold(true),
+		Key:    fg(p.Key).Bold(true),
+		Cursor: r.NewStyle().Reverse(true),
+	}
+	// terminal has no hex rule colour to recede with, so it uses faint. mono
+	// stays on bold and reverse only, and muted is never faint anywhere.
+	if p.Rule == "" && p.Name == "terminal" {
+		t.Rule = t.Rule.Faint(true)
+	}
 
-		Key:      lipgloss.NewStyle().Foreground(lipgloss.Color(ColorOrange)).Bold(true),
-		Bar:      lipgloss.NewStyle().Foreground(lipgloss.Color(ColorBlue)),
-		BarEmpty: lipgloss.NewStyle().Foreground(lipgloss.Color(ColorTerminal3)),
+	t.plain = c.Profile == termenv.Ascii
+	for k, v := range map[StateKind]struct {
+		val   string
+		style lipgloss.Style
+	}{StateOK: {p.OK, t.OK}, StateWarn: {p.Warn, t.Warn}, StateFail: {p.Fail, t.Fail}} {
+		st := v.style
+		if p.Strong != "" && v.val == p.Strong {
+			st = st.Bold(true)
+		}
+		t.stateGlyph[k] = st
+	}
 
-		// Groups that do not apply to this machine are shown, not hidden: a
-		// user on Windows should see that the terminal environment exists and
-		// why it is unavailable, rather than wonder what is missing.
-		Unavailable: lipgloss.NewStyle().Foreground(lipgloss.Color(ColorTerminal3)).Italic(true),
+	t.Title = t.Strong
+	t.Subtitle = t.Muted
+	t.Heading = t.Strong
+	t.Body = t.Text
+	t.Selected = t.Cursor
+	t.Marker = t.Key
+	t.Checked = t.OK.Bold(true)
+	t.Unchecked = t.Muted
+	t.Success = t.OK
+	t.Warning = t.Warn
+	t.Failure = t.Fail
+	t.Box = r.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(t.Rule.GetForeground()).Padding(0, 1)
+	t.Bar = t.Text
+	t.BarEmpty = t.Rule
+	// Groups that do not apply to this machine are shown, not hidden: a user
+	// on Windows should see that the terminal environment exists and why it
+	// is unavailable, rather than wonder what is missing.
+	t.Unavailable = t.Muted
+	return t, nil
+}
+
+// DefaultTheme is the aval theme on the default renderer, with Unicode glyphs
+// and the dark variant. It never fails: aval is always registered. Call sites
+// that know the terminal's capabilities should use NewTheme.
+func DefaultTheme() Theme {
+	r := lipgloss.DefaultRenderer()
+	t, err := NewTheme(DefaultThemeName, caps.Caps{Profile: r.ColorProfile(), Unicode: true, Dark: true}, r)
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
+func (t Theme) styles() []lipgloss.Style {
+	return []lipgloss.Style{
+		t.Text, t.Strong, t.Muted, t.Rule, t.OK, t.Warn, t.Fail, t.Key, t.Cursor,
+		t.Title, t.Subtitle, t.Heading, t.Body, t.Selected, t.Marker, t.Checked,
+		t.Unchecked, t.Success, t.Warning, t.Failure, t.Box, t.Bar, t.BarEmpty,
+		t.Unavailable,
 	}
 }
 
@@ -102,10 +178,43 @@ func (t Theme) ProgressBar(done, total, width int) string {
 	bar := ""
 	for i := 0; i < width; i++ {
 		if i < filled {
-			bar += t.Bar.Render("█")
+			bar += t.Bar.Render(t.Glyphs.BarFull)
 		} else {
-			bar += t.BarEmpty.Render("░")
+			bar += t.BarEmpty.Render(t.Glyphs.BarEmpty)
 		}
 	}
 	return bar
+}
+
+// StateKind selects the glyph and token of a state cell.
+type StateKind int
+
+const (
+	StateOK StateKind = iota
+	StateWarn
+	StateFail
+)
+
+// State renders a state cell: the glyph in the state token, a space, then the
+// word in the text token. Colour sits on the glyph only (DESIGN.md section 10).
+// Under an Ascii profile it is plain "glyph word", with no escapes at all.
+func (t Theme) State(k StateKind, word string) string {
+	glyph := t.Glyphs.OK
+	switch k {
+	case StateWarn:
+		glyph = t.Glyphs.Warn
+	case StateFail:
+		glyph = t.Glyphs.Fail
+	}
+	return t.StateWith(k, glyph, word)
+}
+
+// StateWith is State with another glyph in the state's token: the hub's
+// `↑ 3` behind-upstream badge is a warn state drawn with an arrow.
+func (t Theme) StateWith(k StateKind, glyph, word string) string {
+	style := t.stateGlyph[k]
+	if t.plain {
+		return glyph + " " + word
+	}
+	return style.Render(glyph) + " " + t.Text.Render(word)
 }

@@ -257,7 +257,7 @@ func (gt Gate) Run(target string, w io.Writer) error {
 	}
 
 	if failed > 0 {
-		return fmt.Errorf("%d check(s) failed; nothing was tagged", failed)
+		return gateFailed(failed)
 	}
 	return nil
 }
@@ -298,7 +298,7 @@ func Cut(g Git, o CutOptions) error {
 		return err
 	}
 	if o.Kind == "promote" && p.Target != st.Head {
-		return fmt.Errorf("main has moved past the release candidate (%s); promote only tags the rc's own commit. Cut a new rc, or check out %s", short(st.Head), short(p.Target))
+		return fmt.Errorf("%w (%s); promote only tags the rc's own commit. Cut a new rc, or check out %s", errMovedPastRC, short(st.Head), short(p.Target))
 	}
 
 	channel := ChannelStable
@@ -373,3 +373,14 @@ func WorkflowURL(remote string) string {
 	}
 	return fmt.Sprintf("https://github.com/%s/%s/actions/workflows/release.yml", m[1], m[2])
 }
+
+// gateFailed is the number of release checks that failed; each one is a
+// [FAIL] line in the gate's output.
+type gateFailed int
+
+func (n gateFailed) Error() string {
+	return fmt.Sprintf("%d check(s) failed; nothing was tagged", int(n))
+}
+
+// errMovedPastRC refuses a promote once main has commits the rc does not have.
+var errMovedPastRC = errors.New("main has moved past the release candidate")

@@ -20,6 +20,8 @@ import (
 // proprietaryPatterns come from the Go binary, assembled from fragments there
 // (internal/agent/prepush): a scanner whose source spells the words it forbids
 // matches itself.
+// The binary is the one source of the patterns the shell-side scans use, so
+// this reads them from it rather than testing the command.
 func proprietaryPatterns(t *testing.T) []*regexp.Regexp {
 	t.Helper()
 	r := run(repo, nil, "", avalBin(t), "hook", "pre-push", "patterns")

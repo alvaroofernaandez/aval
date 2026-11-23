@@ -1,0 +1,11 @@
+ aval 0.3.0
+ Fix broken-links: remove 2
+ dangling links from the agent
+ directories.
+
+   Remove 2 links
+   back up, then unlink
+ › Cancel          change nothing
+ Recorded in ~/.aval-backup first;
+ undo with aval restore latest
+ enter choose · esc back · ? help

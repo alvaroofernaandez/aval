@@ -1,0 +1,29 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Doctor                                                9 ok · 1 warn · 2 fail
+
+  › × fail   broken-links    2 broken                            fix available
+    × fail   settings-drift  live settings differ in: hooks      fix available
+    ! warn   skills          1 skill incomplete
+    √ ok     links           57 manifest links in place
+    √ ok     hooks-resolve   14 hook commands resolve
+    √ ok     hooks-retired   no retired hooks
+    √ ok     hooks-drift     hooks match the repo
+    √ ok     agents          12 agents pin an alias
+    √ ok     plugins         3 plugins installed
+    √ ok     overlay         no private overlay
+    √ ok     overlay-links   nothing to link
+    √ ok     config          no config file, defaults apply
+
+  Dangling links
+  Dangling links in the agent directories point at files that no longer exist,
+  usually a skill removed from the repo.
+    ~/.claude/skills/old-skill
+    ~/.claude/skills/retired
+
+  ────────────────────────────────────────────────────────────────────────────
+  3 of 12 need attention · 2 can be fixed here
+  ↑↓ move · f fix this · a fix all · r re-run · s security · esc back · ? help
+  q quit

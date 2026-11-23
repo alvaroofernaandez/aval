@@ -2,6 +2,7 @@ package update
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 )
@@ -118,8 +119,8 @@ func TestPullRefusesToTouchADirtyTree(t *testing.T) {
 	if g.called("pull") || g.called("stash") {
 		t.Error("Pull touched a dirty repository")
 	}
-	if !strings.Contains(err.Error(), "uncommitted") {
-		t.Errorf("the error should explain itself, got: %v", err)
+	if !errors.Is(err, ErrDirtyTree) {
+		t.Errorf("err = %v, want ErrDirtyTree", err)
 	}
 }
 

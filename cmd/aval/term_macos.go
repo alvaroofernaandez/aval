@@ -46,7 +46,7 @@ func runMacos(args []string, out io.Writer) error {
 	case len(args) >= 2 && args[0] == "screenshot-clipboard" && args[1] == "copy":
 		return copyScreenshot(args[2:], home)
 	}
-	return fmt.Errorf("%s", macosUsage)
+	return newUsage(macosUsage)
 }
 
 // copyScreenshot is the action the LaunchAgent runs. CLIP_CMD replaces the

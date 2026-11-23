@@ -37,7 +37,7 @@ func realDeckDeps() deckDeps {
 	}
 }
 
-func usageErr() error { return errors.New(deckUsage + deck.Help()) }
+func usageErr() error { return newUsage(deckUsage + deck.Help()) }
 
 func runDeck(args []string, out io.Writer, d deckDeps) error {
 	if len(args) == 0 {
@@ -91,7 +91,7 @@ func deckBuild(args []string, out io.Writer, d deckDeps) error {
 		case a == "--open":
 			open = true
 		case strings.HasPrefix(a, "-"):
-			return fmt.Errorf("unknown flag %s\n%s", a, deckUsage)
+			return newUsage(fmt.Sprintf("unknown flag %s\n%s", a, deckUsage))
 		case spec == "":
 			spec = a
 		default:
@@ -102,10 +102,10 @@ func deckBuild(args []string, out io.Writer, d deckDeps) error {
 		return usageErr()
 	}
 	if pdf == "" {
-		return errors.New("aval deck build needs -o <out.pdf>: where the deck is saved")
+		return errNoOutput
 	}
 	if !strings.EqualFold(filepath.Ext(pdf), ".pdf") {
-		return fmt.Errorf("the output must be a .pdf file, got %s", pdf)
+		return fmt.Errorf("%w, got %s", errNotPDF, pdf)
 	}
 	pdf, err := filepath.Abs(pdf)
 	if err != nil {
@@ -168,3 +168,9 @@ func openFile(path string) error {
 		return exec.Command("xdg-open", path).Start()
 	}
 }
+
+// errNoOutput is deck build without -o; errNotPDF an -o that is not a .pdf.
+var (
+	errNoOutput = errors.New("aval deck build needs -o <out.pdf>: where the deck is saved")
+	errNotPDF   = errors.New("the output must be a .pdf file")
+)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -32,7 +33,7 @@ func TestRunHookLessonsUsesEnvDirsAndXDGState(t *testing.T) {
 
 	var out bytes.Buffer
 	in := `{"session_id":"abc","tool_name":"Bash","tool_input":{"command":"git commit -m x"}}`
-	if err := runHook([]string{"lessons"}, strings.NewReader(in), &out); err != nil {
+	if err := runHook([]string{"lessons"}, procIO(strings.NewReader(in), &out)); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "No trailers.") {
@@ -51,7 +52,7 @@ func TestRunHookLessonsDefaultsToHomeClaudeLessons(t *testing.T) {
 	writeFile(t, filepath.Join(home, ".claude", "lessons", "x.md"), "---\ntriggers:\n  - '**/*.tsx'\n---\nHi.\n")
 	var out bytes.Buffer
 	in := `{"session_id":"s","tool_name":"Edit","tool_input":{"file_path":"/p/a.tsx"}}`
-	if err := runHook([]string{"lessons"}, strings.NewReader(in), &out); err != nil {
+	if err := runHook([]string{"lessons"}, procIO(strings.NewReader(in), &out)); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "Hi.") {
@@ -63,7 +64,7 @@ func TestRunHookLessonsDefaultsToHomeClaudeLessons(t *testing.T) {
 }
 
 func TestRunHookUnknownHookIsAnError(t *testing.T) {
-	if err := runHook([]string{"nope"}, strings.NewReader(""), &bytes.Buffer{}); err == nil {
+	if err := runHook([]string{"nope"}, procIO(strings.NewReader(""), &bytes.Buffer{})); err == nil {
 		t.Error("an unknown hook name must be reported")
 	}
 }
@@ -76,7 +77,7 @@ func TestRunHookDesignGateReadsEnvAndDenies(t *testing.T) {
 	in := `{"session_id":"s","cwd":` + q(proj) + `,"tool_name":"Edit","tool_input":{"file_path":` + q(filepath.Join(proj, "Button.tsx")) + `}}`
 
 	var out bytes.Buffer
-	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil {
+	if err := runHook([]string{"design-gate"}, procIO(strings.NewReader(in), &out)); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), `"permissionDecision":"deny"`) || !strings.Contains(out.String(), "`aval design ack <surface>`") {
@@ -85,7 +86,7 @@ func TestRunHookDesignGateReadsEnvAndDenies(t *testing.T) {
 
 	t.Setenv("DESIGN_PIPELINE_OFF", "1")
 	out.Reset()
-	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil || out.Len() != 0 {
+	if err := runHook([]string{"design-gate"}, procIO(strings.NewReader(in), &out)); err != nil || out.Len() != 0 {
 		t.Errorf("DESIGN_PIPELINE_OFF must silence the gate, got %q err=%v", out.String(), err)
 	}
 }
@@ -95,12 +96,12 @@ func TestRunHookDesignGateAllowsAfterAck(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", cache)
 	t.Setenv("DESIGN_PIPELINE_OFF", "")
 	t.Setenv("DESIGN_ACK_TTL", "")
-	if err := runDesign([]string{"ack", "pricing"}, proj, &bytes.Buffer{}); err != nil {
+	if err := runDesign([]string{"ack", "pricing"}, proj, &bytes.Buffer{}, os.Getenv); err != nil {
 		t.Fatal(err)
 	}
 	in := `{"session_id":"s","cwd":` + q(proj) + `,"tool_name":"Write","tool_input":{"file_path":` + q(filepath.Join(proj, "app.css")) + `}}`
 	var out bytes.Buffer
-	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil || out.Len() != 0 {
+	if err := runHook([]string{"design-gate"}, procIO(strings.NewReader(in), &out)); err != nil || out.Len() != 0 {
 		t.Errorf("an acked project must be allowed, got %q err=%v", out.String(), err)
 	}
 	if !fileExists(filepath.Join(cache, "design-gate", "ui-edited.s")) {
@@ -114,7 +115,7 @@ func TestRunHookDesignShotStopUsesCache(t *testing.T) {
 	t.Setenv("DESIGN_PIPELINE_OFF", "")
 	writeFile(t, filepath.Join(cache, "design-gate", "ui-edited.s9"), proj)
 	var out bytes.Buffer
-	if err := runHook([]string{"design-shot-stop"}, strings.NewReader(`{"session_id":"s9"}`), &out); err != nil {
+	if err := runHook([]string{"design-shot-stop"}, procIO(strings.NewReader(`{"session_id":"s9"}`), &out)); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), `"decision":"block"`) {
@@ -125,7 +126,116 @@ func TestRunHookDesignShotStopUsesCache(t *testing.T) {
 func TestRunHookRtkRewriteWithoutRtkIsASilentNoOp(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	var out bytes.Buffer
-	if err := runHook([]string{"rtk-rewrite"}, strings.NewReader(`{"tool_input":{"command":"git status"}}`), &out); err != nil || out.Len() != 0 {
+	if err := runHook([]string{"rtk-rewrite"}, procIO(strings.NewReader(`{"tool_input":{"command":"git status"}}`), &out)); err != nil || out.Len() != 0 {
 		t.Errorf("no rtk on PATH must pass through, got %q err=%v", out.String(), err)
+	}
+}
+
+func rateGuardEnv(t *testing.T) string {
+	t.Helper()
+	cfg := t.TempDir()
+	testenv.SetHome(t, t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	t.Setenv("AVAL_RATE_GUARD_HOSTS", "")
+	return cfg
+}
+
+func rateGuard(t *testing.T, in string) string {
+	t.Helper()
+	var out bytes.Buffer
+	if err := runHook([]string{"rate-guard"}, procIO(strings.NewReader(in), &out)); err != nil {
+		t.Fatalf("rate-guard must exit 0, got %v", err)
+	}
+	return out.String()
+}
+
+func bashPayload(cmd string) string {
+	return `{"session_id":"s","tool_name":"Bash","tool_input":{"command":` + q(cmd) + `}}`
+}
+
+func TestRunHookRateGuardDeniesABatchWithTheExactJSON(t *testing.T) {
+	rateGuardEnv(t)
+	got := rateGuard(t, bashPayload(`for p in a b c; do curl -s "https://www.innohelp.es/$p"; done`))
+	want := `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Helice (innohelp.es / helice.app) bans the IP after rapid requests. Do not crawl it: use the Helice panel via Claude in Chrome, or make 1-2 spaced requests."}}` + "\n"
+	if got != want {
+		t.Errorf("output:\n  got  %q\n  want %q", got, want)
+	}
+}
+
+func TestRunHookRateGuardAllowsWithNoOutput(t *testing.T) {
+	rateGuardEnv(t)
+	for _, cmd := range []string{`curl -sL https://www.innohelp.es/`, `for p in a b; do curl https://example.com/$p; done`, `echo innohelp.es`} {
+		if got := rateGuard(t, bashPayload(cmd)); got != "" {
+			t.Errorf("%s: output = %q, want none", cmd, got)
+		}
+	}
+}
+
+func TestRunHookRateGuardReadsTheHostsFileAndEnv(t *testing.T) {
+	cfg := rateGuardEnv(t)
+	writeFile(t, filepath.Join(cfg, "aval", "rate-guard-hosts"), "# mine\nshop.test\n")
+	if got := rateGuard(t, bashPayload(`for i in 1 2; do curl https://api.shop.test/$i; done`)); !strings.Contains(got, `"shop.test bans the IP`) {
+		t.Errorf("a host from the file must be guarded and named, got %q", got)
+	}
+	t.Setenv("AVAL_RATE_GUARD_HOSTS", "env.test")
+	if got := rateGuard(t, bashPayload(`for i in 1 2; do wget https://env.test/$i; done`)); !strings.Contains(got, `"deny"`) {
+		t.Errorf("a host from AVAL_RATE_GUARD_HOSTS must be guarded, got %q", got)
+	}
+}
+
+func TestRunHookRateGuardFailsOpen(t *testing.T) {
+	cfg := rateGuardEnv(t)
+	batch := `for p in a b c; do curl -s "https://www.innohelp.es/$p"; done`
+	for name, in := range map[string]string{
+		"bad JSON":      `{"tool_name":"Bash","tool_input":`,
+		"non-Bash tool": `{"tool_name":"Write","tool_input":{"command":` + q(batch) + `}}`,
+	} {
+		if got := rateGuard(t, in); got != "" {
+			t.Errorf("%s: output = %q, want none", name, got)
+		}
+	}
+	// A directory where the file should be: readable as nothing.
+	if err := os.MkdirAll(filepath.Join(cfg, "aval", "rate-guard-hosts"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := rateGuard(t, bashPayload(batch)); got != "" {
+		t.Errorf("unreadable hosts file: output = %q, want none", got)
+	}
+}
+
+// Behaviour against the real lessons in config/claude/lessons, in process.
+// Moved from tests/lessons_test.go, which keeps one real-binary smoke call.
+func TestLessonsInjectionAgainstTheRealLessons(t *testing.T) {
+	env := map[string]string{
+		"HOME":             t.TempDir(),
+		"AVAL_LESSONS_DIR": filepath.Join(repoRoot(t), "config", "claude", "lessons"),
+	}
+	fire := func(payload string) string {
+		r := runIn(t, env, payload, "hook", "lessons")
+		var v struct {
+			H struct {
+				C string `json:"additionalContext"`
+			} `json:"hookSpecificOutput"`
+		}
+		_ = json.Unmarshal([]byte(r.stdout), &v)
+		return v.H.C
+	}
+	cases := []struct{ what, payload, want string }{
+		{"editing a .tsx file injects the screenshot lesson", `{"session_id":"u1","tool_name":"Edit","tool_input":{"file_path":"/p/web/src/Card.tsx"}}`, `screenshot|shot.mjs`},
+		{"editing a .tsx file injects the native-elements lesson", `{"session_id":"u2","tool_name":"Write","tool_input":{"file_path":"/p/web/src/Card.tsx"}}`, `native`},
+		{"editing a Dockerfile injects the Kiri lesson", `{"session_id":"d1","tool_name":"Edit","tool_input":{"file_path":"/p/api/Dockerfile"}}`, `Kiri`},
+		{"running docker injects the Kiri lesson", `{"session_id":"d2","tool_name":"Bash","tool_input":{"command":"docker compose up -d"}}`, `Kiri`},
+		{"committing injects the attribution lesson", `{"session_id":"c1","tool_name":"Bash","tool_input":{"command":"git commit -m \"feat: x\""}}`, `Co-Authored-By`},
+	}
+	for _, c := range cases {
+		if got := fire(c.payload); !regexp.MustCompile(c.want).MatchString(got) {
+			t.Errorf("%s: /%s/ not found in %q", c.what, c.want, got)
+		}
+	}
+	if got := fire(`{"session_id":"n1","tool_name":"Edit","tool_input":{"file_path":"/p/main.go"}}`); got != "" {
+		t.Errorf("editing plain Go code injects nothing: got %q", got)
+	}
+	if got := fire(`{"session_id":"d1","tool_name":"Edit","tool_input":{"file_path":"/p/api/Dockerfile"}}`); got != "" {
+		t.Errorf("a lesson shows once per session: got %q", got)
 	}
 }

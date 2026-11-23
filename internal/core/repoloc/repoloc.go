@@ -13,13 +13,12 @@
 package repoloc
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+
+	cfgfile "github.com/alvaroofernaandez/aval/internal/core/config"
 )
 
 // Manifest is the file that marks the root of an aval checkout.
@@ -65,14 +64,14 @@ func Resolve(s Sources) (string, error) {
 			return root, nil
 		}
 	}
-	return "", fmt.Errorf("cannot find the aval repository (%s): run 'aval install --repo <path>' once from your checkout, or set %s", Manifest, EnvVar)
+	return "", fmt.Errorf("%w (%s): run 'aval install --repo <path>' once from your checkout, or set %s", ErrNotFound, Manifest, EnvVar)
 }
 
 func explicit(path, source string) (string, error) {
 	if root := walkUp(path); root != "" {
 		return root, nil
 	}
-	return "", fmt.Errorf("%s points at %s, which is not an aval repository (no %s)", source, path, Manifest)
+	return "", &sourceError{Source: source, Path: path}
 }
 
 func walkUp(start string) string {
@@ -96,77 +95,79 @@ func walkUp(start string) string {
 // ConfigPath is where install records the repository:
 // ${XDG_CONFIG_HOME:-~/.config}/aval/config, or %APPDATA%\aval\config on Windows.
 func ConfigPath(getenv func(string) string, home, goos string) string {
-	if x := getenv("XDG_CONFIG_HOME"); x != "" {
-		return filepath.Join(x, "aval", "config")
-	}
-	if goos == "windows" {
-		if a := getenv("APPDATA"); a != "" {
-			return filepath.Join(a, "aval", "config")
-		}
-	}
-	return filepath.Join(home, ".config", "aval", "config")
+	return cfgfile.Path(getenv, home, goos)
 }
 
 // Load returns the repo value from a config file. A missing file is not an
-// error: it only means install has not recorded anything yet.
+// error: it only means install has not recorded anything yet. Other keys and
+// their validation belong to the config package.
 func Load(path string) (string, error) {
-	f, err := os.Open(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		return "", nil
-	}
+	f, _, err := cfgfile.Load(path)
 	if err != nil {
-		return "", fmt.Errorf("reading %s: %w", path, err)
+		return "", err
 	}
-	defer f.Close()
-
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		if k, v, ok := keyValue(sc.Text()); ok && k == "repo" {
-			return v, nil
-		}
-	}
-	if err := sc.Err(); err != nil {
-		return "", fmt.Errorf("reading %s: %w", path, err)
-	}
-	return "", nil
+	repo, _ := f.Get("repo")
+	return repo, nil
 }
 
 // Save records repo in the config file, keeping any other lines it holds.
 func Save(path, repo string) error {
-	var kept []string
-	if b, err := os.ReadFile(path); err == nil {
-		for line := range strings.SplitSeq(strings.TrimRight(string(b), "\n"), "\n") {
-			if k, _, ok := keyValue(line); ok && k == "repo" {
-				continue
-			}
-			kept = append(kept, line)
-		}
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("reading %s: %w", path, err)
-	}
-	if len(kept) == 0 {
-		kept = []string{"# Written by aval install. Override with --repo or $" + EnvVar + "."}
-	}
-	text := strings.Join(append(kept, "repo = "+repo), "\n") + "\n"
-
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, []byte(text), 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
+	return cfgfile.Set(path, "repo", repo)
 }
 
-func keyValue(line string) (key, value string, ok bool) {
-	line = strings.TrimSpace(line)
-	if line == "" || strings.HasPrefix(line, "#") {
-		return "", "", false
+// ErrNotFound marks the "no source named a repository and none was found"
+// failure, as opposed to an explicit source that points at the wrong place.
+var ErrNotFound = errors.New("cannot find the aval repository")
+
+// Check is the checkout check for a path a person typed: it accepts the root
+// of a checkout or any folder inside one (the same walk as --repo) and returns
+// the root. Each error says what is wrong with the path and how to fix it.
+func Check(path string) (string, error) {
+	if path == "" {
+		return "", &checkError{errNoPath, "Type the path to the folder where aval is cloned."}
 	}
-	k, v, found := strings.Cut(line, "=")
-	if !found {
-		return "", "", false
+	fi, err := os.Stat(path)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		return "", &checkError{errPathMissing, fmt.Sprintf("%s does not exist. Check the spelling, or clone aval there first.", path)}
+	case err != nil:
+		return "", fmt.Errorf("%s cannot be read: %v. Pick a folder you can open.", path, err)
+	case !fi.IsDir():
+		return "", &checkError{errNotADir, fmt.Sprintf("%s is a file. Type the folder that holds %s.", path, Manifest)}
 	}
-	return strings.TrimSpace(k), strings.TrimSpace(v), true
+	if root := walkUp(path); root != "" {
+		return root, nil
+	}
+	return "", &checkError{errNotACheckout, fmt.Sprintf("%s is not an aval repository: it has no %s. Type the folder that holds it.", path, Manifest)}
 }
+
+// Find returns the root of the checkout that contains start, or "" when
+// there is none within the walk limit.
+func Find(start string) string { return walkUp(start) }
+
+// sourceError is an explicit source (--repo, $AVAL_REPO, the config file)
+// that points at no checkout. Source names it as the message does.
+type sourceError struct{ Source, Path string }
+
+func (e *sourceError) Error() string {
+	return fmt.Sprintf("%s points at %s, which is not an aval repository (no %s)", e.Source, e.Path, Manifest)
+}
+
+// The ways a typed path fails Check. Each is wrapped in a checkError whose
+// message tells the person what to do.
+var (
+	errNoPath       = errors.New("no path")
+	errPathMissing  = errors.New("path does not exist")
+	errNotADir      = errors.New("path is a file")
+	errNotACheckout = errors.New("path is not a checkout")
+)
+
+// checkError is a Check failure: msg is what the person reads, kind which
+// failure it is.
+type checkError struct {
+	kind error
+	msg  string
+}
+
+func (e *checkError) Error() string { return e.msg }
+func (e *checkError) Unwrap() error { return e.kind }

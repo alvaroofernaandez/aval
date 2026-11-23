@@ -17,6 +17,8 @@ import (
 // is allowed while that marker is younger than DESIGN_ACK_TTL seconds
 // (default 4 h) and .agents/DESIGN.md still hashes the same. The plugin reads
 // the same file, so one `aval design ack` opens both agents.
+//
+// Stays a real process: the bun plugin under test spawns the aval binary.
 
 type ocGate struct {
 	*dgEnv
@@ -31,7 +33,7 @@ func newOCGate(t *testing.T) *ocGate {
 	// The fixture imports the plugin by a path relative to the repo; point it at
 	// the repo under test.
 	src := read(t, "tests/testdata/opencode-gate-probe.ts")
-	src = regexp.MustCompile(`from "[^"]*design-gate\.ts"`).ReplaceAllString(src, `from "`+plugin+`"`)
+	src = regexp.MustCompile(`from "[^"]*design-gate\.ts"`).ReplaceAllString(src, `from "`+filepath.ToSlash(plugin)+`"`)
 	probe := filepath.Join(d.root, "probe", "opencode-gate-probe.ts")
 	write(t, probe, src)
 	return &ocGate{dgEnv: d, probe: probe}

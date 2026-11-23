@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"time"
 
@@ -46,7 +45,7 @@ func runBudget(home string, args []string, out io.Writer) error {
 // it can assess; the tier is information, not a gate.
 func runReview(dir string, args []string, out io.Writer) error {
 	if len(args) == 0 || args[0] != "assess" {
-		return fmt.Errorf("usage: aval review assess [--base <ref>] [--json]")
+		return newUsage("usage: aval review assess [--base <ref>] [--json]")
 	}
 	fs := newFlagSet("review assess", out)
 	base := fs.String("base", "", "ref to compare against (default: main, master, origin/main, origin/master, else HEAD)")

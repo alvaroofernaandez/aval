@@ -1,0 +1,29 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ----------------------------------------------------------------------------
+
+  Doctor                                               9 ok  1 aviso  2 fallos
+
+  > x fallo  broken-links    2 broken                    corrección disponible
+    x fallo  settings-drift  live settings differ in...  corrección disponible
+    ! aviso  skills          1 skill incomplete
+    ok ok    links           57 manifest links in place
+    ok ok    hooks-resolve   14 hook commands resolve
+    ok ok    hooks-retired   no retired hooks
+    ok ok    hooks-drift     hooks match the repo
+    ok ok    agents          12 agents pin an alias
+    ok ok    plugins         3 plugins installed
+    ok ok    overlay         no private overlay
+    ok ok    overlay-links   nothing to link
+    ok ok    config          no config file, defaults apply
+
+  Dangling links
+  Dangling links in the agent directories point at files that no longer exist,
+  usually a skill removed from the repo.
+    ~/.claude/skills/old-skill
+    ~/.claude/skills/retired
+
+  ----------------------------------------------------------------------------
+  3 de 12 requieren atención  2 se pueden corregir aquí
+  up/down mover  f corregir esto  a corregir todo  r repetir  s seguridad
+  esc volver  ? ayuda  q salir

@@ -13,7 +13,7 @@ import (
 // runPrePush is `aval hook pre-push [remote url]`, the body of .githooks/pre-push.
 // `aval hook pre-push patterns` prints the employer-material patterns, one per
 // line, for the shell suites that scan the tree and the history with them.
-func runPrePush(args []string, in io.Reader, out io.Writer) error {
+func runPrePush(args []string, in io.Reader, out, errOut io.Writer, getenv func(string) string) error {
 	if len(args) > 0 && args[0] == "patterns" {
 		for _, p := range prepush.Patterns() {
 			fmt.Fprintln(out, p)
@@ -31,9 +31,9 @@ func runPrePush(args []string, in io.Reader, out io.Writer) error {
 		Repo:     repo,
 		Gitleaks: runGitleaks(repo),
 		Drift:    prePushDrift(repo),
-		Strict:   os.Getenv("AVAL_PREPUSH_STRICT") == "1",
+		Strict:   getenv("AVAL_PREPUSH_STRICT") == "1",
 	}
-	if !prepush.Run(in, os.Stderr, opt) {
+	if !prepush.Run(in, errOut, opt) {
 		return errChecksFailed // already reported
 	}
 	return nil

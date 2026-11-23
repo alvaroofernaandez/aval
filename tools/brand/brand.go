@@ -261,8 +261,13 @@ func run(args []string, stdout, stderr io.Writer) error {
 	docsFlag := fs.String("docs", "", "docs directory (default: <repo root>/docs)")
 	list := fs.Bool("list", false, "print the tool labels, one per line")
 	noLogo := fs.Bool("no-logo", false, "print the tools with no published logo")
+	termOut := fs.String("wordmark-term", "", "write the terminal wordmark Go file to `PATH` (internal/ui/wordmark_gen.go) and exit")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	if *termOut != "" {
+		return os.WriteFile(*termOut, wordmarkTermSource(), 0o644)
 	}
 
 	if *list || *noLogo {

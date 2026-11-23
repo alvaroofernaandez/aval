@@ -1,0 +1,16 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Le damos la bienvenida. aval enlaza sus configuraciones en su directorio
+  home.
+  No se borra nada: lo que estorbe pasa antes a ~/.aval-backup.
+
+  ¿Dónde está el repositorio de aval?
+
+  › ( ) Clonarlo en ~/.aval            necesita git y conexión de red
+    ( ) Usar una carpeta que ya tengo  escriba o pegue una ruta
+
+  ────────────────────────────────────────────────────────────────────────────
+  paso 1 de 3 · repositorio
+  ↑↓ mover · enter elegir · ? ayuda · q salir

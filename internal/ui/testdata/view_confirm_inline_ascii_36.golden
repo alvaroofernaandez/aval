@@ -1,0 +1,14 @@
+ aval 0.2.0
+ Uninstall                  2 links
+
+ ! would remove  ~/.clau...ld-skill
+ ! would remove  ~/.clau.../retired
+
+ > Apply sync
+   back up, write, verify with
+   doctor
+   Back        change nothing
+ Files in the way move to
+ ~/.aval-backup first, undo: aval
+ restore latest
+ enter choose  esc back  ? help

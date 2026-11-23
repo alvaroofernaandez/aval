@@ -388,3 +388,99 @@ func TestCreatedDirsAreRemovedOnlyWhenEmpty(t *testing.T) {
 		t.Error("a non-empty dir and its user file must survive")
 	}
 }
+
+func TestOriginRoundTripsThroughList(t *testing.T) {
+	s, home := newStore(t)
+	p := filepath.Join(home, "f")
+	put(t, p, "x")
+	rec := s.Begin()
+	rec.SetOrigin("sync")
+	if _, err := rec.Snapshot(p); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := rec.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	runs, err := s.List()
+	if err != nil || len(runs) != 1 {
+		t.Fatalf("List = %v, %v", runs, err)
+	}
+	if runs[0].Origin != "sync" {
+		t.Errorf("Origin = %q, want %q", runs[0].Origin, "sync")
+	}
+}
+
+func TestRunWithoutOriginMarkerListsEmptyOrigin(t *testing.T) {
+	s, home := newStore(t)
+	p := filepath.Join(home, "f")
+	put(t, p, "x")
+	rec := s.Begin()
+	if _, err := rec.Snapshot(p); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := rec.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	runs, _ := s.List()
+	if len(runs) != 1 || runs[0].Origin != "" {
+		t.Errorf("runs = %+v, want one run with Origin \"\"", runs)
+	}
+}
+
+func TestPreviewWritesNothingAndReturnsTypedActions(t *testing.T) {
+	skipWindows(t)
+	s, home := newStore(t)
+	repo := t.TempDir()
+	put(t, filepath.Join(home, ".zshrc"), "mine\n")
+	put(t, filepath.Join(home, ".same"), "untouched\n")
+	rec := s.Begin()
+	for _, name := range []string{".zshrc", ".same", ".new", ".theirs", ".never"} {
+		if _, err := rec.Snapshot(filepath.Join(home, name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// aval replaced .zshrc and created .new and .theirs; .never stays absent.
+	_ = os.Remove(filepath.Join(home, ".zshrc"))
+	for _, name := range []string{".zshrc", ".new", ".theirs"} {
+		p := filepath.Join(home, name)
+		link(t, filepath.Join(repo, "src"), p)
+		if err := rec.Wrote(p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, _, err := rec.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	// The user then swapped .theirs for a file of their own.
+	_ = os.Remove(filepath.Join(home, ".theirs"))
+	put(t, filepath.Join(home, ".theirs"), "user content\n")
+
+	run, err := s.Resolve("latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, storeBefore := tree(t, home), tree(t, s.Root)
+	acts, err := s.Preview(run, RestoreOptions{Repo: repo})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]ActionKind{}
+	for _, a := range acts {
+		got[filepath.Base(a.Path)] = a.Kind
+	}
+	want := map[string]ActionKind{
+		".zshrc": ActRestore, ".same": ActUnchanged, ".new": ActRemove,
+		".never": ActGone, ".theirs": ActKept,
+	}
+	for name, k := range want {
+		if got[name] != k {
+			t.Errorf("kind[%s] = %q, want %q (all: %v)", name, got[name], k, got)
+		}
+	}
+	if after := tree(t, home); after != before {
+		t.Errorf("Preview changed home\nbefore:\n%s\nafter:\n%s", before, after)
+	}
+	if after := tree(t, s.Root); after != storeBefore {
+		t.Error("Preview changed the backup store")
+	}
+}

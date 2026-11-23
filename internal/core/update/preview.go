@@ -31,7 +31,7 @@ func DryRun(ctx context.Context, g Git, paths []string) (Preview, error) {
 		return p, err
 	}
 	if s.DirtyTree {
-		return p, fmt.Errorf("update: the repository has uncommitted changes; commit or stash them first")
+		return p, ErrDirtyTree
 	}
 	if s.Behind == 0 {
 		return p, nil

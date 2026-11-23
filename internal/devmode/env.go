@@ -163,15 +163,26 @@ func VerifyEnv(env []string, root, goos string) error {
 		}
 		v, ok := got[key]
 		if !ok || v == "" {
-			return fmt.Errorf("isolated variable %s is not set", k)
+			return &envError{Var: k}
 		}
 		rv, err := resolve(v)
 		if err != nil {
 			return err
 		}
 		if !inside(r, rv) {
-			return fmt.Errorf("%s=%s is outside the sandbox root %s", k, v, root)
+			return &envError{Var: k, Value: v, Root: root}
 		}
 	}
 	return nil
+}
+
+// envError is a sandbox variable that is unset (Value "") or points outside
+// the sandbox root. Var names it.
+type envError struct{ Var, Value, Root string }
+
+func (e *envError) Error() string {
+	if e.Value == "" {
+		return fmt.Sprintf("isolated variable %s is not set", e.Var)
+	}
+	return fmt.Sprintf("%s=%s is outside the sandbox root %s", e.Var, e.Value, e.Root)
 }

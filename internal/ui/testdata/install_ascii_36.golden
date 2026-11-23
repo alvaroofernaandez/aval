@@ -1,0 +1,11 @@
+ aval 0.2.0
+ Installing                  4 of 6
+ ######################------------
+
+   ok linked             ~/....conf
+   ok already installed  ~/....toml
+   ! backed up           ~/.zshrc
+   x failed              ~/....stty
+   > linking             ~/....nvim
+ 1 failed so far
+ ? help

@@ -40,7 +40,7 @@ func Detect() Platform {
 }
 
 // Unix reports whether this machine gets the Unix install: symlinks into
-// $HOME, and the terminal groups offered. WSL counts as Unix — that is the
+// $HOME, and the terminal groups offered. WSL counts as Unix: that is the
 // entire reason someone installs these dotfiles from Windows.
 func (p Platform) Unix() bool { return p.OS != "windows" }
 
@@ -57,7 +57,7 @@ func (p Platform) Display() string {
 			name = "Linux"
 		}
 		if p.WSL {
-			return fmt.Sprintf("WSL — %s (%s)", name, p.Arch)
+			return fmt.Sprintf("%s on WSL (%s)", name, p.Arch)
 		}
 		return fmt.Sprintf("%s (%s)", name, p.Arch)
 	default:
@@ -70,9 +70,9 @@ func (p Platform) Display() string {
 // a copied one needs the installer run again.
 func (p Platform) InstallStyle(symlinks bool) string {
 	if symlinks {
-		return "symlinked — edits in the repo apply immediately"
+		return "symlinked: edits in the repo apply immediately"
 	}
-	return "copied — re-run the installer after changing the repo"
+	return "copied: re-run the installer after changing the repo"
 }
 
 // SupportsSymlinks probes whether a symlink can actually be created in dir.

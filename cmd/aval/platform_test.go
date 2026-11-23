@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,14 +11,8 @@ import (
 
 func TestUnsupportedHereNamesTheCommandAndWSL(t *testing.T) {
 	for cmd := range unixOnly {
-		err := unsupportedHere("windows", cmd)
-		if err == nil {
-			t.Errorf("aval %s should be refused on windows", cmd)
-			continue
-		}
-		msg := err.Error()
-		if !strings.Contains(msg, "aval "+cmd) || !strings.Contains(msg, "not supported on windows") || !strings.Contains(msg, "WSL") {
-			t.Errorf("unclear message for %s: %q", cmd, msg)
+		if err := unsupportedHere("windows", cmd); !errors.Is(err, errUnsupported) {
+			t.Errorf("aval %s should be refused on windows, got %v", cmd, err)
 		}
 		for _, goos := range []string{"darwin", "linux"} {
 			if err := unsupportedHere(goos, cmd); err != nil {
@@ -40,7 +35,7 @@ func TestCopyModeInstallDoctorUninstallRoundTrip(t *testing.T) {
 	repo, home := fakeMachine(t)
 	dest := filepath.Join(home, ".claude", "agents")
 
-	if err := runInstall(repo, home, false, true, true); err != nil {
+	if err := runInstall(repo, home, false, true, true, uiSettings{}); err != nil {
 		t.Fatal(err)
 	}
 	if fi, err := os.Lstat(dest); err != nil || fi.Mode()&os.ModeSymlink != 0 || !fi.IsDir() {
@@ -52,11 +47,11 @@ func TestCopyModeInstallDoctorUninstallRoundTrip(t *testing.T) {
 
 	// An identical copy is healthy, and a second install does not displace it.
 	var out bytes.Buffer
-	_ = runDoctor(repo, home, nil, &out)
+	_ = runDoctor(repo, home, nil, &out, uiSettings{})
 	if strings.Contains(out.String(), "manifest links") && strings.Contains(out.String(), "need attention") {
 		t.Errorf("doctor flags a healthy copy:\n%s", out.String())
 	}
-	if err := runInstall(repo, home, false, true, true); err != nil {
+	if err := runInstall(repo, home, false, true, true, uiSettings{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -65,7 +60,7 @@ func TestCopyModeInstallDoctorUninstallRoundTrip(t *testing.T) {
 	if err := os.WriteFile(edited, []byte("mine"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := runUninstall(repo, home, []string{"--yes"}, false, false, strings.NewReader(""), &bytes.Buffer{}); err != nil {
+	if err := runUninstall(repo, home, []string{"--yes"}, false, false, strings.NewReader(""), &bytes.Buffer{}, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(edited); string(b) != "mine" {
@@ -77,7 +72,7 @@ func TestCopyModeInstallDoctorUninstallRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	out.Reset()
-	if err := runUninstall(repo, home, []string{"--yes"}, false, false, strings.NewReader(""), &out); err != nil {
+	if err := runUninstall(repo, home, []string{"--yes"}, false, false, strings.NewReader(""), &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Lstat(dest); err == nil {

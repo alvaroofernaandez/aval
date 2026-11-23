@@ -12,6 +12,7 @@ package update
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -98,7 +99,7 @@ func Pull(ctx context.Context, g Git) (Status, error) {
 		return s, err
 	}
 	if s.DirtyTree {
-		return s, fmt.Errorf("update: the repository has uncommitted changes; commit or stash them first")
+		return s, ErrDirtyTree
 	}
 	if s.Behind == 0 {
 		return s, nil
@@ -116,3 +117,7 @@ func Pull(ctx context.Context, g Git) (Status, error) {
 // DefaultTimeout bounds network operations so a hung fetch cannot wedge the
 // installer indefinitely.
 const DefaultTimeout = 60 * time.Second
+
+// ErrDirtyTree is the refusal to pull, or preview a pull, over uncommitted
+// changes: an installer never moves someone's work out of the way.
+var ErrDirtyTree = errors.New("update: the repository has uncommitted changes; commit or stash them first")

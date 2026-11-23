@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/manifest"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
@@ -214,5 +215,101 @@ func TestUninstallRemovesOnlyTheRulesBlock(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(foreign); string(b) != "keep" {
 		t.Error("an unrelated file was touched")
+	}
+}
+
+func TestUninstallRunRecordsItsOrigin(t *testing.T) {
+	opt := machine(t)
+	installAll(t, opt)
+	if _, err := Run(opt); err != nil {
+		t.Fatal(err)
+	}
+	runs, err := backup.NewStore(opt.Home).List()
+	if err != nil || len(runs) == 0 {
+		t.Fatalf("runs = %v, %v", runs, err)
+	}
+	if runs[0].Origin != "uninstall" {
+		t.Errorf("newest run Origin = %q, want uninstall (all: %+v)", runs[0].Origin, runs)
+	}
+	if last := runs[len(runs)-1]; last.Origin != "install" {
+		t.Errorf("oldest run Origin = %q, want install", last.Origin)
+	}
+}
+
+// fullTree is treeOf without the backup-store exemption: it sees everything.
+func fullTree(t *testing.T, root string) string {
+	t.Helper()
+	var lines []string
+	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(root, p)
+		fi, _ := os.Lstat(p)
+		switch {
+		case fi.Mode()&os.ModeSymlink != 0:
+			tg, _ := os.Readlink(p)
+			lines = append(lines, fmt.Sprintf("L %s -> %s", rel, tg))
+		case fi.IsDir():
+			lines = append(lines, fmt.Sprintf("D %s %o", rel, fi.Mode().Perm()))
+		default:
+			b, _ := os.ReadFile(p)
+			lines = append(lines, fmt.Sprintf("F %s %o %q", rel, fi.Mode().Perm(), b))
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Strings(lines)
+	return strings.Join(lines, "\n")
+}
+
+func TestPreviewWritesNothingAndTypesItsItems(t *testing.T) {
+	opt := machine(t)
+	installAll(t, opt)
+	codex := filepath.Join(opt.Home, ".codex/AGENTS.md")
+	applied, _ := avalsync.ApplyRules("shared rules", "my own notes\n")
+	put(t, codex, applied)
+
+	before := fullTree(t, opt.Home)
+	runsBefore, _ := backup.NewStore(opt.Home).List()
+
+	items, err := Preview(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after := fullTree(t, opt.Home); after != before {
+		t.Errorf("Preview wrote to HOME\nbefore:\n%s\nafter:\n%s", before, after)
+	}
+	runsAfter, _ := backup.NewStore(opt.Home).List()
+	if len(runsAfter) != len(runsBefore) {
+		t.Errorf("Preview created a backup run: %d -> %d", len(runsBefore), len(runsAfter))
+	}
+
+	type want struct {
+		kind     ItemKind
+		restores bool
+	}
+	wants := map[string]want{
+		".zshrc":           {KindRemoveLink, true}, // my zshrc is put back
+		".config/tmux":     {KindRemoveLink, false},
+		".tmux.conf":       {KindRemoveLink, false},
+		".codex/AGENTS.md": {KindCutBlock, false},
+	}
+	got := map[string]Item{}
+	for _, it := range items {
+		rel, _ := filepath.Rel(opt.Home, it.Path)
+		got[filepath.ToSlash(rel)] = it
+	}
+	for rel, w := range wants {
+		it, ok := got[rel]
+		if !ok {
+			t.Errorf("no item for %s (items: %+v)", rel, items)
+			continue
+		}
+		if it.Kind != w.kind || it.Restores != w.restores {
+			t.Errorf("%s = {%q, restores %v}, want {%q, restores %v}", rel, it.Kind, it.Restores, w.kind, w.restores)
+		}
 	}
 }

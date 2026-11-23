@@ -1,0 +1,19 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Copias                                             ~/.aval-backup · 4 copias
+
+  › 2026-11-23 10:14   sync         3 entradas
+    2026-11-23 09:02   install     12 entradas   fijada
+    2026-11-20 18:40   uninstall   14 entradas
+    2026-11-19 08:11   sync         2 entradas   × fallida, revertida
+
+  20261123-101402 contiene
+    ~/.claude/settings.json  archivo
+    ~/.codex/AGENTS.md       archivo
+    ~/.gemini/GEMINI.md      creado por aval
+
+  ────────────────────────────────────────────────────────────────────────────
+  Se conservan las 5 copias más recientes sin fijar
+  ↑↓ mover · enter ver restauración · p fijar · esc volver · ? ayuda · q salir

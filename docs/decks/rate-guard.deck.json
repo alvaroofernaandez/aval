@@ -1,0 +1,32 @@
+{
+  "title": "rate-guard",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · rate-guard", "title": "Ningún agente vuelve a quemar la IP de la oficina", "lede": "Un hook que bloquea las ráfagas de peticiones HTTP a hosts que banean, antes de que se ejecuten.", "note": "Hoy 45 curl seguidos contra innohelp.es bloquearon la IP pública."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "Un rastreo rápido cuesta la conexión", "items": [
+      {"title": "45 curl seguidos", "text": "Una sesión rastreó innohelp.es en bucle.", "tone": "warn"},
+      {"title": "IP baneada", "text": "443 y 80 rechazados desde la oficina; ping sigue respondiendo.", "tone": "warn"},
+      {"title": "Mismo servidor", "text": "innohelp.es y helice.app comparten 142.93.110.132.", "tone": "warn"}
+    ]},
+    {"layout": "tree", "eyebrow": "Cómo decide", "title": "Antes de cada comando Bash", "items": [
+      {"title": "¿Usa curl, wget, httpie, xh, aria2c...?", "tag": "Si no, pasa", "tone": "good"},
+      {"title": "¿Apunta a un host protegido?", "tag": "Si no, pasa", "tone": "good"},
+      {"title": "¿Va en bucle, xargs, parallel o -P?", "tag": "Bloquea", "tone": "warn"},
+      {"title": "¿Más de 3 URLs o una lista de URLs?", "tag": "Bloquea", "tone": "warn"},
+      {"title": "Si no", "tag": "Pasa: petición suelta", "tone": "good"}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones", "title": "Por qué se construye así", "columns": ["Decidimos", "Porque", "En lugar de"], "rows": [
+      ["Dentro de aval", "settings.json se sincroniza desde aval", "Script suelto en ~/.claude"],
+      ["Hosts en archivo propio y env", "Los hooks no leen la config de aval", "Clave en aval config"],
+      ["Falla abierto", "Un bug nunca bloquea trabajo", "Bloquear ante la duda"],
+      ["Mensaje que orienta", "El modelo sabe qué hacer en su lugar", "Un no sin más"]
+    ]},
+    {"layout": "steps", "eyebrow": "El camino", "title": "Cuatro tareas", "items": [
+      {"title": "Paquete rateguard", "text": "Decide con TDD: casos de bucle, xargs, 4 URLs, curl suelto, otro host."},
+      {"title": "aval hook rate-guard", "text": "Lee el JSON, responde deny o nada; falla abierto."},
+      {"title": "Registrar el hook", "text": "settings.json (Bash) y OpenCode si es barato."},
+      {"title": "Sync y verificar", "text": "aval sync y prueba con un payload real.", "tone": "good"}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Escribir los casos RED", "lede": "Cinco casos que bloquean y seis que pasan, antes de una línea de código."}
+  ]
+}

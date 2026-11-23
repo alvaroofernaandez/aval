@@ -91,8 +91,8 @@ func TestFailingCheckRestoresSettingsAndMarksTheRunFailed(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error when a doctor check fails")
 	}
-	if !strings.Contains(err.Error(), "hooks-resolve") {
-		t.Errorf("error %q should name the failing check", err)
+	if !failedCheck(out, "hooks-resolve") {
+		t.Errorf("outcome %+v should name the failing check hooks-resolve", out)
 	}
 	if out == nil || !out.RolledBack || len(out.Failed) == 0 {
 		t.Fatalf("outcome = %+v, want rolled back with failures", out)
@@ -173,4 +173,17 @@ func TestDryRunWritesNothing(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(opt.Home, ".claude/settings.json")); err == nil {
 		t.Error("dry run wrote settings")
 	}
+}
+
+// failedCheck reports whether the outcome lists the doctor check id as failed.
+func failedCheck(out *Outcome, id string) bool {
+	if out == nil {
+		return false
+	}
+	for _, r := range out.Failed {
+		if r.ID == id {
+			return true
+		}
+	}
+	return false
 }

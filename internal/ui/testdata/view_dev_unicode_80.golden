@@ -1,0 +1,14 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Dev sandbox                                                ~/.cache/aval/dev
+
+  A throwaway home for trying aval. Nothing in it touches your real home.
+
+  › default  √ ready       ~/.cache/aval/dev/default
+    release  ! incomplete  ~/.cache/aval/dev/release
+
+  ────────────────────────────────────────────────────────────────────────────
+  Enter leaves this screen for a shell in the sandbox; exit brings you back
+  ↑↓ move · enter open shell · n new · r reset · d remove · ? help · q quit

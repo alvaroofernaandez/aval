@@ -1,0 +1,15 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Choose what to install                   symlinked: repo edits apply at once
+
+  › [√] Terminal and shell envi… 2 items  2 new
+        tmux, zsh and the prompt, wired for this machine
+    [ ] Editor                   1 item   1 new
+    [-] Windows Terminal profile only offered on Windows, this machine runs m…
+
+  ────────────────────────────────────────────────────────────────────────────
+  2 of 3 items selected · 2 new · 0 linked · 0 files moved to backup
+  ↑↓ move · space toggle · ←→ details · a all · n none · enter install
+  s settings · ? help · q quit

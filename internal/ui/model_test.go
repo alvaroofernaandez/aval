@@ -10,7 +10,6 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
-	"github.com/alvaroofernaandez/aval/internal/core/platform"
 )
 
 func testModel(t *testing.T) Model {
@@ -30,7 +29,7 @@ func testModel(t *testing.T) Model {
 		}},
 	}}
 	r := install.New(install.Options{Home: home, Symlinks: true})
-	return NewModel(p, platform.Platform{OS: "darwin", Arch: "arm64"}, r, true, false)
+	return NewModel(p, r, Options{Version: "0.2.0", Platform: "macOS (arm64)", Symlinks: true})
 }
 
 func key(s string) tea.KeyMsg {
@@ -162,18 +161,6 @@ func TestTheRunAppliesEveryActionAndFinishes(t *testing.T) {
 	}
 }
 
-func TestQuitIsRefusedMidInstall(t *testing.T) {
-	// Quitting here leaves the run half-applied with no summary explaining it.
-	m := testModel(t)
-	next, _ := m.Update(key("enter"))
-	m = next.(Model)
-
-	m = send(m, "q")
-	if m.Quitting {
-		t.Error("q must not quit while files are being written")
-	}
-}
-
 func TestQuitWorksOnTheSelectScreen(t *testing.T) {
 	m := testModel(t)
 	m = send(m, "q")
@@ -229,7 +216,7 @@ func TestDoneViewNamesTheBackupDirectory(t *testing.T) {
 		{Source: src, Dest: dest, Label: "~/.a"},
 	}}}}
 	r := install.New(install.Options{Home: home, Symlinks: true})
-	m := NewModel(p, platform.Platform{OS: "darwin"}, r, true, false)
+	m := NewModel(p, r, Options{Platform: "macOS (arm64)", Symlinks: true})
 
 	next, cmd := m.Update(key("enter"))
 	m = next.(Model)

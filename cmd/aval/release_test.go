@@ -172,7 +172,7 @@ func TestReleaseUsageErrors(t *testing.T) {
 	work, _ := releaseRepo(t)
 	commitIn(t, work, "feat: a")
 	for _, args := range [][]string{{}, {"bogus"}} {
-		if _, err := release1(t, work, "", args...); err == nil || !strings.Contains(err.Error(), "usage") {
+		if _, err := release1(t, work, "", args...); !isUsage(err) {
 			t.Errorf("%v: err = %v, want usage", args, err)
 		}
 	}

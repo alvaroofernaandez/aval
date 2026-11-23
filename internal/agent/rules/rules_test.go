@@ -1,9 +1,9 @@
 package rules
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -97,7 +97,7 @@ func TestCheckReportsDriftWithoutWriting(t *testing.T) {
 func TestSyncFailsWithoutSharedBlock(t *testing.T) {
 	repo := fixture(t, "x\n")
 	write(t, filepath.Join(repo, "config/claude/CLAUDE.md"), "no markers here\n")
-	if _, err := Sync(repo, false); err == nil || !strings.Contains(err.Error(), "no block found") {
+	if _, err := Sync(repo, false); !errors.Is(err, errNoBlock) {
 		t.Fatalf("err = %v", err)
 	}
 }

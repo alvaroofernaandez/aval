@@ -1,0 +1,23 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
+
+  Build
+  Version     0.3.0
+  Commit      abc1234
+  Built       2026-05-06T00:00:00Z
+  Channel     stable
+
+  Paths
+  Repository  ~/.aval
+  Config      ~/.config/aval/config
+  Backups     ~/.aval-backup
+  Sandboxes   ~/.cache/aval/dev
+  Binary      ~/go/bin/aval
+
+  Links
+  Source      https://github.com/alvaroofernaandez/aval
+  Issues      https://github.com/alvaroofernaandez/aval/issues
+
+  ----------------------------------------------------------------------------
+  up/down scroll  ? help  q quit

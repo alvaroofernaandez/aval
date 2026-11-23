@@ -9,8 +9,9 @@ node_modules/
 # macOS
 .DS_Store
 
-# Design notes stay local, not published
-.agents/
+# Agent notes stay local; the design contract is versioned
+.agents/*
+!.agents/DESIGN.md
 
 # Shell secrets stay out of version control
 secrets.zsh

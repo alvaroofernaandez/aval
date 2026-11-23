@@ -1,0 +1,15 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
+
+  Restore 20261123-101402                               sync  2026-11-23 10:14
+
+  ! would restore   ~/.claude/settings.json
+  ! would remove    ~/.gemini/GEMINI.md
+  ok unchanged      ~/.codex/AGENTS.md
+
+  1 to restore  1 to remove  1 unchanged
+
+  ----------------------------------------------------------------------------
+  Nothing has changed yet
+  enter continue  esc back  ? help  q quit

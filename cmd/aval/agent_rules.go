@@ -11,7 +11,7 @@ import (
 // the scoped lessons from CLAUDE.md into OpenCode's AGENTS.md.
 func runRules(repo string, args []string, out io.Writer) error {
 	if len(args) == 0 || args[0] != "sync" {
-		return fmt.Errorf("usage: aval rules sync [--check]")
+		return newUsage("usage: aval rules sync [--check]")
 	}
 	fs := newFlagSet("rules sync", out)
 	check := fs.Bool("check", false, "read-only: exit 1 if AGENTS.md has drifted from CLAUDE.md")

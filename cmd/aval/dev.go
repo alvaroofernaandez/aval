@@ -11,6 +11,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/devmode"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // runDev is `aval dev [shell|run|reset|ls|rm|diff|project] [--name N] [--nested]`.
@@ -83,11 +84,11 @@ func runDev(repoFlag string, args []string) error {
 			return err
 		}
 		if code != 0 {
-			os.Exit(code)
+			return exitCode(code)
 		}
 	case "project":
 		if len(rest) != 1 {
-			return errors.New("usage: aval dev project <path-to-git-repo>")
+			return newUsage("usage: aval dev project <path-to-git-repo>")
 		}
 		dest, err := devmode.Project(s, rest[0], env)
 		if err != nil {
@@ -148,9 +149,9 @@ func devDiff(repoFlag, home string, out io.Writer) error {
 	symlinks := pf.SupportsSymlinks(probe)
 
 	fmt.Fprintf(out, "aval dev diff (read-only, nothing is written): what would change in %s\n\n== aval install --yes ==\n", home)
-	if err := runHeadless(p, pf, install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: true}), symlinks, true); err != nil {
+	if err := runHeadless(p, pf, install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: true}), symlinks, true, uiSettings{}); err != nil {
 		return err
 	}
 	fmt.Fprintln(out, "\n== aval sync ==")
-	return runSync(repo, home, []string{"--dry-run"}, true, out)
+	return runSync(repo, home, []string{"--dry-run"}, true, out, i18n.New(i18n.English))
 }

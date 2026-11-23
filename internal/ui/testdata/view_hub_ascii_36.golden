@@ -1,0 +1,12 @@
+ aval 0.3.0
+ ! 1 warn  0.3.1 available
+ > v Install
+   @ Update     ^ 3
+   = Sync
+   + Doctor     ! 1
+   o Backups      4
+   x Uninstall
+   * Settings
+   # Dev sandbox  2
+   i About
+ enter open  ? help

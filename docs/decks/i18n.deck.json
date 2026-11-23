@@ -1,0 +1,28 @@
+{
+  "title": "aval en dos idiomas",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · i18n", "title": "aval te habla en tu idioma", "lede": "La TUI y los mensajes de los comandos, en inglés y en español. Lo que leen las máquinas sigue en inglés."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "Un catálogo es la lista de todos los textos de aval", "lede": "Cada texto tiene una clave y una versión por idioma. El código pide la clave; nunca escribe el texto directamente."},
+    {"layout": "tree", "eyebrow": "Cómo elige el idioma", "title": "De lo más explícito a lo detectado", "items": [
+      {"title": "¿Has pasado --lang?", "tag": "Gana el flag"},
+      {"title": "¿Hay AVAL_LANG?", "tag": "Gana la variable"},
+      {"title": "¿language en la config?", "tag": "Gana el archivo"},
+      {"title": "¿Tu sistema está en español (LANG)?", "tag": "Español", "tone": "good"},
+      {"title": "Si no", "tag": "Inglés"}
+    ]},
+    {"layout": "checklist", "eyebrow": "Lo que no cambia", "title": "Las máquinas siguen leyendo inglés", "items": [
+      {"title": "--json", "text": "Igual en cualquier idioma."},
+      {"title": "Hooks y statusline", "text": "Los leen otras herramientas."},
+      {"title": "Códigos de error", "text": "La identidad del error no se traduce."},
+      {"title": "Documentación y skills", "text": "Siguen en inglés en esta versión."}
+    ]},
+    {"layout": "steps", "eyebrow": "El camino", "title": "Cuatro tareas, después de los estándares", "items": [
+      {"title": "I1 catálogo y selección", "text": "Claves, plurales, precedencia y un test de claves completas."},
+      {"title": "I2 la TUI", "text": "Hub, vistas, instalador, ajustes y ayuda; golden por idioma."},
+      {"title": "I3 la CLI", "text": "Mensajes humanos traducidos; el inglés queda idéntico."},
+      {"title": "I4 revisión y docs", "text": "Revisar el español y documentar la opción.", "tone": "good"}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Empieza cuando acaben los estándares", "lede": "Se apoya en S7: todos los textos visibles en un único sitio."}
+  ]
+}

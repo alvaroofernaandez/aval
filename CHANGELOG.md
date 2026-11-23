@@ -3,9 +3,37 @@
 All notable changes to aval. Versions follow [SemVer](https://semver.org): `vX.Y.Z`,
 with `-rc.N` / `-beta.N` prereleases (see [docs/releasing.md](docs/releasing.md)).
 
-From the first tagged release on, entries come from the GitHub release notes, which
-`aval release` and GoReleaser generate from conventional commits. This file is not
-edited by hand after that point; the section below is the history before versions existed.
+Each release has hand-written notes in `docs/releases/`, in English (`vX.Y.Z.md`) and
+Spanish (`vX.Y.Z.es.md`). The GitHub release body is those notes followed by the commit
+list GoReleaser generates from conventional commits (see [docs/releasing.md](docs/releasing.md)).
+This file keeps a short, dated summary per release and links the notes; the section
+"Before v0.1.0" is the history before versions existed.
+
+## v0.2.0-rc.1 (2026-11-23)
+
+[Release notes](docs/releases/v0.2.0.md) · [Notas en español](docs/releases/v0.2.0.es.md)
+
+### Features
+
+- **hub:** bare `aval` on a terminal opens a hub with the wordmark, a status panel (version from the update cache, repo, doctor, last backup, theme) and nine views in four groups: Install, Update, Sync, Doctor, Backups, Uninstall, Settings, Dev sandbox and About. Opening it writes nothing and makes no network calls
+- **hub:** every write goes through preview, confirm, run and result; destructive confirms open on Cancel and name their safety net
+- **hub:** interactive doctor with safe fixes, backups with a typed restore preview, an uninstall preview, an update view that fetches a preview and re-applies, and a sync preview
+- **ui:** terminal wordmark generated from the brand geometry, with a Unicode and an ASCII tier
+- **ui:** installer overhaul: select screen previews what happens to each file, inline failures with a graceful stop, a done screen with evidence and undo, and a help overlay generated from the key map
+- **ui:** welcome screen that finds or clones the repository
+- **ui:** shared frame, lockup and breakpoints; the colour is on the state glyph only
+- **ui:** themes (aval brand, terminal, mono and community themes) and a settings view with live preview
+- **i18n:** the hub, the installer and the human output of the CLI are translated into English and Spanish; `language = auto|en|es`, `--lang` and `AVAL_LANG` choose it, falling back to `LC_ALL`, `LC_MESSAGES` and `LANG`. `--json`, hooks, the statusline, logs and generated files stay English. Text that comes from the core packages (doctor check messages, plan labels, sync warnings, install error reasons) is not translated yet
+- **config:** `aval config list|get|set|path`; theme, glyph, motion and update settings reach every surface
+- **cli:** grouped, branded usage with a first-run hint, and styled status output for doctor and headless install
+- **backup:** runs record their origin
+- **hook:** `aval hook rate-guard` denies a Bash batch (loop, xargs/parallel, `-P`, more than 3 URLs or a URL list) of HTTP requests to hosts that ban the client IP after rapid requests, and is registered for Bash tool calls
+
+### Fixes
+
+- **install:** quitting `aval install` writes nothing, and without a terminal it stops with a clear error
+- **cli:** sync rollback reports its backup id
+- **ui:** safety lines wrap instead of truncating, the uninstall preview scrolls long lists, hub spinners honour the motion setting, and re-apply commits its backup run when it closes
 
 ## Before v0.1.0
 

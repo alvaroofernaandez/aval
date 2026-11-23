@@ -1,0 +1,16 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
+
+  Dev sandbox                                                ~/.cache/aval/dev
+
+  Name for the new sandbox.
+
+  Name  -x_
+
+  x invalid sandbox name "-x": use 1-40 letters, digits, '.', '_' or '-',
+    starting with a letter or digit
+
+  ----------------------------------------------------------------------------
+  enter creates it and opens a shell in it
+  enter create  esc cancel

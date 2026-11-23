@@ -1,0 +1,16 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Installing                                                            4 of 6
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────
+
+    √ linked             ~/.tmux.conf
+    √ already installed  ~/.config/some/very/long/d…at/keeps/going/config.toml
+    ! backed up          ~/.zshrc
+    × failed             ~/.config/ghostty  source missing
+    › linking            ~/.config/nvim
+
+  ────────────────────────────────────────────────────────────────────────────
+  1 failed so far
+  ctrl+c stops after the current step · ? help

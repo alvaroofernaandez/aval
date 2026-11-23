@@ -15,6 +15,9 @@ import (
 // End-to-end tests of the Go installer (`aval install --yes`). Every run happens
 // inside a throwaway $HOME, so the real dotfiles of whoever runs the suite are
 // never touched. Unit-level cases live in internal/core/install and cmd/aval.
+// Stays a real process: a full install also seeds settings, syncs and runs
+// the doctor, which find hook tools on the process PATH (withHookTools) and
+// spawn git; the end-to-end result in a sandboxed HOME is the contract.
 
 const backupRootName = ".aval-backup"
 
@@ -61,6 +64,9 @@ func (s *sandbox) cat(rel string) string {
 // countBackups mirrors the original `find -mindepth 2 -maxdepth 4`.
 func (s *sandbox) countBackups() int { return len(s.listBackups()) }
 
+// runMetadata are the files a backup run keeps about itself.
+var runMetadata = map[string]bool{"manifest.json": true, "PINNED": true, "ORIGIN": true}
+
 // listBackups names the backed-up items (relative to the backup root).
 func (s *sandbox) listBackups() []string {
 	root := s.path(backupRootName)
@@ -71,7 +77,8 @@ func (s *sandbox) listBackups() []string {
 		}
 		rel, _ := filepath.Rel(root, path)
 		depth := strings.Count(rel, string(filepath.Separator)) + 1
-		if depth >= 2 && depth <= 4 && d.Name() != "manifest.json" {
+		// manifest.json, PINNED and ORIGIN are run metadata, not backed-up items.
+		if depth >= 2 && depth <= 4 && !runMetadata[d.Name()] {
 			items = append(items, rel)
 		}
 		return nil
@@ -366,48 +373,8 @@ func TestInstallCopyModeProducesRealFilesAndIsIdempotent(t *testing.T) {
 	mustHave(t, `(?i)already installed`, again.Out(), "the second run reports the copies as already installed")
 }
 
-// A bare `aval` is a question, not an order: it prints the usage and leaves
-// HOME untouched, wherever it runs.
-func TestBareAvalPrintsUsageAndChangesNothing(t *testing.T) {
-	s := newSandbox(t)
-	r := run(s.repo, isoEnv(s.home), "", avalBin(t))
-	if r.Code != 0 {
-		t.Fatalf("exit %d: %s", r.Code, r.Out())
-	}
-	if !strings.Contains(r.Stdout, "Usage:") || !strings.Contains(r.Stdout, "aval install") {
-		t.Errorf("no usage on stdout:\n%s", r.Out())
-	}
-	entries, err := os.ReadDir(s.home)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(entries) != 0 {
-		t.Errorf("bare aval wrote to HOME: %v", entries)
-	}
-}
-
-func TestUnknownCommandFails(t *testing.T) {
-	s := newSandbox(t)
-	r := run(t.TempDir(), isoEnv(s.home), "", avalBin(t), "instal")
-	if r.Code == 0 || !strings.Contains(r.Stderr, `unknown command "instal"`) {
-		t.Errorf("want an unknown-command error, got exit %d: %s", r.Code, r.Out())
-	}
-}
-
-// The pre-v0.2 form keeps working for provisioning scripts, with a notice.
-func TestLegacyFlagsStillInstallWithNotice(t *testing.T) {
-	s := newSandbox(t)
-	r := run(s.repo, isoEnv(s.home), "", avalBin(t), "--yes", "--dry-run", "--repo", s.repo)
-	if r.Code != 0 {
-		t.Fatalf("exit %d: %s", r.Code, r.Out())
-	}
-	if !strings.Contains(r.Stderr, "aval install") || !strings.Contains(r.Stderr, "deprecated") {
-		t.Errorf("no deprecation notice on stderr:\n%s", r.Stderr)
-	}
-	if !strings.Contains(r.Stdout, "~/") {
-		t.Errorf("legacy dry run did not show the plan:\n%s", r.Stdout)
-	}
-}
+// Bare `aval`, an unknown command and the legacy flag form only check output
+// and exit codes: they run in process in cmd/aval/run_test.go.
 
 // After one install, a copy of the binary outside the checkout finds the
 // repository from any directory: the bug that started this.

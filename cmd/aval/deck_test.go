@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,12 +63,12 @@ func TestRunDeckBuildNeedsOutput(t *testing.T) {
 	writeFile(t, spec, tinySpec)
 	var opened string
 	err := runDeck([]string{"build", spec}, &bytes.Buffer{}, fakeDeckDeps(&opened))
-	if err == nil || !strings.Contains(err.Error(), "-o") {
-		t.Fatalf("want an error asking for -o, got %v", err)
+	if !errors.Is(err, errNoOutput) {
+		t.Fatalf("err = %v, want errNoOutput", err)
 	}
 	err = runDeck([]string{"build", spec, "-o", filepath.Join(t.TempDir(), "x.png")}, &bytes.Buffer{}, fakeDeckDeps(&opened))
-	if err == nil || !strings.Contains(err.Error(), ".pdf") {
-		t.Fatalf("want an error asking for a .pdf, got %v", err)
+	if !errors.Is(err, errNotPDF) {
+		t.Fatalf("err = %v, want errNotPDF", err)
 	}
 }
 
@@ -80,8 +81,9 @@ func TestRunDeckCheck(t *testing.T) {
 	if err := runDeck([]string{"check", good}, &bytes.Buffer{}, fakeDeckDeps(&opened)); err != nil {
 		t.Fatalf("check good: %v", err)
 	}
-	if err := runDeck([]string{"check", bad}, &bytes.Buffer{}, fakeDeckDeps(&opened)); err == nil || !strings.Contains(err.Error(), "slide 1") {
-		t.Fatalf("check bad: %v", err)
+	var se *deck.SpecError
+	if err := runDeck([]string{"check", bad}, &bytes.Buffer{}, fakeDeckDeps(&opened)); !errors.As(err, &se) {
+		t.Fatalf("check bad: err = %v, want a *deck.SpecError", err)
 	}
 }
 
@@ -110,7 +112,7 @@ func TestRunDeckExampleIsValid(t *testing.T) {
 func TestRunDeckUsage(t *testing.T) {
 	var opened string
 	for _, args := range [][]string{nil, {"nope"}, {"build"}, {"check"}} {
-		if err := runDeck(args, &bytes.Buffer{}, fakeDeckDeps(&opened)); err == nil || !strings.Contains(err.Error(), "usage") {
+		if err := runDeck(args, &bytes.Buffer{}, fakeDeckDeps(&opened)); !isUsage(err) {
 			t.Errorf("%v: want a usage error, got %v", args, err)
 		}
 	}

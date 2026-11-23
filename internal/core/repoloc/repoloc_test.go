@@ -1,9 +1,9 @@
 package repoloc
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -64,37 +64,26 @@ func TestResolveExplicitSourceThatPointsNowhereFails(t *testing.T) {
 	wd := repo(t)
 	empty := t.TempDir()
 
+	cfg := config(t, empty)
 	cases := []struct {
-		name, mention string
-		s             Sources
+		name, source string
+		s            Sources
 	}{
 		{"flag", "--repo", Sources{Flag: empty, Wd: wd}},
-		{"env", "AVAL_REPO", Sources{Env: empty, Wd: wd}},
-		{"config", "config", Sources{ConfigFile: config(t, empty), Wd: wd}},
+		{"env", "$AVAL_REPO", Sources{Env: empty, Wd: wd}},
+		{"config", "repo in config " + cfg, Sources{ConfigFile: cfg, Wd: wd}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := Resolve(c.s)
-			if err == nil {
-				t.Fatal("want an error")
+			var se *sourceError
+			if !errors.As(err, &se) {
+				t.Fatalf("err = %v, want a *sourceError", err)
 			}
-			if !strings.Contains(err.Error(), c.mention) {
-				t.Errorf("error %q does not name %s", err, c.mention)
+			if se.Source != c.source || se.Path != empty {
+				t.Errorf("source %q path %q, want %q and %q", se.Source, se.Path, c.source, empty)
 			}
 		})
-	}
-}
-
-func TestResolveNothingFoundExplainsTheFix(t *testing.T) {
-	empty := t.TempDir()
-	_, err := Resolve(Sources{Wd: empty, Exe: empty})
-	if err == nil {
-		t.Fatal("want an error")
-	}
-	for _, want := range []string{"aval install --repo", "AVAL_REPO"} {
-		if !strings.Contains(err.Error(), want) {
-			t.Errorf("error %q does not mention %q", err, want)
-		}
 	}
 }
 
@@ -176,4 +165,69 @@ func mkdir(t *testing.T, p string) string {
 		t.Fatal(err)
 	}
 	return p
+}
+
+func TestResolveNothingFoundIsErrNotFound(t *testing.T) {
+	empty := t.TempDir()
+	_, err := Resolve(Sources{Wd: empty, Exe: empty})
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestResolveExplicitSourceIsNotErrNotFound(t *testing.T) {
+	_, err := Resolve(Sources{Flag: t.TempDir()})
+	if err == nil || errors.Is(err, ErrNotFound) {
+		t.Errorf("an explicit source that points nowhere must fail loudly, not as not-found: %v", err)
+	}
+}
+
+func TestCheckAcceptsACheckoutAndItsSubfolders(t *testing.T) {
+	r := repo(t)
+	sub := filepath.Join(r, "config")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{r, sub} {
+		got, err := Check(p)
+		if err != nil || got != r {
+			t.Errorf("Check(%s) = %q, %v; want %q", p, got, err, r)
+		}
+	}
+}
+
+func TestCheckSaysWhatIsWrongAndHowToFixIt(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "f")
+	if err := os.WriteFile(file, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		name, path string
+		want       error
+	}{
+		{"empty", "", errNoPath},
+		{"missing", filepath.Join(dir, "nope"), errPathMissing},
+		{"file", file, errNotADir},
+		{"no manifest", dir, errNotACheckout},
+	}
+	for _, c := range cases {
+		if _, err := Check(c.path); !errors.Is(err, c.want) {
+			t.Errorf("%s: Check(%q) = %v, want %v", c.name, c.path, err, c.want)
+		}
+	}
+}
+
+func TestFindWalksUpFromInsideACheckout(t *testing.T) {
+	r := repo(t)
+	sub := filepath.Join(r, "a", "b")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := Find(sub); got != r {
+		t.Errorf("Find(%s) = %q, want %q", sub, got, r)
+	}
+	if got := Find(t.TempDir()); got != "" {
+		t.Errorf("Find outside a checkout = %q, want empty", got)
+	}
 }

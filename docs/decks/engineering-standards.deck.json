@@ -1,0 +1,32 @@
+{
+  "title": "Estándares de ingeniería",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · engineering-standards", "title": "Las reglas de aval se cumplen solas", "lede": "La forma de desarrollar, testear y decidir de hagaharness, trasladada a Go: cada regla importante tiene un test que falla si se rompe."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "Un mecanismo es una regla con un test detrás", "lede": "No depende de que alguien se acuerde en la revisión: si la regla se rompe, un test falla. Y ese test demuestra que sabe detectarla con una violación plantada."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "aval tiene buenas costumbres, pocas garantías", "items": [
+      {"title": "Capas sin vigilar", "text": "La arquitectura está limpia hoy, pero nada impide romperla mañana.", "tone": "warn"},
+      {"title": "Tests frágiles", "text": "44 comparan texto de error, 8 duermen, 3 crean carpetas a mano.", "tone": "warn"},
+      {"title": "Sin memoria de decisiones", "text": "No hay ADRs, ni AGENTS.md, ni skills propias del proyecto.", "tone": "warn"}
+    ]},
+    {"layout": "checklist", "eyebrow": "Principios", "title": "Lo que se trae de hagaharness", "items": [
+      {"title": "Mecanismos, no revisión", "text": "Cada regla con su test y su autotest."},
+      {"title": "Evidencia antes que abstracciones", "text": "Cada paquete o interfaz nueva justifica su coste."},
+      {"title": "Testear al nivel más bajo que pille el fallo", "text": "Errores por tipo, sin sleeps, un smoke por comando."},
+      {"title": "Decisiones que no se reescriben", "text": "ADRs con alternativas descartadas y enmiendas fechadas."},
+      {"title": "La skill del proyecto manda", "text": "Por encima de las globales."}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones", "title": "Por qué así", "columns": ["Decidimos", "Porque", "En lugar de"], "rows": [
+      ["Test de arquitectura en Go", "archsieve en Go solo ve ciclos, que el compilador ya impide", "archsieve como freno"],
+      ["archsieve para informes", "Diagramas, afectados y churn sin dependencia", "Ignorarlo"],
+      ["Mantener CI en 3 sistemas", "Está blindado y probado", "Sin CI como hagaharness"],
+      ["Llevarlo también a los usuarios", "Las skills que instala aval", "Solo para desarrollar aval"]
+    ]},
+    {"layout": "steps", "eyebrow": "El camino", "title": "Nueve tareas en tres tandas", "items": [
+      {"title": "Tanda 1", "text": "AGENTS.md, test de arquitectura, ADRs e higiene de tests."},
+      {"title": "Tanda 2", "text": "Skills del proyecto, comandos testeables en proceso y CI completo."},
+      {"title": "Tanda 3", "text": "Errores como valores y estándares para los usuarios de aval.", "tone": "good"}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Arrancar la tanda 1", "lede": "Cuatro tareas en paralelo, cada una en sus propios archivos."}
+  ]
+}

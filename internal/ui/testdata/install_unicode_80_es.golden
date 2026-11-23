@@ -1,0 +1,16 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Instalando                                                            4 de 6
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────
+
+    √ enlazado      ~/.tmux.conf
+    √ ya instalado  ~/.config/some/very/long/des…/that/keeps/going/config.toml
+    ! con copia     ~/.zshrc
+    × fallo         ~/.config/ghostty  source missing
+    › enlazando     ~/.config/nvim
+
+  ────────────────────────────────────────────────────────────────────────────
+  1 con fallo hasta ahora
+  ctrl+c se detiene tras el paso actual · ? ayuda

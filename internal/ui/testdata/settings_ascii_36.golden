@@ -1,0 +1,16 @@
+ aval 0.2.0
+ Settings     ~/.config/aval/config
+
+ > Theme          aval         
+   Background     auto
+   Glyphs         auto
+   Motion         auto
+   Update check   on
+   Language       auto
+   Repository     ~/.aval
+
+ Preview  [x] Selected
+          [ ] Not selected
+          ok linked   ! backed up
+          x failed
+ enter save  esc discard  ? help

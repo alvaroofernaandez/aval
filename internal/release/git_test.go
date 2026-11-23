@@ -229,8 +229,12 @@ func TestGateChecks(t *testing.T) {
 				}
 				return
 			}
-			if err == nil || !strings.Contains(out.String()+err.Error(), c.wantErr) {
-				t.Errorf("err = %v, want mention of %q\n%s", err, c.wantErr, out.String())
+			var gf gateFailed
+			if !errors.As(err, &gf) || gf != 1 {
+				t.Fatalf("err = %v, want one failed check\n%s", err, out.String())
+			}
+			if !strings.Contains(failLine(out.String()), c.wantErr) {
+				t.Errorf("the failed check does not mention %q\n%s", c.wantErr, out.String())
 			}
 		})
 	}
@@ -351,8 +355,8 @@ func TestCutPromoteRefusesWhenMainMovedOn(t *testing.T) {
 	f.push()
 	o, _ = f.opts("promote", "y\n")
 	err := Cut(f.g, o)
-	if err == nil || !strings.Contains(err.Error(), "rc") {
-		t.Errorf("err = %v, want a refusal explaining main moved past the rc", err)
+	if !errors.Is(err, errMovedPastRC) {
+		t.Errorf("err = %v, want errMovedPastRC", err)
 	}
 	if strings.Contains(git(t, f.work, "tag", "--list"), "v0.1.0\n") {
 		t.Error("stable tag must not exist")
@@ -371,4 +375,14 @@ func TestWorkflowURL(t *testing.T) {
 	if got := WorkflowURL("/tmp/origin.git"); got != "" {
 		t.Errorf("a local path has no workflow page, got %q", got)
 	}
+}
+
+// failLine returns the gate's [FAIL] line, or "" when there is none.
+func failLine(out string) string {
+	for _, l := range strings.Split(out, "\n") {
+		if strings.Contains(l, "[FAIL]") {
+			return l
+		}
+	}
+	return ""
 }

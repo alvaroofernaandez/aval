@@ -1,0 +1,29 @@
+ aval 0.3.0
+ Doctor   9 ok · 1 aviso · 2 fallos
+
+ › × fallo  broken-links
+   × fallo  settings-drift
+   ! aviso  skills
+   √ ok     links
+   √ ok     hooks-resolve
+   √ ok     hooks-retired
+   √ ok     hooks-drift
+   √ ok     agents
+   √ ok     plugins
+   √ ok     overlay
+   √ ok     overlay-links
+   √ ok     config
+
+ Dangling links
+ 2 broken
+ Dangling links in the agent
+ directories point at files that no
+ longer exist, usually a skill
+ removed from the repo.
+   ~/.claude/skills/old-skill
+   ~/.claude/skills/retired
+ corrección disponible: f lo corri…
+ 3 de 12 requieren atención · 2 se
+ pueden corregir aquí
+ f corregir esto · r repetir
+ ? ayuda

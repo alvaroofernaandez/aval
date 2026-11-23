@@ -1,0 +1,20 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ----------------------------------------------------------------------------
+
+  Teclas
+  up, k      mover
+  down, j    mover
+  space, x   marcar
+  right, l   detalles
+  left, h    detalles
+  a          todos
+  n          ninguno
+  enter      instalar
+  s          ajustes
+  ?          ayuda
+  q, ctrl+c  salir
+
+  ----------------------------------------------------------------------------
+  ayuda
+  up/down desplazar  esc cerrar

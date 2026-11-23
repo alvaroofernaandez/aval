@@ -1,0 +1,14 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Sandbox dev                                                ~/.cache/aval/dev
+
+  Quitar elimina el sandbox default y todo lo que contiene.
+
+    Quitar default  elimina sus archivos
+  › Cancelar        no cambia nada
+
+  ────────────────────────────────────────────────────────────────────────────
+  No hay copia: un sandbox es desechable. Su home real no se toca.
+  ↑↓ mover · enter elegir · ? ayuda · q salir

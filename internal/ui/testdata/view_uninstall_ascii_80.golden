@@ -1,0 +1,15 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
+
+  Uninstall
+
+  2 links removed 1 previous file restored 1 rules block cut
+
+  ! remove link  ~/.zshrc            restores the previous file
+  ! remove link  ~/.config/tmux
+  ! cut block    ~/.codex/AGENTS.md
+
+  ----------------------------------------------------------------------------
+  Nothing has changed yet
+  enter continue  esc back  ? help  q quit

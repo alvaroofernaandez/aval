@@ -32,6 +32,27 @@ type Options struct {
 type Item struct {
 	Path   string
 	Action string
+	// Kind is the typed form of Action.
+	Kind ItemKind
+	// Restores is true when a previous file or directory is put back.
+	Restores bool
+}
+
+// ItemKind says what an uninstall does to one path.
+type ItemKind string
+
+const (
+	KindRemoveLink ItemKind = "remove-link" // a symlink into the repo
+	KindRemoveCopy ItemKind = "remove-copy" // an untouched copy of a repo source
+	KindCutBlock   ItemKind = "cut-block"   // the aval:agent-rules block
+	KindRemoveDir  ItemKind = "remove-dir"  // an empty directory install created
+)
+
+// Preview is the named dry run of Run: it reports what an uninstall would do
+// and writes nothing, not even a backup run.
+func Preview(opt Options) ([]Item, error) {
+	opt.DryRun = true
+	return Run(opt)
 }
 
 // Run uninstalls. Everything it changes is recorded in a backup run first, so
@@ -52,6 +73,7 @@ func Run(opt Options) ([]Item, error) {
 	store := backup.NewStore(opt.Home)
 	store.Now = opt.Now
 	rec := store.Begin()
+	rec.SetOrigin("uninstall")
 	ropt := backup.RestoreOptions{Repo: opt.Repo}
 
 	var items []Item
@@ -104,9 +126,9 @@ func removeLink(store *backup.Store, rec *backup.Recorder, opt Options, ropt bac
 	} else if target, err := os.Readlink(dest); err != nil || !backup.IntoRepo(dest, target, opt.Repo) {
 		return nil, nil // someone else's link
 	}
-	noun := "link"
+	noun, kind := "link", KindRemoveLink
 	if isCopy {
-		noun = "copy"
+		noun, kind = "copy", KindRemoveCopy
 	}
 
 	prev, entry, found, err := store.FindPrevious(dest, opt.Repo, rec.Dir())
@@ -120,7 +142,7 @@ func removeLink(store *backup.Store, rec *backup.Recorder, opt Options, ropt bac
 		if restore {
 			action = "would remove " + noun + " and restore the previous " + entry.Kind + " (backup " + prev.ID + ")"
 		}
-		return &Item{Path: dest, Action: action}, nil
+		return &Item{Path: dest, Action: action, Kind: kind, Restores: restore}, nil
 	}
 
 	if _, err := rec.Snapshot(dest); err != nil {
@@ -143,7 +165,7 @@ func removeLink(store *backup.Store, rec *backup.Recorder, opt Options, ropt bac
 		}
 		action = "removed " + noun + ", restored the previous " + entry.Kind
 	}
-	return &Item{Path: dest, Action: action}, nil
+	return &Item{Path: dest, Action: action, Kind: kind, Restores: restore}, nil
 }
 
 // removeRules cuts the aval:agent-rules block out of the Codex and Gemini
@@ -163,7 +185,7 @@ func removeRules(rec *backup.Recorder, opt Options) ([]Item, error) {
 			continue
 		}
 		if opt.DryRun {
-			items = append(items, Item{Path: path, Action: "would remove the aval:agent-rules block"})
+			items = append(items, Item{Path: path, Action: "would remove the aval:agent-rules block", Kind: KindCutBlock})
 			continue
 		}
 		if _, err := rec.Snapshot(path); err != nil {
@@ -181,7 +203,7 @@ func removeRules(rec *backup.Recorder, opt Options) ([]Item, error) {
 		if err := rec.Wrote(path); err != nil {
 			return items, err
 		}
-		items = append(items, Item{Path: path, Action: "removed the aval:agent-rules block"})
+		items = append(items, Item{Path: path, Action: "removed the aval:agent-rules block", Kind: KindCutBlock})
 	}
 	return items, nil
 }
@@ -217,7 +239,7 @@ func removeCreatedDirs(store *backup.Store, home string) ([]Item, error) {
 			continue
 		}
 		if err := os.Remove(d); err == nil {
-			items = append(items, Item{Path: d, Action: "removed empty directory"})
+			items = append(items, Item{Path: d, Action: "removed empty directory", Kind: KindRemoveDir})
 		}
 	}
 	return items, nil

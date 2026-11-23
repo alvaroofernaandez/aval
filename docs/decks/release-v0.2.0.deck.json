@@ -1,0 +1,37 @@
+{
+  "title": "aval v0.2.0-rc.1",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · release", "title": "El hub, la nueva TUI y el español llegan a una release", "lede": "Fusionar feat/tui-experience en main y publicar v0.2.0-rc.1, con notas que explican qué cambia, en inglés y en español.", "note": "Qué se publica y por qué ahora."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "Una release candidate es una versión casi final", "lede": "Se publica como prerelease: quien la instale con @next la prueba antes de que sea la versión estable.", "note": "rc porque es un cambio grande y la TUI en español no se ha probado a mano."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "Las notas automáticas no explican nada", "items": [
+      {"title": "Solo títulos de commit", "text": "Una lista de 60 líneas técnicas sin contexto.", "tone": "warn"},
+      {"title": "Solo en inglés", "text": "Justo cuando aval empieza a hablar español.", "tone": "warn"},
+      {"title": "Sin imágenes", "text": "El hub es visual y las notas no lo enseñan.", "tone": "warn"}
+    ]},
+    {"layout": "compare", "eyebrow": "La idea", "title": "Notas escritas a mano, la lista de commits debajo", "items": [
+      {"title": "Antes", "text": "GoReleaser genera la lista de commits y eso es todo.", "tone": "muted"},
+      {"title": "Ahora", "text": "Notas en inglés y español con GIFs y tablas; la lista de commits sigue al final.", "tone": "good"}
+    ]},
+    {"layout": "steps", "eyebrow": "El camino", "title": "Cinco pasos, de las notas a la verificación", "items": [
+      {"title": "R1 notas y changelog", "text": "docs/releases en dos idiomas y un test que exige ambos."},
+      {"title": "R2 GIF en español", "text": "El hub grabado con AVAL_LANG=es."},
+      {"title": "R3 PR y merge", "text": "CI verde en ubuntu, macos y windows.", "tone": "warn"},
+      {"title": "R4 cortar la rc", "text": "Dry run, tag y aprobación del entorno por el dueño."},
+      {"title": "R5 cuerpo y verificación", "text": "Notas bilingües en GitHub, checksums y npx.", "tone": "good"}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones", "title": "Lo que elegimos y lo que no", "columns": ["Decidimos", "Porque", "En vez de"], "rows": [
+      ["Notas a mano por release", "Explican el porqué", "Solo títulos de commit"],
+      ["Workflow sin cambios", "GoReleaser está fijado y probado", "Plantillas nuevas en release.yml"],
+      ["Mermaid solo en el repo", "El cuerpo de la release puede no pintarlo", "Diagramas que se ven rotos"],
+      ["Merge commit", "Los títulos sobreviven para las notas", "Squash"]
+    ]},
+    {"layout": "checklist", "eyebrow": "Seguridad", "title": "Nada sale sin verificar", "items": [
+      {"title": "CI en tres sistemas", "text": "El merge espera a los checks obligatorios."},
+      {"title": "Aprobación del entorno", "text": "Solo el dueño publica."},
+      {"title": "Checksums y atestación", "text": "Se comprueban tras publicar."},
+      {"title": "Números medidos", "text": "Nada en las notas sin leerlo del repo."}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Escribir las notas y abrir el PR", "lede": "Después, con CI verde, merge y v0.2.0-rc.1."}
+  ]
+}

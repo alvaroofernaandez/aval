@@ -8,8 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
@@ -38,7 +40,7 @@ func TestRestoreListShowsIDDateEntriesAndPinned(t *testing.T) {
 	repo, home := fakeMachine(t)
 	id := seedBackup(t, home)
 	var out bytes.Buffer
-	if err := runRestore(repo, home, []string{"--list"}, false, &out); err != nil {
+	if err := runRestore(repo, home, []string{"--list"}, false, &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	for _, want := range []string{"ID", "DATE", "ENTRIES", "PINNED", id} {
@@ -48,11 +50,11 @@ func TestRestoreListShowsIDDateEntriesAndPinned(t *testing.T) {
 	}
 
 	out.Reset()
-	if err := runRestore(repo, home, []string{"--pin", id}, false, &out); err != nil {
+	if err := runRestore(repo, home, []string{"--pin", id}, false, &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	out.Reset()
-	_ = runRestore(repo, home, []string{"--list"}, false, &out)
+	_ = runRestore(repo, home, []string{"--list"}, false, &out, englishTr)
 	if !strings.Contains(out.String(), "yes") {
 		t.Errorf("pinned run not shown as pinned:\n%s", out.String())
 	}
@@ -62,7 +64,7 @@ func TestRestoreLatestPutsTheFileBack(t *testing.T) {
 	repo, home := fakeMachine(t)
 	seedBackup(t, home)
 	var out bytes.Buffer
-	if err := runRestore(repo, home, []string{"latest"}, false, &out); err != nil {
+	if err := runRestore(repo, home, []string{"latest"}, false, &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(home, "f")); string(b) != "before" {
@@ -73,7 +75,7 @@ func TestRestoreLatestPutsTheFileBack(t *testing.T) {
 func TestRestoreUnknownIDFails(t *testing.T) {
 	repo, home := fakeMachine(t)
 	seedBackup(t, home)
-	if err := runRestore(repo, home, []string{"no-such-run"}, false, &bytes.Buffer{}); err == nil {
+	if err := runRestore(repo, home, []string{"no-such-run"}, false, &bytes.Buffer{}, englishTr); err == nil {
 		t.Error("expected an error for an unknown id")
 	}
 }
@@ -101,7 +103,7 @@ func linked(p string) bool {
 func TestUninstallAsksForConfirmation(t *testing.T) {
 	repo, home, dest := installedMachine(t)
 	var out bytes.Buffer
-	if err := runUninstall(repo, home, nil, false, false, strings.NewReader("n\n"), &out); err != nil {
+	if err := runUninstall(repo, home, nil, false, false, strings.NewReader("n\n"), &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if !linked(dest) {
@@ -112,7 +114,7 @@ func TestUninstallAsksForConfirmation(t *testing.T) {
 	}
 
 	out.Reset()
-	if err := runUninstall(repo, home, nil, false, false, strings.NewReader("y\n"), &out); err != nil {
+	if err := runUninstall(repo, home, nil, false, false, strings.NewReader("y\n"), &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if linked(dest) {
@@ -122,7 +124,7 @@ func TestUninstallAsksForConfirmation(t *testing.T) {
 
 func TestUninstallYesSkipsThePrompt(t *testing.T) {
 	repo, home, dest := installedMachine(t)
-	if err := runUninstall(repo, home, []string{"--yes"}, false, false, strings.NewReader(""), &bytes.Buffer{}); err != nil {
+	if err := runUninstall(repo, home, []string{"--yes"}, false, false, strings.NewReader(""), &bytes.Buffer{}, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if linked(dest) {
@@ -133,7 +135,7 @@ func TestUninstallYesSkipsThePrompt(t *testing.T) {
 func TestUninstallDryRunNeverPromptsOrWrites(t *testing.T) {
 	repo, home, dest := installedMachine(t)
 	var out bytes.Buffer
-	if err := runUninstall(repo, home, []string{"--dry-run"}, false, false, strings.NewReader(""), &out); err != nil {
+	if err := runUninstall(repo, home, []string{"--dry-run"}, false, false, strings.NewReader(""), &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if !linked(dest) {
@@ -147,7 +149,7 @@ func TestUninstallDryRunNeverPromptsOrWrites(t *testing.T) {
 func TestRestoreDryRunWritesNothing(t *testing.T) {
 	repo, home := fakeMachine(t)
 	seedBackup(t, home)
-	if err := runRestore(repo, home, []string{"latest"}, true, &bytes.Buffer{}); err != nil {
+	if err := runRestore(repo, home, []string{"latest"}, true, &bytes.Buffer{}, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(home, "f")); string(b) != "after" {
@@ -189,7 +191,7 @@ func fakeMachine(t *testing.T) (repo, home string) {
 func TestRunDoctorJSONAndExitCode(t *testing.T) {
 	repo, home := fakeMachine(t)
 	var out bytes.Buffer
-	err := runDoctor(repo, home, []string{"--json"}, &out)
+	err := runDoctor(repo, home, []string{"--json"}, &out, uiSettings{})
 	if !errors.Is(err, errChecksFailed) {
 		t.Errorf("err = %v, want errChecksFailed (agents link is missing)", err)
 	}
@@ -202,7 +204,7 @@ func TestRunDoctorJSONAndExitCode(t *testing.T) {
 func TestRunDoctorTable(t *testing.T) {
 	repo, home := fakeMachine(t)
 	var out bytes.Buffer
-	_ = runDoctor(repo, home, nil, &out)
+	_ = runDoctor(repo, home, nil, &out, uiSettings{})
 	if !strings.Contains(out.String(), "STATUS") || !strings.Contains(out.String(), "fail") && !strings.Contains(out.String(), "FAIL") {
 		t.Errorf("unexpected table:\n%s", out.String())
 	}
@@ -210,7 +212,7 @@ func TestRunDoctorTable(t *testing.T) {
 
 func TestRunDoctorRejectsUnknownFlags(t *testing.T) {
 	repo, home := fakeMachine(t)
-	err := runDoctor(repo, home, []string{"--bogus"}, &bytes.Buffer{})
+	err := runDoctor(repo, home, []string{"--bogus"}, &bytes.Buffer{}, uiSettings{})
 	if err == nil || errors.Is(err, errChecksFailed) {
 		t.Errorf("err = %v, want a usage error", err)
 	}
@@ -226,7 +228,7 @@ func TestRunDoctorFix(t *testing.T) {
 		t.Skip("symlinks unavailable")
 	}
 	var out bytes.Buffer
-	_ = runDoctor(repo, home, []string{"--fix"}, &out)
+	_ = runDoctor(repo, home, []string{"--fix"}, &out, uiSettings{})
 	if _, err := os.Lstat(dead); err == nil {
 		t.Error("--fix left the dangling link")
 	}
@@ -243,7 +245,7 @@ func TestRunSyncDryRunThenReal(t *testing.T) {
 	live := filepath.Join(home, ".claude/settings.json")
 
 	var out bytes.Buffer
-	if err := runSync(repo, home, []string{"--dry-run"}, false, &out); err != nil {
+	if err := runSync(repo, home, []string{"--dry-run"}, false, &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(live); err == nil {
@@ -254,7 +256,7 @@ func TestRunSyncDryRunThenReal(t *testing.T) {
 	}
 
 	out.Reset()
-	if err := runSync(repo, home, nil, false, &out); err != nil {
+	if err := runSync(repo, home, nil, false, &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(live); err != nil {
@@ -262,7 +264,7 @@ func TestRunSyncDryRunThenReal(t *testing.T) {
 	}
 
 	out.Reset()
-	if err := runSync(repo, home, nil, false, &out); err != nil {
+	if err := runSync(repo, home, nil, false, &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "up to date") {
@@ -272,10 +274,134 @@ func TestRunSyncDryRunThenReal(t *testing.T) {
 
 func TestRunSyncHonoursTheGlobalDryRunFlag(t *testing.T) {
 	repo, home := fakeMachine(t)
-	if err := runSync(repo, home, nil, true, &bytes.Buffer{}); err != nil {
+	if err := runSync(repo, home, nil, true, &bytes.Buffer{}, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(home, ".claude/settings.json")); err == nil {
 		t.Error("global --dry-run was ignored")
+	}
+}
+
+func TestDoctorReportsConfigProblemsWithLines(t *testing.T) {
+	repo, home := t.TempDir(), t.TempDir()
+	xdg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", xdg)
+	cfg := filepath.Join(xdg, "aval", "config")
+	if err := os.MkdirAll(filepath.Dir(cfg), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cfg, []byte("theme = tokio-night\ncolour = red\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	_ = runDoctor(repo, home, []string{"--json"}, &out, uiSettings{})
+	var rs []struct{ ID, Status, Message string }
+	if err := json.Unmarshal(out.Bytes(), &rs); err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range rs {
+		if r.ID == "config" {
+			if r.Status != "warn" || !strings.Contains(r.Message, cfg+":1") || !strings.Contains(r.Message, cfg+":2") {
+				t.Errorf("config check = %+v", r)
+			}
+			return
+		}
+	}
+	t.Errorf("doctor has no config check: %s", out.String())
+}
+
+// TestRestoreOutputIsPinned guards that `restore --list` and `restore` keep
+// printing byte for byte what they printed before runs recorded an origin.
+func TestRestoreOutputIsPinned(t *testing.T) {
+	repo, home := fakeMachine(t)
+	p := filepath.Join(home, "f")
+	writeFile(t, p, "before")
+	st := backup.NewStore(home)
+	st.Now = func() time.Time { return time.Date(2026, 1, 2, 3, 4, 5, 0, time.Local) }
+	rec := st.Begin()
+	if _, err := rec.Snapshot(p); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, p, "after")
+	if err := rec.Wrote(p); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := rec.Commit(); err != nil {
+		t.Fatal(err)
+	}
+
+	var list bytes.Buffer
+	if err := runRestore(repo, home, []string{"--list"}, false, &list, englishTr); err != nil {
+		t.Fatal(err)
+	}
+	wantList := "ID                  DATE              ENTRIES  PINNED  STATE\n" +
+		"20260102-030405     2026-01-02 03:04  1        no      ok\n"
+	if list.String() != wantList {
+		t.Errorf("--list output changed:\n got %q\nwant %q", list.String(), wantList)
+	}
+
+	var dry bytes.Buffer
+	if err := runRestore(repo, home, []string{"latest"}, true, &dry, englishTr); err != nil {
+		t.Fatal(err)
+	}
+	wantDry := "would restore          ~/f\n\nDry run: nothing was written.\n"
+	if dry.String() != wantDry {
+		t.Errorf("dry restore output changed:\n got %q\nwant %q", dry.String(), wantDry)
+	}
+
+	var real bytes.Buffer
+	if err := runRestore(repo, home, []string{"latest"}, false, &real, englishTr); err != nil {
+		t.Fatal(err)
+	}
+	wantReal := "restored               ~/f\n\nrestored backup 20260102-030405\n"
+	if real.String() != wantReal {
+		t.Errorf("restore output changed:\n got %q\nwant %q", real.String(), wantReal)
+	}
+}
+
+// The lines --fix prints speak the resolved language.
+func TestRunDoctorFixSpeaksTheLanguage(t *testing.T) {
+	repo, home := fakeMachine(t)
+	dead := filepath.Join(home, ".claude/skills/dead")
+	if err := os.MkdirAll(filepath.Dir(dead), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(home, "gone"), dead); err != nil {
+		t.Skip("symlinks unavailable")
+	}
+	var out bytes.Buffer
+	_ = runDoctor(repo, home, []string{"--fix"}, &out, uiSettings{Lang: i18n.Spanish})
+	es := i18n.New(i18n.Spanish)
+	for _, want := range []string{es.T("cli.doctor.removed", i18n.Args{"path": "~/.claude/skills/dead"}), es.T("cli.doctor.synced", nil), es.T("cli.doctor.col.status", nil)} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("missing %q in:\n%s", want, out.String())
+		}
+	}
+}
+
+// The backup list keeps its columns aligned when a heading is longer in the
+// language: the row cells line up under the heading.
+func TestRestoreListAlignsInSpanish(t *testing.T) {
+	repo, home := fakeMachine(t)
+	id := seedBackup(t, home)
+	es := i18n.New(i18n.Spanish)
+	var out bytes.Buffer
+	if err := runRestore(repo, home, []string{"--pin", id}, false, &out, es); err != nil {
+		t.Fatal(err)
+	}
+	if want := es.T("cli.restore.pinned", i18n.Args{"id": id}); !strings.Contains(out.String(), want) {
+		t.Errorf("pin output lacks %q:\n%s", want, out.String())
+	}
+	out.Reset()
+	if err := runRestore(repo, home, []string{"--list"}, false, &out, es); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("want a heading and one row:\n%s", out.String())
+	}
+	col := func(line, cell string) int { return len([]rune(line[:strings.Index(line, cell)])) }
+	if h, r := col(lines[0], es.T("cli.restore.col.state", nil)), col(lines[1], es.T("cli.restore.state.ok", nil)); h != r {
+		t.Errorf("state column starts at %d in the heading and %d in the row:\n%s", h, r, out.String())
 	}
 }

@@ -2,9 +2,12 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/docs/pdfreport"
 )
 
 func TestParsePDFAssetFlags(t *testing.T) {
@@ -28,27 +31,27 @@ func TestParsePDFAssetFlags(t *testing.T) {
 func TestRunPDFUsage(t *testing.T) {
 	var out bytes.Buffer
 	for _, args := range [][]string{nil, {"nope"}, {"init"}, {"init", "a", "b"}, {"assets", "a", "b"}} {
-		if err := runPDF(args, &out); err == nil || !strings.Contains(err.Error(), "usage") {
+		if err := runPDF(args, &out); !isUsage(err) {
 			t.Errorf("runPDF(%v) = %v, want usage", args, err)
 		}
 	}
 	err := runPDF([]string{"assets", t.TempDir(), "--brand-dir", filepath.Join(t.TempDir(), "gone")}, &out)
-	if err == nil || !strings.Contains(err.Error(), "Brand image directory not found") {
+	if !errors.Is(err, pdfreport.ErrBrandDirMissing) {
 		t.Errorf("assets with a missing brand dir: %v", err)
 	}
 }
 
 func TestRunKiriAndDockerUsage(t *testing.T) {
-	if err := runKiri(nil); err == nil || !strings.Contains(err.Error(), "usage") {
+	if err := runKiri(nil); !isUsage(err) {
 		t.Errorf("runKiri(nil) = %v", err)
 	}
-	if err := runKiri([]string{"down"}); err == nil || !strings.Contains(err.Error(), "usage") {
+	if err := runKiri([]string{"down"}); !isUsage(err) {
 		t.Errorf("runKiri(down) = %v", err)
 	}
-	if err := runDocker(nil); err == nil || !strings.Contains(err.Error(), "usage") {
+	if err := runDocker(nil); !isUsage(err) {
 		t.Errorf("runDocker(nil) = %v", err)
 	}
-	if err := runDocker([]string{"prune"}); err == nil || !strings.Contains(err.Error(), "usage") {
+	if err := runDocker([]string{"prune"}); !isUsage(err) {
 		t.Errorf("runDocker(prune) = %v", err)
 	}
 }

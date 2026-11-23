@@ -149,20 +149,79 @@ plan lives in the [pinned roadmap issue](https://github.com/alvaroofernaandez/av
 
 ## Install
 
-```sh
-npx @alvaroofernaandez/aval@next install   # prerelease from npm, or a binary from Releases
-go install github.com/alvaroofernaandez/aval/cmd/aval@latest
-git clone https://github.com/alvaroofernaandez/aval.git ~/aval && cd ~/aval
+**1. Get the binary.** Any of these; the rest is the same.
 
-aval install                  # TUI: choose what to install
+```sh
+npx @alvaroofernaandez/aval@next install   # no clone needed; prerelease from npm
+go install github.com/alvaroofernaandez/aval/cmd/aval@latest
+```
+
+Or download an archive from [Releases](https://github.com/alvaroofernaandez/aval/releases) (checksums in `SHA256SUMS`).
+
+**2. Run `aval`.** On a terminal, a bare `aval` opens the **hub**: the wordmark, a status panel (version from the update cache, repo, doctor, last backup, theme) and a menu. Opening it writes nothing and makes no network calls. Each entry has an icon, and some a badge (updates, doctor warnings, backups, sandboxes); a detail pane beside the menu says what the highlighted entry will do, and a letter opens an entry directly (`?` lists them).
+
+```text
+                       ▗██              ██  Version  0.3.0 · ! 0.3.1 available
+                      ▗██▘              ██  Repo     ~/.aval
+     ▄▄▄▄▄▄▄▖  ▗▄▖    ▟█▘    ▗▄▄▄▄▄▄▄   ██  Doctor   ! 1 warn
+   ▗██▀▀▀▜██▌  ▝██▖  ▟█▛    ▟█▛▀▀▀███   ██  Backup   today 12:54 · install
+   ██▘    ▜█▌   ▝██▖▟█▛    ▐█▛    ▝██   ██  Theme    mono
+   ▜█▙▖  ▄██▌    ▝███▛     ▝██▄  ▗▟██   ██
+    ▀▜████▜█▌     ▝█▛       ▝▀████▛██   ██
+  Nothing passes without evidence.                               macOS (arm64)
+  ────────────────────────────────────────────────────────────────────────────
+
+  Set up  › ⇣ Install        │ ⇣ Install                                     i
+            ⟳ Update     ↑ 3 │ Link the repo configs into this home.
+            ⇄ Sync           │
+  Health    ⊞ Doctor     ! 1 │ Repo      ~/.aval
+  Undo      ◷ Backups      4 │ Last run  today 12:54
+            ⌫ Uninstall      │
+  Tools     ⎈ Settings       │ enter  pick what to link
+            ⧉ Dev sandbox  2 │
+            ◉ About          │
+
+  ────────────────────────────────────────────────────────────────────────────
+  1 warning · open Doctor to see it
+  ↑↓ move · enter open · i u s d b x , v a jump · ? help · q quit
+```
+
+<div align="center">
+<img src="docs/assets/hub.gif" alt="The hub: move the cursor, open Doctor with d, go back, then the key help" width="100%">
+</div>
+
+Every write goes through preview, confirm, run and result. A destructive confirm opens on Cancel and names its safety net. Without a terminal, with `aval help` or `--help`, or with `TERM=dumb`, aval prints the usage byte for byte instead.
+
+Views:
+
+- **Install**: links the repo configs into this home. It previews first, and anything in the way moves to `~/.aval-backup`.
+- **Update**: pulls the repo (fast-forward only), then re-applies. It fetches a preview first, stops on a dirty tree, and backs up files in the way.
+- **Sync**: merges repo-managed settings into the live config. It previews the drift, backs up, verifies with doctor and rolls back on failure.
+- **Doctor**: checks this machine against the repo. It is read-only until you press `f`; the fixes it offers are safe ones (dangling links, settings drift), backed up first.
+- **Backups**: lists backup runs and restores one. A restore previews first, confirms on Cancel, and moves foreign content aside instead of deleting it.
+- **Uninstall**: removes the links aval made and puts back what they displaced. It previews at once, confirms on Cancel, and names `aval restore latest` as the undo.
+- **Settings**: theme, glyphs, motion and update checks. Enter saves, esc discards.
+- **Dev sandbox**: a throwaway home for trying aval. Your real home is not touched; reset and remove confirm on Cancel.
+- **About**: version, paths and links. Read-only.
+
+**Or run `aval install`** to go straight to the installer. Without a terminal, `aval` on its own prints the usage and changes nothing.
+
+1. **Welcome.** If aval cannot find its repository, it offers to clone it to `~/.aval`, or to use a folder you already have. Cloning is always your choice.
+2. **Select.** Each group shows what will happen to its files before anything is written: new, linked, or replaces a file.
+3. **Install.** Failures appear inline, and `ctrl+c` stops after the current step.
+4. **Done.** Counts, the backup path, the undo command (`aval restore latest`) and the next steps.
+
+```sh
+aval install                  # TUI: welcome, select, install, done
 aval install --yes --dry-run  # no TUI: shows what it would do, touches nothing
 aval install --yes            # no TUI: installs everything that applies (--copy copies instead of linking)
 ```
 
-`aval` on its own prints the usage and changes nothing. The first `aval install` runs inside the clone (or
-with `--repo <path>`) and records where the repo is in `~/.config/aval/config`, so later commands work from
-any directory. `$AVAL_REPO` overrides it.
-Subcommands that do not depend on the repo (`hook`, `design`, `tmux`, `pdf`…) work with the binary alone.
+Nothing is deleted: anything in the way moves to `~/.aval-backup` first. Without a terminal and without `--yes`, `aval install` stops with a clear error instead of opening a TUI.
+
+The repository is found from, in order: `--repo <path>`, `$AVAL_REPO`, the location recorded in
+`~/.config/aval/config` after the first completed install, then the current directory. Subcommands that do
+not depend on the repo (`hook`, `design`, `tmux`, `pdf`...) work with the binary alone.
 Everything installed on purpose with Homebrew is in the `Brewfile` (`brew bundle --file=Brewfile`).
 
 Private material (company names, client skills) lives outside the repo, in `~/.config/aval/private`
@@ -170,6 +229,57 @@ Private material (company names, client skills) lives outside the repo, in `~/.c
 
 > [!NOTE]
 > Until v0.1.0 is final, npm packages and binaries are prereleases: npm serves them under the `next` tag.
+
+<br/>
+
+## Configuration
+
+Settings live in `${XDG_CONFIG_HOME:-~/.config}/aval/config` (`%APPDATA%\aval\config` on Windows), one `key = value` per line. Comments and unknown lines are preserved. `aval config path` prints the file.
+
+| Key | Values | Default | Env | Flag |
+| :--- | :--- | :--- | :--- | :--- |
+| `repo` | path | none | `AVAL_REPO` | `--repo` |
+| `theme` | `aval`, `terminal`, `mono`, or a community theme | `aval` | `AVAL_THEME` | `--theme` |
+| `background` | `auto`, `dark`, `light` | `auto` | `AVAL_BACKGROUND` | |
+| `glyphs` | `auto`, `unicode`, `ascii` | `auto` | `AVAL_GLYPHS` | |
+| `motion` | `auto`, `off` | `auto` | `AVAL_MOTION` | |
+| `update_check` | `on`, `off` | `on` | `AVAL_NO_UPDATE_CHECK` | |
+| `language` | `auto`, `en`, `es` | `auto` | `AVAL_LANG` | `--lang` |
+
+Precedence: flag, then environment variable, then file, then default. `NO_COLOR` is honoured and wins over all of it. `--plain` means `mono`, ASCII glyphs and motion off, in one flag.
+
+```sh
+aval config                 # settings view on a terminal, list otherwise
+aval config list            # every value and where it comes from
+aval config get theme
+aval config set theme catppuccin
+aval config path
+```
+
+**Language.** The hub, the installer and the human output of the CLI come in English and Spanish. `language = auto` picks Spanish when the first of `LC_ALL`, `LC_MESSAGES` and `LANG` that is set starts with `es`, and English otherwise. The order is `--lang`, then `AVAL_LANG`, then the file, then the locale, then English. `aval --lang es doctor` is a one-off; `aval config set language es` sticks. A wrong `--lang` exits 1; a wrong `AVAL_LANG` is skipped, and a wrong `language` in the file warns on stderr and falls back to the locale.
+
+Never translated, in any language: `--json` output, hook and statusline output, logs, and generated files. Scripts and agents read those.
+
+Known English left in a Spanish session: text that comes from the core packages (doctor check messages, plan group labels and reasons, sync warnings, the reasons inside install errors), `unknown command`, and the update-available notice.
+
+The settings view previews the theme live: enter saves, `esc` discards. Inside the installer, press `s`. An invalid value warns once on stderr and falls back to the default; `aval config set` refuses it with exit 1.
+
+**Themes.** `aval` is the default: ink on your own terminal background, with colour only on the state glyphs (`√` `!` `×`), never on text, and the same rule holds in every theme. `terminal` uses your terminal's 16 colours and `mono` uses none. Community themes are opt-in, and a variant can be pinned, for example `theme = catppuccin-frappe`.
+
+| Theme | Variants |
+| :--- | :--- |
+| `catppuccin` | `catppuccin-mocha`, `catppuccin-latte`, `catppuccin-frappe`, `catppuccin-macchiato` |
+| `tokyo-night` | `tokyo-night-storm`, `tokyo-night-day` |
+| `gruvbox` | `gruvbox-dark`, `gruvbox-light` |
+| `dracula` | `dracula-alucard` |
+| `nord` | none |
+| `kanagawa` | `kanagawa-wave`, `kanagawa-dragon`, `kanagawa-lotus` |
+| `rose-pine` | `rose-pine-moon`, `rose-pine-dawn` |
+| `solarized` | `solarized-dark`, `solarized-light` |
+| `one-dark` | `one-light` |
+| `everforest` | `everforest-dark`, `everforest-light` |
+
+Palettes come from each theme's upstream repository; sources and licences are in [`internal/ui/themes/SOURCES.md`](internal/ui/themes/SOURCES.md).
 
 <br/>
 

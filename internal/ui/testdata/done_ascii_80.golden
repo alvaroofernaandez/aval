@@ -1,0 +1,21 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
+
+  Installed. 2 linked, 1 failed.
+
+    linked              2
+    already in place    1
+    failed              1
+    link ~/.config/some/very/long/destination/path/that/keeps/going/config....
+
+    1 existing file moved to /home/u/.aval-backup/20260101-000000
+    Undo everything with: aval restore latest
+
+    Next
+      aval doctor   check this machine against the repo
+      aval config   theme, glyphs and update checks
+      exec zsh      reload your shell to pick up the new config
+
+  ----------------------------------------------------------------------------
+  enter close  s settings  ? help  q quit

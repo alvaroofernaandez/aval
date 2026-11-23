@@ -91,7 +91,7 @@ func TestDetectWSLReadsProcVersion(t *testing.T) {
 
 func TestSupportsSymlinksIsTrueOnUnix(t *testing.T) {
 	// On Unix this is unconditional. On Windows it is a real probe, because
-	// symlink creation needs Developer Mode or elevation — which is exactly why
+	// symlink creation needs Developer Mode or elevation, which is exactly why
 	// the installer falls back to copying there.
 	p := Platform{OS: runtime.GOOS}
 	if p.Unix() && !p.SupportsSymlinks(t.TempDir()) {
@@ -124,5 +124,25 @@ func TestInstallStyleDescribesItself(t *testing.T) {
 	}
 	if got := (Platform{OS: "windows"}).InstallStyle(false); !strings.Contains(strings.ToLower(got), "cop") {
 		t.Errorf("InstallStyle(false) = %q, want it to mention copying", got)
+	}
+}
+
+func TestUserFacingCopyHasNoEmDash(t *testing.T) {
+	// DESIGN.md section 10: no em dashes in UI copy. Display and InstallStyle
+	// head the headless output and the TUI.
+	var got []string
+	for _, p := range []Platform{
+		{OS: "darwin", Arch: "arm64"},
+		{OS: "windows", Arch: "amd64"},
+		{OS: "linux", Arch: "amd64", Distro: "Ubuntu"},
+		{OS: "linux", Arch: "amd64", Distro: "Ubuntu", WSL: true},
+		{OS: "plan9", Arch: "386"},
+	} {
+		got = append(got, p.Display(), p.InstallStyle(true), p.InstallStyle(false))
+	}
+	for _, s := range got {
+		if strings.Contains(s, "—") {
+			t.Errorf("em dash in user-facing copy: %q", s)
+		}
 	}
 }

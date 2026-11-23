@@ -79,7 +79,7 @@ func ciVerdict(sha string, raw []byte) (string, error) {
 
 func runRelease(wd string, args []string, in io.Reader, out io.Writer) error {
 	if len(args) == 0 {
-		return errors.New(releaseUsage)
+		return newUsage(releaseUsage)
 	}
 	g := release.NewGit(wd)
 	switch kind := args[0]; kind {
@@ -91,7 +91,7 @@ func runRelease(wd string, args []string, in io.Reader, out io.Writer) error {
 		yes := fs.Bool("yes", false, "")
 		dry := fs.Bool("dry-run", false, "")
 		if err := fs.Parse(args[1:]); err != nil {
-			return fmt.Errorf("%w\n%s", err, releaseUsage)
+			return &usageError{msg: err.Error() + "\n" + releaseUsage, err: err}
 		}
 		gate := newReleaseGate(g, wd)
 		gate.SkipTests = *dry
@@ -99,7 +99,7 @@ func runRelease(wd string, args []string, in io.Reader, out io.Writer) error {
 			Kind: kind, Yes: *yes, DryRun: *dry, In: in, Out: out, Gate: gate,
 		})
 	}
-	return errors.New(releaseUsage)
+	return newUsage(releaseUsage)
 }
 
 func releaseStatus(g release.Git, out io.Writer) error {

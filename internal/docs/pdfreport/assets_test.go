@@ -218,7 +218,7 @@ func TestBuildAssets(t *testing.T) {
 
 func TestBuildAssetsErrors(t *testing.T) {
 	err := Assets(AssetOptions{Project: t.TempDir(), BrandDir: filepath.Join(t.TempDir(), "nope"), LogoFile: "logo.png", Get: fakeGet(""), Out: &bytes.Buffer{}})
-	if err == nil || !strings.Contains(err.Error(), "Brand image directory not found") {
+	if !errors.Is(err, ErrBrandDirMissing) {
 		t.Errorf("missing brand dir: %v", err)
 	}
 	empty := t.TempDir()

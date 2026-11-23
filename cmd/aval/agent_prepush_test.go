@@ -11,7 +11,7 @@ import (
 // `aval hook pre-push patterns` is how the shell suites read the pattern list.
 func TestPrePushPatternsSubcommand(t *testing.T) {
 	var out bytes.Buffer
-	if err := runHook([]string{"pre-push", "patterns"}, strings.NewReader(""), &out); err != nil {
+	if err := runHook([]string{"pre-push", "patterns"}, procIO(strings.NewReader(""), &out)); err != nil {
 		t.Fatal(err)
 	}
 	got := strings.Split(strings.TrimRight(out.String(), "\n"), "\n")

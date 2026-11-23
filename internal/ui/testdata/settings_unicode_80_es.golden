@@ -1,0 +1,19 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Ajustes                                                ~/.config/aval/config
+
+  › Tema              aval           aval · catppuccin · tokyo-night …
+    Fondo             auto           auto · dark · light
+    Glifos            auto           auto · unicode · ascii
+    Animación         auto           auto · off
+    Actualizaciones   on             on · off
+    Idioma            auto           auto · en · es
+    Repositorio       ~/.aval
+
+  Vista previa  [√] Seleccionado   [ ] No seleccionado   √ enlazado
+                ! con copia   × fallo
+
+  ────────────────────────────────────────────────────────────────────────────
+  ↑↓ mover · ←→ cambiar · enter guardar · esc descartar · ? ayuda · q salir

@@ -1,0 +1,31 @@
+ aval 0.3.0
+ Build
+ Version
+   0.3.0
+ Commit
+   abc1234
+ Built
+   2026-05-06T00:00:00Z
+ Channel
+   stable
+
+ Paths
+ Repository
+   ~/.aval
+ Config
+   ~/.config/aval/config
+ Backups
+   ~/.aval-backup
+ Sandboxes
+   ~/.cache/aval/dev
+ Binary
+   ~/go/bin/aval
+
+ Links
+ Source
+   https://github.com/alvaroofernaa
+   ndez/aval
+ Issues
+   https://github.com/alvaroofernaa
+   ndez/aval/issues
+ ↑↓ scroll · ? help

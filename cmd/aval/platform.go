@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // unixOnly lists the commands that drive software with no native Windows
 // build, and why. They run fine under WSL, which takes the Unix path.
@@ -22,5 +25,8 @@ func unsupportedHere(goos, cmd string) error {
 	if !ok {
 		return nil
 	}
-	return fmt.Errorf("aval %s is not supported on windows: %s. Use WSL for it", cmd, reason)
+	return fmt.Errorf("aval %s is %w: %s. Use WSL for it", cmd, errUnsupported, reason)
 }
+
+// errUnsupported is a Unix-only command run on native Windows.
+var errUnsupported = errors.New("not supported on windows")

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -57,12 +58,13 @@ func TestFindBrowser(t *testing.T) {
 
 func TestFindBrowserNothingExplainsTheFix(t *testing.T) {
 	_, err := FindBrowser(env("darwin", nil))
-	if err == nil || !strings.Contains(err.Error(), "AVAL_CHROME") {
-		t.Fatalf("want an error naming AVAL_CHROME, got %v", err)
+	if !errors.Is(err, errNoBrowser) {
+		t.Fatalf("err = %v, want errNoBrowser", err)
 	}
 	_, err = FindBrowser(env("darwin", map[string]string{"AVAL_CHROME": "/nope"}))
-	if err == nil || !strings.Contains(err.Error(), "/nope") {
-		t.Fatalf("a broken AVAL_CHROME must be reported, got %v", err)
+	var ce *chromeEnvError
+	if !errors.As(err, &ce) || ce.Path != "/nope" {
+		t.Fatalf("err = %v, want a *chromeEnvError for /nope", err)
 	}
 }
 
@@ -139,8 +141,9 @@ func TestBuildStopsOnOverflow(t *testing.T) {
 	var calls [][]string
 	out := filepath.Join(t.TempDir(), "plan.pdf")
 	err := Build(valid(), out, BuildOptions{Browser: "/b/chrome", Run: fakeBrowser(t, "2,3", &calls), TempDir: t.TempDir()})
-	if err == nil || !strings.Contains(err.Error(), "slides 2, 3") {
-		t.Fatalf("want an overflow error naming slides 2, 3, got %v", err)
+	var oe *overflowError
+	if !errors.As(err, &oe) || !slices.Equal(oe.Slides, []string{"2", "3"}) {
+		t.Fatalf("err = %v, want an *overflowError for slides 2 and 3", err)
 	}
 	if _, statErr := os.Stat(out); statErr == nil {
 		t.Error("no PDF may be written when a slide overflows")

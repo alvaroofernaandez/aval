@@ -1,0 +1,14 @@
+ aval 0.2.0
+ Update                     ~/.aval
+
+ ok up to date (a1b2c3d)
+
+ > Re-apply links anyway
+   link what is missing, pull
+   nothing
+   Back
+   change nothing
+ Files in the way move to
+ ~/.aval-backup first  undo: aval
+ restore latest
+ enter choose  esc back  ? help

@@ -36,7 +36,7 @@ func generated(t *testing.T) string {
 	t.Helper()
 	needTool(t, "go")
 	brandOnce.Do(func() {
-		brandDir, _ = os.MkdirTemp("", "aval-brand-")
+		_ = os.MkdirAll(brandDir, 0o755)
 		r := run(repo, nil, "", "go", "run", "./tools/brand", "--docs", p("docs"), "--out", brandDir)
 		if r.Code != 0 {
 			brandErr = r.Out()

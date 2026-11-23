@@ -1,0 +1,17 @@
+ aval 0.2.0
+ Installed. 2 linked, 1 failed.
+
+   linked              2
+   already in place    1
+   failed              1
+   link ~/.config/some/very/long...
+
+   1 existing file moved to
+   /home/u/.aval-...20260101-000000
+   aval restore latest
+
+   Next
+     aval doctor   check this ma...
+     aval config   theme, glyphs...
+     exec zsh      reload your s...
+ enter close  ? help

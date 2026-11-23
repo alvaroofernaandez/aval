@@ -13,6 +13,8 @@ import (
 // install.manifest is the single source of truth for what gets installed and
 // where. The contract: it parses, every group declares a platform and a label,
 // every source exists, and the Go installer installs exactly what it says.
+// TestManifestMatchesWhatTheInstallerInstalls doubles as the real-binary smoke
+// for `aval install --yes --dry-run`.
 
 type manifestEntry struct{ src, dest, group string }
 

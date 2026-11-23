@@ -2,6 +2,7 @@ package update
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 )
@@ -56,8 +57,8 @@ func TestDryRunRefusesADirtyTree(t *testing.T) {
 	g := previewRepo()
 	g.answers["status --porcelain"] = " M config/claude/settings.json"
 	_, err := DryRun(context.Background(), g, nil)
-	if err == nil || !strings.Contains(err.Error(), "uncommitted changes") {
-		t.Errorf("err = %v, want the dirty-tree refusal", err)
+	if !errors.Is(err, ErrDirtyTree) {
+		t.Errorf("err = %v, want ErrDirtyTree", err)
 	}
 }
 

@@ -1,0 +1,35 @@
+{
+  "title": "Hub v2",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · hub-v2", "title": "Ves qué hace cada acción antes de entrar", "lede": "Iconos por acción, indicadores vivos y un panel que explica la acción seleccionada. Misma estética de aval."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "El hub v1 es correcto pero plano", "items": [
+      {"title": "Todo se ve igual", "text": "Nueve líneas de texto sin nada que destaque de un vistazo.", "tone": "warn"},
+      {"title": "Rutas cortadas", "text": "/Users/alvar…default/repo y backups que acaban en insta…", "tone": "warn"},
+      {"title": "Sin anticipo", "text": "No sabes qué hace una acción ni cómo está hasta que entras.", "tone": "warn"}
+    ]},
+    {"layout": "compare", "eyebrow": "La idea", "title": "De una lista a una lista con panel de detalle", "items": [
+      {"tag": "v1", "title": "Lista plana", "text": "Nombre y descripción; la fila seleccionada en bloque invertido.", "tone": "muted"},
+      {"tag": "v2", "title": "Lista con iconos y panel", "text": "Icono, indicador vivo y, a la derecha, estado y teclas de la acción seleccionada.", "tone": "good"}
+    ]},
+    {"layout": "checklist", "eyebrow": "Lo que cambia", "title": "Seis mejoras concretas", "items": [
+      {"title": "Iconos de una celda", "text": "⇣ ⟳ ⇄ ⊕ ◷ ⌫ ⎈ ⧉ ◉, con versión ASCII y probados con el control de emoji."},
+      {"title": "Indicadores vivos", "text": "↑ 3 commits, ! 1 aviso, 4 backups; solo si hay dato."},
+      {"title": "Panel de detalle", "text": "Qué hace, cómo está y qué teclas tiene."},
+      {"title": "Atajos de una letra", "text": "i, u, s, d, b, x, coma, v, a abren cada acción."},
+      {"title": "Rutas legibles", "text": "Se acortan por delante y conservan el final."},
+      {"title": "Selección ligera", "text": "Cursor y negrita, sin bloque invertido."}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones", "title": "Por qué así", "columns": ["Decidimos", "Porque", "En lugar de"], "rows": [
+      ["Lista + panel", "Responde qué hace antes de entrar", "Tarjetas o solo badges"],
+      ["Iconos de ancho fijo", "Ningún terminal descuadra", "Emoji o Nerd Fonts"],
+      ["Commits detrás en local", "Abrir sigue sin usar la red", "Hacer fetch al abrir"]
+    ]},
+    {"layout": "steps", "eyebrow": "El camino", "title": "Tres tareas", "items": [
+      {"title": "V1 contrato y pantalla", "text": "DESIGN.md e hub v2 con tests y golden 80x24."},
+      {"title": "V2 estado del repo", "text": "Commits detrás y árbol sucio, en local y solo lectura."},
+      {"title": "V3 cierre", "text": "Cableado, docs y GIF nuevo.", "tone": "good"}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "V1 y V2 en paralelo", "lede": "Opus diseña la pantalla y Sonnet el estado del repo."}
+  ]
+}

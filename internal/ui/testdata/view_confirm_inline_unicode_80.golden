@@ -1,0 +1,15 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Uninstall                                                            2 links
+
+  ! would remove  ~/.claude/skills/old-skill
+  ! would remove  ~/.claude/skills/retired
+
+  › Apply sync  back up, write, verify with doctor
+    Back        change nothing
+
+  ────────────────────────────────────────────────────────────────────────────
+  Files in the way move to ~/.aval-backup first · undo: aval restore latest
+  ↑↓ move · enter choose · esc back · ? help · q quit

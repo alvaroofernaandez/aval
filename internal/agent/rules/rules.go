@@ -13,6 +13,7 @@
 package rules
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -46,7 +47,7 @@ func Sync(repo string, check bool) (Result, error) {
 	}
 	block := between(strings.Split(string(claude), "\n"), rulesBegin, rulesEnd)
 	if len(block) == 0 {
-		return Result{}, fmt.Errorf("rules sync: no block found in %s", src)
+		return Result{}, fmt.Errorf("%w in %s", errNoBlock, src)
 	}
 
 	agentsRaw, err := os.ReadFile(dst)
@@ -168,3 +169,6 @@ func lessonBody(s string) string {
 	}
 	return strings.Join(out, "\n") + "\n"
 }
+
+// errNoBlock is a CLAUDE.md without the shared rules markers.
+var errNoBlock = errors.New("rules sync: no block found")

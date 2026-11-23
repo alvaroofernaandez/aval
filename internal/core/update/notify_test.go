@@ -82,10 +82,15 @@ func TestCheckLatestSurvivesEveryFailure(t *testing.T) {
 }
 
 func TestCheckLatestHonoursContextCancellation(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		time.Sleep(2 * time.Second)
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select { // hang until the client gives up or the test ends
+		case <-r.Context().Done():
+		case <-release:
+		}
 	}))
 	defer srv.Close()
+	defer close(release)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -154,5 +159,20 @@ func TestUpdateCommandMatchesTheInstallMethod(t *testing.T) {
 	}
 	if got := commandFor("/Users/x/.aval/bin/aval"); strings.Contains(got, "npm") {
 		t.Errorf("a repo path should not suggest npm, got %q", got)
+	}
+}
+
+func TestShouldCheckWithDisabledSettingSilencesTheNotice(t *testing.T) {
+	// update_check = off in the config file means the same as the env opt-out.
+	dir := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", dir)
+	testenv.SetHome(t, dir)
+	t.Setenv("AVAL_NO_UPDATE_CHECK", "")
+
+	if ShouldCheckWith(time.Now(), false) {
+		t.Error("update_check = off was ignored")
+	}
+	if !ShouldCheckWith(time.Now(), true) {
+		t.Error("update_check = on must still check")
 	}
 }

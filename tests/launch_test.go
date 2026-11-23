@@ -15,6 +15,8 @@ import (
 // launchd's minimal PATH, so a bare `tmux` is not found; these cases pin that
 // down against the real binary. Hermetic variants (fake tmux, no server) live
 // in internal/term/tmux; the cases here use the real tmux where it matters.
+// Stays a real process: tmux, PATH lookup under launchd's minimal PATH and
+// exec into tmux need one.
 
 const minimalPath = "/usr/bin:/bin:/usr/sbin:/sbin"
 
@@ -90,8 +92,10 @@ func TestLaunchEveryTabGetsItsOwnSession(t *testing.T) {
 	eq(t, "with no sessions, it creates one", "new", pick())
 
 	sess("new-session", "-d", "-s", "alpha")
-	time.Sleep(300 * time.Millisecond)
-	eq(t, "reuses a session that has no client", "alpha", pick())
+	// The server registers the session asynchronously: poll, bounded.
+	got := ""
+	eventually(10*time.Second, func() bool { got = pick(); return got == "alpha" })
+	eq(t, "reuses a session that has no client", "alpha", got)
 
 	sess("new-session", "-d", "-s", "beta")
 	listing := sess("list-sessions", "-F", "#{session_name}|#{session_attached}").Stdout
@@ -99,7 +103,7 @@ func TestLaunchEveryTabGetsItsOwnSession(t *testing.T) {
 
 	// A session with a client is never picked: whatever pick returns is "new" or
 	// a session that really has no client.
-	got := pick()
+	got = pick()
 	if got != "new" {
 		isTrue(t, "never picks a session that already has a client: "+got,
 			regexp.MustCompile(`(?m)^`+regexp.QuoteMeta(got)+`\|0`).MatchString(listing))

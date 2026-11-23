@@ -88,7 +88,7 @@ func (n Notice) String() string {
 // has to handle: being offline, behind a proxy, or on a machine with no DNS
 // must never stop someone installing their dotfiles.
 func CheckLatest(ctx context.Context, current string) Notice {
-	return checkFor(ctx, PackageURL, current)
+	return checkForAndStore(ctx, PackageURL, current)
 }
 
 // checkAt is CheckLatest with the endpoint injected, so the failure paths can
@@ -171,4 +171,10 @@ func ShouldCheck(now time.Time) bool {
 	// interrupts, the next run should still back off rather than hang again.
 	_ = os.WriteFile(stamp, []byte(now.Format(time.RFC3339)), 0o644)
 	return true
+}
+
+// ShouldCheckWith is ShouldCheck with the update_check setting applied:
+// enabled=false (update_check = off) silences the notice like the env opt-out.
+func ShouldCheckWith(now time.Time, enabled bool) bool {
+	return enabled && ShouldCheck(now)
 }

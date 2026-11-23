@@ -1,6 +1,7 @@
 package install
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -376,5 +377,55 @@ func TestParentDirectoriesAreCreated(t *testing.T) {
 	}
 	if _, err := os.Lstat(act.Dest); err != nil {
 		t.Errorf("destination not created: %v", err)
+	}
+}
+
+func TestApplyErrorNamesTheActionAndAShortReason(t *testing.T) {
+	_, home, act := fixture(t)
+	act.Source += ".gone"
+	r := New(Options{Home: home, Symlinks: true})
+
+	_, err := r.Apply(act)
+	var ae *Error
+	if !errors.As(err, &ae) {
+		t.Fatalf("Apply error %T %v is not an *install.Error", err, err)
+	}
+	if ae.Action.Label != act.Label {
+		t.Errorf("error action = %q, want %q", ae.Action.Label, act.Label)
+	}
+	if ae.Reason != "source missing" {
+		t.Errorf("Reason = %q, want %q", ae.Reason, "source missing")
+	}
+}
+
+func TestShortReasonDropsThePaths(t *testing.T) {
+	err := &os.LinkError{Op: "symlink", Old: "/repo/a", New: "/home/.a", Err: fs.ErrExist}
+	if got := shortReason("link", err); got != "link failed: file already exists" {
+		t.Errorf("shortReason = %q", got)
+	}
+	if got := shortReason("copy", fmt.Errorf("plain")); got != "copy failed: plain" {
+		t.Errorf("shortReason = %q", got)
+	}
+}
+
+func TestInstallRunRecordsItsOrigin(t *testing.T) {
+	testenv.NeedSymlinks(t)
+	_, home, act := fixture(t)
+	if err := os.WriteFile(act.Dest, []byte("PRECIOUS"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r := New(Options{Home: home, Symlinks: true})
+	if _, err := r.Apply(act); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Finish(); err != nil {
+		t.Fatal(err)
+	}
+	runs, err := backup.NewStore(home).List()
+	if err != nil || len(runs) != 1 {
+		t.Fatalf("runs = %v, %v", runs, err)
+	}
+	if runs[0].Origin != "install" {
+		t.Errorf("Origin = %q, want install", runs[0].Origin)
 	}
 }

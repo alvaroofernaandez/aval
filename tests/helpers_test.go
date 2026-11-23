@@ -27,6 +27,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // exeSuffix is the executable extension of the platform the suite runs on.
@@ -42,8 +43,12 @@ var (
 
 	buildOnce sync.Once
 	binDir    string
-	avalPath  string
-	buildErr  error
+	// scratch is the one shared temp dir (binary, brand output). Package-level
+	// sync.Once helpers have no *testing.T to own a t.TempDir(), so TestMain
+	// makes it and removes it.
+	scratch  string
+	avalPath string
+	buildErr error
 )
 
 func TestMain(m *testing.M) {
@@ -53,12 +58,15 @@ func TestMain(m *testing.M) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	code := m.Run()
-	for _, d := range []string{binDir, brandDir} {
-		if d != "" {
-			_ = os.RemoveAll(d)
-		}
+	scratch, err = os.MkdirTemp("", "aval-tests-")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
 	}
+	binDir = filepath.Join(scratch, "bin")
+	brandDir = filepath.Join(scratch, "brand")
+	code := m.Run()
+	_ = os.RemoveAll(scratch)
 	os.Exit(code)
 }
 
@@ -74,16 +82,19 @@ func findRepo() (string, error) {
 	return filepath.Dir(wd), nil
 }
 
+// errNoGo is a machine without the go toolchain: the suite skips, not fails.
+var errNoGo = errors.New("no go toolchain")
+
 // avalBin returns the path of the aval binary built from the repo under test.
 // It skips when there is no Go toolchain and fails when the build is broken.
 func avalBin(t testing.TB) string {
 	t.Helper()
 	buildOnce.Do(func() {
 		if _, err := exec.LookPath("go"); err != nil {
-			buildErr = errors.New("no go toolchain")
+			buildErr = errNoGo
 			return
 		}
-		binDir, buildErr = os.MkdirTemp("", "aval-tests-bin-")
+		buildErr = os.MkdirAll(binDir, 0o755)
 		if buildErr != nil {
 			return
 		}
@@ -95,12 +106,32 @@ func avalBin(t testing.TB) string {
 		}
 	})
 	if buildErr != nil {
-		if buildErr.Error() == "no go toolchain" {
+		if errors.Is(buildErr, errNoGo) {
 			t.Skip("go toolchain not installed")
 		}
 		t.Fatal(buildErr)
 	}
 	return avalPath
+}
+
+// eventually polls cond on a short tick until it holds or timeout passes, and
+// reports whether it held. The deadline is a hard stop, never an assertion on
+// how long the wait took.
+func eventually(timeout time.Duration, cond func() bool) bool {
+	tick := time.NewTicker(20 * time.Millisecond)
+	defer tick.Stop()
+	stop := time.NewTimer(timeout)
+	defer stop.Stop()
+	for {
+		if cond() {
+			return true
+		}
+		select {
+		case <-tick.C:
+		case <-stop.C:
+			return cond()
+		}
+	}
 }
 
 // needTool skips the test when any of the tools is missing from PATH.
@@ -211,6 +242,8 @@ func isoEnv(home string, kv ...string) []string {
 		"XDG_CONFIG_HOME="+filepath.Join(home, ".config"),
 		"GIT_CONFIG_GLOBAL="+os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
+		// The pinned human text is English whatever the machine's locale.
+		"AVAL_LANG=en",
 	)
 	return withEnv(base, kv...)
 }

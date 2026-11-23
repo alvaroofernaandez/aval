@@ -1,0 +1,21 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ----------------------------------------------------------------------------
+
+  Actualizar                                                           ~/.aval
+
+  3 commits por detrás de origin                            a1b2c3d -> d4e5f6a
+
+  Rutas gestionadas que cambian
+    config/zsh/.zshrc          12 +++--
+    skills/plan-deck/SKILL.md   4 +-
+  Entradas nuevas del manifiesto
+    + skills/new-skill -> ~/.claude/skills/new-skill
+
+  > Actualizar y volver a aplicar  actualiza con --ff-only y enlaza lo nuevo
+    Volver                         no cambia nada
+
+  ----------------------------------------------------------------------------
+  Los archivos en el camino pasan antes a ~/.aval-backup  deshacer: aval
+  restore latest
+  up/down mover  enter elegir  esc volver  ? ayuda  q salir

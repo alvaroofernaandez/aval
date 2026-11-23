@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/core/manifest"
@@ -37,7 +38,20 @@ type Result struct {
 	Status  Status `json:"status"`
 	Message string `json:"message"`
 	Fixable bool   `json:"fixable"`
+	// Details is the full list behind Message, which truncates long lists.
+	Details []string `json:"-"`
+	// Fix says which repair, if any, the hub offers for this result.
+	Fix FixKind `json:"-"`
 }
+
+// FixKind says how a result can be repaired from the hub.
+type FixKind int
+
+const (
+	FixNone FixKind = iota
+	FixBrokenLinks
+	FixSync
+)
 
 // Options configures a run.
 type Options struct {
@@ -51,6 +65,8 @@ type Options struct {
 	Allow []string
 	// LookPath resolves a bare command name; nil means exec.LookPath.
 	LookPath func(string) (string, error)
+	// ConfigPath is aval's config file; empty skips the config check.
+	ConfigPath string
 }
 
 // brokenLinkDirs are scanned one level deep for dangling symlinks.
@@ -74,10 +90,27 @@ func Run(opt Options) []Result {
 		checkSettingsDrift(opt),
 	)
 	rs = append(rs, checkOverlay(opt)...)
+	if opt.ConfigPath != "" {
+		rs = append(rs, checkConfig(opt))
+	}
 	if opt.Security {
 		rs = append(rs, checkSecurity(opt)...)
 	}
+	for i := range rs {
+		rs[i].Fix = fixKind(rs[i])
+	}
 	return rs
+}
+
+// fixKind maps a fixable result to the repair that clears it.
+func fixKind(r Result) FixKind {
+	switch {
+	case !r.Fixable:
+		return FixNone
+	case r.ID == "broken-links":
+		return FixBrokenLinks
+	}
+	return FixSync
 }
 
 // RunOnly runs every check and keeps the ones whose ID equals, or starts
@@ -108,6 +141,24 @@ func Fix(opt Options) ([]string, error) {
 	return removed, err
 }
 
+// RemoveBroken removes every dangling link, snapshotting each into rec first
+// so backup.Store.Restore can put it back. The caller owns rec and commits it.
+// The sync half of Fix is deliberately absent: txsync imports doctor.
+func RemoveBroken(opt Options, rec *backup.Recorder) ([]string, error) {
+	var removed []string
+	rec.SetOrigin("doctor")
+	for _, p := range brokenLinks(opt) {
+		if _, err := rec.Snapshot(p); err != nil {
+			return removed, fmt.Errorf("doctor: back up %s: %w", p, err)
+		}
+		if err := os.Remove(p); err != nil {
+			return removed, fmt.Errorf("doctor: remove %s: %w", p, err)
+		}
+		removed = append(removed, p)
+	}
+	return removed, nil
+}
+
 // HasFail reports whether any result failed.
 func HasFail(rs []Result) bool {
 	for _, r := range rs {
@@ -119,16 +170,75 @@ func HasFail(rs []Result) bool {
 }
 
 // Render prints the aligned table and the summary line.
-func Render(w io.Writer, rs []Result) {
-	width := len("CHECK")
+func Render(w io.Writer, rs []Result) { RenderStyled(w, rs, nil) }
+
+// Styler decorates a status word for a terminal. The doctor package owns the
+// interface so internal/core never imports the UI layer.
+type Styler interface {
+	OK(word string) string
+	Warn(word string) string
+	Fail(word string) string
+	// Width is the visible width of a styled cell (escape codes excluded).
+	Width(s string) int
+}
+
+// Text is the wording of the human table: the column headings, the word for
+// each status, the hint on a fixable row and the summary line. The package
+// holds English only; a caller that speaks another language passes its own,
+// so internal/core never imports the catalog. The message of each check is
+// data from the checks and is printed as it is.
+type Text struct {
+	Status, Check, Message string
+	// Word is the status cell before styling.
+	Word func(Status) string
+	// Fixable is appended to a fixable row that is not OK, with its space.
+	Fixable string
+	// Summary renders the line under the table.
+	Summary func(ok, warn, fail int) string
+}
+
+// EnglishText is the table's wording when no language is given.
+func EnglishText() Text {
+	return Text{
+		Status: "STATUS", Check: "CHECK", Message: "MESSAGE",
+		Word:    func(s Status) string { return strings.ToUpper(string(s)) },
+		Fixable: " (fixable: aval doctor --fix)",
+		Summary: func(ok, warn, fail int) string { return fmt.Sprintf("%d ok, %d warn, %d fail", ok, warn, fail) },
+	}
+}
+
+// RenderStyled is Render with an optional Styler. A nil Styler prints the
+// plain, byte-stable table scripts rely on.
+func RenderStyled(w io.Writer, rs []Result, st Styler) {
+	RenderText(w, rs, st, EnglishText())
+}
+
+// RenderText is RenderStyled with the table's wording given.
+func RenderText(w io.Writer, rs []Result, st Styler, tx Text) {
+	width := utf8.RuneCountInString(tx.Check)
 	for _, r := range rs {
-		if len(r.ID) > width {
-			width = len(r.ID)
+		width = max(width, utf8.RuneCountInString(r.ID))
+	}
+	cells := make([]string, len(rs))
+	statusWidth := utf8.RuneCountInString(tx.Status)
+	for i, r := range rs {
+		cells[i] = statusCell(r.Status, st, tx)
+		if st != nil {
+			statusWidth = max(statusWidth, st.Width(cells[i]))
+		} else {
+			statusWidth = max(statusWidth, utf8.RuneCountInString(cells[i]))
 		}
 	}
-	fmt.Fprintf(w, "%-6s  %-*s  %s\n", "STATUS", width, "CHECK", "MESSAGE")
+	pad := func(cell string) string {
+		n := statusWidth - utf8.RuneCountInString(cell)
+		if st != nil {
+			n = statusWidth - st.Width(cell)
+		}
+		return cell + strings.Repeat(" ", max(n, 0))
+	}
+	fmt.Fprintf(w, "%s  %-*s  %s\n", pad(tx.Status), width, tx.Check, tx.Message)
 	var ok, warn, fail int
-	for _, r := range rs {
+	for i, r := range rs {
 		switch r.Status {
 		case OK:
 			ok++
@@ -139,11 +249,28 @@ func Render(w io.Writer, rs []Result) {
 		}
 		msg := r.Message
 		if r.Fixable && r.Status != OK {
-			msg += " (fixable: aval doctor --fix)"
+			msg += tx.Fixable
 		}
-		fmt.Fprintf(w, "%-6s  %-*s  %s\n", strings.ToUpper(string(r.Status)), width, r.ID, msg)
+		fmt.Fprintf(w, "%s  %-*s  %s\n", pad(cells[i]), width, r.ID, msg)
 	}
-	fmt.Fprintf(w, "\n%d ok, %d warn, %d fail\n", ok, warn, fail)
+	fmt.Fprintf(w, "\n%s\n", tx.Summary(ok, warn, fail))
+}
+
+// statusCell is the status word, decorated when a Styler is given.
+func statusCell(s Status, st Styler, tx Text) string {
+	word := tx.Word(s)
+	if st == nil {
+		return word
+	}
+	switch s {
+	case OK:
+		return st.OK(word)
+	case Warn:
+		return st.Warn(word)
+	case Fail:
+		return st.Fail(word)
+	}
+	return word
 }
 
 // RenderJSON prints the results as a JSON array.
@@ -158,6 +285,12 @@ func RenderJSON(w io.Writer, rs []Result) error {
 
 func result(id string, st Status, fixable bool, format string, a ...any) Result {
 	return Result{ID: id, Status: st, Message: fmt.Sprintf(format, a...), Fixable: fixable}
+}
+
+// withDetails attaches the untruncated items behind a result's message.
+func withDetails(r Result, items []string) Result {
+	r.Details = items
+	return r
 }
 
 // list shortens a long list for a one-line message.
@@ -237,7 +370,7 @@ func summariseLinks(id string, total int, probs []*linkProblem, what string) Res
 		}
 		parts = append(parts, p.label+" ("+p.what+")")
 	}
-	return result(id, st, false, "%d of %d %s need attention: %s", len(probs), total, what, list(parts))
+	return withDetails(result(id, st, false, "%d of %d %s need attention: %s", len(probs), total, what, list(parts)), parts)
 }
 
 func checkLinks(opt Options) Result {
@@ -299,7 +432,7 @@ func checkBroken(opt Options) Result {
 	for i, p := range broken {
 		labels[i] = tilde(opt.Home, p)
 	}
-	return result("broken-links", Fail, true, "%d broken: %s", len(broken), list(labels))
+	return withDetails(result("broken-links", Fail, true, "%d broken: %s", len(broken), list(labels)), labels)
 }
 
 // --- hooks ------------------------------------------------------------------
@@ -383,12 +516,12 @@ func checkHooks(opt Options, live map[string]any, liveErr error) []Result {
 	if len(unresolved) == 0 {
 		rs = append(rs, result("hooks-resolve", OK, false, "%d hook commands resolve", len(cmds)))
 	} else {
-		rs = append(rs, result("hooks-resolve", Fail, false, "%d unresolved: %s", len(unresolved), list(unresolved)))
+		rs = append(rs, withDetails(result("hooks-resolve", Fail, false, "%d unresolved: %s", len(unresolved), list(unresolved)), unresolved))
 	}
 	if len(retired) == 0 {
 		rs = append(rs, result("hooks-retired", OK, false, "no retired SDD hooks"))
 	} else {
-		rs = append(rs, result("hooks-retired", Fail, false, "%d retired: %s", len(retired), list(retired)))
+		rs = append(rs, withDetails(result("hooks-retired", Fail, false, "%d retired: %s", len(retired), list(retired)), retired))
 	}
 
 	repo, err := avalsync.RepoSettings(avalsync.Options{Repo: opt.Repo, Home: opt.Home, GOOS: opt.GOOS})
@@ -486,7 +619,7 @@ func checkAgents(opt Options) Result {
 		}
 	}
 	if len(bad) > 0 {
-		return result("agents", Fail, false, "%d agent(s) pin a model that is not opus|sonnet|haiku|inherit: %s", len(bad), list(bad))
+		return withDetails(result("agents", Fail, false, "%d agent(s) pin a model that is not opus|sonnet|haiku|inherit: %s", len(bad), list(bad)), bad)
 	}
 	return result("agents", OK, false, "%d agents use model aliases", n)
 }
@@ -524,7 +657,7 @@ func checkSkills(opt Options) Result {
 		}
 	}
 	if len(bad) > 0 {
-		return result("skills", Warn, false, "%d skill(s) incomplete: %s", len(bad), list(bad))
+		return withDetails(result("skills", Warn, false, "%d skill(s) incomplete: %s", len(bad), list(bad)), bad)
 	}
 	return result("skills", OK, false, "%d skills have SKILL.md with name and description", n)
 }
@@ -558,7 +691,7 @@ func checkPlugins(opt Options, live map[string]any, liveErr error) Result {
 		}
 	}
 	if len(missing) > 0 {
-		return result("plugins", Warn, false, "%d enabled but not installed: %s", len(missing), list(missing))
+		return withDetails(result("plugins", Warn, false, "%d enabled but not installed: %s", len(missing), list(missing)), missing)
 	}
 	return result("plugins", OK, false, "%d enabled plugins are installed", len(want))
 }
@@ -571,7 +704,7 @@ func checkSettingsDrift(opt Options) Result {
 	if len(keys) == 0 {
 		return result("settings-drift", OK, false, "managed settings keys match the repo")
 	}
-	return result("settings-drift", Fail, true, "live settings differ in: %s", strings.Join(keys, ", "))
+	return withDetails(result("settings-drift", Fail, true, "live settings differ in: %s", strings.Join(keys, ", ")), keys)
 }
 
 // --- private overlay -------------------------------------------------------------

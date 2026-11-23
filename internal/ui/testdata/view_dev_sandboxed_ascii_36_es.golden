@@ -1,0 +1,11 @@
+ aval 0.3.0
+ Sandbox dev      ~/.cache/aval/dev
+
+ Está dentro del sandbox alpha.
+ Salga de él para gestionar
+ sandboxes.
+
+ > default  ok listo     
+   release  ! incompleto 
+ Solo lectura dentro de un sandbox
+ ? ayuda

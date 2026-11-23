@@ -52,35 +52,80 @@ Three ways to get the binary; everything else is the same.
 | Route | Command |
 | :--- | :--- |
 | Go | `go install github.com/alvaroofernaandez/aval/cmd/aval@latest` |
-| npm | `npx @alvaroofernaandez/aval install` (or `npm i -g @alvaroofernaandez/aval`) |
+| npm | `npx @alvaroofernaandez/aval install` (or `npm i -g @alvaroofernaandez/aval`); no clone needed |
 | Binary | The Releases page, with `SHA256SUMS` |
 
 > [!NOTE]
 > The npm package named `aval` and the prebuilt binaries are published by CI and are not yet
 > available under the new name.
 
-Then, from a clone of the repo. The repository is found from, in order: `--repo <path>`, `$AVAL_REPO`,
-the location the first `aval install` recorded in `~/.config/aval/config`, then the current directory.
-`aval` on its own prints the usage and changes nothing.
+On a terminal, a bare `aval` opens the **hub**: the wordmark, a status panel (version from the update cache, repo, doctor, last backup, theme) and a menu. Opening it writes nothing and makes no network calls. Each entry has an icon and, when there is something to know, a badge. A detail pane follows the cursor, and the letters in the footer jump straight to an entry.
+
+```text
+                       ▗██              ██  Version  0.3.0 · ! 0.3.1 available
+                      ▗██▘              ██  Repo     ~/.aval
+     ▄▄▄▄▄▄▄▖  ▗▄▖    ▟█▘    ▗▄▄▄▄▄▄▄   ██  Doctor   ! 1 warn
+   ▗██▀▀▀▜██▌  ▝██▖  ▟█▛    ▟█▛▀▀▀███   ██  Backup   today 12:54 · install
+   ██▘    ▜█▌   ▝██▖▟█▛    ▐█▛    ▝██   ██  Theme    mono
+   ▜█▙▖  ▄██▌    ▝███▛     ▝██▄  ▗▟██   ██
+    ▀▜████▜█▌     ▝█▛       ▝▀████▛██   ██
+  Nothing passes without evidence.                               macOS (arm64)
+  ────────────────────────────────────────────────────────────────────────────
+
+  Set up  › ⇣ Install        │ ⇣ Install                                     i
+            ⟳ Update     ↑ 3 │ Link the repo configs into this home.
+            ⇄ Sync           │
+  Health    ⊞ Doctor     ! 1 │ Repo      ~/.aval
+  Undo      ◷ Backups      4 │ Last run  today 12:54
+            ⌫ Uninstall      │
+  Tools     ⎈ Settings       │ enter  pick what to link
+            ⧉ Dev sandbox  2 │
+            ◉ About          │
+
+  ────────────────────────────────────────────────────────────────────────────
+  1 warning · open Doctor to see it
+  ↑↓ move · enter open · i u s d b x , v a jump · ? help · q quit
+```
+
+Every write goes through preview, confirm, run and result. A destructive confirm opens on Cancel and names its safety net. Without a terminal, with `aval help` or `--help`, or with `TERM=dumb`, aval prints the usage byte for byte instead.
+
+Views:
+
+- **Install**: links the repo configs into this home. It previews first, and anything in the way moves to `~/.aval-backup`.
+- **Update**: pulls the repo (fast-forward only), then re-applies. It fetches a preview first, stops on a dirty tree, and backs up files in the way.
+- **Sync**: merges repo-managed settings into the live config. It previews the drift, backs up, verifies with doctor and rolls back on failure.
+- **Doctor**: checks this machine against the repo. It is read-only until you press `f`; the fixes it offers are safe ones (dangling links, settings drift), backed up first.
+- **Backups**: lists backup runs and restores one. A restore previews first, confirms on Cancel, and moves foreign content aside instead of deleting it.
+- **Uninstall**: removes the links aval made and puts back what they displaced. It previews at once, confirms on Cancel, and names `aval restore latest` as the undo.
+- **Settings**: theme, glyphs, motion and update checks. Enter saves, esc discards.
+- **Dev sandbox**: a throwaway home for trying aval. Your real home is not touched; reset and remove confirm on Cancel.
+- **About**: version, paths and links. Read-only.
+
+Or run `aval install` to go straight to the installer. Without a terminal, `aval` on its own prints the usage and changes nothing. The first run goes through four screens:
+
+1. **Welcome.** If aval cannot find its repository (looked up from `--repo <path>`, `$AVAL_REPO`, the location recorded in `~/.config/aval/config`, then the current directory), it offers to clone it to `~/.aval` or to use a folder you already have. Cloning is always an explicit choice. The location is recorded only after an install completes.
+2. **Select.** Each group shows what will happen to its files before anything is written: new, linked, or replaces a file. `→` opens the details, `?` shows every key.
+3. **Install.** A progress bar and one line per step. A failure appears inline with its reason, and `ctrl+c` stops after the current step; what was already moved to backup is kept and can be undone.
+4. **Done.** Counts, the backup path, the undo command and three next steps.
 
 ```sh
-git clone https://github.com/alvaroofernaandez/aval.git ~/aval && cd ~/aval
-
-aval install                   # TUI: detects your system and lets you choose what to install
+aval install                   # TUI: welcome, select, install, done
 aval install --yes --dry-run   # no TUI: shows what it would do, touches nothing
 aval install --yes             # no TUI: actually links everything
 aval install --yes --copy      # copy instead of linking
 ```
 
+Without a terminal and without `--yes`, `aval install` stops with a clear error instead of opening a TUI.
+
 <div align="center">
-<img src="assets/installer.gif" alt="The installer TUI: group selection, installation and summary" width="100%">
+<img src="assets/installer.gif" alt="The installer TUI: select with previews, install with inline progress, and the done screen with next steps" width="100%">
 </div>
 
 <br/>
 
 | | |
 | :--- | :--- |
-| **Theme** | Tokyo Night, the same palette as the rest of the environment |
+| **Theme** | The `aval` brand theme by default: ink on your own terminal background, colour only on the state glyphs. Ten community themes are opt-in, see [Configuration](#️-configuration) |
 | **Tailored to your OS** | On native Windows it offers the AI agents and git; the terminal environment is greyed out with the reason, and installs in full if it detects WSL |
 | **Link or copy** | Symlinks wherever possible; on Windows without Developer Mode it **copies**, because it checks instead of assuming |
 | **A single list** | The TUI and `--yes` read **the same `install.manifest`** |
@@ -234,7 +279,7 @@ Everything deliberately installed with Homebrew is in the `Brewfile`: `brew bund
 
 ## ⌨️ Commands
 
-Full reference. `aval` or `aval help` prints the usage. Global flags: `--repo`, `--version`.
+Full reference. `aval help` prints the usage, and so does a bare `aval` without a terminal (on a terminal it opens the hub). Global flags: `--repo`, `--version`.
 
 | Command | What it does | Needs the repo |
 | :--- | :--- | :---: |
@@ -247,7 +292,7 @@ Full reference. `aval` or `aval help` prints the usage. Global flags: `--repo`, 
 | `aval uninstall [--dry-run] [--yes]` | Removes this repo's links and returns what was displaced | yes |
 | `aval budget [--json] [--skip-hooks] [--runs N]` | Always-on context and hook latency | no |
 | `aval review assess [--base <ref>] [--json]` | Risk level of the diff and reviewers | no |
-| `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `design-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push` | no |
+| `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `rate-guard`, `design-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push` | no |
 | `aval statusline` | Claude Code status line | no |
 | `aval design ack <surface>` | Design pipeline ack (required by the `design-gate` hook) | no |
 | `aval design gate <gate> …` | `contrast <fg> <bg> [--large]` · `tokens` · `pairs <colors.json> [--aaa]` · `hardcodes [--ext] [--no-tw]` · `theme-refs --theme` · `component [--root]` · `emoji` · `native` | no |
@@ -350,6 +395,20 @@ A lesson fires only once per session, prints nothing when there is no match, nev
 The hook uses `~/.local/bin/aval` or, if absent, the `aval` on `PATH`; without a binary it is a silent no-op.
 OpenCode has no such hook: it reads the lessons by hand.
 
+**Rate guard** (`aval hook rate-guard`). Some hosts ban the client IP after a burst of requests: Helice
+(`innohelp.es`, `helice.app`) did, after ~45 back-to-back `curl` calls. The PreToolUse hook (`Bash`) denies a
+command only when an HTTP client (`curl`, `wget`, `wget2`, httpie `http`/`https`, `xh`, `aria2c`, `lynx`,
+`links`, `w3m`) contacts a guarded host **and** the command is a batch: a `for`/`while`/`until` loop, `xargs`,
+`parallel`, a `-P` flag, more than 3 guarded URLs, or a URL list fed in (`-i`/`--input-file` for wget,
+`-K`/`--config`, `xargs`). One-off requests, loops over other hosts and a host merely mentioned (`echo`, `grep`)
+pass. A host matches itself and its subdomains, never lookalikes (`notinnohelp.es` passes).
+
+Guarded hosts are the seed (`innohelp.es`, `helice.app`) plus one host per line (`#` comments) in
+`${XDG_CONFIG_HOME:-~/.config}/aval/rate-guard-hosts` (`%APPDATA%\aval\rate-guard-hosts` on Windows) plus the
+comma-separated `AVAL_RATE_GUARD_HOSTS`. It never reads the aval config, execs nothing, takes ~5 ms, and fails
+open: bad JSON, another tool, an unreadable hosts file or an internal error print nothing. OpenCode runs the
+same binary from `config/opencode/plugin/rate-guard.ts` before every `bash` call.
+
 **Budget** (`aval budget`). A table of the always-on context: Claude (`CLAUDE.md`, `@imports`, skills
 visible according to `skillOverrides`, agents and commands) and OpenCode (`AGENTS.md` and skills), in characters and
 ≈tokens (chars/4). It then runs each hook in the live `settings.json` 5 times (2 s timeout) and compares
@@ -361,6 +420,58 @@ settings, `install.manifest`, installers, auth, migrations, payments, `.github/w
 than 400 production lines; `medium` if there is code without test changes (or more than 100 lines); `low` if there
 are only docs/tests or a small change with tests. It returns the level, the reasons and the reviewers: none,
 `review-reliability`, or all four. The `ship` skill uses it to size the self-review.
+
+---
+
+## ⚙️ Configuration
+
+Settings live in `${XDG_CONFIG_HOME:-~/.config}/aval/config` (`%APPDATA%\aval\config` on Windows), one `key = value` per line. Writes are atomic and keep comments and unknown lines. `aval config path` prints the file.
+
+| Key | Values | Default | Env | Flag |
+| :--- | :--- | :--- | :--- | :--- |
+| `repo` | path | none | `AVAL_REPO` | `--repo` |
+| `theme` | `aval`, `terminal`, `mono`, or a community theme | `aval` | `AVAL_THEME` | `--theme` |
+| `background` | `auto`, `dark`, `light` | `auto` | `AVAL_BACKGROUND` | |
+| `glyphs` | `auto`, `unicode`, `ascii` | `auto` | `AVAL_GLYPHS` | |
+| `motion` | `auto`, `off` | `auto` | `AVAL_MOTION` | |
+| `update_check` | `on`, `off` | `on` | `AVAL_NO_UPDATE_CHECK` | |
+
+**Precedence:** flag, then environment variable, then file, then default. `NO_COLOR` is honoured and wins over all of it. `--plain` means `mono`, ASCII glyphs and motion off, in one flag. Hooks, `statusline` and `tmux` never read the UI keys.
+
+**Validation:** a bad UI value warns once on stderr with the file, the line and a suggestion, then falls back to the default. `aval config set` refuses an invalid value with exit 1. A bad `repo` stays a hard error.
+
+### Commands
+
+```sh
+aval config                 # settings view on a terminal, list otherwise
+aval config list            # every value and where it comes from (default, file, env, flag)
+aval config get theme
+aval config set theme catppuccin
+aval config path
+```
+
+The **settings view** (bare `aval config` on a terminal, or `s` in the installer) shows each key with its choices and a live preview of the theme: `↑↓` move, `←→` change, enter saves, `esc` discards. When an environment variable overrides a key in your shell, the view says so.
+
+### Themes
+
+`aval` is the default: ink on your own terminal background, with colour only on the state glyphs (`√` `!` `×`), never on text. The same glyph-only rule holds in every theme. `terminal` uses your terminal's 16 colours, so it inherits your own theme, and `mono` uses none. `background = auto` asks the terminal and falls back to dark.
+
+The community themes are opt-in. A theme name follows `background`, and a variant can be pinned, for example `theme = catppuccin-frappe`.
+
+| Theme | Variants |
+| :--- | :--- |
+| `catppuccin` | `catppuccin-mocha`, `catppuccin-latte`, `catppuccin-frappe`, `catppuccin-macchiato` |
+| `tokyo-night` | `tokyo-night-storm`, `tokyo-night-day` |
+| `gruvbox` | `gruvbox-dark`, `gruvbox-light` |
+| `dracula` | `dracula-alucard` |
+| `nord` | none |
+| `kanagawa` | `kanagawa-wave`, `kanagawa-dragon`, `kanagawa-lotus` |
+| `rose-pine` | `rose-pine-moon`, `rose-pine-dawn` |
+| `solarized` | `solarized-dark`, `solarized-light` |
+| `one-dark` | `one-light` |
+| `everforest` | `everforest-dark`, `everforest-light` |
+
+Palette values come from each theme's upstream repository. Sources and licences are in [`internal/ui/themes/SOURCES.md`](../internal/ui/themes/SOURCES.md).
 
 ---
 
@@ -377,7 +488,7 @@ aval/
 │   ├── devops/          dockerclean · kiri · reaper
 │   ├── docs/            pdfreport
 │   ├── herdr/           mods                       (diff-review)
-│   └── ui/              Tokyo Night theme and the TUI screens
+│   └── ui/              themes and the TUI screens
 │
 ├── skills/              Skills shared by all agents
 ├── config/              claude · opencode · ghostty · yazi · yazi-sidebar · herdr-core · herdr-app · atuin · gh · git
@@ -662,7 +773,7 @@ each tool reinstalls them on its own. Those that ship with a licence carry their
 
 | Family | Skills |
 | :--- | :--- |
-| Discipline | `plan-deck` · `strict-tdd` · `cognitive-doc-design` · `skill-creator` |
+| Discipline | `plan-deck` · `strict-tdd` · `architecture-evidence` · `cognitive-doc-design` · `skill-creator` |
 | Design and UI | `design-pipeline` · `design-refactor` · `laws-of-ux` · `accessibility` · `react-19` · `tailwind-4` · `typescript` · `zod-4` · `ai-sdk-5` |
 | Git and delivery | `ship` · `branch-pr` · `chained-pr` · `prs-pro` · `work-unit-commits` · `issue-creation-pro` · `repo-prep` |
 | Documents | `pdf-report` · `readme-portal` · `readme-guardian` |

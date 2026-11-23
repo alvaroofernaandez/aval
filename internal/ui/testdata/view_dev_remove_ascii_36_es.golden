@@ -1,0 +1,13 @@
+ aval 0.3.0
+ Sandbox dev      ~/.cache/aval/dev
+
+ Quitar elimina el sandbox default
+ y todo lo que contiene.
+
+   Quitar default
+   elimina sus archivos
+ > Cancelar        no cambia nada
+ No hay copia: un sandbox es
+ desechable. Su home real no se
+ toca.
+ enter elegir  ? ayuda
