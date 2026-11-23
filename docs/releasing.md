@@ -48,17 +48,18 @@ Each cutting command (`rc`, `beta`, `patch`, `minor`, `major`, `promote`):
    `docs`, `test`, `ci` and `chore` do not appear);
 3. asks `y/N` (`--yes` skips it; `--dry-run` only shows and touches nothing);
 4. creates the annotated tag and pushes it with `git push origin <tag>`;
-5. prints the workflow URL and what happens next: a stable patch over a released minor publishes on its
-   own; anything else waits for **approval of the `release` environment** (only the owner can do it).
+5. prints the workflow URL and what happens next: only the first stable release of a breaking line
+   (`v0.3.0` before 1.0, `v1.0.0`, `v2.0.0`) waits for **approval of the `release` environment** (only
+   the owner can do it); everything else publishes on its own.
 
 ### Which releases need approval
 
 | Tag | Environment | Approval |
 | :-- | :-- | :-- |
-| `vX.Y.Z`, Z > 0, with `vX.Y.0` already tagged | `release-patch` | none: it publishes on its own |
-| `vX.Y.0` (minor or major) | `release` | the owner |
-| `-rc.N`, `-beta.N` | `release` | the owner |
-| `vX.Y.Z`, Z > 0, without `vX.Y.0` | `release` | the owner (a patch tag cannot skip a minor) |
+| `-rc.N`, `-beta.N` of any version | `release-patch` | none: it publishes on its own |
+| A patch, or a minor from 1.0 on, whose line is released (`v0.2.5` with `v0.2.0`; `v1.3.0` with `v1.0.0`) | `release-patch` | none |
+| The first stable release of a breaking line: `v0.Y.0` before 1.0, `vX.0.0` (including `v1.0.0`) | `release` | the owner |
+| A stable tag whose line is not released yet (`v0.3.1` without `v0.3.0`, `v2.1.0` without `v2.0.0`) | `release` | the owner (a tag cannot skip the line's approval) |
 
 The rule is `release.Environment` (`internal/release/env.go`); the preflight job runs it with
 `aval release environment <tag>` and both publishing jobs use its answer. Every other check still
@@ -66,6 +67,10 @@ applies: an annotated tag, on `main`, with `ci.yml` green on that commit.
 
 > **Amendment, 2026-11-23.** Until this date every release waited for the owner's approval. The owner
 > decided that stable patches publish without it, and only minor, major and prerelease tags wait.
+
+> **Amendment, 2026-11-23 (later).** The owner decided that prereleases (rc and beta) and minors after
+> 1.0 also publish without approval. Only the first stable release of a breaking line waits: a new
+> minor before 1.0 (`v0.2.0` to `v0.3.0`) or a new major (`v1.x` to `v2.0.0`).
 
 Shortcuts: `aval release patch|minor|major` publishes a stable release without going through an rc.
 

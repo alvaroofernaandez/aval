@@ -12,14 +12,18 @@ func TestEnvironment(t *testing.T) {
 		tags = append(tags, v)
 	}
 	cases := []struct{ tag, want, why string }{
-		{"v0.2.2", EnvPatch, "a patch over a released minor publishes on its own"},
-		{"v0.2.9", EnvPatch, "a patch may skip patch numbers"},
-		{"v1.0.1", EnvPatch, "the rule is the same after 1.0"},
-		{"v0.3.0", EnvRelease, "a minor needs the owner"},
+		{"v0.2.2", EnvAuto, "a patch over a released line publishes on its own"},
+		{"v0.2.9", EnvAuto, "a patch may skip patch numbers"},
+		{"v1.0.1", EnvAuto, "the rule is the same after 1.0"},
+		{"v1.1.0", EnvAuto, "a minor after 1.0 changes nothing that breaks"},
+		{"v0.2.2-rc.1", EnvAuto, "a prerelease publishes on its own"},
+		{"v0.4.0-rc.1", EnvAuto, "an rc of a new 0.x line publishes on its own"},
+		{"v2.0.0-beta.1", EnvAuto, "a beta of a major publishes on its own"},
+		{"v0.3.0", EnvRelease, "before 1.0 a minor is a breaking line and needs the owner"},
+		{"v1.0.0", EnvRelease, "1.0 needs the owner"},
 		{"v2.0.0", EnvRelease, "a major needs the owner"},
-		{"v0.2.2-rc.1", EnvRelease, "a prerelease needs the owner"},
-		{"v0.3.1", EnvRelease, "a patch over an unreleased minor would skip the owner"},
-		{"v0.4.0-rc.1", EnvRelease, "an rc of a minor needs the owner"},
+		{"v0.3.1", EnvRelease, "a patch over an unreleased 0.x line would skip the owner"},
+		{"v2.1.0", EnvRelease, "a minor over an unreleased major would skip the owner"},
 	}
 	for _, c := range cases {
 		v, err := Parse(c.tag)

@@ -10,7 +10,7 @@ Load before `aval release` or any tag, version or CHANGELOG work. Maintainer ref
 ## Hard rules
 
 - **Never push unasked.** `aval release rc|beta|patch|minor|major|promote` creates an annotated tag and runs `git push origin <tag>`. That is a remote, public action: run a cutting command only after the owner's explicit authorization for that exact version. Without it, stop at `--dry-run`.
-- The `release` environment approval in GitHub is the owner's alone. Never ask for or simulate it. Stable patches over a released minor publish from `release-patch`, which needs no approval (owner decision, 2026-11-23); minor, major and prerelease tags still wait for the owner.
+- The `release` environment approval in GitHub is the owner's alone. Never ask for or simulate it. Only the first stable release of a breaking line (a new minor before 1.0, a new major) waits for it; prereleases, patches and minors after 1.0 publish from `release-patch`, which needs no approval (owner decisions, 2026-11-23).
 - Prerelease (`-rc.N`, `-beta.N`) or stable is the owner's decision.
 - Never print or commit tokens (`NPM_TOKEN`, `GH_TOKEN`).
 - Conventional Commits, no AI attribution: the release notes are generated from commit subjects.
@@ -23,7 +23,7 @@ Load before `aval release` or any tag, version or CHANGELOG work. Maintainer ref
 4. **GoReleaser pin.** `.github/workflows/release.yml` pins `GORELEASER_VERSION` and `GORELEASER_SHA256` (the hash of `goreleaser_Linux_x86_64.tar.gz` from that release's `checksums.txt`). Upgrade only deliberately, in its own commit, after `goreleaser release --snapshot --clean --skip=publish`.
 5. **Status and dry run.** `aval release status`, then the chosen command with `--dry-run`: check the version (before 1.0, `feat` or breaking bumps the minor, `fix`/`perf` the patch; `docs`, `test`, `ci`, `chore` alone mean nothing to publish).
 6. **Tag (authorized only).** The cutting command: it checks clean tree, `main`, up to date, `go test ./...`, green CI on `HEAD` when `gh` is available, shows the notes, asks `y/N`, tags and pushes the tag. `promote` re-tags the rc's commit: it requires the rc to be an ancestor of `origin/main`, skips the branch and up-to-date checks, and checks CI on the rc. If `main` moved, it lists the later commits and warns when any changes shipped code (outside `docs/`, `tests/`, `odd/`, `.claude/`, `*.md`); cut a new rc then.
-7. **Verify.** The workflow URL it prints: `preflight`, `publish` (on its own for a patch, after the owner approves the environment otherwise), `verify`, `npm`. Then by hand:
+7. **Verify.** The workflow URL it prints: `preflight`, `publish` (on its own unless the tag opens a breaking line, then after the owner approves the environment), `verify`, `npm`. Then by hand:
 
 ```bash
 gh release download vX.Y.Z -R alvaroofernaandez/aval
