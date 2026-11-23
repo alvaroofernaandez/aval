@@ -75,8 +75,14 @@ The hook must stay under the existing hook budget, the 10 ms measured for `lesso
   - Add the OpenCode equivalent if it is cheap, following `config/opencode/plugin/design-gate.ts`.
   - Document it in docs/guide.md under hooks.
   - RED: a settings test asserting the entry exists with matcher `Bash`; follow existing tests over `config/claude/settings.json`.
-- [ ] **R4 (main session): sync and verify.**
+- [x] **R4 (main session): sync and verify.**
   - Run `aval sync`.
   - Check that the live `~/.claude/settings.json` has the hook.
   - Pipe a sample payload into `aval hook rate-guard`.
   - Reply to the requesting session with the commit hash and how to verify.
+  - Done on 2026-11-23: main at 3825044, binary rebuilt, synced, deny and allow verified.
+
+## Later
+- **False positive: inert quoted text.** A loop and a guarded URL inside a single-quoted string are denied even though nothing is fetched. One example is piping a test JSON payload through `printf` into the hook. It was reported by another session, and the main session hit it too while writing this very entry.
+  - Fix: ignore single-quoted string contents, or require the HTTP client to be an actual command word.
+- **False positive: `-P` as a flag value.** `wget -P dir` inside a loop counts as a batch, because any `-P` is treated as one.
