@@ -329,7 +329,7 @@ Details for each one are in the [guide](docs/guide.md#️-commands).
 
 - **One Go binary.** All of aval's own logic is Go; no shell or Python of its own, except the zsh dotfiles (`home/`) and the 3-line `.githooks/pre-push` shim (git needs an executable).
 - **Declarative manifest.** `install.manifest` says what is installed and where; the code reads data, not paths.
-- **No vendored upstream.** Dependencies are modules, not copied trees.
+- **No vendored upstream.** Dependencies are modules, not copied trees, and each one has its reason in the [dependency budget](docs/dependencies.md).
 - **Nothing is deleted.** Everything moved aside is kept in `~/.aval-backup` and `aval restore` brings it back.
 - **Maintainability first.** A feature that makes aval harder to maintain waits until it does not.
 
