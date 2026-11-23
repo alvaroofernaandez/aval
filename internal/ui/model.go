@@ -11,7 +11,7 @@ import (
 // This file holds routing and state only. The shared chrome is in frame.go,
 // the bindings in keys.go, and each view in its own screen_*.go file.
 
-// Screen is which of the four views is showing.
+// Screen is which of the five views is showing.
 type Screen int
 
 const (
@@ -19,6 +19,7 @@ const (
 	ScreenInstall                // work in progress
 	ScreenDone                   // summary
 	ScreenSettings               // the config file, edited live
+	ScreenWelcome                // find or clone the repository
 )
 
 // UnavailableGroup is a manifest group that does not apply to this machine.
@@ -86,6 +87,8 @@ type Model struct {
 	// and writes (see screen_settings.go).
 	settings    settingsState
 	settingsEnv SettingsEnv
+	// welcome is the repository step; see screen_welcome.go.
+	welcome welcomeState
 	// caps is the detected terminal, the base for the settings preview.
 	caps caps.Caps
 
@@ -184,6 +187,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		// An open text field takes printable keys as text before any binding.
+		if next, ok := m.typeInto(msg); ok {
+			return next, nil
+		}
 		// The key map is the only way in: a key it does not list does nothing,
 		// so the hint line can never drift from what is handled.
 		act, ok := m.keyMap().lookup(msg.String())
@@ -195,6 +202,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case appliedMsg:
 		m = m.record(msg.result, msg.err)
 		return m, m.applyNext()
+
+	case clonedMsg:
+		return m.cloned(msg.err), nil
+
+	case spinTickMsg:
+		return m.spun()
 
 	case doneMsg:
 		m.screen = ScreenDone
@@ -231,6 +244,8 @@ func (m Model) perform(act action) (tea.Model, tea.Cmd) {
 		return m.doneAction(act)
 	case ScreenSettings:
 		return m.settingsAction(act)
+	case ScreenWelcome:
+		return m.welcomeAction(act)
 	}
 	return m, nil
 }
@@ -247,6 +262,8 @@ func (m Model) View() string {
 		return m.render(m.doneView())
 	case ScreenSettings:
 		return m.render(m.settingsView())
+	case ScreenWelcome:
+		return m.render(m.welcomeView())
 	default:
 		return m.render(m.selectView())
 	}

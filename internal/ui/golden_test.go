@@ -122,6 +122,9 @@ func screenFixture(t *testing.T, screen Screen, unicode bool) Model {
 		m.errs = []error{fmt.Errorf("link %s: permission denied while writing the destination", long)}
 	case ScreenSettings:
 		m = send(m, "s")
+	case ScreenWelcome:
+		w := NewWelcome(Options{Version: "0.2.0", Platform: "macOS (arm64)"}, WelcomeEnv{Home: "/home/u", CloneDest: "/home/u/.aval"})
+		m = w.WithTheme(goldenTheme(t, unicode))
 	}
 	return m
 }
@@ -134,6 +137,7 @@ var goldenScreens = []struct {
 	{"install", ScreenInstall},
 	{"done", ScreenDone},
 	{"settings", ScreenSettings},
+	{"welcome", ScreenWelcome},
 }
 
 func TestViewsNeverExceedTheWidth(t *testing.T) {

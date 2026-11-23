@@ -146,6 +146,8 @@ func (m Model) screenKeys() keyMap {
 		return m.withSettings(doneKeys)
 	case ScreenSettings:
 		return settingsKeys
+	case ScreenWelcome:
+		return m.welcomeKeys()
 	default:
 		return m.withSettings(selectKeys)
 	}

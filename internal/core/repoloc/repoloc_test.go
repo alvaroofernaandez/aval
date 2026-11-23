@@ -1,6 +1,7 @@
 package repoloc
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -176,4 +177,79 @@ func mkdir(t *testing.T, p string) string {
 		t.Fatal(err)
 	}
 	return p
+}
+
+func TestResolveNothingFoundIsErrNotFoundWithTheSameMessage(t *testing.T) {
+	_, err := Resolve(Sources{Wd: t.TempDir()})
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+	want := "cannot find the aval repository (install.manifest): run 'aval install --repo <path>' once from your checkout, or set AVAL_REPO"
+	if err.Error() != want {
+		t.Errorf("message changed:\n got %q\nwant %q", err.Error(), want)
+	}
+}
+
+func TestResolveExplicitSourceIsNotErrNotFound(t *testing.T) {
+	_, err := Resolve(Sources{Flag: t.TempDir()})
+	if err == nil || errors.Is(err, ErrNotFound) {
+		t.Errorf("an explicit source that points nowhere must fail loudly, not as not-found: %v", err)
+	}
+}
+
+func TestCheckAcceptsACheckoutAndItsSubfolders(t *testing.T) {
+	r := repo(t)
+	sub := filepath.Join(r, "config")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{r, sub} {
+		got, err := Check(p)
+		if err != nil || got != r {
+			t.Errorf("Check(%s) = %q, %v; want %q", p, got, err, r)
+		}
+	}
+}
+
+func TestCheckSaysWhatIsWrongAndHowToFixIt(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "f")
+	if err := os.WriteFile(file, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		name, path string
+		want       []string
+	}{
+		{"empty", "", []string{"Type the path"}},
+		{"missing", filepath.Join(dir, "nope"), []string{"does not exist", "nope"}},
+		{"file", file, []string{"is a file", "folder"}},
+		{"no manifest", dir, []string{"not an aval repository", "install.manifest"}},
+	}
+	for _, c := range cases {
+		_, err := Check(c.path)
+		if err == nil {
+			t.Errorf("%s: Check(%q) accepted it", c.name, c.path)
+			continue
+		}
+		for _, w := range c.want {
+			if !strings.Contains(err.Error(), w) {
+				t.Errorf("%s: %q does not say %q", c.name, err, w)
+			}
+		}
+	}
+}
+
+func TestFindWalksUpFromInsideACheckout(t *testing.T) {
+	r := repo(t)
+	sub := filepath.Join(r, "a", "b")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := Find(sub); got != r {
+		t.Errorf("Find(%s) = %q, want %q", sub, got, r)
+	}
+	if got := Find(t.TempDir()); got != "" {
+		t.Errorf("Find outside a checkout = %q, want empty", got)
+	}
 }

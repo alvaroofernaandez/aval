@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"maps"
-	"path/filepath"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -331,16 +330,7 @@ func (m Model) settingsStatus() string {
 }
 
 // tilde shortens a path under the settings home.
-func (m Model) tilde(p string) string {
-	home := m.settingsEnv.Home
-	if home == "" || p == "" {
-		return p
-	}
-	if rel, err := filepath.Rel(home, p); err == nil && rel != "." && !strings.HasPrefix(rel, "..") {
-		return filepath.Join("~", rel)
-	}
-	return p
-}
+func (m Model) tilde(p string) string { return tildeUnder(m.settingsEnv.Home, p) }
 
 func (m Model) settingsBody(l layout, h int) []string {
 	head := m.headingRow(l, "Settings", m.theme.Heading, m.tilde(m.settingsEnv.Path), m.theme.Muted)

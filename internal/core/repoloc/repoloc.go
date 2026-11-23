@@ -13,6 +13,7 @@
 package repoloc
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -63,7 +64,7 @@ func Resolve(s Sources) (string, error) {
 			return root, nil
 		}
 	}
-	return "", fmt.Errorf("cannot find the aval repository (%s): run 'aval install --repo <path>' once from your checkout, or set %s", Manifest, EnvVar)
+	return "", fmt.Errorf("%w (%s): run 'aval install --repo <path>' once from your checkout, or set %s", ErrNotFound, Manifest, EnvVar)
 }
 
 func explicit(path, source string) (string, error) {
@@ -113,3 +114,33 @@ func Load(path string) (string, error) {
 func Save(path, repo string) error {
 	return cfgfile.Set(path, "repo", repo)
 }
+
+// ErrNotFound marks the "no source named a repository and none was found"
+// failure, as opposed to an explicit source that points at the wrong place.
+var ErrNotFound = errors.New("cannot find the aval repository")
+
+// Check is the checkout check for a path a person typed: it accepts the root
+// of a checkout or any folder inside one (the same walk as --repo) and returns
+// the root. Each error says what is wrong with the path and how to fix it.
+func Check(path string) (string, error) {
+	if path == "" {
+		return "", errors.New("Type the path to the folder where aval is cloned.")
+	}
+	fi, err := os.Stat(path)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		return "", fmt.Errorf("%s does not exist. Check the spelling, or clone aval there first.", path)
+	case err != nil:
+		return "", fmt.Errorf("%s cannot be read: %v. Pick a folder you can open.", path, err)
+	case !fi.IsDir():
+		return "", fmt.Errorf("%s is a file. Type the folder that holds %s.", path, Manifest)
+	}
+	if root := walkUp(path); root != "" {
+		return root, nil
+	}
+	return "", fmt.Errorf("%s is not an aval repository: it has no %s. Type the folder that holds it.", path, Manifest)
+}
+
+// Find returns the root of the checkout that contains start, or "" when
+// there is none within the walk limit.
+func Find(start string) string { return walkUp(start) }

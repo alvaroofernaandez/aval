@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -74,4 +75,41 @@ func (m Model) pad(s string, w int) string {
 		s += strings.Repeat(" ", gap)
 	}
 	return s
+}
+
+// wrap breaks plain text into lines of at most w columns at spaces. A word
+// wider than w is cut with the ellipsis rather than overflow.
+func (m Model) wrap(s string, w int) []string {
+	w = max(w, 1)
+	var lines []string
+	line := ""
+	for _, word := range strings.Fields(s) {
+		if lipgloss.Width(word) > w {
+			word = m.fit(word, w)
+		}
+		switch {
+		case line == "":
+			line = word
+		case lipgloss.Width(line)+1+lipgloss.Width(word) <= w:
+			line += " " + word
+		default:
+			lines = append(lines, line)
+			line = word
+		}
+	}
+	if line != "" {
+		lines = append(lines, line)
+	}
+	return lines
+}
+
+// tildeUnder shortens p to ~/... when it sits under home.
+func tildeUnder(home, p string) string {
+	if home == "" || p == "" {
+		return p
+	}
+	if rel, err := filepath.Rel(home, p); err == nil && rel != "." && !strings.HasPrefix(rel, "..") {
+		return filepath.Join("~", rel)
+	}
+	return p
 }

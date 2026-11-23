@@ -204,6 +204,21 @@ func run() error {
 		}
 	}
 
+	// install resolves the repository itself: with none found it opens the
+	// welcome screen instead of failing here.
+	if legacyInstall || flag.Arg(0) == "install" {
+		deps := realInstallDeps()
+		deps.ui = uiCfg
+		deps.notify = func() {
+			if legacyInstall {
+				fmt.Fprintln(os.Stderr, "notice: running aval with only flags is deprecated; use 'aval install [--dry-run] [--yes] [--copy]'")
+			}
+			notifyIfOutdated(uiCfg)
+		}
+		return runInstallWith(func() (string, error) { return resolveRepo(*repoFlag) },
+			home, opts.dryRun, opts.yes, opts.copy, deps)
+	}
+
 	repo, err := resolveRepo(*repoFlag)
 	if err != nil {
 		return err
@@ -230,12 +245,8 @@ func run() error {
 		return runUpdate(repo, home, *dryRun, *forceCopy, os.Stdout)
 	}
 
-	if legacyInstall {
-		fmt.Fprintln(os.Stderr, "notice: running aval with only flags is deprecated; use 'aval install [--dry-run] [--yes] [--copy]'")
-	}
-	notifyIfOutdated(uiCfg)
-
-	return runInstall(repo, home, opts.dryRun, opts.yes, opts.copy, uiCfg)
+	// Every command in the list dispatches above; install left earlier.
+	return fmt.Errorf("unknown command %q; run 'aval help'", flag.Arg(0))
 }
 
 // installFlagsGiven reports whether an install flag was set without a
@@ -337,7 +348,7 @@ func unavailableGroups(m *manifest.Manifest, goos string) []ui.UnavailableGroup 
 func runInstall(repo, home string, dryRun, yes, forceCopy bool, s uiSettings) error {
 	deps := realInstallDeps()
 	deps.ui = s
-	return runInstallWith(repo, home, dryRun, yes, forceCopy, deps)
+	return runInstallWith(fixedRepo(repo), home, dryRun, yes, forceCopy, deps)
 }
 
 // installDeps are the seams runInstall needs from the outside world.
@@ -347,6 +358,11 @@ type installDeps struct {
 	finish func(repo, home string, dryRun bool) error
 	// ui is the resolved look-and-feel; the zero value means defaults.
 	ui uiSettings
+	// cloner fetches the repository from the welcome screen.
+	cloner ui.Cloner
+	// notify runs once the repository question is settled: the deprecation
+	// notice and the update check. Nil does nothing.
+	notify func()
 }
 
 func realInstallDeps() installDeps {
@@ -391,45 +407,120 @@ func driveInstall(model ui.Model, run func(tea.Model) (tea.Model, error), closeR
 	return finish()
 }
 
-func runInstallWith(repo, home string, dryRun, yes, forceCopy bool, deps installDeps) error {
+// runInstallWith resolves the repository, then installs it. With no
+// repository found, a terminal and no --yes, it opens the welcome screen
+// instead of failing; every other resolution error is returned unchanged.
+// The welcome screen, select, install and done all run in one program.
+func runInstallWith(resolve func() (string, error), home string, dryRun, yes, forceCopy bool, deps installDeps) error {
+	repo, err := resolve()
+	welcome := err != nil && opensWelcome(err, yes, deps.isTTY)
+	if err != nil && !welcome {
+		return err
+	}
+	if deps.notify != nil {
+		deps.notify()
+	}
 	if err := installGuard(yes, deps.isTTY); err != nil {
 		return err
 	}
-	m, p, pf, err := buildPlan(repo, home)
-	if err != nil {
-		return err
-	}
-	if len(p.Groups) == 0 {
-		return fmt.Errorf("nothing in the manifest applies to %s", pf.Display())
-	}
-
-	symlinks := symlinkMode(pf, home, forceCopy)
-	runner := install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: dryRun})
 
 	if yes {
-		err := runHeadless(p, pf, runner, symlinks, dryRun, deps.ui)
+		_, p, pf, err := buildPlan(repo, home)
+		if err != nil {
+			return err
+		}
+		if len(p.Groups) == 0 {
+			return fmt.Errorf("nothing in the manifest applies to %s", pf.Display())
+		}
+		symlinks := symlinkMode(pf, home, forceCopy)
+		runner := install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: dryRun})
+		err = runHeadless(p, pf, runner, symlinks, dryRun, deps.ui)
 		if err == nil {
 			err = finishInstall(repo, home, dryRun)
 		}
 		return finish(runner, err)
 	}
 
+	// prepare is shared by both entries, so the repo finish records and the
+	// runner closeRunner commits are the ones the program actually used.
+	var (
+		chosen string
+		runner *install.Runner
+	)
+	prepare := func(r string) (ui.Prepared, error) {
+		m, p, pf, err := buildPlan(r, home)
+		if err != nil {
+			return ui.Prepared{}, err
+		}
+		if len(p.Groups) == 0 {
+			return ui.Prepared{}, fmt.Errorf("nothing in the manifest applies to %s", pf.Display())
+		}
+		symlinks := symlinkMode(pf, home, forceCopy)
+		runner = install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: dryRun})
+		chosen = r
+		return ui.Prepared{Plan: p, Runner: runner, Unavailable: unavailableGroups(m, runtime.GOOS), Symlinks: symlinks}, nil
+	}
+
 	fd := os.Stdout.Fd()
 	width, height, _ := term.GetSize(fd)
 	tty := term.IsTerminal(fd)
-	model := ui.NewModel(p, runner, ui.Options{
+	opts := ui.Options{
 		Version:  version,
 		Platform: ui.PlatformLabel(runtime.GOOS, runtime.GOARCH),
 		Caps:     caps.Detect(deps.ui.capsInputs(os.Getenv, runtime.GOOS, tty, width, height)),
 		Theme:    deps.ui.Theme,
-		Symlinks: symlinks,
 		DryRun:   dryRun,
 		Settings: deps.ui.settingsEnv(config.Path(os.Getenv, home, runtime.GOOS), home, os.Getenv, tty, width, height),
-	})
-	model.Unavailable = unavailableGroups(m, runtime.GOOS)
+	}
 
-	return driveInstall(model, deps.run, runner.Finish,
-		func() error { return deps.finish(repo, home, dryRun) })
+	var model ui.Model
+	if welcome {
+		// Cancelling the context stops a clone still running when the
+		// program ends (q or ctrl+c while cloning).
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		cloner := deps.cloner
+		if cloner == nil {
+			cloner = gitCloner{ctx: ctx, url: cloneURL}
+		}
+		env := ui.WelcomeEnv{
+			Home:      home,
+			CloneDest: filepath.Join(home, ".aval"),
+			CloneURL:  cloneURL,
+			Cloner:    cloner,
+			Prepare:   prepare,
+		}
+		if wd, err := os.Getwd(); err == nil {
+			env.Candidate = repoloc.Find(wd)
+		}
+		model = ui.NewWelcome(opts, env)
+	} else {
+		prep, err := prepare(repo)
+		if err != nil {
+			return err
+		}
+		opts.Symlinks = prep.Symlinks
+		model = ui.NewModel(prep.Plan, prep.Runner, opts)
+		model.Unavailable = prep.Unavailable
+	}
+
+	return driveInstall(model, deps.run,
+		func() error {
+			if runner == nil {
+				return nil
+			}
+			return runner.Finish()
+		},
+		func() error { return deps.finish(chosen, home, dryRun) })
+}
+
+// opensWelcome reports whether a resolution error should open the welcome
+// screen: nothing named a repository and none was found, there is a terminal
+// on both ends, and no --yes. A wrong --repo, $AVAL_REPO or config value
+// still fails loudly, and scripts keep the old error.
+func opensWelcome(err error, yes bool, isTTY func(uintptr) bool) bool {
+	return errors.Is(err, repoloc.ErrNotFound) && !yes &&
+		isTTY(os.Stdin.Fd()) && isTTY(os.Stdout.Fd())
 }
 
 // finish closes the runner's backup run without hiding the original error.
@@ -588,4 +679,9 @@ func previewUpdate(ctx context.Context, g update.Git, repo string, out io.Writer
 	}
 	fmt.Fprintln(out, "\nDry run — nothing was changed.")
 	return nil
+}
+
+// fixedRepo is a resolver for a repository that is already known.
+func fixedRepo(repo string) func() (string, error) {
+	return func() (string, error) { return repo, nil }
 }
