@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -93,8 +94,9 @@ func TestRunHeadlessPlainOutputIsByteStable(t *testing.T) {
 			p, r, root := headlessFixture(t, c.dryRun)
 			var err error
 			out := captureStdout(t, func() { err = runHeadless(p, pf, r, true, c.dryRun, uiSettings{}) })
-			if err == nil || err.Error() != "1 action(s) failed" {
-				t.Fatalf("err = %v", err)
+			var n actionsFailed
+			if !errors.As(err, &n) || n != 1 {
+				t.Fatalf("err = %v, want one failed action", err)
 			}
 			got := strings.ReplaceAll(out, root, "ROOT")
 			if got != c.want {

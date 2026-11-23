@@ -2,12 +2,15 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/core/update"
 )
 
 func git(t *testing.T, dir string, args ...string) string {
@@ -88,7 +91,7 @@ func TestUpdateDryRunRefusesADirtyTree(t *testing.T) {
 	writeFile(t, filepath.Join(repo, "config/claude/agents/a.md"), "local edit\n")
 	var out bytes.Buffer
 	err := runUpdate(repo, home, true, false, &out, io.Discard)
-	if err == nil || !strings.Contains(err.Error(), "uncommitted changes") {
-		t.Errorf("err = %v, want the dirty-tree refusal", err)
+	if !errors.Is(err, update.ErrDirtyTree) {
+		t.Errorf("err = %v, want update.ErrDirtyTree", err)
 	}
 }

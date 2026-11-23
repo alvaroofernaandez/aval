@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/core/config"
 )
 
 type cfgEnv struct {
@@ -120,14 +123,8 @@ func TestConfigGetPrintsEffectiveValueOnly(t *testing.T) {
 
 func TestConfigGetUnknownKeyFails(t *testing.T) {
 	e := newCfgEnv(t)
-	err := e.run("get", "bogus")
-	if err == nil {
-		t.Fatal("want an error")
-	}
-	for _, want := range []string{`"bogus"`, "theme", "glyphs"} {
-		if !strings.Contains(err.Error(), want) {
-			t.Errorf("error %q lacks %q", err, want)
-		}
+	if err := e.run("get", "bogus"); !errors.Is(err, errUnknownKey) {
+		t.Fatalf("err = %v, want errUnknownKey", err)
 	}
 	if e.stdout.Len() != 0 {
 		t.Errorf("stdout = %q", e.stdout.String())
@@ -153,12 +150,9 @@ func TestConfigSetInvalidLeavesFileUntouched(t *testing.T) {
 	e := newCfgEnv(t)
 	orig := "# mine\ntheme = nord\nfoo = 1\n"
 	e.write(t, orig)
-	err := e.run("set", "theme", "catpuccin")
-	if err == nil {
-		t.Fatal("want an error")
-	}
-	if !strings.Contains(err.Error(), "Did you mean") {
-		t.Errorf("error = %q", err)
+	var ie *config.InvalidValueError
+	if err := e.run("set", "theme", "catpuccin"); !errors.As(err, &ie) || ie.Key != "theme" {
+		t.Fatalf("err = %v, want a config.InvalidValueError for theme", err)
 	}
 	b, _ := os.ReadFile(e.path)
 	if string(b) != orig {

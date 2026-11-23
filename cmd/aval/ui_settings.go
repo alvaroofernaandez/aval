@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"runtime"
@@ -43,7 +44,7 @@ type uiFlags struct {
 func resolveUI(flags uiFlags, getenv func(string) string, cfgPath string) (uiSettings, []string, error) {
 	if flags.Theme != "" {
 		if msg := config.Validate("theme", flags.Theme); msg != "" {
-			return uiSettings{}, nil, fmt.Errorf("invalid --theme: %s", msg)
+			return uiSettings{}, nil, fmt.Errorf("%w: %s", errBadThemeFlag, msg)
 		}
 	}
 
@@ -129,3 +130,6 @@ func (s uiSettings) settingsEnv(path, home string, getenv func(string) string, i
 	}
 	return env
 }
+
+// errBadThemeFlag is a --theme that names no theme.
+var errBadThemeFlag = errors.New("invalid --theme")

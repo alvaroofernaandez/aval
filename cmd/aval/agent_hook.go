@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -63,7 +62,7 @@ func runHook(args []string, c cmdIO) error {
 		// can be mistaken for a block.
 		_ = lessons.Run(in, out, lessonsOptions(getenv))
 	default:
-		return fmt.Errorf("usage: aval hook lessons|repo-profile|design-gate|plan-gate|design-shot-stop|rate-guard|rtk-rewrite|pre-push (reads hook JSON on stdin)")
+		return newUsage("usage: aval hook lessons|repo-profile|design-gate|plan-gate|design-shot-stop|rate-guard|rtk-rewrite|pre-push (reads hook JSON on stdin)")
 	}
 	return nil
 }

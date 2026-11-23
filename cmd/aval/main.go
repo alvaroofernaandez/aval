@@ -455,7 +455,7 @@ func installGuard(yes bool, isTTY func(uintptr) bool) error {
 	if yes || (isTTY(os.Stdin.Fd()) && isTTY(os.Stdout.Fd())) {
 		return nil
 	}
-	return errors.New("aval install needs a terminal. For scripts use: aval install --yes")
+	return errNeedsTerminal
 }
 
 // driveInstall runs the program and finishes the install only for a completed
@@ -470,7 +470,7 @@ func driveInstall(model ui.Model, run func(tea.Model) (tea.Model, error), closeR
 		return err
 	}
 	if fm, ok := final.(ui.Model); ok && len(fm.Errs()) > 0 {
-		return fmt.Errorf("%d action(s) failed", len(fm.Errs()))
+		return actionsFailed(len(fm.Errs()))
 	}
 	// Quitting on the select screen (or anywhere before the done screen) must
 	// leave settings, sync, the repo record and git hooks untouched. A dry run
@@ -645,7 +645,7 @@ func runHeadlessTo(w io.Writer, pr *cli.Printer, p *plan.Plan, pf platform.Platf
 		fmt.Fprintf(w, "\n%d existing file(s) moved to %s\n", backups, runner.BackupRoot())
 	}
 	if failures > 0 {
-		return fmt.Errorf("%d action(s) failed", failures)
+		return actionsFailed(failures)
 	}
 	if dryRun {
 		fmt.Fprintln(w, "\nDry run: nothing was written.")
@@ -709,7 +709,7 @@ func runUpdate(repo, home string, dryRun, forceCopy bool, out, errOut io.Writer)
 		fmt.Fprintln(out, "Everything already linked.")
 	}
 	if failed > 0 {
-		return fmt.Errorf("%d action(s) failed", failed)
+		return actionsFailed(failed)
 	}
 	return nil
 }
@@ -752,3 +752,25 @@ func previewUpdate(ctx context.Context, g update.Git, repo string, out io.Writer
 func fixedRepo(repo string) func() (string, error) {
 	return func() (string, error) { return repo, nil }
 }
+
+// usageError is a command called with arguments it does not take. Its text is
+// the usage the person reads; err, when set, is the parse error it reports.
+type usageError struct {
+	msg string
+	err error
+}
+
+func (e *usageError) Error() string { return e.msg }
+func (e *usageError) Unwrap() error { return e.err }
+
+// newUsage is a usage error whose text is msg.
+func newUsage(msg string) error { return &usageError{msg: msg} }
+
+// actionsFailed is how many install actions failed; each is reported on its
+// own line before the run ends.
+type actionsFailed int
+
+func (n actionsFailed) Error() string { return fmt.Sprintf("%d action(s) failed", int(n)) }
+
+// errNeedsTerminal refuses the interactive installer without a terminal.
+var errNeedsTerminal = errors.New("aval install needs a terminal. For scripts use: aval install --yes")

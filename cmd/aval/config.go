@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -61,17 +62,17 @@ func runConfig(args []string, stdout, stderr io.Writer, getenv func(string) stri
 	switch sub {
 	case "list":
 		if len(args) > 0 {
-			return fmt.Errorf("%s", configUsage)
+			return newUsage(configUsage)
 		}
 		return configList(path, stdout, stderr, getenv)
 	case "get":
 		if len(args) != 1 {
-			return fmt.Errorf("%s", configUsage)
+			return newUsage(configUsage)
 		}
 		return configGet(path, args[0], stdout, stderr, getenv)
 	case "set":
 		if len(args) != 2 {
-			return fmt.Errorf("%s", configUsage)
+			return newUsage(configUsage)
 		}
 		if err := config.Set(path, args[0], args[1]); err != nil {
 			return err
@@ -80,12 +81,12 @@ func runConfig(args []string, stdout, stderr io.Writer, getenv func(string) stri
 		return nil
 	case "path":
 		if len(args) > 0 {
-			return fmt.Errorf("%s", configUsage)
+			return newUsage(configUsage)
 		}
 		fmt.Fprintln(stdout, path)
 		return nil
 	}
-	return fmt.Errorf("unknown config command %q; %s", sub, configUsage)
+	return newUsage(fmt.Sprintf("unknown config command %q; %s", sub, configUsage))
 }
 
 func loadConfig(path string, stderr io.Writer) (*config.File, error) {
@@ -147,7 +148,7 @@ func configGet(path, key string, stdout, stderr io.Writer, getenv func(string) s
 		valid = valid || k == key
 	}
 	if !valid {
-		return fmt.Errorf("unknown config key %q. Valid: %s", key, strings.Join(config.Keys(), ", "))
+		return fmt.Errorf("%w %q. Valid: %s", errUnknownKey, key, strings.Join(config.Keys(), ", "))
 	}
 	f, err := loadConfig(path, stderr)
 	if err != nil {
@@ -175,3 +176,6 @@ var isTerminal = func(w io.Writer) bool {
 	st, err := f.Stat()
 	return err == nil && st.Mode()&os.ModeCharDevice != 0
 }
+
+// errUnknownKey is a config key aval does not know.
+var errUnknownKey = errors.New("unknown config key")

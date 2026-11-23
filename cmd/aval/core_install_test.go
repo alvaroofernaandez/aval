@@ -106,9 +106,8 @@ func TestInstallWithoutTerminalFailsBeforeStartingTheProgram(t *testing.T) {
 	}
 	repo := t.TempDir()
 	err := runInstallWith(func() (string, error) { return repo, nil }, t.TempDir(), false, false, false, deps)
-	want := "aval install needs a terminal. For scripts use: aval install --yes"
-	if err == nil || err.Error() != want {
-		t.Fatalf("err = %v, want %q", err, want)
+	if !errors.Is(err, errNeedsTerminal) {
+		t.Fatalf("err = %v, want errNeedsTerminal", err)
 	}
 	if started {
 		t.Error("tea program started without a terminal")

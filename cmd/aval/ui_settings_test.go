@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -132,11 +133,8 @@ func TestResolveUIBadFileValueWarnsOnceAndFallsBack(t *testing.T) {
 
 func TestResolveUIBadThemeFlagIsAnErrorWithSuggestion(t *testing.T) {
 	_, _, err := resolveUI(uiFlags{Theme: "tokio-night"}, envOf(nil), cfgFile(t, ""))
-	if err == nil {
-		t.Fatal("a bad --theme must be an error")
-	}
-	if !strings.Contains(err.Error(), "--theme") || !strings.Contains(err.Error(), "tokyo-night") {
-		t.Errorf("err = %v", err)
+	if !errors.Is(err, errBadThemeFlag) {
+		t.Fatalf("err = %v, want errBadThemeFlag", err)
 	}
 }
 

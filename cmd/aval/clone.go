@@ -24,7 +24,7 @@ type gitCloner struct {
 // git's last line of output, which names the cause.
 func (g gitCloner) Clone(dest string) error {
 	if _, err := exec.LookPath("git"); err != nil {
-		return errors.New("git is not installed. Install git, then try again")
+		return errNoGit
 	}
 	cmd := exec.CommandContext(g.ctx, "git", "clone", "--quiet", g.url, dest)
 	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
@@ -42,3 +42,6 @@ func lastLine(s string) string {
 	lines := strings.Split(strings.TrimSpace(s), "\n")
 	return strings.TrimSpace(lines[len(lines)-1])
 }
+
+// errNoGit is a clone asked for on a machine without git.
+var errNoGit = errors.New("git is not installed. Install git, then try again")

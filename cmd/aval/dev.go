@@ -87,7 +87,7 @@ func runDev(repoFlag string, args []string) error {
 		}
 	case "project":
 		if len(rest) != 1 {
-			return errors.New("usage: aval dev project <path-to-git-repo>")
+			return newUsage("usage: aval dev project <path-to-git-repo>")
 		}
 		dest, err := devmode.Project(s, rest[0], env)
 		if err != nil {

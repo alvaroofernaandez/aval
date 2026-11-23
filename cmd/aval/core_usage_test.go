@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -60,8 +61,8 @@ func TestParseInstallArgs(t *testing.T) {
 				t.Fatalf("err = %v, wantErr %v", err, c.wantErr)
 			}
 			if err != nil {
-				if !strings.Contains(err.Error(), "usage: aval install") {
-					t.Errorf("error %q does not show the usage", err)
+				if !isUsage(err) {
+					t.Errorf("err = %v, want a usage error", err)
 				}
 				return
 			}
@@ -148,4 +149,11 @@ func TestUsageDocumentsThemeAndPlain(t *testing.T) {
 			t.Errorf("usage lacks %q", want)
 		}
 	}
+}
+
+// isUsage reports whether err is a command called with arguments it does not
+// take: the error that prints the command's usage.
+func isUsage(err error) bool {
+	var u *usageError
+	return errors.As(err, &u)
 }

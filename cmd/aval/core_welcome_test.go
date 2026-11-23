@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -68,8 +67,8 @@ func TestInstallYesWithNoRepoKeepsTheOldError(t *testing.T) {
 	started := false
 	deps := welcomeDeps(func(m tea.Model) (tea.Model, error) { started = true; return m, nil }, &finished)
 	err := runInstallWith(func() (string, error) { return "", want }, t.TempDir(), false, true, false, deps)
-	if err == nil || err.Error() != want.Error() {
-		t.Fatalf("err = %v, want %q", err, want)
+	if !errors.Is(err, want) {
+		t.Fatalf("err = %v, want the resolver's own error %v", err, want)
 	}
 	if started || len(finished) != 0 {
 		t.Errorf("--yes with no repo started=%v finished=%v", started, finished)
@@ -85,8 +84,8 @@ func TestInstallWithoutTerminalAndNoRepoKeepsTheRepoError(t *testing.T) {
 	}, &finished)
 	deps.isTTY = func(uintptr) bool { return false }
 	err := runInstallWith(func() (string, error) { return "", want }, t.TempDir(), false, false, false, deps)
-	if err == nil || err.Error() != want.Error() {
-		t.Fatalf("err = %v, want %q", err, want)
+	if !errors.Is(err, want) {
+		t.Fatalf("err = %v, want the resolver's own error %v", err, want)
 	}
 }
 
@@ -98,8 +97,8 @@ func TestInstallWithAWrongExplicitRepoKeepsFailingLoudly(t *testing.T) {
 		return m, nil
 	}, &finished)
 	err := runInstallWith(func() (string, error) { return "", want }, t.TempDir(), false, false, false, deps)
-	if err == nil || err.Error() != want.Error() {
-		t.Fatalf("err = %v, want %q", err, want)
+	if !errors.Is(err, want) {
+		t.Fatalf("err = %v, want the resolver's own error %v", err, want)
 	}
 }
 
@@ -163,7 +162,7 @@ func TestCloneURLIsTheCanonicalRemote(t *testing.T) {
 func TestGitClonerSaysWhenGitIsMissing(t *testing.T) {
 	t.Setenv("PATH", t.TempDir()) // no git: nothing is ever cloned here
 	err := gitCloner{ctx: context.Background(), url: cloneURL}.Clone(filepath.Join(t.TempDir(), ".aval"))
-	if err == nil || !strings.Contains(err.Error(), "git is not installed") {
-		t.Errorf("err = %v, want it to say git is not installed", err)
+	if !errors.Is(err, errNoGit) {
+		t.Errorf("err = %v, want errNoGit", err)
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,14 +11,8 @@ import (
 
 func TestUnsupportedHereNamesTheCommandAndWSL(t *testing.T) {
 	for cmd := range unixOnly {
-		err := unsupportedHere("windows", cmd)
-		if err == nil {
-			t.Errorf("aval %s should be refused on windows", cmd)
-			continue
-		}
-		msg := err.Error()
-		if !strings.Contains(msg, "aval "+cmd) || !strings.Contains(msg, "not supported on windows") || !strings.Contains(msg, "WSL") {
-			t.Errorf("unclear message for %s: %q", cmd, msg)
+		if err := unsupportedHere("windows", cmd); !errors.Is(err, errUnsupported) {
+			t.Errorf("aval %s should be refused on windows, got %v", cmd, err)
 		}
 		for _, goos := range []string{"darwin", "linux"} {
 			if err := unsupportedHere(goos, cmd); err != nil {

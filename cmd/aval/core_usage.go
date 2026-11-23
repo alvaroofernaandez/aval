@@ -129,10 +129,10 @@ func parseInstallArgs(base installOpts, args []string) (installOpts, error) {
 
 	const usage = "usage: aval install [--dry-run] [--yes] [--copy]"
 	if err := fs.Parse(args); err != nil {
-		return base, fmt.Errorf("%s: %w", usage, err)
+		return base, &usageError{msg: usage + ": " + err.Error(), err: err}
 	}
 	if fs.NArg() > 0 {
-		return base, fmt.Errorf("%s: unexpected argument %q", usage, strings.Join(fs.Args(), " "))
+		return base, newUsage(fmt.Sprintf("%s: unexpected argument %q", usage, strings.Join(fs.Args(), " ")))
 	}
 	return o, nil
 }
