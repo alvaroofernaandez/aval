@@ -41,7 +41,7 @@ Not carried over:
 
 ## Tasks
 
-- [ ] **S1 (opus): project `AGENTS.md` and `CLAUDE.md`.**
+- [x] **S1 (opus): project `AGENTS.md` and `CLAUDE.md`.**
   - `CLAUDE.md` is a single line, `@AGENTS.md`.
   - `AGENTS.md` holds:
     - "the project skill wins";
@@ -50,7 +50,7 @@ Not carried over:
     - the commands: `go test ./...`, `go vet ./...`, `gofmt -l .` and the architecture test;
     - the output contract: what ran, what did not, and evidence.
   - RED: `context_budget_test.go` gains ceilings for both files, and a test requires the task-to-skill table to name every project skill that exists.
-- [ ] **S2 (opus): `tests/architecture_test.go` and the generated model.**
+- [x] **S2 (opus): `tests/architecture_test.go` and the generated model.**
   - Run `go list -f '{{.ImportPath}}|{{join .Imports ","}}|{{join .TestImports ","}}|{{join .XTestImports ","}}' ./...` and check every internal edge against a declared allowlist:
     - Leaves import nothing internal: `internal/agent/*`, `devops/*`, `term/*`, `deck`, `design/{ack,gate}`, `release`, `docs/*` and `devmode`.
     - `core/*` imports only `core/*` and `release`.
@@ -61,7 +61,7 @@ Not carried over:
   - Ratchet: any counted exception may shrink, never grow.
   - Self-test: a planted violation in a temp module is reported as `file -> import`.
   - `docs/architecture/model.md` holds a Mermaid component diagram generated from the same data. A test fails when the committed diagram is stale.
-- [ ] **S3 (opus): project skills.** Create `.claude/skills/aval-architecture`, `aval-testing` (with `references/aval.md` and `references/field-notes.md`), `aval-docs` and `aval-release`.
+- [x] **S3 (opus): project skills.** Create `.claude/skills/aval-architecture`, `aval-testing` (with `references/aval.md` and `references/field-notes.md`), `aval-docs` and `aval-release`.
   - `aval-architecture`:
     - evidence before abstractions, AS-IS and TO-BE, the allowlist and how to change it (ADR first);
     - optional archsieve reports via `npx` at a pinned version (diagrams, `affected`, `--history` churn), never a gate.
@@ -70,7 +70,7 @@ Not carried over:
     - the differential check with `git worktree`;
     - the output contract.
   - A test checks every skill's frontmatter and that `AGENTS.md` lists it.
-- [ ] **S4 (sonnet): `docs/adr/`.**
+- [x] **S4 (sonnet): `docs/adr/`.**
   - A README with the template and the never-rewrite rule.
   - Seed ADRs:
     - 0001: Go only.
@@ -79,20 +79,20 @@ Not carried over:
     - 0004: the hub writes nothing and stays offline.
     - 0005: the relay is cost-aware (from `odd/tasks/relay-cost-model.md`).
   - A test checks the template sections and the README index.
-- [ ] **S5 (sonnet): test hygiene.**
+- [x] **S5 (sonnet): test hygiene.**
   - `tests/test_hygiene_test.go` fails on `os.MkdirTemp`, `ioutil.TempDir` and `time.Sleep` in `_test.go` files, outside an exemption map that gives a reason for each entry.
   - Fix today's offenders: 3 `MkdirTemp` files and 8 `time.Sleep` files. Use `t.TempDir()`, an injected clock, or polling with a deadline.
   - The exemption map ends empty, or holds only reasons that are justified.
-- [ ] **S6 (opus): in-process command seam.**
+- [x] **S6 (opus): in-process command seam.**
   - `run(args []string, stdin io.Reader, stdout, stderr io.Writer, env func(string) string) int` in `cmd/aval`, with `main` as a thin wrapper.
   - Move binary-spawning tests to the seam, except one real-binary smoke test per subcommand.
   - RED: an in-process test of a subcommand that today only has a subprocess test.
-- [ ] **S7 (sonnet): errors as values.**
+- [x] **S7 (sonnet): errors as values.**
   - Introduce sentinel or typed errors where the 44 `err.Error()` comparisons point, and switch those tests to `errors.Is` or `errors.As`.
   - `tests/messages_test.go` becomes the single place that pins user-facing text.
   - A hygiene rule (S5) blocks new `err.Error()` comparisons outside it.
-- [ ] **S8 (sonnet): every test runs in CI.** Extend `workflows_test.go`: every package with tests runs under `go test ./...` in `ci.yml`, and every build-tagged e2e directory has a CI step or a stated exemption.
-- [ ] **S9 (sonnet): ship the generic standards to aval users.**
+- [x] **S8 (sonnet): every test runs in CI.** Extend `workflows_test.go`: every package with tests runs under `go test ./...` in `ci.yml`, and every build-tagged e2e directory has a CI step or a stated exemption.
+- [x] **S9 (sonnet): ship the generic standards to aval users.**
   - Update the distributed `skills/strict-tdd` with the testing checklist, without the aval-specific parts.
   - Add a distributed `skills/architecture-evidence`: evidence before abstractions, AS-IS and TO-BE, and boundary tests as the mechanism, generic per language with a Go example.
   - Both go through the manifest, so `aval install` links them.
