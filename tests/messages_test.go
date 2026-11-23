@@ -424,7 +424,7 @@ func TestMessagesUsageText(t *testing.T) {
 		{name: "help in English", args: []string{"help"}, stdout: usageEN},
 		{name: "help with --lang es", args: []string{"--lang", "es", "help"}, stdout: usageES},
 		{name: "help with AVAL_LANG=es", args: []string{"help"}, env: []string{"AVAL_LANG=es"}, stdout: usageES},
-		{name: "help with a Spanish locale", args: []string{"help"}, env: []string{"AVAL_LANG", "LANG=es_ES.UTF-8"}, stdout: usageES},
+		{name: "help with a Spanish locale", args: []string{"help"}, env: []string{"AVAL_LANG", "LC_ALL", "LC_MESSAGES", "LANG=es_ES.UTF-8"}, stdout: usageES},
 		{name: "--lang beats AVAL_LANG", args: []string{"--lang", "en", "help"}, env: []string{"AVAL_LANG=es"}, stdout: usageEN},
 		{name: "help with language = es in the file", setup: cfgES, args: []string{"help"}, env: []string{"AVAL_LANG"}, stdout: noHint(usageES, hintES)},
 		{name: "help on a configured machine", setup: configured, args: []string{"help"}, stdout: noHint(usageEN, hintEN)},
