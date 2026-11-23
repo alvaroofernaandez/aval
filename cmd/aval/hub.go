@@ -17,6 +17,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/core/config"
+	"github.com/alvaroofernaandez/aval/internal/core/deps"
 	"github.com/alvaroofernaandez/aval/internal/core/doctor"
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/manifest"
@@ -248,7 +249,7 @@ func newHubServices(e hubEnv, home, repoFlag string, us uiSettings) (ui.Services
 	pathOpt := func(security bool) doctor.Options {
 		return doctor.Options{
 			Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: goos,
-			Security: security, ConfigPath: cfgPath,
+			Security: security, ConfigPath: cfgPath, DepsProber: deps.SystemProber{GOOS: goos, Getenv: e.getenv, NoVersion: true},
 		}
 	}
 	svc.Doctor = func(security bool) []doctor.Result { return doctor.Run(pathOpt(security)) }

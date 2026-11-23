@@ -9,6 +9,19 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.3.0-rc.3 (2026-11-23)
+
+[Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
+
+### Features
+
+- **deps:** `aval deps` lists every external tool aval relies on, by layer, with what happens when it is missing and the issue that plans to replace it (#3)
+- **doctor:** a `deps` row checks the inventory; a missing `git` fails the doctor (#3)
+
+### Maintenance
+
+- **cli:** usage summaries come from a table and standalone commands leave `dispatch`; `doctor.go` rendering moves to its own file
+
 ## v0.3.0-rc.2 (2026-11-23)
 
 [Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)

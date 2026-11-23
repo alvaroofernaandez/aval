@@ -67,21 +67,6 @@ func main() {
 	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr, os.Getenv))
 }
 
-// cmdIO is what a command gets from the process: its streams and its
-// environment. main passes the real ones; tests pass buffers and a map, so a
-// command runs in process with nothing shared between two calls.
-type cmdIO struct {
-	stdin          io.Reader
-	stdout, stderr io.Writer
-	env            func(string) string
-}
-
-// exitCode is an error that ends run with exactly this code and prints
-// nothing: tmux and `aval dev run` hand back the code of what they ran.
-type exitCode int
-
-func (c exitCode) Error() string { return fmt.Sprintf("exit status %d", int(c)) }
-
 // run is the whole command line behind a seam: args (without the program
 // name), streams and environment in, exit code out. 0 is success, 1 any
 // failure (reported on stderr unless the checks already were), 2 a bad global
@@ -241,17 +226,8 @@ func dispatch(argv []string, c cmdIO) error {
 	}
 
 	// Skill tooling: standalone, no repository and no update check.
-	switch fs.Arg(0) {
-	case "kiri":
-		return runKiri(sub)
-	case "docker":
-		return runDocker(sub)
-	case "pdf":
-		return runPDF(sub, c.stdout)
-	case "deck":
-		return runDeck(sub, c.stdout, realDeckDeps())
-	case "dev":
-		return runDev(*repoFlag, sub)
+	if handled, err := runStandalone(fs.Arg(0), sub, *repoFlag, uiFlags{Theme: *themeFlag, Plain: *plainFlag, Lang: *langFlag}, c); handled {
+		return err
 	}
 
 	// Only commands that draw read the UI settings; everything above this line

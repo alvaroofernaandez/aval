@@ -20,6 +20,7 @@ var spanishCLI = catalog{
 	"cli.usage.cmd.sync":       {other: "fusiona los ajustes del repositorio en la configuración activa"},
 	"cli.usage.cmd.rules":      {other: "refleja las reglas compartidas de CLAUDE.md en el AGENTS.md de OpenCode"},
 	"cli.usage.cmd.budget":     {other: "contexto fijo por agente y latencia de los hooks"},
+	"cli.usage.cmd.deps":       {other: "herramientas externas de las que depende aval, y cuáles faltan"},
 	"cli.usage.cmd.review":     {other: "nivel de riesgo según git y lentes de revisión"},
 	"cli.usage.cmd.design":     {other: "controles de diseño para el proyecto del directorio actual"},
 	"cli.usage.cmd.config":     {other: "muestra o cambia los ajustes de aval (tema, glifos, animación)"},
@@ -65,6 +66,22 @@ var spanishCLI = catalog{
 	"cli.doctor.count.fail":  {one: "{count} fallo", other: "{count} fallos"},
 	"cli.doctor.removed":     {other: "enlace roto eliminado: {path}"},
 	"cli.doctor.synced":      {other: "ajustes y reglas de agentes sincronizados"},
+
+	// deps
+	"cli.deps.usage":          {other: "uso: aval deps [--json] [--layer harness|agent|env]"},
+	"cli.deps.unknown_layer":  {other: "capa desconocida {layer}; use harness, agent o env"},
+	"cli.deps.col.status":     {other: "ESTADO"},
+	"cli.deps.col.tool":       {other: "HERRAMIENTA"},
+	"cli.deps.col.layer":      {other: "CAPA"},
+	"cli.deps.col.if_missing": {other: "SI FALTA"},
+	"cli.deps.col.substitute": {other: "SUSTITUTO"},
+	"cli.deps.col.used_by":    {other: "USADA POR"},
+	"cli.deps.status.present": {other: "presente"},
+	"cli.deps.status.missing": {other: "falta"},
+	"cli.deps.status.skipped": {other: "omitida"},
+	"cli.deps.count.present":  {one: "{count} presente", other: "{count} presentes"},
+	"cli.deps.count.missing":  {one: "{count} falta", other: "{count} faltan"},
+	"cli.deps.count.skipped":  {one: "{count} omitida", other: "{count} omitidas"},
 
 	// shared
 	"cli.dry_run": {other: "Simulación: no se escribió nada."},

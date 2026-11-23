@@ -17,6 +17,7 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/core/sync` | core | Keeps live agent settings (`~/.claude/settings.json`) aligned with the repo. |
 | `internal/core/txsync` | core | Runs sync as a transaction: back up, apply, verify, undo on failure. |
 | `internal/core/doctor` | core | Audits the machine against the repo: links, settings, hooks, tools. |
+| `internal/core/deps` | core | The external tool inventory (`deps.manifest`, embedded) and its offline, parallel probes. |
 | `internal/core/uninstall` | core | Removes aval's links and puts back what they displaced. |
 | `internal/core/update` | core | Refreshes an installation: pull, then re-apply. |
 | `internal/core/config` | core | Owns the aval config file (`key = value`). |

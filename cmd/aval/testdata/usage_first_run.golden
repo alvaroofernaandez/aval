@@ -23,6 +23,8 @@ Health
                             [--fix] [--json]
   aval budget             always-on context per agent and hook latency
                             [--json]
+  aval deps               external tools aval relies on, and which are missing
+                            [--json] [--layer harness|agent|env]
   aval version            version, commit, build date and channel
   aval help               show this help
 
