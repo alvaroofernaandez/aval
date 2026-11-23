@@ -20,11 +20,11 @@ import (
 // Themes lists every accepted value of the theme key. The UI theme registry
 // is checked against it.
 var Themes = []string{
-	"aval", "terminal", "mono",
+	"aval", "aval-dark", "aval-light", "terminal", "mono",
 	"catppuccin", "catppuccin-mocha", "catppuccin-latte", "catppuccin-frappe", "catppuccin-macchiato",
 	"tokyo-night", "tokyo-night-storm", "tokyo-night-day",
 	"gruvbox", "gruvbox-dark", "gruvbox-light",
-	"dracula", "nord",
+	"dracula", "dracula-alucard", "nord",
 	"kanagawa", "kanagawa-wave", "kanagawa-dragon", "kanagawa-lotus",
 	"rose-pine", "rose-pine-moon", "rose-pine-dawn",
 	"solarized", "solarized-dark", "solarized-light",

@@ -218,7 +218,7 @@ func TestKeysAndThemes(t *testing.T) {
 	if got := strings.Join(Keys(), ","); got != "repo,theme,background,glyphs,motion,update_check" {
 		t.Errorf("Keys = %s", got)
 	}
-	if len(Themes) != 31 || Themes[0] != "aval" {
+	if len(Themes) != 34 || Themes[0] != "aval" {
 		t.Errorf("Themes = %v", Themes)
 	}
 }
