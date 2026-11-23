@@ -82,10 +82,15 @@ func TestCheckLatestSurvivesEveryFailure(t *testing.T) {
 }
 
 func TestCheckLatestHonoursContextCancellation(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		time.Sleep(2 * time.Second)
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select { // hang until the client gives up or the test ends
+		case <-r.Context().Done():
+		case <-release:
+		}
 	}))
 	defer srv.Close()
+	defer close(release)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

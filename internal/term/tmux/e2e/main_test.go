@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
-	"time"
 )
 
 // These tests drive the real `aval` binary against real tmux servers.
@@ -53,10 +53,24 @@ func TestMain(m *testing.M) {
 		return
 	}
 	flag.Parse()
-	os.Exit(setupAndRun(m))
+	// -short builds nothing, so it needs no scratch dir. TestMain is the one
+	// place without a *testing.T to ask for t.TempDir().
+	tmp := ""
+	if !testing.Short() {
+		var err error
+		if tmp, err = os.MkdirTemp("", "aval-e2e-"); err != nil {
+			fmt.Fprintln(os.Stderr, "e2e:", err)
+			os.Exit(1)
+		}
+	}
+	code := setupAndRun(m, tmp)
+	if tmp != "" {
+		_ = os.RemoveAll(tmp)
+	}
+	os.Exit(code)
 }
 
-func setupAndRun(m *testing.M) int {
+func setupAndRun(m *testing.M, tmp string) int {
 	root, err := findRepoRoot()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "e2e:", err)
@@ -74,13 +88,6 @@ func setupAndRun(m *testing.M) int {
 	if testing.Short() {
 		return m.Run()
 	}
-
-	tmp, err := os.MkdirTemp("", "aval-e2e-")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "e2e:", err)
-		return 1
-	}
-	defer os.RemoveAll(tmp)
 
 	{
 		if v := os.Getenv("AVAL_BIN"); v != "" {
@@ -204,10 +211,12 @@ func appendTo(dir, name, s string) {
 	_, _ = f.WriteString(s)
 }
 
+// sleepForever parks a fake tool until the test kills it. A signal wait, not a
+// sleep: it holds no timer and cannot wake early.
 func sleepForever() {
-	for {
-		time.Sleep(time.Hour)
-	}
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	<-ch
 }
 
 func copyExecutable(src, dst string) error {

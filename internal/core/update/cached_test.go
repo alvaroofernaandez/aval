@@ -98,7 +98,15 @@ func TestCachedNeverTouchesTheNetworkOrWrites(t *testing.T) {
 	http.DefaultTransport = failingTransport{t}
 	defer func() { http.DefaultTransport = orig }()
 
-	time.Sleep(10 * time.Millisecond)
+	// tree compares mtimes: age every file so a write inside the clock's
+	// granularity still shows as a change.
+	old := time.Now().Add(-time.Hour)
+	filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+		if err == nil && !info.IsDir() {
+			_ = os.Chtimes(p, old, old)
+		}
+		return nil
+	})
 	before := tree(t, dir)
 	Cached("1.0.0")
 	CachedWith("1.0.0", true)

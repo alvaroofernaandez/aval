@@ -111,12 +111,8 @@ func TestSidebarToggleUnderLaunchdPath(t *testing.T) {
 
 		// Observe for a window: a dead pane vanishes (remain-on-exit is off), so
 		// the pane count dropping back is the failure signature.
-		deadline := time.Now().Add(2 * time.Second)
-		for time.Now().Before(deadline) {
-			if n := s.panes(); n != 2 {
-				t.Fatalf("the real sidebar command did not survive: %d pane(s)", n)
-			}
-			time.Sleep(100 * time.Millisecond)
+		if waitFor(2*time.Second, func() bool { return s.panes() != 2 }) {
+			t.Fatalf("the real sidebar command did not survive: %d pane(s)", s.panes())
 		}
 		eq(t, "the sidebar pane is not dead", 0, strings.Count(s.q("list-panes", "-t", "main", "-F", "#{pane_dead}"), "1"))
 	})
@@ -319,7 +315,8 @@ func TestSidebarWatch(t *testing.T) {
 	// --- it stays quiet when nothing moves ---
 	// A negative needs a window; 1.5s is five watch cycles.
 	s.rmFake("ya-calls.txt")
-	time.Sleep(1500 * time.Millisecond)
+	// waitFor returns the moment it does emit, so a regression fails early.
+	waitFor(1500*time.Millisecond, func() bool { return s.fakeFile("ya-calls.txt") != "" })
 	eq(t, "emits nothing while the directory is unchanged", "", s.fakeFile("ya-calls.txt"))
 
 	// --- it dies with the sidebar ---
@@ -350,6 +347,6 @@ func TestSidebarWatchOneTmuxCallPerCycle(t *testing.T) {
 
 	count := func() int { return strings.Count(s.fakeFile("tmux-calls.txt"), "x") }
 	eq(t, "the watcher asked tmux at least once", true, waitFor(settle, func() bool { return count() >= 1 }))
-	time.Sleep(300 * time.Millisecond) // room for a second call, were there one
+	waitFor(300*time.Millisecond, func() bool { return count() >= 2 }) // room for a second call, were there one
 	eq(t, "one tmux call per cycle, not three", 1, count())
 }

@@ -185,7 +185,14 @@ func TestHooksE2EScriptedSession(t *testing.T) {
 	eq(t, "Stop in a session with no UI edit is silent", "", a.stop("s-untouched", false))
 
 	// A later UI edit re-arms the block; a render newer than the edit satisfies it.
-	time.Sleep(1100 * time.Millisecond)
+	// The stamp must outrank the "blocked once" record by mtime. Age the record
+	// rather than waiting out the filesystem's timestamp granularity.
+	blocked, _ := filepath.Glob(filepath.Join(a.home, ".cache/design-gate/*.blocked"))
+	isTrue(t, "the first Stop left a blocked record", len(blocked) > 0)
+	past := time.Now().Add(-time.Hour)
+	for _, f := range blocked {
+		_ = os.Chtimes(f, past, past)
+	}
 	eq(t, "a later UI edit is still allowed", "", a.pre("Edit", btn, main))
 	eq(t, "...and re-arms the Stop block", "block", stopDecision(a.stop(main, false)))
 	shots := filepath.Join(a.proj, ".design/shots")

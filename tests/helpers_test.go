@@ -27,6 +27,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // exeSuffix is the executable extension of the platform the suite runs on.
@@ -42,8 +43,12 @@ var (
 
 	buildOnce sync.Once
 	binDir    string
-	avalPath  string
-	buildErr  error
+	// scratch is the one shared temp dir (binary, brand output). Package-level
+	// sync.Once helpers have no *testing.T to own a t.TempDir(), so TestMain
+	// makes it and removes it.
+	scratch  string
+	avalPath string
+	buildErr error
 )
 
 func TestMain(m *testing.M) {
@@ -53,12 +58,15 @@ func TestMain(m *testing.M) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	code := m.Run()
-	for _, d := range []string{binDir, brandDir} {
-		if d != "" {
-			_ = os.RemoveAll(d)
-		}
+	scratch, err = os.MkdirTemp("", "aval-tests-")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
 	}
+	binDir = filepath.Join(scratch, "bin")
+	brandDir = filepath.Join(scratch, "brand")
+	code := m.Run()
+	_ = os.RemoveAll(scratch)
 	os.Exit(code)
 }
 
@@ -83,7 +91,7 @@ func avalBin(t testing.TB) string {
 			buildErr = errors.New("no go toolchain")
 			return
 		}
-		binDir, buildErr = os.MkdirTemp("", "aval-tests-bin-")
+		buildErr = os.MkdirAll(binDir, 0o755)
 		if buildErr != nil {
 			return
 		}
@@ -101,6 +109,26 @@ func avalBin(t testing.TB) string {
 		t.Fatal(buildErr)
 	}
 	return avalPath
+}
+
+// eventually polls cond on a short tick until it holds or timeout passes, and
+// reports whether it held. The deadline is a hard stop, never an assertion on
+// how long the wait took.
+func eventually(timeout time.Duration, cond func() bool) bool {
+	tick := time.NewTicker(20 * time.Millisecond)
+	defer tick.Stop()
+	stop := time.NewTimer(timeout)
+	defer stop.Stop()
+	for {
+		if cond() {
+			return true
+		}
+		select {
+		case <-tick.C:
+		case <-stop.C:
+			return cond()
+		}
+	}
 }
 
 // needTool skips the test when any of the tools is missing from PATH.
