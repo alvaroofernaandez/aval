@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -141,7 +142,14 @@ func TestRateGuardOpenCodePlugin(t *testing.T) {
 		fire("bash", `for p in a b c; do curl -s https://www.innohelp.es/$p; done`))
 	eq(t, "a single curl is allowed", "allow", fire("bash", `curl -sL https://www.innohelp.es/`))
 	eq(t, "a non-bash tool is ignored", "allow", fire("edit", `for p in a b c; do curl -s https://www.innohelp.es/$p; done`))
-	noBin := withEnv(isoEnv(home), "PATH=/usr/bin:/bin")
+	// A PATH without aval. On Windows the Unix stand-in would also hide the
+	// system directories bun needs; the runner's own PATH has no aval either, as
+	// the binary under test lives in a private directory.
+	noAvalPath := "/usr/bin:/bin"
+	if runtime.GOOS == "windows" {
+		noAvalPath = os.Getenv("PATH")
+	}
+	noBin := withEnv(isoEnv(home), "PATH="+noAvalPath)
 	eq(t, "with no aval binary the plugin fails open", "allow",
 		strings.TrimSpace(run(home, noBin, "", "bun", "run", probe, "bash", `for p in a b c; do curl https://innohelp.es/$p; done`).Stdout))
 }

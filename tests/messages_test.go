@@ -38,9 +38,8 @@ type msgCase struct {
 
 // configFile is where aval keeps its settings under home, per OS.
 func configFile(home string) string {
-	if runtime.GOOS == "windows" {
-		return filepath.Join(home, "AppData", "Roaming", "aval", "config")
-	}
+	// isoEnv sets XDG_CONFIG_HOME to home/.config on every OS, and the config
+	// package honours it before APPDATA, so the file is here on Windows too.
 	return filepath.Join(home, ".config", "aval", "config")
 }
 
@@ -68,15 +67,25 @@ func runMessages(t *testing.T, cases []msgCase) {
 			}
 			r := run(dir, isoEnv(home, env...), c.stdin, aval, args...)
 			got := strings.NewReplacer(configFile(home), "CONFIG", dir, "DIR", home, "HOME").Replace(r.Stderr)
-			got = filepath.ToSlash(got)
+			got = filepath.ToSlash(osErrorText(got))
 			eq(t, "exit code\n"+r.Out(), c.code, r.Code)
 			eq(t, "stderr", c.stderr, got)
 			if c.stdout != "" {
 				out := strings.NewReplacer(configFile(home), "CONFIG", dir, "DIR", home, "HOME").Replace(r.Stdout)
-				eq(t, "stdout", c.stdout, filepath.ToSlash(out))
+				eq(t, "stdout", c.stdout, filepath.ToSlash(osErrorText(out)))
 			}
 		})
 	}
+}
+
+// osErrorText folds the Windows wording of a missing path into the Unix one:
+// aval prints the operating system's error verbatim, and the pins cover aval's
+// words, not the C runtime's.
+func osErrorText(s string) string {
+	return strings.NewReplacer(
+		"The system cannot find the path specified.", "no such file or directory",
+		"The system cannot find the file specified.", "no such file or directory",
+	).Replace(s)
 }
 
 // emptyDir creates DIR/<name> with nothing in it.
