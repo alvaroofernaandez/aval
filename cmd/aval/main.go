@@ -1,7 +1,8 @@
 // Command aval installs this repository's configs on macOS,
 // Linux and Windows.
 //
-//	aval            print the usage; never installs
+//	aval            on a terminal, open the hub (writes nothing until you confirm
+//	                a step); otherwise print the usage. Never installs by itself
 //	aval install    interactive TUI (--yes: none, --dry-run: change nothing, --copy)
 //	aval update     pull the repo, then re-apply
 //	aval doctor     check this machine against the repo (--fix, --json)

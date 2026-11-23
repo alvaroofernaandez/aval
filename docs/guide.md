@@ -59,7 +59,49 @@ Three ways to get the binary; everything else is the same.
 > The npm package named `aval` and the prebuilt binaries are published by CI and are not yet
 > available under the new name.
 
-Then run `aval install`. `aval` on its own prints the usage and changes nothing. The first run goes through four screens:
+On a terminal, a bare `aval` opens the **hub**: the wordmark, a status panel (version from the update cache, repo, doctor, last backup, theme) and a menu. Opening it writes nothing and makes no network calls.
+
+```text
+                       ▗██              ██
+                      ▗██▘              ██  Version  0.3.0 · ! 0.3.1 available
+     ▄▄▄▄▄▄▄▖  ▗▄▖    ▟█▘    ▗▄▄▄▄▄▄▄   ██  Repo     ~/.aval
+   ▗██▀▀▀▜██▌  ▝██▖  ▟█▛    ▟█▛▀▀▀███   ██  Doctor   ! 9 ok, 1 warn, 0 fail
+   ██▘    ▜█▌   ▝██▖▟█▛    ▐█▛    ▝██   ██  Backup   2026-11-23 10:14 · sync…
+   ▜█▙▖  ▄██▌    ▝███▛     ▝██▄  ▗▟██   ██  Theme    mono · unicode
+    ▀▜████▜█▌     ▝█▛       ▝▀████▛██   ██
+  Nothing passes without evidence.                               macOS (arm64)
+  ────────────────────────────────────────────────────────────────────────────
+
+  Set up   › Install      link the repo configs into this home
+             Update       pull the repo, then re-apply
+             Sync         merge repo-managed settings into the live config
+  Health     Doctor       check this machine against the repo
+  Undo       Backups      list backup runs and restore one
+             Uninstall    remove the links aval made, put back what was there
+  Tools      Settings     theme, glyphs, motion and update checks
+             Dev sandbox  a throwaway home for trying aval
+             About        version, paths and links
+
+  ────────────────────────────────────────────────────────────────────────────
+  1 warning · open Doctor to see it
+  ↑↓ move · enter open · ? help · q quit
+```
+
+Every write goes through preview, confirm, run and result. A destructive confirm opens on Cancel and names its safety net. Without a terminal, with `aval help` or `--help`, or with `TERM=dumb`, aval prints the usage byte for byte instead.
+
+Views:
+
+- **Install**: links the repo configs into this home. It previews first, and anything in the way moves to `~/.aval-backup`.
+- **Update**: pulls the repo (fast-forward only), then re-applies. It fetches a preview first, stops on a dirty tree, and backs up files in the way.
+- **Sync**: merges repo-managed settings into the live config. It previews the drift, backs up, verifies with doctor and rolls back on failure.
+- **Doctor**: checks this machine against the repo. It is read-only until you press `f`; the fixes it offers are safe ones (dangling links, settings drift), backed up first.
+- **Backups**: lists backup runs and restores one. A restore previews first, confirms on Cancel, and moves foreign content aside instead of deleting it.
+- **Uninstall**: removes the links aval made and puts back what they displaced. It previews at once, confirms on Cancel, and names `aval restore latest` as the undo.
+- **Settings**: theme, glyphs, motion and update checks. Enter saves, esc discards.
+- **Dev sandbox**: a throwaway home for trying aval. Your real home is not touched; reset and remove confirm on Cancel.
+- **About**: version, paths and links. Read-only.
+
+Or run `aval install` to go straight to the installer. Without a terminal, `aval` on its own prints the usage and changes nothing. The first run goes through four screens:
 
 1. **Welcome.** If aval cannot find its repository (looked up from `--repo <path>`, `$AVAL_REPO`, the location recorded in `~/.config/aval/config`, then the current directory), it offers to clone it to `~/.aval` or to use a folder you already have. Cloning is always an explicit choice. The location is recorded only after an install completes.
 2. **Select.** Each group shows what will happen to its files before anything is written: new, linked, or replaces a file. `→` opens the details, `?` shows every key.
@@ -237,7 +279,7 @@ Everything deliberately installed with Homebrew is in the `Brewfile`: `brew bund
 
 ## ⌨️ Commands
 
-Full reference. `aval` or `aval help` prints the usage. Global flags: `--repo`, `--version`.
+Full reference. `aval help` prints the usage, and so does a bare `aval` without a terminal (on a terminal it opens the hub). Global flags: `--repo`, `--version`.
 
 | Command | What it does | Needs the repo |
 | :--- | :--- | :---: |

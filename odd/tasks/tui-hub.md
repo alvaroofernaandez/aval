@@ -337,44 +337,44 @@ Rules for every task:
   - Existing `internal/ui` tests and goldens are not modified.
 
 ### Phase 0: contract and core data
-- [ ] **H1 (opus): DESIGN.md amendment.**
+- [x] **H1 (opus): DESIGN.md amendment.**
   - Covers the hub, the wordmark (both tiers, size rule, fallback), the navigation table and the confirmation pattern.
   - Groups hold at most three entries; the spinner is allowed for fetch and pull.
   - Ends with a decision-log entry.
   - RED: a docs guard test.
-- [ ] **H2 (sonnet): doctor as data.**
+- [x] **H2 (sonnet): doctor as data.**
   - Adds `Details`, `Fix`, `Describe` and `RemoveBroken`.
   - RED: `Details` lists all items when the message truncates; `RemoveBroken` is restorable; `--json` is unchanged.
-- [ ] **H3 (sonnet): backup origin and typed preview.**
+- [x] **H3 (sonnet): backup origin and typed preview.**
   - RED: origin round-trips; a missing marker yields `""`; `Preview` writes nothing.
   - `aval restore --list` stays byte-identical.
-- [ ] **H4 (sonnet, after H3): `uninstall.Preview`.**
+- [x] **H4 (sonnet, after H3): `uninstall.Preview`.**
   - RED: kinds and `Restores` are reported; the HOME tree hash is unchanged; no backup dir is created.
-- [ ] **H5 (sonnet): `update.ManagedPaths` and `Cached`.**
+- [x] **H5 (sonnet): `update.ManagedPaths` and `Cached`.**
   - RED: `Cached` returns what the last check saw; it is empty with no cache; it never touches the network or writes.
 
 ### Phase 1: router
-- [ ] **H7 (opus, after H1): `chrome`, `screen`, router and `goldenViews`.**
+- [x] **H7 (opus, after H1): `chrome`, `screen`, router and `goldenViews`.**
   - RED, router tests with fake screens:
     - enter pushes and `esc` pops; `esc` at the root does nothing;
     - `q` quits when idle and stops when busy; quitting is refused while atomic;
     - size reaches every screen; a stale generation is dropped;
     - `?` lists the screen's keys plus the global ones.
   - No diff under `internal/ui/testdata` or in existing tests.
-- [ ] **H8 (opus, after H7): host the installer and settings.**
+- [x] **H8 (opus, after H7): host the installer and settings.**
   - RED:
     - a hosted `Model` pops where it used to quit;
     - closing done calls `FinishInstall` exactly once; quitting at select never calls it, and neither does a stopped run;
     - saving settings changes the router theme;
     - `finishInstall` returns warnings instead of writing to stderr.
-- [ ] **H9 (opus, after H7): the operation component.**
+- [x] **H9 (opus, after H7): the operation component.**
   - RED:
     - a destructive confirm opens on `Cancel`, and enter on `Cancel` runs nothing;
     - the safety line is required;
     - `esc` cancels a cancellable run; an atomic run ignores keys.
 
 ### Phase 2: hub
-- [ ] **H10 (opus, after H1): the wordmark generator.**
+- [x] **H10 (opus, after H1): the wordmark generator.**
   - `tools/brand` rasterises the brand geometry into `internal/ui/wordmark_gen.go`. Reference implementation: the session prototype `raster.py` (quad, 7 rows).
   - RED:
     - The generated file is current.
@@ -383,14 +383,14 @@ Rules for every task:
     - The rhythm test: the check and the `l` reach row 1 and the bowls do not.
     - The emoji gate passes.
     - Nothing renders below the size rule.
-- [ ] **H11 (opus, after H7 and H10): the hub screen.**
+- [x] **H11 (opus, after H7 and H10): the hub screen.**
   - RED:
     - `checking` shows before doctor arrives, and the worst state is shown after;
     - with no repo, entries are disabled with the reason;
     - the wordmark gives way at 80x20;
     - a view that is not registered shows as unavailable;
     - an 80x24 golden.
-- [ ] **H12 (sonnet, after H2-H5, H8 and H11): dispatch and real services.**
+- [x] **H12 (sonnet, after H2-H5, H8 and H11): dispatch and real services.**
   - RED:
     - with a fake TTY, bare `aval` opens the hub;
     - without a TTY, and for help, `--help` and `TERM=dumb`, the usage is byte-identical;
@@ -398,27 +398,27 @@ Rules for every task:
     - the hot paths still never read config.
 
 ### Phase 3: views (each after H9 and H11)
-- [ ] **H13 (opus, +H2): Doctor.**
+- [x] **H13 (opus, +H2): Doctor.**
   - RED: problems sort first; the detail pane follows the cursor; there is no `f` without a fix; a fix confirms on Cancel and then re-runs; `s` shows security.
-- [ ] **H14 (opus, +H3): Backups and restore.**
+- [x] **H14 (opus, +H3): Backups and restore.**
   - RED: runs are listed newest first with origin and pin; `p` pins; legacy and pending runs have no preview; the preview only previews; the confirm names `.displaced`.
-- [ ] **H15 (sonnet, +H4): Uninstall.**
+- [x] **H15 (sonnet, +H4): Uninstall.**
   - RED: opening only previews; counts match; an empty run has no continue; the confirm is on Cancel; the result names restore.
-- [ ] **H16 (opus, +H5, H8): Update.**
+- [x] **H16 (opus, +H5, H8): Update.**
   - RED:
     - `esc` cancels the fetch context;
     - a dirty tree offers only Back; up to date offers re-apply;
     - the pull hands over to progress;
     - npm shows its command.
-- [ ] **H17 (sonnet): Sync.**
+- [x] **H17 (sonnet): Sync.**
   - RED: opening only previews; no drift offers only Back; a rollback shows its checks and the backup id.
-- [ ] **H18 (sonnet): Dev sandbox.**
+- [x] **H18 (sonnet): Dev sandbox.**
   - RED: enter returns `ExecProcess` for `dev --name`; an invalid name stays in the field; remove confirms on Cancel with no backup; inside a sandbox there are no write keys.
-- [ ] **H19 (sonnet): About.**
+- [x] **H19 (sonnet): About.**
   - RED: paths are shortened with `~`; the build block matches `aval version`; the view scrolls at 80x12.
 
 ### Phase 4: ship
-- [ ] **H20 (sonnet, after H12): docs, CHANGELOG and the vhs tape.**
+- [x] **H20 (sonnet, after H12): docs, CHANGELOG and the vhs tape.**
   - The docs guard requires the hub to be described.
 - [ ] **H21 (opus): cross-terminal verification.**
   - Closes T20 of the previous plan.
