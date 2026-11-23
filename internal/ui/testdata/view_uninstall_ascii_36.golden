@@ -1,0 +1,11 @@
+ aval 0.2.0
+ Uninstall
+
+ 2 links removed 1 previous file
+ restored 1 rules block cut
+
+ ! remove link  ~/.zshrc
+ ! remove link  ~/.config/tmux
+ ! cut block    ~/.code...ENTS.md
+ Nothing has changed yet
+ enter continue  esc back  ? help
