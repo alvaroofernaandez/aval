@@ -60,6 +60,10 @@ func ShotStop(in io.Reader, out io.Writer, o StopOptions) {
 			return
 		}
 	}
-	_ = os.WriteFile(blockedPath, nil, 0o644)
+	// The marker carries the stamp's own mtime, not the clock's: a file's mtime
+	// can read earlier than the stamp's, and then the block would repeat.
+	if os.WriteFile(blockedPath, nil, 0o644) == nil {
+		_ = os.Chtimes(blockedPath, stamp.ModTime(), stamp.ModTime())
+	}
 	_, _ = io.WriteString(out, stopMessage)
 }

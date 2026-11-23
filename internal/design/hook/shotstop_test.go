@@ -123,3 +123,18 @@ func TestShotStopSilentCases(t *testing.T) {
 		t.Errorf("empty root: got %q", got)
 	}
 }
+
+// The .blocked marker must cover its stamp whatever the clocks say: a file's
+// mtime on Linux comes from a coarse kernel clock that can read earlier than
+// time.Now(), and a stamp can carry any mtime.
+func TestShotStopBlocksOnceEvenWhenTheStampIsAhead(t *testing.T) {
+	e := newStopEnv(t)
+	ahead := time.Now().Add(time.Second)
+	e.stamp(t, "s1", ahead)
+	if got := e.stop(stopPayload("s1", false), false); got != stopBlock {
+		t.Fatalf("UI edited and no shot: got %q want the exact block", got)
+	}
+	if got := e.stop(stopPayload("s1", false), false); got != "" {
+		t.Errorf("it blocks only once per stamp, even one ahead of the clock, got %q", got)
+	}
+}
