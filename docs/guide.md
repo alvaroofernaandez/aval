@@ -293,7 +293,7 @@ Full reference. `aval help` prints the usage, and so does a bare `aval` without 
 | `aval budget [--json] [--skip-hooks] [--runs N]` | Always-on context and hook latency | no |
 | `aval deps [--json] [--layer harness\|agent\|env]` | External tool inventory: layer, users, effect if missing, native substitute, and whether each is installed; exits 1 when a blocking tool is missing | no |
 | `aval review assess [--base <ref>] [--json]` | Risk level of the diff and reviewers | no |
-| `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `rate-guard`, `design-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push` | no |
+| `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `rate-guard`, `design-gate`, `plan-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push`, `fmt` | no |
 | `aval statusline` | Claude Code status line | no |
 | `aval design ack <surface>` | Design pipeline ack (required by the `design-gate` hook) | no |
 | `aval design gate <gate> …` | `contrast <fg> <bg> [--large]` · `tokens` · `pairs <colors.json> [--aaa]` · `hardcodes [--ext] [--no-tw]` · `theme-refs --theme` · `component [--root]` · `emoji` · `native` | no |
@@ -418,6 +418,16 @@ Guarded hosts are the seed (`innohelp.es`, `helice.app`) plus one host per line 
 comma-separated `AVAL_RATE_GUARD_HOSTS`. It never reads the aval config, execs nothing, takes ~5 ms, and fails
 open: bad JSON, another tool, an unreadable hosts file or an internal error print nothing. OpenCode runs the
 same binary from `config/opencode/plugin/rate-guard.ts` before every `bash` call.
+
+**Format** (`aval hook fmt`). A synchronous PostToolUse hook on `Edit|Write` that formats the one file the
+agent just edited with the formatter its project already uses: `gofmt` for `.go`; for `.ts`, `.tsx`, `.js`,
+`.jsx`, `.json` and `.css`, Biome when the repository has `biome.json` and `node_modules/.bin/biome`, else
+Prettier when it has a `.prettierrc*` or `prettier.config.*` and `node_modules/.bin/prettier`; `ruff format`
+for `.py` when `ruff` is on `PATH` and a `pyproject.toml` or `ruff.toml` exists. Binary files and files git
+ignores are skipped. An edit with no known extension, no formatter or outside a repository costs only a few
+`stat` calls and starts no process; a formatter runs with a 3 s timeout, and a failure or a timeout is one
+warning line on stderr and leaves the file as it was. The hook never fails the edit. It is the first hook
+that starts a process under the exec exception of [ADR 0007](adr/0007-hooks-may-start-a-resolved-tool.md).
 
 **Budget** (`aval budget`). A table of the always-on context: Claude (`CLAUDE.md`, `@imports`, skills
 visible according to `skillOverrides`, agents and commands) and OpenCode (`AGENTS.md` and skills), in characters and

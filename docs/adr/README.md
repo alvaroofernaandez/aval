@@ -60,3 +60,4 @@ What changed and why.
 | [0004](0004-hub-writes-nothing-offline.md) | Accepted (2026-11-23) | Opening the hub writes nothing and makes no network call. |
 | [0005](0005-cost-aware-context-relay.md) | Proposed (2026-11-23) | The context relay triggers on absolute tokens and cache state, not a window percentage. |
 | [0006](0006-i18n-human-output.md) | Accepted (2026-11-23) | Human output is English or Spanish; machine output stays English. |
+| [0007](0007-hooks-may-start-a-resolved-tool.md) | Accepted (2026-11-23) | A hook may start an already resolved tool under a timeout, never on its no-op path. |

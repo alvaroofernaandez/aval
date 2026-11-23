@@ -297,7 +297,7 @@ The deck fonts (Space Grotesk, IBM Plex Sans, SIL Open Font License 1.1) are emb
 | `aval deps` | The external tools aval relies on, by layer, and which are missing; offline, no repo needed (`--json`, `--layer`) |
 | `aval review assess` | Risk level of the diff, from git alone, and which reviewers to run |
 | `aval rules sync` | Mirrors the shared rules of `CLAUDE.md` and the lessons into OpenCode's `AGENTS.md` (`--check`) |
-| `aval hook <name>` | `lessons` · `design-gate` · `design-shot-stop` · `rtk-rewrite` · `repo-profile` · `pre-push` |
+| `aval hook <name>` | `lessons` · `design-gate` · `plan-gate` · `design-shot-stop` · `rtk-rewrite` · `repo-profile` · `pre-push` · `fmt` (formats the file an agent just edited) |
 | `aval statusline` | Claude Code status line |
 | `aval deck build <spec> -o <pdf> --plan <plan>` | Plan deck as a PDF, rendered with the local browser; unlocks the plan gate in Claude Code and OpenCode |
 | `aval design ack <surface>` · `aval design gate <…>` | Design pipeline ack · measured gates: `contrast`, `tokens`, `pairs`, `hardcodes`, `theme-refs`, `component`, `emoji`, `native` |

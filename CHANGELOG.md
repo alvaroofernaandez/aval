@@ -9,6 +9,19 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.3.0-rc.4 (2026-11-23)
+
+[Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
+
+### Features
+
+- **fmt:** `aval hook fmt` formats the file an agent just edited with the project's own formatter, synchronously after Edit and Write (#25)
+
+### Maintenance
+
+- **harness:** the gentle-ai hooks, markers, formula and review ledger contracts are removed, and a test keeps them out (#4)
+- **adr:** ADR 0007, a hook may start an already resolved tool under a timeout, never on its no-op path; dated amendment in `AGENTS.md`
+
 ## v0.3.0-rc.3 (2026-11-23)
 
 [Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
