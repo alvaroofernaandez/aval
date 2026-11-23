@@ -24,6 +24,7 @@ func uninstallItems() []uninstall.Item {
 
 func uninstallServices(p *uninstallProbe, items []uninstall.Item) Services {
 	return Services{
+		tr:   testTr,
 		Home: "/home/u",
 		UninstallPreview: func() ([]uninstall.Item, error) {
 			p.previews++
@@ -297,7 +298,7 @@ func init() {
 // the bottom and the view on top, loaded; with enter set, one enter is sent.
 func goldenOpViewApp(t *testing.T, unicode bool, s screen, enter bool) tea.Model {
 	t.Helper()
-	ch := chrome{theme: goldenTheme(t, unicode), version: "0.2.0", platform: "macOS (arm64)", width: 80, height: 40}
+	ch := chrome{tr: testTr, theme: goldenTheme(t, unicode), version: "0.2.0", platform: "macOS (arm64)", width: 80, height: 40}
 	s, _ = opStep(s, chromeMsg{ch})
 	for _, m := range drainOp(s.init()) {
 		s, _ = opStep(s, m)

@@ -6,6 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // confirm is the confirm step of the operation pattern (DESIGN.md section 10):
@@ -29,7 +31,8 @@ type confirmSpec struct {
 	// Action is the action row, for example "Remove 2 links". Required.
 	Action, ActionNote string
 	// Cancel defaults to "Cancel" (destructive) or "Back" (inline);
-	// CancelNote to "change nothing".
+	// CancelNote to "change nothing". Both default when the step renders,
+	// so they follow the language.
 	Cancel, CancelNote string
 	// Prompt is an optional line above the rows on a destructive step.
 	Prompt string
@@ -80,15 +83,6 @@ func newConfirm(mode confirmMode, spec confirmSpec) (confirm, error) {
 	if strings.TrimSpace(spec.Action) == "" {
 		return confirm{}, errNoAction
 	}
-	if spec.Cancel == "" {
-		spec.Cancel = "Cancel"
-		if mode == confirmInline {
-			spec.Cancel = "Back"
-		}
-	}
-	if spec.CancelNote == "" {
-		spec.CancelNote = "change nothing"
-	}
 	c := confirm{mode: mode, spec: spec, cursor: confirmRowAction}
 	if mode == confirmDestructive {
 		c.cursor = confirmRowCancel
@@ -121,14 +115,14 @@ func (c confirm) update(msg tea.KeyMsg) (confirm, confirmChoice) {
 }
 
 var confirmKeys = keyMap{
-	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "move"},
-	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "move"},
-	{keys: []string{"enter"}, action: actConfirmChoose, label: "enter", desc: "choose", core: true},
+	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.move")},
+	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.move")},
+	{keys: []string{"enter"}, action: actConfirmChoose, label: "enter", desc: i18n.Key("key.choose"), core: true},
 }
 
 // confirmEsc is esc on a destructive step. It has no hint: the router's
 // `esc back` already says it, and back from the step is the preview.
-var confirmEsc = binding{keys: []string{"esc"}, action: actConfirmCancel, desc: "cancel"}
+var confirmEsc = binding{keys: []string{"esc"}, action: actConfirmCancel, desc: i18n.Key("key.cancel")}
 
 // keys is the confirm's map. Inline leaves esc to the router, which pops the
 // view, the same as Back.
@@ -150,7 +144,17 @@ func (c confirm) lines(ch chrome, l layout) []string {
 		}
 		out = append(out, "")
 	}
-	rows := [2][2]string{{c.spec.Action, c.spec.ActionNote}, {c.spec.Cancel, c.spec.CancelNote}}
+	cancel, note := c.spec.Cancel, c.spec.CancelNote
+	if cancel == "" {
+		cancel = ch.tr.T("confirm.cancel", nil)
+		if c.mode == confirmInline {
+			cancel = ch.tr.T("confirm.back", nil)
+		}
+	}
+	if note == "" {
+		note = ch.tr.T("confirm.change_nothing", nil)
+	}
+	rows := [2][2]string{{c.spec.Action, c.spec.ActionNote}, {cancel, note}}
 	const lead = 2 // the cursor glyph and its space
 	labelW := max(lipgloss.Width(rows[0][0]), lipgloss.Width(rows[1][0]))
 	labelW = min(labelW, max(l.width-lead, 1))

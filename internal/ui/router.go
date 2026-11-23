@@ -4,6 +4,8 @@ import (
 	"sync/atomic"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The router hosts the hub and its views as a stack (DESIGN.md section 10,
@@ -220,15 +222,15 @@ func (a App) helpAction(act action) (tea.Model, tea.Cmd) {
 }
 
 var (
-	backBinding     = binding{keys: []string{"esc"}, action: actPop, label: "esc", desc: "back", core: true}
-	cancelBinding   = binding{keys: []string{"esc"}, action: actStop, label: "esc", desc: "cancel", core: true}
-	stopBinding     = binding{keys: []string{"q", "ctrl+c"}, action: actStop, label: "ctrl+c", desc: "stops after the current step"}
-	ctrlCQuit       = binding{keys: []string{"ctrl+c"}, action: actQuit, desc: "quit"}
-	atomicInert     = binding{keys: []string{"esc", "q", "ctrl+c"}, action: actNone, desc: "wait: this step cannot be interrupted"}
+	backBinding     = binding{keys: []string{"esc"}, action: actPop, label: "esc", desc: i18n.Key("key.back"), core: true}
+	cancelBinding   = binding{keys: []string{"esc"}, action: actStop, label: "esc", desc: i18n.Key("key.cancel"), core: true}
+	stopBinding     = binding{keys: []string{"q", "ctrl+c"}, action: actStop, label: "ctrl+c", desc: i18n.Key("key.stop")}
+	ctrlCQuit       = binding{keys: []string{"ctrl+c"}, action: actQuit, desc: i18n.Key("key.quit")}
+	atomicInert     = binding{keys: []string{"esc", "q", "ctrl+c"}, action: actNone, desc: i18n.Key("key.wait")}
 	helpCloseScroll = keyMap{
-		{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "scroll"},
-		{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "scroll"},
-		{keys: []string{"esc", "?"}, action: actHelp, label: "esc", desc: "close", core: true},
+		{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.scroll")},
+		{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.scroll")},
+		{keys: []string{"esc", "?"}, action: actHelp, label: "esc", desc: i18n.Key("key.close"), core: true},
 	}
 )
 
@@ -280,7 +282,7 @@ func (a App) View() string {
 		top := a.helpTop
 		return a.renderWith(view{
 			body:   func(l layout, h int) []string { return a.keysBody(rows, top, l, h) },
-			status: "help",
+			status: a.tr.T("key.help", nil),
 		}, a.helpKeys())
 	}
 	return a.renderWith(a.top().view(), a.keys())

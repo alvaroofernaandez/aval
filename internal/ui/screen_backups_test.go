@@ -66,6 +66,7 @@ func newBackupsFake() *backupsFake {
 
 func (f *backupsFake) services() Services {
 	return Services{
+		tr:   testTr,
 		Home: backupsHome,
 		Repo: f.repo,
 		Backups: func() ([]backup.Run, error) {
@@ -117,7 +118,7 @@ func (f *backupsFake) services() Services {
 // and the backups view pushed on top.
 func backupsApp(t *testing.T, unicode bool, f *backupsFake) (App, *backupsFake) {
 	t.Helper()
-	ch := chrome{theme: goldenTheme(t, unicode), version: "0.2.0", platform: "macOS (arm64)", width: 80, height: 40}
+	ch := chrome{tr: testTr, theme: goldenTheme(t, unicode), version: "0.2.0", platform: "macOS (arm64)", width: 80, height: 40}
 	ctor, ok := viewFor(viewBackups)
 	if !ok {
 		t.Fatal("no view registered under backups")

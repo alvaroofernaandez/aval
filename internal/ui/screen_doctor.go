@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/alvaroofernaandez/aval/internal/core/doctor"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The doctor view (DESIGN.md section 10; plan section 3, Doctor): every check
@@ -38,8 +39,6 @@ const (
 	// doctorFullFrom is the width from which a row carries its message and
 	// the fix tag.
 	doctorFullFrom = 60
-	doctorFixTag   = "fix available"
-	doctorSafety   = "Recorded in ~/.aval-backup first; undo with aval restore latest"
 )
 
 // doctorResultMsg carries one run of the checks.
@@ -177,23 +176,23 @@ func (d doctorView) keys() keyMap {
 	var km keyMap
 	if !d.checking && len(d.rows) > 0 {
 		km = append(km,
-			binding{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "move"},
-			binding{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "move"},
+			binding{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.move")},
+			binding{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.move")},
 		)
 		if d.canFix(d.rows[d.cursor]) {
-			km = append(km, binding{keys: []string{"f"}, action: actDoctorFix, label: "f", desc: "fix this", core: true})
+			km = append(km, binding{keys: []string{"f"}, action: actDoctorFix, label: "f", desc: i18n.Key("key.fix_this"), core: true})
 		}
 		if len(d.fixable()) > 0 {
-			km = append(km, binding{keys: []string{"a"}, action: actDoctorFixAll, label: "a", desc: "fix all"})
+			km = append(km, binding{keys: []string{"a"}, action: actDoctorFixAll, label: "a", desc: i18n.Key("key.fix_all")})
 		}
 	}
 	if d.svc.Doctor != nil {
-		security := "security"
+		security := i18n.Key("key.security")
 		if d.security {
-			security = "hide security"
+			security = i18n.Key("key.hide_security")
 		}
 		km = append(km,
-			binding{keys: []string{"r"}, action: actDoctorRerun, label: "r", desc: "re-run", core: true},
+			binding{keys: []string{"r"}, action: actDoctorRerun, label: "r", desc: i18n.Key("key.rerun"), core: true},
 			binding{keys: []string{"s"}, action: actDoctorSecurity, label: "s", desc: security},
 		)
 	}
@@ -225,11 +224,11 @@ func (d doctorView) status() string {
 	}
 	_, warn, fail := d.counts()
 	if warn+fail == 0 {
-		return fmt.Sprintf("All %d checks pass.", len(d.rows))
+		return d.c.tr.T("doctor.all_pass", i18n.Args{"count": len(d.rows)})
 	}
-	s := fmt.Sprintf("%d of %d need attention", warn+fail, len(d.rows))
+	s := d.c.tr.T("doctor.need_attention", i18n.Args{"count": warn + fail, "total": len(d.rows)})
 	if n := len(d.fixable()); n > 0 {
-		s += d.c.sep() + fmt.Sprintf("%d can be fixed here", n)
+		s += d.c.sep() + d.c.tr.T("doctor.fixable", i18n.Args{"count": n})
 	}
 	return s
 }
@@ -237,21 +236,21 @@ func (d doctorView) status() string {
 // heading is "Doctor" with the counts, or checking, on the right.
 func (d doctorView) heading(l layout) []string {
 	t := d.c.theme
-	right := "checking"
+	right := d.c.tr.T("hub.checking", nil)
 	switch {
 	case d.svc.Doctor == nil:
-		right = "not available"
+		right = d.c.tr.T("doctor.not_available", nil)
 	case !d.checking:
 		ok, warn, fail := d.counts()
 		right = strings.Join([]string{
-			fmt.Sprintf("%d ok", ok), fmt.Sprintf("%d warn", warn), fmt.Sprintf("%d fail", fail),
+			d.c.tr.N("hub.count.ok", ok, nil), d.c.tr.N("hub.count.warn", warn, nil), d.c.tr.N("hub.count.fail", fail, nil),
 		}, d.c.sep())
 	}
 	style := t.Muted
 	if d.checking {
 		style = t.Text
 	}
-	return d.c.headingRow(l, "Doctor", t.Strong, right, style)
+	return d.c.headingRow(l, d.c.tr.T("hub.doctor.name", nil), t.Strong, right, style)
 }
 
 // body is the heading, the list and the detail pane. When the height runs
@@ -282,7 +281,7 @@ func (d doctorView) body(l layout, h int) []string {
 		out = append(out, "")
 		if len(detail) > left {
 			more := len(detail) - left + 1
-			detail = append(detail[:left-1:left-1], d.c.theme.Muted.Render(d.c.fit(fmt.Sprintf("+%d more lines", more), l.width)))
+			detail = append(detail[:left-1:left-1], d.c.theme.Muted.Render(d.c.fit(d.c.tr.T("doctor.more_lines", i18n.Args{"count": more}), l.width)))
 		}
 		out = append(out, detail...)
 	}
@@ -291,12 +290,12 @@ func (d doctorView) body(l layout, h int) []string {
 
 // stateCell is the glyph and word of r, padded to doctorStateW.
 func (d doctorView) stateCell(r doctor.Result) string {
-	k, word := StateOK, "ok"
+	k, word := StateOK, d.c.tr.T("doctor.word.ok", nil)
 	switch r.Status {
 	case doctor.Warn:
-		k, word = StateWarn, "warn"
+		k, word = StateWarn, d.c.tr.T("doctor.word.warn", nil)
 	case doctor.Fail:
-		k, word = StateFail, "fail"
+		k, word = StateFail, d.c.tr.T("doctor.word.fail", nil)
 	}
 	s := d.c.theme.State(k, word)
 	return s + strings.Repeat(" ", max(doctorStateW-lipgloss.Width(s), 0))
@@ -319,6 +318,7 @@ func (d doctorView) list(l layout) []string {
 	t := d.c.theme
 	idW := d.idWidth()
 	lead := hubCursorW + doctorStateW + doctorGap
+	fixTag := d.c.tr.T("doctor.fix_tag", nil)
 	lines := make([]string, len(d.rows))
 	for i, r := range d.rows {
 		marker := strings.Repeat(" ", hubCursorW)
@@ -331,8 +331,8 @@ func (d doctorView) list(l layout) []string {
 		case !d.fullRows(l) || room < idW+10:
 			plain = d.c.fit(r.ID, room)
 		case d.canFix(r):
-			tagW := lipgloss.Width(doctorFixTag) + doctorGap
-			plain = d.c.pad(r.ID, idW) + d.c.pad(r.Message, room-idW-tagW) + strings.Repeat(" ", doctorGap) + doctorFixTag
+			tagW := lipgloss.Width(fixTag) + doctorGap
+			plain = d.c.pad(r.ID, idW) + d.c.pad(r.Message, room-idW-tagW) + strings.Repeat(" ", doctorGap) + fixTag
 		default:
 			plain = d.c.pad(r.ID, idW) + d.c.fit(r.Message, room-idW)
 		}
@@ -382,10 +382,10 @@ func (d doctorView) detail(l layout) []string {
 	switch {
 	case d.canFix(r):
 		if !d.fullRows(l) {
-			out = append(out, t.Muted.Render(d.c.fit(doctorFixTag+": f fixes it here", l.width)))
+			out = append(out, t.Muted.Render(d.c.fit(d.c.tr.T("doctor.fix_tag_hint", i18n.Args{"tag": d.c.tr.T("doctor.fix_tag", nil)}), l.width)))
 		}
 	case r.Status != doctor.OK && how != "":
-		out = append(out, t.Muted.Render(d.c.fit("How to fix", l.width)))
+		out = append(out, t.Muted.Render(d.c.fit(d.c.tr.T("doctor.how_to_fix", nil), l.width)))
 		for _, s := range d.c.wrap(how, max(l.width-2, 1)) {
 			out = append(out, "  "+t.Text.Render(s))
 		}
@@ -400,26 +400,26 @@ func (d doctorView) fix(targets []doctor.Result) tea.Cmd {
 	if len(targets) == 0 || d.svc.FixCheck == nil {
 		return nil
 	}
-	fixCheck, home := d.svc.FixCheck, d.svc.Home
-	action, note := fixAction(targets)
+	fixCheck, home, tr := d.svc.FixCheck, d.svc.Home, d.c.tr
+	action, note := fixAction(tr, targets)
 	op, err := newOperation(operationSpec[[]doctor.Result]{
 		Kind: opAtomic,
 		Mode: confirmDestructive,
 		Confirm: confirmSpec{
 			Action: action, ActionNote: note,
-			Prompt: fixPrompt(targets),
-			Safety: doctorSafety,
+			Prompt: fixPrompt(tr, targets),
+			Safety: tr.T("doctor.safety", nil),
 		},
 		Preview: func(context.Context) ([]doctor.Result, error) { return targets, nil },
 		Run: func(_ context.Context, p []doctor.Result) (opResult, error) {
-			return runFixes(fixCheck, p)
+			return runFixes(tr, fixCheck, p)
 		},
 		PreviewBody: func(c chrome, l layout, p []doctor.Result) []string {
 			return fixPreview(c, l, home, p)
 		},
-		PreviewStatus: "Nothing has changed yet",
-		Loading:       "Reading the checks",
-		Running:       "Fixing",
+		PreviewStatus: tr.T("uninstall.preview_status", nil),
+		Loading:       tr.T("doctor.loading", nil),
+		Running:       tr.T("doctor.running", nil),
 	})
 	if err != nil {
 		return nil
@@ -428,54 +428,51 @@ func (d doctorView) fix(targets []doctor.Result) tea.Cmd {
 }
 
 // fixAction names the confirm's action row from what it repairs.
-func fixAction(targets []doctor.Result) (label, note string) {
+func fixAction(tr i18n.Translator, targets []doctor.Result) (label, note string) {
 	if len(targets) > 1 {
-		return fmt.Sprintf("Fix %d checks", len(targets)), "back up, then repair each"
+		return tr.T("doctor.fix.many", i18n.Args{"count": len(targets)}), tr.T("doctor.fix.many_note", nil)
 	}
 	r := targets[0]
 	if r.Fix == doctor.FixBrokenLinks {
-		n := len(r.Details)
-		switch n {
-		case 0:
-			return "Remove the dangling links", "back up, then unlink"
-		case 1:
-			return "Remove 1 link", "back up, then unlink"
+		note := tr.T("doctor.fix.links_note", nil)
+		if n := len(r.Details); n > 0 {
+			return tr.N("doctor.fix.links", n, nil), note
 		}
-		return fmt.Sprintf("Remove %d links", n), "back up, then unlink"
+		return tr.T("doctor.fix.links_all", nil), note
 	}
-	return "Sync settings", "back up, write, verify with doctor"
+	return tr.T("doctor.fix.sync", nil), tr.T("doctor.fix.sync_note", nil)
 }
 
 // fixPrompt says what the confirm step repairs.
-func fixPrompt(targets []doctor.Result) string {
+func fixPrompt(tr i18n.Translator, targets []doctor.Result) string {
 	if len(targets) > 1 {
 		ids := make([]string, len(targets))
 		for i, r := range targets {
 			ids[i] = r.ID
 		}
-		return fmt.Sprintf("Fix %d checks: %s.", len(targets), strings.Join(ids, ", "))
+		return tr.T("doctor.prompt.many", i18n.Args{"count": len(targets), "ids": strings.Join(ids, ", ")})
 	}
 	r := targets[0]
 	if r.Fix == doctor.FixBrokenLinks {
-		return fmt.Sprintf("Fix %s: remove %d dangling links from the agent directories.", r.ID, len(r.Details))
+		return tr.T("doctor.prompt.links", i18n.Args{"id": r.ID, "count": len(r.Details)})
 	}
-	return "Fix " + r.ID + ": sync the repo-managed settings into the live config."
+	return tr.T("doctor.prompt.sync", i18n.Args{"id": r.ID})
 }
 
 // fixPreview is what each fix changes: the links it removes, or the
 // settings a sync rewrites. It writes nothing.
 func fixPreview(c chrome, l layout, home string, p []doctor.Result) []string {
 	t := c.theme
-	title, right := "Fix all", fmt.Sprintf("%d checks", len(p))
+	title, right := c.tr.T("doctor.preview.all", nil), c.tr.T("doctor.preview.count", i18n.Args{"count": len(p)})
 	if len(p) == 1 {
-		title, right = "Fix "+p[0].ID, ""
+		title, right = c.tr.T("doctor.preview.one", i18n.Args{"id": p[0].ID}), ""
 	}
 	out := c.headingRow(l, title, t.Strong, right, t.Muted)
 	for _, r := range p {
 		out = append(out, "")
-		lead := "Sync the repo-managed settings for " + r.ID + ":"
+		lead := c.tr.T("doctor.preview.sync", i18n.Args{"id": r.ID})
 		if r.Fix == doctor.FixBrokenLinks {
-			lead = "Remove these dangling links:"
+			lead = c.tr.T("doctor.preview.links", nil)
 		}
 		for _, s := range c.wrap(lead, l.width) {
 			out = append(out, t.Text.Render(s))
@@ -493,7 +490,7 @@ func fixPreview(c chrome, l layout, home string, p []doctor.Result) []string {
 
 // runFixes applies each kind of fix once: the links fix for its check, and
 // one sync for every drift check it repairs.
-func runFixes(fixCheck func(string) ([]string, error), p []doctor.Result) (opResult, error) {
+func runFixes(tr i18n.Translator, fixCheck func(string) ([]string, error), p []doctor.Result) (opResult, error) {
 	var res opResult
 	var summary []string
 	total := 0
@@ -516,13 +513,13 @@ func runFixes(fixCheck func(string) ([]string, error), p []doctor.Result) (opRes
 		}
 		switch r.Fix {
 		case doctor.FixBrokenLinks:
-			summary = append(summary, fmt.Sprintf("Removed %d dangling links.", len(changed)))
+			summary = append(summary, tr.T("doctor.result.links", i18n.Args{"count": len(changed)}))
 		default:
-			summary = append(summary, "Synced the repo-managed settings.")
+			summary = append(summary, tr.T("doctor.result.sync", nil))
 		}
 	}
 	res.Summary = strings.Join(summary, " ")
-	res.Counts = []opCount{{N: total, Label: "paths changed"}}
+	res.Counts = []opCount{{N: total, Label: tr.T("doctor.result.paths", nil)}}
 	res.Undo = "aval restore latest"
 	return res, nil
 }

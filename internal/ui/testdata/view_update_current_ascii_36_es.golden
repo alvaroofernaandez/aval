@@ -1,0 +1,14 @@
+ aval 0.2.0
+ Actualizar                 ~/.aval
+
+ ok al día (a1b2c3d)
+
+ > Volver a aplicar los enlaces...
+   enlaza lo que falta, sin
+   actualizar
+   Volver
+   no cambia nada
+ Los archivos en el camino pasan
+ antes a ~/.aval-backup  deshacer:
+ aval restore latest
+ enter elegir  esc volver  ? ayuda

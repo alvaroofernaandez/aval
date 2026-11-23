@@ -12,6 +12,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/config"
 	"github.com/alvaroofernaandez/aval/internal/devmode"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/release"
 )
 
@@ -48,8 +49,8 @@ const (
 )
 
 var aboutKeys = keyMap{
-	{keys: []string{"up", "k"}, action: actAboutUp, label: labelUpDown, desc: "scroll", core: true},
-	{keys: []string{"down", "j"}, action: actAboutDown, label: labelUpDown, desc: "scroll", core: true},
+	{keys: []string{"up", "k"}, action: actAboutUp, label: labelUpDown, desc: i18n.Key("key.scroll"), core: true},
+	{keys: []string{"down", "j"}, action: actAboutDown, label: labelUpDown, desc: i18n.Key("key.scroll"), core: true},
 }
 
 // aboutScroll is shared by the copies of the screen. The body is the only
@@ -107,11 +108,12 @@ func (s about) build() []aboutRow {
 	if channel == "" {
 		channel = release.Channel(b.Version)
 	}
+	unknown := s.c.tr.T("about.unknown", nil)
 	return []aboutRow{
-		{"Version", or(b.Version, "unknown")},
-		{"Commit", or(b.Commit, "unknown")},
-		{"Built", or(b.Date, "unknown")},
-		{"Channel", channel},
+		{s.c.tr.T("about.version", nil), or(b.Version, unknown)},
+		{s.c.tr.T("about.commit", nil), or(b.Commit, unknown)},
+		{s.c.tr.T("about.built", nil), or(b.Date, unknown)},
+		{s.c.tr.T("about.channel", nil), channel},
 	}
 }
 
@@ -123,26 +125,41 @@ func (s about) paths() []aboutRow {
 	if getenv == nil {
 		getenv = func(string) string { return "" }
 	}
-	repo := "not found"
+	repo := s.c.tr.T("about.not_found", nil)
 	if s.svc.Repo != "" {
 		repo = short(s.svc.Repo)
 	}
-	exe := "unknown"
+	exe := s.c.tr.T("about.unknown", nil)
 	if s.env.exe != nil {
 		if p, err := s.env.exe(); err == nil && p != "" {
 			exe = short(filepath.Clean(p))
 		}
 	}
 	return []aboutRow{
-		{"Repository", repo},
-		{"Config", short(config.Path(getenv, home, s.env.goos))},
-		{"Backups", short(filepath.Join(home, ".aval-backup"))},
-		{"Sandboxes", short(devmode.BaseDir(getenv, home))},
-		{"Binary", exe},
+		{s.c.tr.T("about.repository", nil), repo},
+		{s.c.tr.T("about.config", nil), short(config.Path(getenv, home, s.env.goos))},
+		{s.c.tr.T("about.backups", nil), short(filepath.Join(home, ".aval-backup"))},
+		{s.c.tr.T("about.sandboxes", nil), short(devmode.BaseDir(getenv, home))},
+		{s.c.tr.T("about.binary", nil), exe},
 	}
 }
 
-const aboutLabelW = 12
+// labelW is the label column: the widest label of any section and two
+// spaces, so a longer language never cuts a label.
+func (s about) labelW() int {
+	w := 0
+	for _, rows := range [][]aboutRow{s.build(), s.paths(), s.links()} {
+		for _, r := range rows {
+			w = max(w, lipgloss.Width(r.label))
+		}
+	}
+	return w + 2
+}
+
+// links are where to read the source and report a problem.
+func (s about) links() []aboutRow {
+	return []aboutRow{{s.c.tr.T("about.source", nil), aboutSourceURL}, {s.c.tr.T("about.issues", nil), aboutIssuesURL}}
+}
 
 // hardWrap breaks s into lines of at most w columns at any rune, so a path
 // or a link stays whole across lines.
@@ -178,10 +195,11 @@ func (s about) section(l layout, title string, rows []aboutRow) []string {
 			}
 			continue
 		}
-		for i, v := range hardWrap(r.value, l.width-aboutLabelW) {
-			label := strings.Repeat(" ", aboutLabelW)
+		labelW := s.labelW()
+		for i, v := range hardWrap(r.value, l.width-labelW) {
+			label := strings.Repeat(" ", labelW)
 			if i == 0 {
-				label = t.Muted.Render(s.c.pad(r.label, aboutLabelW))
+				label = t.Muted.Render(s.c.pad(r.label, labelW))
 			}
 			out = append(out, label+t.Text.Render(v))
 		}
@@ -192,9 +210,9 @@ func (s about) section(l layout, title string, rows []aboutRow) []string {
 func (s about) lines(l layout) []string {
 	var out []string
 	for i, sec := range [][]string{
-		s.section(l, "Build", s.build()),
-		s.section(l, "Paths", s.paths()),
-		s.section(l, "Links", []aboutRow{{"Source", aboutSourceURL}, {"Issues", aboutIssuesURL}}),
+		s.section(l, s.c.tr.T("about.build", nil), s.build()),
+		s.section(l, s.c.tr.T("about.paths", nil), s.paths()),
+		s.section(l, s.c.tr.T("about.links", nil), s.links()),
 	} {
 		if i > 0 {
 			out = append(out, "")

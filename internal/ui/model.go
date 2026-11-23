@@ -203,7 +203,7 @@ func (m Model) Init() tea.Cmd {
 // update` does after a pull: it opens on the progress screen titled
 // "Re-applying" and its done headline starts with lead ("Updated a → b.").
 func (m Model) reapplying(lead string) Model {
-	m.runTitle, m.doneLead = "Re-applying", lead
+	m.runTitle, m.doneLead = m.tr.T("install.reapplying", nil), lead
 	m.queue = m.plan.SelectedActions()
 	m.screen, m.index = ScreenInstall, 0
 	return m

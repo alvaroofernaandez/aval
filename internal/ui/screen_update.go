@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	coreupdate "github.com/alvaroofernaandez/aval/internal/core/update"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The update view is the operation pattern on update.DryRun, inline: opening
@@ -24,8 +25,6 @@ import (
 // the re-apply, as the CLI always re-applies. When the binary itself is
 // behind, the command that updates it (update.commandFor: npm for an npm
 // install) is shown, never run.
-
-const updateSafety = "Files in the way move to ~/.aval-backup first · undo: aval restore latest"
 
 // updatePlan is what opening the view found.
 type updatePlan struct {
@@ -48,37 +47,38 @@ type updateView struct {
 }
 
 func newUpdateView(svc Services) screen {
+	tr := svc.tr
 	o, err := newOperation(operationSpec[updatePlan]{
 		Kind: opNetwork,
 		Mode: confirmInline,
 		Confirm: confirmSpec{
-			Action: "Update and re-apply",
-			Safety: updateSafety,
+			Action: tr.T("update.action", nil),
+			Safety: tr.T("update.safety", nil),
 		},
 		ActionFor: func(p updatePlan) string {
 			if p.Behind > 0 {
-				return "Update and re-apply"
+				return tr.T("update.action", nil)
 			}
-			return "Re-apply links anyway"
+			return tr.T("update.action_anyway", nil)
 		},
 		NoteFor: func(p updatePlan) string {
 			if p.Behind > 0 {
-				return "pull with --ff-only, then link what is new"
+				return tr.T("update.note_pull", nil)
 			}
-			return "link what is missing, pull nothing"
+			return tr.T("update.note_link", nil)
 		},
 		Ready: func(p updatePlan) bool { return !p.dirty },
 		Preview: func(ctx context.Context) (updatePlan, error) {
-			return loadUpdate(ctx, svc)
+			return loadUpdate(ctx, svc, tr)
 		},
 		Run: func(ctx context.Context, p updatePlan) (opResult, error) {
-			return runUpdatePull(ctx, svc, p)
+			return runUpdatePull(ctx, svc, tr, p)
 		},
 		PreviewBody: func(c chrome, l layout, p updatePlan) []string {
 			return updateBody(c, l, svc, p)
 		},
-		Loading: "Fetching origin",
-		Running: "Pulling",
+		Loading: tr.T("update.loading", nil),
+		Running: tr.T("update.running", nil),
 	})
 	if err != nil {
 		panic(err)
@@ -88,9 +88,9 @@ func newUpdateView(svc Services) screen {
 
 // loadUpdate is the dry run. A dirty tree comes back from DryRun as an error
 // with DirtyTree set; it is a state of the view, not a failure.
-func loadUpdate(ctx context.Context, svc Services) (updatePlan, error) {
+func loadUpdate(ctx context.Context, svc Services, tr i18n.Translator) (updatePlan, error) {
 	if svc.UpdatePreview == nil {
-		return updatePlan{}, errors.New("update is not available here: no repository was found")
+		return updatePlan{}, errors.New(tr.T("update.unavailable", nil))
 	}
 	var plan updatePlan
 	if svc.CachedNotice != nil {
@@ -107,21 +107,21 @@ func loadUpdate(ctx context.Context, svc Services) (updatePlan, error) {
 
 // runUpdatePull pulls when the repo is behind. Its summary is the lead of the
 // re-apply's done headline.
-func runUpdatePull(ctx context.Context, svc Services, p updatePlan) (opResult, error) {
+func runUpdatePull(ctx context.Context, svc Services, tr i18n.Translator, p updatePlan) (opResult, error) {
 	if p.Behind == 0 {
-		return opResult{Summary: "Re-applied."}, nil
+		return opResult{Summary: tr.T("update.reapplied", nil)}, nil
 	}
 	if svc.Pull == nil {
-		return opResult{}, errors.New("update is not available here: no repository was found")
+		return opResult{}, errors.New(tr.T("update.unavailable", nil))
 	}
 	s, err := svc.Pull(ctx)
 	if err != nil {
 		return opResult{}, err
 	}
 	if !s.Updated {
-		return opResult{Summary: fmt.Sprintf("Already up to date (%s).", s.Current)}, nil
+		return opResult{Summary: tr.T("update.already", i18n.Args{"current": s.Current})}, nil
 	}
-	return opResult{Summary: fmt.Sprintf("Updated %s → %s.", s.Current, s.Latest)}, nil
+	return opResult{Summary: tr.T("update.updated", i18n.Args{"from": s.Current, "to": s.Latest})}, nil
 }
 
 func (u updateView) init() tea.Cmd { return u.op.init() }
@@ -142,7 +142,7 @@ func (u updateView) update(msg tea.Msg) (screen, tea.Cmd) {
 	}
 	// The pull landed: hand over to the re-apply.
 	if u.svc.Reapply == nil {
-		u.op.runErr = errors.New("re-apply is not available here: no repository was found")
+		u.op.runErr = errors.New(u.svc.tr.T("update.no_reapply", nil))
 		return u, cmd
 	}
 	m, err := u.svc.Reapply()
@@ -178,23 +178,23 @@ func (c chrome) arrow() string {
 // behind, the command that updates it.
 func updateBody(c chrome, l layout, svc Services, p updatePlan) []string {
 	repo := tildeUnder(svc.Home, svc.Repo)
-	out := c.headingRow(l, "Update", c.theme.Strong, repo, c.theme.Muted)
+	out := c.headingRow(l, c.tr.T("update.title", nil), c.theme.Strong, repo, c.theme.Muted)
 	out = append(out, "")
 	switch {
 	case p.dirty:
 		glyphW := lipgloss.Width(c.theme.Glyphs.Fail) + 1
-		for i, s := range c.wrap("the repository has uncommitted changes", max(l.width-glyphW, 1)) {
+		for i, s := range c.wrap(c.tr.T("update.dirty", nil), max(l.width-glyphW, 1)) {
 			if i == 0 {
 				out = append(out, c.theme.State(StateFail, s))
 				continue
 			}
 			out = append(out, strings.Repeat(" ", glyphW)+c.theme.Text.Render(s))
 		}
-		for _, s := range c.wrap("commit or stash them in "+repo, max(l.width-2, 1)) {
+		for _, s := range c.wrap(c.tr.T("update.dirty_fix", i18n.Args{"repo": repo}), max(l.width-2, 1)) {
 			out = append(out, "  "+c.theme.Text.Render(s))
 		}
 	case p.Behind == 0:
-		out = append(out, c.theme.State(StateOK, c.fit(fmt.Sprintf("up to date (%s)", p.Current), max(l.width-2, 1))))
+		out = append(out, c.theme.State(StateOK, c.fit(c.tr.T("update.up_to_date", i18n.Args{"current": p.Current}), max(l.width-2, 1))))
 	default:
 		out = append(out, updateChanges(c, l, svc.Home, p)...)
 	}
@@ -207,17 +207,13 @@ func updateBody(c chrome, l layout, svc Services, p updatePlan) []string {
 // updateChanges is the behind count with the two SHAs, the managed paths
 // that change with their diffstat, and the manifest entries added or removed.
 func updateChanges(c chrome, l layout, home string, p updatePlan) []string {
-	noun := "commits"
-	if p.Behind == 1 {
-		noun = "commit"
-	}
 	shas := p.Current + " " + c.arrow() + " " + p.Latest
-	out := c.headingRow(l, fmt.Sprintf("%d %s behind origin", p.Behind, noun), c.theme.Text, shas, c.theme.Muted)
+	out := c.headingRow(l, c.tr.N("update.behind", p.Behind, nil), c.theme.Text, shas, c.theme.Muted)
 	if stat := parseDiffstat(p.Stat); len(stat) > 0 {
-		out = append(out, "", c.theme.Strong.Render(c.fit("Managed paths that change", l.width)))
+		out = append(out, "", c.theme.Strong.Render(c.fit(c.tr.T("update.paths_change", nil), l.width)))
 		out = append(out, diffstatLines(c, l, stat)...)
 	} else {
-		out = append(out, "", c.theme.Muted.Render(c.fit("No managed path changes", l.width)))
+		out = append(out, "", c.theme.Muted.Render(c.fit(c.tr.T("update.paths_none", nil), l.width)))
 	}
 	entries := func(title, mark string, list []string) {
 		if len(list) == 0 {
@@ -229,8 +225,8 @@ func updateChanges(c chrome, l layout, home string, p updatePlan) []string {
 			out = append(out, "  "+c.theme.Text.Render(c.fitMiddle(text, max(l.width-2, 1))))
 		}
 	}
-	entries("New manifest entries", "+", p.Added)
-	entries("Removed manifest entries", "-", p.Removed)
+	entries(c.tr.T("update.entries_new", nil), "+", p.Added)
+	entries(c.tr.T("update.entries_removed", nil), "-", p.Removed)
 	return out
 }
 
@@ -303,11 +299,11 @@ func updateBinaryLines(c chrome, l layout, n coreupdate.Notice) []string {
 	if n.String() == "" {
 		return nil
 	}
-	out := []string{c.theme.State(StateWarn, c.fit("aval "+n.Latest+" available", max(l.width-2, 1)))}
+	out := []string{c.theme.State(StateWarn, c.fit(c.tr.T("update.binary_available", i18n.Args{"version": n.Latest}), max(l.width-2, 1)))}
 	if n.Command == "" || n.Command == "aval update" {
 		return out
 	}
-	for _, s := range c.wrap("update the binary with "+n.Command, max(l.width-2, 1)) {
+	for _, s := range c.wrap(c.tr.T("update.binary_command", i18n.Args{"command": n.Command}), max(l.width-2, 1)) {
 		out = append(out, "  "+c.theme.Text.Render(s))
 	}
 	return out

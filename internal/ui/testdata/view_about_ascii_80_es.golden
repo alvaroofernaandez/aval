@@ -1,0 +1,23 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ----------------------------------------------------------------------------
+
+  Compilación
+  Versión        0.3.0
+  Commit         abc1234
+  Compilado      2026-05-06T00:00:00Z
+  Canal          stable
+
+  Rutas
+  Repositorio    ~/.aval
+  Configuración  ~/.config/aval/config
+  Copias         ~/.aval-backup
+  Sandboxes      ~/.cache/aval/dev
+  Binario        ~/go/bin/aval
+
+  Enlaces
+  Código         https://github.com/alvaroofernaandez/aval
+  Incidencias    https://github.com/alvaroofernaandez/aval/issues
+
+  ----------------------------------------------------------------------------
+  up/down desplazar  ? ayuda  q salir

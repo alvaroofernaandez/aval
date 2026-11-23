@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/alvaroofernaandez/aval/internal/core/install"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The done screen: evidence of what happened (counts, each failure with its
@@ -39,12 +40,13 @@ var userShell = func() string {
 	return filepath.Base(os.Getenv("SHELL"))
 }
 
-// reloadHint is the command that reloads the user's shell, or "" when the
-// shell is not one we know how to reload.
+// reloadHint is the command that reloads the user's shell and the message
+// key of its description, or "" when the shell is not one we know how to
+// reload.
 func reloadHint() (cmd, desc string) {
 	switch sh := userShell(); sh {
 	case "zsh", "bash", "fish":
-		return "exec " + sh, "reload your shell to pick up the new config"
+		return "exec " + sh, i18n.Key("done.reload")
 	}
 	return "", ""
 }
@@ -78,17 +80,17 @@ func (m Model) doneContent(l layout, h int, stopped bool) []string {
 	var headline string
 	switch {
 	case m.DryRun:
-		headline = m.theme.Heading.Render(m.fit("Dry run complete: nothing was written.", l.width))
+		headline = m.theme.Heading.Render(m.fit(m.tr.T("done.dry_run", nil), l.width))
 	case stopped:
-		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("Stopped after %d of %d.", applied, total), l.width))
+		headline = m.theme.Heading.Render(m.fit(m.tr.T("done.stopped", i18n.Args{"applied": applied, "total": total}), l.width))
 	case m.doneLead != "" && failed > 0:
-		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("%s %d linked, %d failed.", m.doneLead, linked, failed), l.width))
+		headline = m.theme.Heading.Render(m.fit(m.tr.T("done.lead_failed", i18n.Args{"lead": m.doneLead, "linked": linked, "failed": failed}), l.width))
 	case m.doneLead != "":
-		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("%s %d linked, %d already in place.", m.doneLead, linked, already), l.width))
+		headline = m.theme.Heading.Render(m.fit(m.tr.T("done.lead_ok", i18n.Args{"lead": m.doneLead, "linked": linked, "already": already}), l.width))
 	case failed > 0:
-		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("Installed. %d linked, %d failed.", linked, failed), l.width))
+		headline = m.theme.Heading.Render(m.fit(m.tr.T("done.failed", i18n.Args{"linked": linked, "failed": failed}), l.width))
 	default:
-		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("Installed. %d linked.", linked), l.width))
+		headline = m.theme.Heading.Render(m.fit(m.tr.T("done.ok", i18n.Args{"linked": linked}), l.width))
 	}
 
 	// Failures: the path and the reason, verbatim.
@@ -98,17 +100,24 @@ func (m Model) doneContent(l layout, h int, stopped bool) []string {
 	}
 
 	// Counts.
+	// The label column is the widest label and a space.
+	labels := []string{m.tr.T("done.row.would", nil), m.tr.T("done.row.linked", nil), m.tr.T("done.row.already", nil), m.tr.T("done.row.failed", nil)}
+	labelW := 0
+	for _, s := range labels {
+		labelW = max(labelW, lipgloss.Width(s))
+	}
 	row := func(label string, n int) string {
-		return m.theme.Body.Render(m.fit(fmt.Sprintf("  %-17s %3d", label, n), l.width))
+		gap := strings.Repeat(" ", labelW+1-lipgloss.Width(label))
+		return m.theme.Body.Render(m.fit(fmt.Sprintf("  %s%s %3d", label, gap, n), l.width))
 	}
 	var counts []string
 	switch {
 	case m.DryRun:
-		counts = append(counts, row("would change", would))
+		counts = append(counts, row(labels[0], would))
 	default:
-		counts = append(counts, row("linked", linked), row("already in place", already))
+		counts = append(counts, row(labels[1], linked), row(labels[2], already))
 		if failed > 0 {
-			counts = append(counts, row("failed", failed))
+			counts = append(counts, row(labels[3], failed))
 		}
 	}
 
@@ -116,15 +125,11 @@ func (m Model) doneContent(l layout, h int, stopped bool) []string {
 	// where the old files went and how to get back.
 	var undo, moved []string
 	if backups > 0 {
-		noun := "files"
-		if backups == 1 {
-			noun = "file"
-		}
-		prefix := fmt.Sprintf("%d existing %s moved to ", backups, noun)
+		prefix := m.tr.N("done.moved", backups, nil)
 		// On one line when the whole path fits; otherwise the path gets its own
 		// line and is cut from the middle.
 		root := m.runner.BackupRoot()
-		if avail := l.width - 2 - len(prefix); lipgloss.Width(root) <= avail {
+		if avail := l.width - 2 - lipgloss.Width(prefix); lipgloss.Width(root) <= avail {
 			moved = append(moved, "  "+m.theme.Warning.Render(prefix)+m.theme.Muted.Render(root))
 		} else {
 			moved = append(moved,
@@ -133,9 +138,9 @@ func (m Model) doneContent(l layout, h int, stopped bool) []string {
 		}
 	}
 	if written {
-		const lead = "Undo everything with: "
+		lead := m.tr.T("done.undo", nil)
 		const cmd = "aval restore latest"
-		if l.width >= len(lead)+len(cmd)+2 {
+		if l.width >= lipgloss.Width(lead)+len(cmd)+2 {
 			undo = append(undo, "  "+m.theme.Text.Render(lead)+m.theme.Key.Render(cmd))
 		} else {
 			undo = append(undo, "  "+m.theme.Key.Render(m.fit(cmd, l.width-2)))
@@ -147,13 +152,13 @@ func (m Model) doneContent(l layout, h int, stopped bool) []string {
 	if !m.DryRun && !stopped {
 		type step struct{ cmd, desc string }
 		steps := []step{
-			{"aval doctor", "check this machine against the repo"},
-			{"aval config", "theme, glyphs and update checks"},
+			{"aval doctor", m.tr.T("done.next.doctor", nil)},
+			{"aval config", m.tr.T("done.next.config", nil)},
 		}
 		if c, d := reloadHint(); c != "" {
-			steps = append(steps, step{c, d})
+			steps = append(steps, step{c, m.tr.T(d, nil)})
 		}
-		next = append(next, m.theme.Strong.Render("  Next"))
+		next = append(next, m.theme.Strong.Render("  "+m.tr.T("done.next", nil)))
 		for _, s := range steps {
 			line := "    " + m.theme.Key.Render(m.pad(s.cmd, 13))
 			if room := l.width - 4 - 13 - 1; room >= 8 {

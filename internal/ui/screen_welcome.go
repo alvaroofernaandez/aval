@@ -13,6 +13,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
 	"github.com/alvaroofernaandez/aval/internal/core/repoloc"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The welcome screen is step 1 of a first run: `aval install` found no
@@ -96,9 +97,9 @@ const (
 )
 
 var welcomeKeys = keyMap{
-	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "move"},
-	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "move"},
-	{keys: []string{"enter"}, action: actChoose, label: "enter", desc: "choose", core: true},
+	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.move")},
+	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.move")},
+	{keys: []string{"enter"}, action: actChoose, label: "enter", desc: i18n.Key("key.choose"), core: true},
 	helpBinding,
 	quitBinding,
 }
@@ -106,10 +107,10 @@ var welcomeKeys = keyMap{
 // welcomePathKeys leave every printable key to the field, `?` and q
 // included: they are valid in a path. ctrl+c still quits.
 var welcomePathKeys = keyMap{
-	{keys: []string{"enter"}, action: actCheck, label: "enter", desc: "use this folder", core: true},
-	{keys: []string{"esc"}, action: actBack, label: "esc", desc: "back", core: true},
-	{keys: []string{"backspace"}, action: actErase, desc: "delete a character"},
-	{keys: []string{"ctrl+c"}, action: actQuit, label: "ctrl+c", desc: "quit"},
+	{keys: []string{"enter"}, action: actCheck, label: "enter", desc: i18n.Key("key.use_folder"), core: true},
+	{keys: []string{"esc"}, action: actBack, label: "esc", desc: i18n.Key("key.back"), core: true},
+	{keys: []string{"backspace"}, action: actErase, desc: i18n.Key("key.delete_char")},
+	{keys: []string{"ctrl+c"}, action: actQuit, label: "ctrl+c", desc: i18n.Key("key.quit")},
 }
 
 var welcomeCloningKeys = keyMap{helpBinding, quitBinding}
@@ -226,7 +227,7 @@ func (m Model) welcomeAction(act action) (tea.Model, tea.Cmd) {
 func (m Model) useRepo(root string) Model {
 	s := &m.welcome
 	if s.env.Prepare == nil {
-		s.err = "This build cannot prepare an install. Run: aval install --repo " + m.homeTilde(root)
+		s.err = m.tr.T("welcome.no_prepare", i18n.Args{"path": m.homeTilde(root)})
 		return m
 	}
 	p, err := s.env.Prepare(root)
@@ -256,15 +257,14 @@ func (m Model) startClone() (tea.Model, tea.Cmd) {
 		if fi.IsDir() && repoloc.Find(dest) == dest {
 			return m.useRepo(dest), nil
 		}
-		s.err = shown + " already exists and is not an aval repository: it has no " + repoloc.Manifest +
-			". Move it aside, or use a folder you already have."
+		s.err = m.tr.T("welcome.exists", i18n.Args{"path": shown, "manifest": repoloc.Manifest})
 		return m, nil
 	} else if !errors.Is(err, os.ErrNotExist) {
 		s.err = m.shortenPaths(err.Error(), dest)
 		return m, nil
 	}
 	if s.env.Cloner == nil {
-		s.err = "Cloning is not available here. Clone it yourself, then use that folder."
+		s.err = m.tr.T("welcome.no_clone", nil)
 		return m, nil
 	}
 	s.mode, s.frame = modeCloning, 0
@@ -283,8 +283,7 @@ func (m Model) cloned(err error) Model {
 	if err != nil {
 		s.cloneFailed = true
 		s.cursor = s.indexOf(choiceClone)
-		s.err = "The clone failed: " + strings.TrimSpace(err.Error()) +
-			". Check git and the network, then try again, or use a folder you already have."
+		s.err = m.tr.T("welcome.clone_failed", i18n.Args{"error": strings.TrimSpace(err.Error())})
 		return m
 	}
 	root, cerr := repoloc.Check(s.env.CloneDest)
@@ -331,24 +330,18 @@ func (m Model) shortenPaths(msg, path string) string {
 }
 
 func (m Model) welcomeView() view {
-	return view{body: m.welcomeBody, status: "step 1 of 3" + m.sep() + "repository"}
+	return view{body: m.welcomeBody, status: m.tr.T("welcome.step", i18n.Args{"sep": m.sep()})}
 }
-
-const (
-	welcomeIntro1 = "Welcome. aval links its configs into your home directory."
-	welcomeIntro2 = "Nothing is deleted: anything in the way moves to ~/.aval-backup first."
-	welcomeAsk    = "Where is the aval repository?"
-)
 
 func (m Model) welcomeBody(l layout, h int) []string {
 	s := m.welcome
 	var intro []string
-	for _, p := range []string{welcomeIntro1, welcomeIntro2} {
+	for _, p := range []string{m.tr.T("welcome.intro1", nil), m.tr.T("welcome.intro2", nil)} {
 		for _, line := range m.wrap(p, l.width) {
 			intro = append(intro, m.theme.Text.Render(line))
 		}
 	}
-	ask := m.theme.Strong.Render(m.fit(welcomeAsk, l.width))
+	ask := m.theme.Strong.Render(m.fit(m.tr.T("welcome.ask", nil), l.width))
 	block, cur := m.welcomeChoiceLines(l)
 	if s.mode == modeCloning {
 		block, cur = m.cloningLines(l), 0
@@ -387,15 +380,15 @@ func (m Model) welcomeChoiceLines(l layout) ([]string, int) {
 	for _, c := range s.choices() {
 		switch c {
 		case choiceHere:
-			rows = append(rows, row{"Use the checkout here", m.homeTilde(s.env.Candidate)})
+			rows = append(rows, row{m.tr.T("welcome.here", nil), m.homeTilde(s.env.Candidate)})
 		case choiceClone:
-			label := "Clone it to " + m.homeTilde(s.env.CloneDest)
+			label := m.tr.T("welcome.clone", i18n.Args{"path": m.homeTilde(s.env.CloneDest)})
 			if s.cloneFailed {
-				label = "Try the clone again"
+				label = m.tr.T("welcome.clone_again", nil)
 			}
-			rows = append(rows, row{label, "needs git and a network connection"})
+			rows = append(rows, row{label, m.tr.T("welcome.clone_note", nil)})
 		case choicePath:
-			rows = append(rows, row{"Use a folder I already have", "type or paste a path"})
+			rows = append(rows, row{m.tr.T("welcome.path", nil), m.tr.T("welcome.path_note", nil)})
 		}
 	}
 	const radio = "( ) "
@@ -479,7 +472,7 @@ func (m Model) errorLines(l layout, msg string) []string {
 // command it runs.
 func (m Model) cloningLines(l layout) []string {
 	s := m.welcome
-	text := "Cloning" + m.theme.Glyphs.Ellipsis
+	text := m.tr.T("welcome.cloning", nil) + m.theme.Glyphs.Ellipsis
 	if m.caps.Motion {
 		text = spinFrames[s.frame%len(spinFrames)] + " " + text
 	}

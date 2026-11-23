@@ -1,0 +1,15 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ----------------------------------------------------------------------------
+
+  Uninstall                                                            2 links
+
+  ! would remove  ~/.claude/skills/old-skill
+  ! would remove  ~/.claude/skills/retired
+
+  > Apply sync  back up, write, verify with doctor
+    Volver      no cambia nada
+
+  ----------------------------------------------------------------------------
+  Files in the way move to ~/.aval-backup first, undo: aval restore latest
+  up/down mover  enter elegir  esc volver  ? ayuda  q salir

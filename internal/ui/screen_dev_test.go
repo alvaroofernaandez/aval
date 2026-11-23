@@ -27,6 +27,7 @@ type devFake struct {
 
 func (f *devFake) services() Services {
 	return Services{
+		tr:    testTr,
 		Home:  "/home/u",
 		Repo:  "/home/u/.aval",
 		Build: BuildInfo{Version: "0.3.0"},
@@ -69,7 +70,7 @@ func (f *devFake) services() Services {
 
 func devApp(t *testing.T, unicode bool, svc Services) App {
 	t.Helper()
-	c := chrome{theme: goldenTheme(t, unicode), version: svc.Build.Version, platform: "macOS (arm64)", width: 120, height: 30}
+	c := chrome{tr: testTr, theme: goldenTheme(t, unicode), version: svc.Build.Version, platform: "macOS (arm64)", width: 120, height: 30}
 	a := newApp(c, svc, newDev(svc))
 	for _, m := range drainCmd(a.Init()) {
 		a, _ = routerStep(a, m)
@@ -295,7 +296,7 @@ func TestDevNonZeroExitShowsStderrThroughRealExecProcess(t *testing.T) {
 	svc.DevCommand = func(sub, name string) *exec.Cmd {
 		return exec.Command("sh", "-c", "echo first >&2; echo 'no space left' >&2; exit 3")
 	}
-	c := chrome{theme: goldenTheme(t, true), version: "0.3.0", platform: "macOS (arm64)", width: 120, height: 30}
+	c := chrome{tr: testTr, theme: goldenTheme(t, true), version: "0.3.0", platform: "macOS (arm64)", width: 120, height: 30}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	p := tea.NewProgram(probe{newApp(c, svc, newDev(svc))}, tea.WithContext(ctx), tea.WithInput(strings.NewReader("")), tea.WithOutput(io.Discard))
@@ -315,7 +316,7 @@ func TestDevNonZeroExitWithoutStderrFallsBackToTheStatus(t *testing.T) {
 	f := &devFake{}
 	svc := f.services()
 	svc.DevCommand = func(sub, name string) *exec.Cmd { return exec.Command("sh", "-c", "exit 4") }
-	c := chrome{theme: goldenTheme(t, true), version: "0.3.0", platform: "macOS (arm64)", width: 120, height: 30}
+	c := chrome{tr: testTr, theme: goldenTheme(t, true), version: "0.3.0", platform: "macOS (arm64)", width: 120, height: 30}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	p := tea.NewProgram(probe{newApp(c, svc, newDev(svc))}, tea.WithContext(ctx), tea.WithInput(strings.NewReader("")), tea.WithOutput(io.Discard))

@@ -34,6 +34,7 @@ func cleanOutcome() *txsync.Outcome {
 
 func syncServices(p *syncProbe, preview *txsync.Outcome) Services {
 	return Services{
+		tr:   testTr,
 		Home: "/home/u",
 		SyncPreview: func() (*txsync.Outcome, error) {
 			p.previews++

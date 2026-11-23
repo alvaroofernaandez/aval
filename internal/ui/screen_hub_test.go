@@ -13,6 +13,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/doctor"
 	coreupdate "github.com/alvaroofernaandez/aval/internal/core/update"
 	"github.com/alvaroofernaandez/aval/internal/devmode"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // hubNow is the clock every hub test reads relative times against.
@@ -24,6 +25,7 @@ var hubNow = time.Date(2026, 11, 23, 13, 30, 0, 0, time.UTC)
 // reaches the network, HOME or git.
 func hubServices() Services {
 	return Services{
+		tr:    testTr,
 		Home:  "/home/u",
 		Repo:  "/home/u/.aval",
 		Build: BuildInfo{Version: "0.3.0", Channel: "stable"},
@@ -69,7 +71,7 @@ func withHubViews(t *testing.T) {
 // before Init.
 func hubApp(t *testing.T, unicode bool, svc Services) App {
 	t.Helper()
-	c := chrome{theme: goldenTheme(t, unicode), version: svc.Build.Version, platform: "macOS (arm64)", width: 80, height: 24}
+	c := chrome{tr: testTr, theme: goldenTheme(t, unicode), version: svc.Build.Version, platform: "macOS (arm64)", width: 80, height: 24}
 	return newApp(c, svc, newHubAt(svc, func() time.Time { return hubNow }))
 }
 
@@ -123,10 +125,10 @@ func TestHubWithoutRepoDisablesEntriesWithReason(t *testing.T) {
 	for _, e := range hubMenu {
 		reason := h.unavailable(e)
 		if live[e.view] && reason != "" {
-			t.Errorf("%s is disabled without a repo: %q", e.name, reason)
+			t.Errorf("%s is disabled without a repo: %q", hubName(e), reason)
 		}
 		if !live[e.view] && reason == "" {
-			t.Errorf("%s is live without a repo", e.name)
+			t.Errorf("%s is live without a repo", hubName(e))
 		}
 	}
 	out := renderModelAt(a, 120, 40)
@@ -141,7 +143,7 @@ func TestHubWithoutRepoDisablesEntriesWithReason(t *testing.T) {
 	}
 	a, _ = routerStep(a, key("down"))
 	out = renderModelAt(a, 120, 40)
-	if !strings.Contains(out, "| "+reasonNoRepo) {
+	if !strings.Contains(out, "| "+enText(reasonNoRepo)) {
 		t.Errorf("no repo: the pane does not give the reason for Update:\n%s", out)
 	}
 	if strings.Contains(out, "checking") {
@@ -176,11 +178,11 @@ func TestHubUnregisteredViewIsUnavailable(t *testing.T) {
 	h := a.stack[0].(hub)
 	for _, e := range hubMenu {
 		got := h.unavailable(e)
-		if e.view == viewAbout && got != reasonNoView {
-			t.Errorf("about with no view: reason %q, want %q", got, reasonNoView)
+		if e.view == viewAbout && got != enText(reasonNoView) {
+			t.Errorf("about with no view: reason %q, want %q", got, enText(reasonNoView))
 		}
 		if e.view != viewAbout && got != "" {
-			t.Errorf("%s is unavailable: %q", e.name, got)
+			t.Errorf("%s is unavailable: %q", hubName(e), got)
 		}
 	}
 	// Enter on it pushes nothing.
@@ -321,3 +323,9 @@ func TestGoldenHubAt80x24(t *testing.T) {
 		})
 	}
 }
+
+// hubName is e's English name, for failure messages and text assertions.
+func hubName(e hubEntry) string { return enText(e.name) }
+
+// enText is the English text of a message key.
+func enText(key string) string { return i18n.New(i18n.English).T(key, nil) }

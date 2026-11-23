@@ -1,5 +1,7 @@
 package ui
 
+import "github.com/alvaroofernaandez/aval/internal/i18n"
+
 // The key map is the single source for both Update and the hint line: Update
 // only acts on keys a screen's map lists, and the hint line is generated from
 // the same map. A `?` overlay (help.go) renders the full map, hidden rows included.
@@ -44,7 +46,8 @@ type binding struct {
 	core bool
 	// help, when set, replaces desc in the `?` overlay, so bindings that
 	// collapse into one hint (the hub letters: "jump") still read apart there.
-	help string
+	// helpName, when set, is the message key of the {name} it takes.
+	help, helpName string
 }
 
 // hint is one rendered "key desc" pair.
@@ -64,17 +67,18 @@ func (k keyMap) lookup(key string) (action, bool) {
 	return actNone, false
 }
 
-// hints lists the visible hints in map order, with label tokens resolved for g.
-func (k keyMap) hints(g Glyphs) []hint { return k.hintsWhere(g, false) }
+// hints lists the visible hints in map order, with label tokens resolved for the glyph tier and
+// descriptions in the chrome language.
+func (k keyMap) hints(c chrome) []hint { return k.hintsWhere(c, false) }
 
-func (k keyMap) hintsWhere(g Glyphs, coreOnly bool) []hint {
+func (k keyMap) hintsWhere(c chrome, coreOnly bool) []hint {
 	var out []hint
 	seen := map[hint]bool{}
 	for _, b := range k {
 		if b.label == "" || (coreOnly && !b.core) {
 			continue
 		}
-		h := hint{key: g.keyLabel(b.label), desc: b.desc}
+		h := hint{key: c.theme.Glyphs.keyLabel(b.label), desc: c.tr.T(b.desc, nil)}
 		if !seen[h] {
 			seen[h] = true
 			out = append(out, h)
@@ -94,37 +98,37 @@ func (g Glyphs) keyLabel(label string) string {
 }
 
 // helpBinding is on every screen, so `?` is always the way to see every key.
-var helpBinding = binding{keys: []string{"?"}, action: actHelp, label: "?", desc: "help", core: true}
+var helpBinding = binding{keys: []string{"?"}, action: actHelp, label: "?", desc: i18n.Key("key.help"), core: true}
 
-var quitBinding = binding{keys: []string{"q", "ctrl+c"}, action: actQuit, label: "q", desc: "quit"}
+var quitBinding = binding{keys: []string{"q", "ctrl+c"}, action: actQuit, label: "q", desc: i18n.Key("key.quit")}
 
 var selectKeys = keyMap{
-	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "move"},
-	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "move"},
-	{keys: []string{" ", "x"}, action: actToggle, label: "space", desc: "toggle", core: true},
-	{keys: []string{"right", "l"}, action: actExpand, label: labelLeftRight, desc: "details"},
-	{keys: []string{"left", "h"}, action: actCollapse, label: labelLeftRight, desc: "details"},
-	{keys: []string{"a"}, action: actAll, label: "a", desc: "all"},
-	{keys: []string{"n"}, action: actClear, label: "n", desc: "none"},
-	{keys: []string{"enter"}, action: actInstall, label: "enter", desc: "install", core: true},
+	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.move")},
+	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.move")},
+	{keys: []string{" ", "x"}, action: actToggle, label: "space", desc: i18n.Key("key.toggle"), core: true},
+	{keys: []string{"right", "l"}, action: actExpand, label: labelLeftRight, desc: i18n.Key("key.details")},
+	{keys: []string{"left", "h"}, action: actCollapse, label: labelLeftRight, desc: i18n.Key("key.details")},
+	{keys: []string{"a"}, action: actAll, label: "a", desc: i18n.Key("key.all")},
+	{keys: []string{"n"}, action: actClear, label: "n", desc: i18n.Key("key.none")},
+	{keys: []string{"enter"}, action: actInstall, label: "enter", desc: i18n.Key("key.install"), core: true},
 	helpBinding,
 	quitBinding,
 }
 
 var installKeys = keyMap{
-	{keys: []string{"q", "ctrl+c"}, action: actStop, label: "ctrl+c", desc: "stops after the current step", core: true},
+	{keys: []string{"q", "ctrl+c"}, action: actStop, label: "ctrl+c", desc: i18n.Key("key.stop"), core: true},
 	helpBinding,
 }
 
 // stoppingKeys keeps q and ctrl+c bound once a stop is pending, so a second
 // press is swallowed, but drops the hint: the status line says it instead.
 var stoppingKeys = keyMap{
-	{keys: []string{"q", "ctrl+c"}, action: actStop, desc: "stops after the current step"},
-	{keys: []string{"?"}, action: actHelp, desc: "help"},
+	{keys: []string{"q", "ctrl+c"}, action: actStop, desc: i18n.Key("key.stop")},
+	{keys: []string{"?"}, action: actHelp, desc: i18n.Key("key.help")},
 }
 
 var doneKeys = keyMap{
-	{keys: []string{"enter", "esc"}, action: actClose, label: "enter", desc: "close", core: true},
+	{keys: []string{"enter", "esc"}, action: actClose, label: "enter", desc: i18n.Key("key.close"), core: true},
 	helpBinding,
 	quitBinding,
 }

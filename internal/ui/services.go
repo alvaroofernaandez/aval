@@ -10,6 +10,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/uninstall"
 	coreupdate "github.com/alvaroofernaandez/aval/internal/core/update"
 	"github.com/alvaroofernaandez/aval/internal/devmode"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // Services is everything the hub and its views need from the outside world,
@@ -88,6 +89,10 @@ type Services struct {
 	// CachedNotice is the update line from the last check's cache; it never
 	// fetches.
 	CachedNotice func() coreupdate.Notice
+	// tr is the hub's language, set when it opens a view: view constructors
+	// build their text with it. The zero value is English.
+	tr i18n.Translator
+
 	// RepoStatus reads, locally, how many commits the repo is behind its last
 	// fetched upstream and whether its tree has uncommitted changes. known is
 	// false without an upstream. It never fetches and never writes.

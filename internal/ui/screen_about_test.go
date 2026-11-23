@@ -20,6 +20,7 @@ func aboutTestEnv(exe string) aboutEnv {
 
 func aboutServices() Services {
 	return Services{
+		tr:    testTr,
 		Home:  "/home/u",
 		Repo:  "/home/u/.aval",
 		Build: BuildInfo{Version: "0.3.0", Commit: "abc1234", Date: "2026-05-06T00:00:00Z", Channel: "stable"},
@@ -28,7 +29,7 @@ func aboutServices() Services {
 
 func aboutApp(t *testing.T, unicode bool, svc Services, exe string, w, h int) App {
 	t.Helper()
-	c := chrome{theme: goldenTheme(t, unicode), version: svc.Build.Version, platform: "macOS (arm64)", width: w, height: h}
+	c := chrome{tr: testTr, theme: goldenTheme(t, unicode), version: svc.Build.Version, platform: "macOS (arm64)", width: w, height: h}
 	a := newApp(c, svc, newAbout(svc, aboutTestEnv(exe)))
 	for _, m := range drainCmd(a.Init()) {
 		a, _ = routerStep(a, m)
@@ -64,7 +65,7 @@ func TestAboutPathsFollowXDGAndMissingParts(t *testing.T) {
 	svc := aboutServices()
 	svc.Repo = ""
 	svc.RepoErr = errors.New("no checkout")
-	c := chrome{theme: goldenTheme(t, true), version: "0.3.0", width: 120, height: 40}
+	c := chrome{tr: testTr, theme: goldenTheme(t, true), version: "0.3.0", width: 120, height: 40}
 	next, _ := newApp(c, svc, newAbout(svc, env)).Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	out := next.View()
 	for _, want := range []string{"~/cfg/aval/config", "~/cc/aval/dev", "not found"} {

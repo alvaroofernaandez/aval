@@ -8,6 +8,8 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // operation is the operation pattern (DESIGN.md section 10) as one reusable
@@ -344,13 +346,13 @@ func (o operation[P]) stop() (screen, tea.Cmd) {
 }
 
 var (
-	opContinueKeys = keyMap{{keys: []string{"enter"}, action: actOpContinue, label: "enter", desc: "continue", core: true}}
-	opResultKeys   = keyMap{{keys: []string{"enter"}, action: actOpClose, label: "enter", desc: "close", core: true}}
+	opContinueKeys = keyMap{{keys: []string{"enter"}, action: actOpContinue, label: "enter", desc: i18n.Key("key.continue"), core: true}}
+	opResultKeys   = keyMap{{keys: []string{"enter"}, action: actOpClose, label: "enter", desc: i18n.Key("key.close"), core: true}}
 )
 
 var opScrollKeys = keyMap{
-	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "scroll"},
-	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "scroll"},
+	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.scroll")},
+	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.scroll")},
 }
 
 // scrollRows is how many rows a PreviewRows preview has and how many it
@@ -414,11 +416,11 @@ func (o operation[P]) view() view {
 	c := o.c
 	switch o.phase {
 	case phaseLoading:
-		return view{body: func(l layout, h int) []string { return o.waitLines(l, o.spec.Loading, "Loading") }}
+		return view{body: func(l layout, h int) []string { return o.waitLines(l, o.spec.Loading, o.c.tr.T("op.loading", nil)) }}
 	case phaseRun:
-		v := view{body: func(l layout, h int) []string { return o.waitLines(l, o.spec.Running, "Running") }}
+		v := view{body: func(l layout, h int) []string { return o.waitLines(l, o.spec.Running, o.c.tr.T("op.running", nil)) }}
 		if o.stopping {
-			v.status = "Stopping after the current step" + c.theme.Glyphs.Ellipsis
+			v.status = c.tr.T("op.stopping", nil) + c.theme.Glyphs.Ellipsis
 		}
 		return v
 	case phaseConfirm:
@@ -426,7 +428,7 @@ func (o operation[P]) view() view {
 	case phaseResult:
 		v := view{body: func(l layout, h int) []string { return o.resultLines(l) }}
 		if o.result.Undo != "" {
-			v.status = "undo: " + o.result.Undo
+			v.status = c.tr.T("op.undo", i18n.Args{"command": o.result.Undo})
 		}
 		return v
 	}
@@ -474,10 +476,10 @@ func (o operation[P]) scrollList(l layout, h int, head, rows []string) []string 
 	start, end := scrollWindow(len(rows), o.top+room-1, room)
 	var parts []string
 	if start > 0 {
-		parts = append(parts, fmt.Sprintf("%d above", start))
+		parts = append(parts, o.c.tr.T("op.above", i18n.Args{"count": start}))
 	}
 	if end < len(rows) {
-		parts = append(parts, fmt.Sprintf("%d more below", len(rows)-end))
+		parts = append(parts, o.c.tr.T("op.below", i18n.Args{"count": len(rows) - end}))
 	}
 	out := append(head, rows[start:end]...)
 	return append(out, o.c.theme.Muted.Render(o.c.fit(strings.Join(parts, o.c.sep()), l.width)))
@@ -531,7 +533,7 @@ func (o operation[P]) resultLines(l layout) []string {
 		}
 	}
 	if o.result.BackupID != "" {
-		out = append(out, c.theme.Muted.Render(c.fit("backup "+o.result.BackupID, l.width)))
+		out = append(out, c.theme.Muted.Render(c.fit(c.tr.T("op.backup", i18n.Args{"id": o.result.BackupID}), l.width)))
 	}
 	return out
 }

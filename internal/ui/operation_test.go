@@ -396,7 +396,7 @@ func goldenConfirmApp(t *testing.T, unicode bool, mode confirmMode) tea.Model {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ch := chrome{theme: goldenTheme(t, unicode), version: "0.2.0", platform: "macOS (arm64)", width: 80, height: 40}
+	ch := chrome{tr: testTr, theme: goldenTheme(t, unicode), version: "0.2.0", platform: "macOS (arm64)", width: 80, height: 40}
 	var s screen = o
 	s, _ = opStep(s, chromeMsg{ch})
 	for _, m := range drainOp(s.init()) {

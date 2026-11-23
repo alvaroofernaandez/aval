@@ -1,0 +1,11 @@
+ aval 0.2.0
+ Instalando                  4 de 6
+ ━━━━━━━━━━━━━━━━━━━━━━────────────
+
+   √ enlazado      ~/.tmux.conf
+   √ ya instalado  ~/.conf…fig.toml
+   ! con copia     ~/.zshrc
+   × fallo         ~/.…stty  sourc…
+   › enlazando     ~/.config/nvim
+ 1 con fallo hasta ahora
+ ? ayuda

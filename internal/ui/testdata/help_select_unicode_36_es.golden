@@ -1,0 +1,15 @@
+ aval 0.2.0
+ Teclas
+ ↑, k       mover
+ ↓, j       mover
+ space, x   marcar
+ →, l       detalles
+ ←, h       detalles
+ a          todos
+ n          ninguno
+ enter      instalar
+ s          ajustes
+ ?          ayuda
+ q, ctrl+c  salir
+ ayuda
+ esc cerrar
