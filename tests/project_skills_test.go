@@ -14,7 +14,7 @@ import (
 // frontmatter) or one that cites a test or ADR that does not exist teaches
 // rules no mechanism backs, so both are checked here.
 
-var requiredProjectSkills = []string{"aval-architecture", "aval-testing", "aval-docs", "aval-release"}
+var requiredProjectSkills = []string{"aval-architecture", "aval-testing", "aval-docs", "aval-release", "aval-release-notes"}
 
 // projectSkillFrontmatter returns the name and description of a SKILL.md, and
 // whether the file opens with a closed `---` block. A folded (`>`) or literal
@@ -150,6 +150,11 @@ func TestProjectSkillCarryTheirChecklists(t *testing.T) {
 	rel := projectSkillText(t, "aval-release")
 	for _, re := range []string{`docs/releasing\.md`, `CHANGELOG`, `go test -race \./\.\.\.`, `GORELEASER_VERSION`, `aval release`, `(?i)never push`, `(?i)authori[sz]ation`} {
 		mustHave(t, re, rel, "aval-release")
+	}
+	notes := projectSkillText(t, "aval-release-notes")
+	for _, re := range []string{`docs/releases/`, `\.es\.md`, `tests/release_notes_test\.go`, `(?i)since the last stable tag`,
+		`(?i)\[!WARNING\]`, `(?i)measured`, `raw\.githubusercontent\.com`, `(?i)mermaid`, `<details>`, `gh release edit`, `(?i)usted`} {
+		mustHave(t, re, notes, "aval-release-notes")
 	}
 }
 

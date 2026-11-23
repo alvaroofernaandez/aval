@@ -10,6 +10,7 @@ Read by any coding agent working in this repository (Claude Code loads it throug
 | Writing or changing a test, TDD, running any suite, flaky or slow tests | `aval-testing` |
 | Any Markdown file, README, guide, ADR or documentation image | `aval-docs` |
 | Versioning, the changelog, tagging or publishing a release | `aval-release` |
+| Release notes and the changelog of a version, in English and Spanish, and the GitHub release body | `aval-release-notes` |
 | Executing a plan from `odd/tasks`, or slides of a plan | `plan-deck` |
 | Any visible surface: a TUI screen, CLI output, layout, style, copy, or `.agents/DESIGN.md` | `design-pipeline` |
 | Any feature, bug fix or behavioural refactor | `strict-tdd` |
