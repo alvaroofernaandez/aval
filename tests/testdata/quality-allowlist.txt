@@ -1,12 +1,11 @@
 # Size and complexity exceptions: kind|path[|symbol]|ceiling. See tests/quality_test.go.
 # A ceiling may only come down. Delete an entry once its code is within the limit.
 complexity|cmd/aval/core_args.go|hoistGlobals|17
-complexity|cmd/aval/core_usage.go|commandSummary|25
 complexity|cmd/aval/deck.go|deckBuild|25
 complexity|cmd/aval/design.go|runDesignGate|22
 complexity|cmd/aval/dev.go|runDev|27
 complexity|cmd/aval/hub.go|newHubServices|19
-complexity|cmd/aval/main.go|dispatch|46
+complexity|cmd/aval/main.go|dispatch|42
 complexity|cmd/aval/main.go|runInstallWith|18
 complexity|internal/agent/budget/budget.go|frontmatter|19
 complexity|internal/agent/lessons/lessons.go|Parse|23
@@ -43,7 +42,7 @@ complexity|internal/ui/screen_select.go|Model.selectAction|16
 complexity|internal/ui/screen_select.go|Model.selectLines|19
 complexity|internal/ui/screen_settings.go|Model.settingsAction|16
 complexity|tools/brand/brand.go|run|17
-file-lines|cmd/aval/main.go|788
+file-lines|cmd/aval/main.go|779
 file-lines|internal/agent/budget/budget.go|506
 file-lines|internal/core/backup/backup.go|1102
 file-lines|internal/core/doctor/doctor.go|749
@@ -58,7 +57,7 @@ func-lines|cmd/aval/deck.go|deckBuild|85
 func-lines|cmd/aval/design.go|runDesignGate|63
 func-lines|cmd/aval/dev.go|runDev|91
 func-lines|cmd/aval/hub.go|newHubServices|185
-func-lines|cmd/aval/main.go|dispatch|198
+func-lines|cmd/aval/main.go|dispatch|189
 func-lines|cmd/aval/main.go|runInstallWith|107
 func-lines|internal/agent/rateguard/rateguard.go|Decide|68
 func-lines|internal/agent/repoprofile/repoprofile.go|Profile|61

@@ -241,17 +241,8 @@ func dispatch(argv []string, c cmdIO) error {
 	}
 
 	// Skill tooling: standalone, no repository and no update check.
-	switch fs.Arg(0) {
-	case "kiri":
-		return runKiri(sub)
-	case "docker":
-		return runDocker(sub)
-	case "pdf":
-		return runPDF(sub, c.stdout)
-	case "deck":
-		return runDeck(sub, c.stdout, realDeckDeps())
-	case "dev":
-		return runDev(*repoFlag, sub)
+	if handled, err := runStandalone(fs.Arg(0), sub, *repoFlag, c); handled {
+		return err
 	}
 
 	// Only commands that draw read the UI settings; everything above this line

@@ -113,59 +113,43 @@ func groupLabel(tr i18n.Translator, group string) string {
 	return group
 }
 
+// commandSummaries maps a command to the catalog key of its one-line
+// description. The values are i18n.Key literals so the catalog tests count
+// them as uses.
+var commandSummaries = map[string]string{
+	"install":           i18n.Key("cli.usage.cmd.install"),
+	"update":            i18n.Key("cli.usage.cmd.update"),
+	"doctor":            i18n.Key("cli.usage.cmd.doctor"),
+	"sync":              i18n.Key("cli.usage.cmd.sync"),
+	"rules":             i18n.Key("cli.usage.cmd.rules"),
+	"budget":            i18n.Key("cli.usage.cmd.budget"),
+	"review":            i18n.Key("cli.usage.cmd.review"),
+	"design":            i18n.Key("cli.usage.cmd.design"),
+	"config":            i18n.Key("cli.usage.cmd.config"),
+	"restore":           i18n.Key("cli.usage.cmd.restore"),
+	"uninstall":         i18n.Key("cli.usage.cmd.uninstall"),
+	"dev":               i18n.Key("cli.usage.cmd.dev"),
+	"hook":              i18n.Key("cli.usage.cmd.hook"),
+	"statusline":        i18n.Key("cli.usage.cmd.statusline"),
+	"tmux":              i18n.Key("cli.usage.cmd.tmux"),
+	"macos":             i18n.Key("cli.usage.cmd.macos"),
+	"reap-orphan-tests": i18n.Key("cli.usage.cmd.reap"),
+	"kiri":              i18n.Key("cli.usage.cmd.kiri"),
+	"docker":            i18n.Key("cli.usage.cmd.docker"),
+	"deck":              i18n.Key("cli.usage.cmd.deck"),
+	"pdf":               i18n.Key("cli.usage.cmd.pdf"),
+	"release":           i18n.Key("cli.usage.cmd.release"),
+	"version":           i18n.Key("cli.usage.cmd.version"),
+	"help":              i18n.Key("cli.usage.cmd.help"),
+}
+
 // commandSummary is the one-line description of a command in tr's language.
 func commandSummary(tr i18n.Translator, name string) string {
-	switch name {
-	case "install":
-		return tr.T("cli.usage.cmd.install", nil)
-	case "update":
-		return tr.T("cli.usage.cmd.update", nil)
-	case "doctor":
-		return tr.T("cli.usage.cmd.doctor", nil)
-	case "sync":
-		return tr.T("cli.usage.cmd.sync", nil)
-	case "rules":
-		return tr.T("cli.usage.cmd.rules", nil)
-	case "budget":
-		return tr.T("cli.usage.cmd.budget", nil)
-	case "review":
-		return tr.T("cli.usage.cmd.review", nil)
-	case "design":
-		return tr.T("cli.usage.cmd.design", nil)
-	case "config":
-		return tr.T("cli.usage.cmd.config", nil)
-	case "restore":
-		return tr.T("cli.usage.cmd.restore", nil)
-	case "uninstall":
-		return tr.T("cli.usage.cmd.uninstall", nil)
-	case "dev":
-		return tr.T("cli.usage.cmd.dev", nil)
-	case "hook":
-		return tr.T("cli.usage.cmd.hook", nil)
-	case "statusline":
-		return tr.T("cli.usage.cmd.statusline", nil)
-	case "tmux":
-		return tr.T("cli.usage.cmd.tmux", nil)
-	case "macos":
-		return tr.T("cli.usage.cmd.macos", nil)
-	case "reap-orphan-tests":
-		return tr.T("cli.usage.cmd.reap", nil)
-	case "kiri":
-		return tr.T("cli.usage.cmd.kiri", nil)
-	case "docker":
-		return tr.T("cli.usage.cmd.docker", nil)
-	case "deck":
-		return tr.T("cli.usage.cmd.deck", nil)
-	case "pdf":
-		return tr.T("cli.usage.cmd.pdf", nil)
-	case "release":
-		return tr.T("cli.usage.cmd.release", nil)
-	case "version":
-		return tr.T("cli.usage.cmd.version", nil)
-	case "help":
-		return tr.T("cli.usage.cmd.help", nil)
+	key, ok := commandSummaries[name]
+	if !ok {
+		return ""
 	}
-	return ""
+	return tr.T(key, nil)
 }
 
 // renderUsage writes the plain-text usage. configured is false on a first
