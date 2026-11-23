@@ -9,12 +9,41 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/term"
+
 	"github.com/alvaroofernaandez/aval/internal/core/config"
+	"github.com/alvaroofernaandez/aval/internal/ui"
+	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
 
-// openSettings is the seam for the interactive settings view. It stays nil
-// until that view exists; bare `aval config` then behaves like `list`.
-var openSettings func(path string, getenv func(string) string) error
+// openSettings opens the interactive settings view. Bare `aval config` calls
+// it when stdout is a terminal; a nil value, or no terminal, lists instead.
+var openSettings = runSettingsView
+
+// runSettingsView draws the settings view full screen until the user saves,
+// discards or quits.
+func runSettingsView(path string, getenv func(string) string) error {
+	home, _ := os.UserHomeDir()
+	s, warns, err := resolveUI(uiFlags{}, getenv, path)
+	if err != nil {
+		return err
+	}
+	for _, w := range warns {
+		fmt.Fprintln(os.Stderr, "warning:", w)
+	}
+	fd := os.Stdout.Fd()
+	width, height, _ := term.GetSize(fd)
+	m := ui.NewSettings(ui.Options{
+		Version:  version,
+		Platform: ui.PlatformLabel(runtime.GOOS, runtime.GOARCH),
+		Caps:     caps.Detect(s.capsInputs(getenv, runtime.GOOS, true, width, height)),
+		Theme:    s.Theme,
+		Settings: s.settingsEnv(path, home, getenv, true, width, height),
+	})
+	_, err = tea.NewProgram(m, tea.WithAltScreen()).Run()
+	return err
+}
 
 const configUsage = "usage: aval config [list | get <key> | set <key> <value> | path]"
 
@@ -138,7 +167,7 @@ func tildePath(path, home string) string {
 }
 
 // isTerminal reports whether w is an interactive terminal.
-func isTerminal(w io.Writer) bool {
+var isTerminal = func(w io.Writer) bool {
 	f, ok := w.(*os.File)
 	if !ok {
 		return false

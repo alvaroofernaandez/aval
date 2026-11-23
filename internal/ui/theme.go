@@ -50,6 +50,9 @@ type Theme struct {
 	// whenever the value equals strong. plain is set under an Ascii profile.
 	stateGlyph [3]lipgloss.Style
 	plain      bool
+	// renderer is the one the styles were built on, so a theme derived from
+	// this one (the settings preview) emits the same colour profile.
+	renderer *lipgloss.Renderer
 }
 
 // NewTheme resolves name (a family that follows c.Dark, or a pinned variant)
@@ -80,8 +83,9 @@ func NewTheme(name string, c caps.Caps, r *lipgloss.Renderer) (Theme, error) {
 	}
 
 	t := Theme{
-		Name:   p.Name,
-		Glyphs: GlyphsFor(c),
+		Name:     p.Name,
+		renderer: r,
+		Glyphs:   GlyphsFor(c),
 
 		Text:   fg(p.Text),
 		Strong: fg(p.Strong).Bold(true),

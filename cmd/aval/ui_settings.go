@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/alvaroofernaandez/aval/internal/core/config"
+	"github.com/alvaroofernaandez/aval/internal/ui"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
 
@@ -23,6 +24,10 @@ type uiSettings struct {
 
 	UpdateCheck bool // false when update_check = off or AVAL_NO_UPDATE_CHECK is set
 	ColorOff    bool // NO_COLOR: above every other setting
+
+	// flags are the command-line values these came from, so the settings
+	// view can say which keys a flag overrides.
+	flags uiFlags
 }
 
 // uiFlags are the global flags that reach the UI settings.
@@ -64,6 +69,7 @@ func resolveUI(flags uiFlags, getenv func(string) string, cfgPath string) (uiSet
 		Motion:      pick("motion"),
 		UpdateCheck: update != "off",
 		ColorOff:    getenv("NO_COLOR") != "",
+		flags:       flags,
 	}
 	if flags.Plain {
 		s.Theme, s.Glyphs, s.Motion = "mono", "ascii", "off"
@@ -99,4 +105,27 @@ func settingsForCommand(cmd string, flags uiFlags, getenv func(string) string, h
 		}
 	}
 	return s, nil
+}
+
+// settingsEnv is what the settings view needs to read and write path and to
+// preview candidate values on this terminal.
+func (s uiSettings) settingsEnv(path, home string, getenv func(string) string, isTTY bool, width, height int) ui.SettingsEnv {
+	env := ui.SettingsEnv{
+		Path: path, Home: home, Getenv: getenv,
+		Flags: map[string]string{}, FlagNames: map[string]string{},
+		Detect: func(glyphs, background string) caps.Caps {
+			c := s
+			c.Glyphs, c.Background = glyphs, background
+			return caps.Detect(c.capsInputs(getenv, runtime.GOOS, isTTY, width, height))
+		},
+	}
+	if s.flags.Theme != "" {
+		env.Flags["theme"], env.FlagNames["theme"] = s.flags.Theme, "--theme"
+	}
+	if s.flags.Plain {
+		for k, v := range map[string]string{"theme": "mono", "glyphs": "ascii", "motion": "off"} {
+			env.Flags[k], env.FlagNames[k] = v, "--plain"
+		}
+	}
+	return env
 }

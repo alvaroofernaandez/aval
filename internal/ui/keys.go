@@ -143,8 +143,26 @@ func (m Model) screenKeys() keyMap {
 		}
 		return installKeys
 	case ScreenDone:
-		return doneKeys
+		return m.withSettings(doneKeys)
+	case ScreenSettings:
+		return settingsKeys
 	default:
-		return selectKeys
+		return m.withSettings(selectKeys)
 	}
+}
+
+// withSettings adds `s settings` before the help binding when the model
+// knows where the config file is.
+func (m Model) withSettings(km keyMap) keyMap {
+	if m.settingsEnv.Path == "" {
+		return km
+	}
+	out := make(keyMap, 0, len(km)+1)
+	for _, b := range km {
+		if b.action == actHelp {
+			out = append(out, settingsBinding)
+		}
+		out = append(out, b)
+	}
+	return out
 }

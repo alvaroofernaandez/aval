@@ -8,6 +8,7 @@
  a          all
  n          none
  enter      install
+ s          settings
  ?          help
  q, ctrl+c  quit
  help

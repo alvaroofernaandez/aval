@@ -263,3 +263,15 @@ func TestUnknownKeysCarryTheirLine(t *testing.T) {
 		t.Errorf("UnknownKeys() = %+v", got)
 	}
 }
+
+func TestEnvNameNamesTheOverride(t *testing.T) {
+	for key, want := range map[string]string{
+		"theme": "AVAL_THEME", "repo": "AVAL_REPO", "glyphs": "AVAL_GLYPHS",
+		"background": "AVAL_BACKGROUND", "motion": "AVAL_MOTION",
+		"update_check": "AVAL_NO_UPDATE_CHECK", "nope": "",
+	} {
+		if got := EnvName(key); got != want {
+			t.Errorf("EnvName(%q) = %q, want %q", key, got, want)
+		}
+	}
+}

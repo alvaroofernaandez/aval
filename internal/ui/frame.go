@@ -186,7 +186,8 @@ func (m Model) sep() string {
 
 // hintLines renders the current key map. With wrap, hints that do not fit
 // start a new line. Without it (compact, or a short terminal) the line keeps
-// every hint if they fit on one line and only the core ones otherwise.
+// every hint if they fit on one line and only the core ones otherwise, with
+// `? help` on a line of its own when it does not fit beside them.
 func (m Model) hintLines(l layout, wrap bool) []string {
 	km := m.keyMap()
 	all := km.hints(m.theme.Glyphs)
@@ -211,8 +212,18 @@ func (m Model) hintLines(l layout, wrap bool) []string {
 				return []string{line}
 			}
 		}
-		var line string
+		// `? help` is the way to every other key, so it always shows: on the
+		// core line when it fits, on its own line otherwise.
+		var line, help string
+		var core []hint
 		for _, h := range km.hintsWhere(m.theme.Glyphs, true) {
+			if h.key == helpBinding.label {
+				help = part(h)
+			} else {
+				core = append(core, h)
+			}
+		}
+		for _, h := range core {
 			next := part(h)
 			if line != "" {
 				next = line + sep + next
@@ -221,6 +232,15 @@ func (m Model) hintLines(l layout, wrap bool) []string {
 				break
 			}
 			line = next
+		}
+		switch {
+		case help == "":
+		case line == "":
+			line = help
+		case lipgloss.Width(line+sep+help) <= l.width:
+			line += sep + help
+		default:
+			return []string{line, help}
 		}
 		if line == "" {
 			return nil

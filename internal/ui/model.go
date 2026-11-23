@@ -11,13 +11,14 @@ import (
 // This file holds routing and state only. The shared chrome is in frame.go,
 // the bindings in keys.go, and each view in its own screen_*.go file.
 
-// Screen is which of the three views is showing.
+// Screen is which of the four views is showing.
 type Screen int
 
 const (
-	ScreenSelect  Screen = iota // choose what to install
-	ScreenInstall               // work in progress
-	ScreenDone                  // summary
+	ScreenSelect   Screen = iota // choose what to install
+	ScreenInstall                // work in progress
+	ScreenDone                   // summary
+	ScreenSettings               // the config file, edited live
 )
 
 // UnavailableGroup is a manifest group that does not apply to this machine.
@@ -44,6 +45,10 @@ type Options struct {
 
 	Symlinks bool
 	DryRun   bool
+
+	// Settings is where the settings screen reads and writes. An empty Path
+	// leaves the `s` binding out of the installer.
+	Settings SettingsEnv
 }
 
 // step is one finished action: its result, and err when it failed.
@@ -77,6 +82,12 @@ type Model struct {
 	cursor int
 	// sel is the select screen's own state; see screen_select.go.
 	sel selectState
+	// settings is the settings screen's state; settingsEnv where it reads
+	// and writes (see screen_settings.go).
+	settings    settingsState
+	settingsEnv SettingsEnv
+	// caps is the detected terminal, the base for the settings preview.
+	caps caps.Caps
 
 	queue   []plan.Action
 	index   int
@@ -131,6 +142,9 @@ func NewModel(p *plan.Plan, r *install.Runner, o Options) Model {
 		width:    defaultWidth,
 		height:   defaultHeight,
 		sel:      newSelectState(p, r),
+
+		settingsEnv: o.Settings,
+		caps:        o.Caps,
 	}
 	if o.Caps.Width > 0 {
 		m.width = o.Caps.Width
@@ -145,6 +159,9 @@ func NewModel(p *plan.Plan, r *install.Runner, o Options) Model {
 // theme; callers that know the terminal use it to apply their detected theme.
 func (m Model) WithTheme(t Theme) Model {
 	m.theme = t
+	if m.screen == ScreenSettings {
+		m.settings.preview = m.candidateTheme()
+	}
 	return m
 }
 
@@ -204,12 +221,16 @@ func (m Model) perform(act action) (tea.Model, tea.Cmd) {
 			m.stopping = true
 		}
 		return m, nil
+	case actSettings:
+		return m.openSettings(), nil
 	}
 	switch m.screen {
 	case ScreenSelect:
 		return m.selectAction(act)
 	case ScreenDone:
 		return m.doneAction(act)
+	case ScreenSettings:
+		return m.settingsAction(act)
 	}
 	return m, nil
 }
@@ -224,6 +245,8 @@ func (m Model) View() string {
 		return m.render(m.installView())
 	case ScreenDone:
 		return m.render(m.doneView())
+	case ScreenSettings:
+		return m.render(m.settingsView())
 	default:
 		return m.render(m.selectView())
 	}

@@ -88,7 +88,19 @@ func screenFixture(t *testing.T, screen Screen, unicode bool) Model {
 		{ID: "edit", Label: "Editor", Detail: "LazyVim with the aval colour scheme", Selected: false, Actions: acts("~/.config/nvim")},
 	}}
 	r := install.New(install.Options{Home: "/home/u", BackupRoot: "/home/u/.aval-backup/20260101-000000", Symlinks: true})
-	m := NewModel(p, r, Options{Version: "0.2.0", Platform: "macOS (arm64)", Symlinks: true})
+	m := NewModel(p, r, Options{
+		Version: "0.2.0", Platform: "macOS (arm64)", Symlinks: true,
+		// The path does not exist: settings open on the defaults.
+		Settings: SettingsEnv{
+			Path: "/home/u/.config/aval/config", Home: "/home/u",
+			Getenv: func(k string) string {
+				if k == "AVAL_REPO" {
+					return "/home/u/.aval"
+				}
+				return ""
+			},
+		},
+	})
 	m = m.WithTheme(goldenTheme(t, unicode))
 	m.Unavailable = []UnavailableGroup{{Label: "Windows Terminal profile", Reason: "only offered on Windows, this machine runs macOS"}}
 
@@ -108,6 +120,8 @@ func screenFixture(t *testing.T, screen Screen, unicode bool) Model {
 			{Action: plan.Action{Label: "~/.gitconfig"}, Status: install.StatusAlready},
 		}
 		m.errs = []error{fmt.Errorf("link %s: permission denied while writing the destination", long)}
+	case ScreenSettings:
+		m = send(m, "s")
 	}
 	return m
 }
@@ -119,6 +133,7 @@ var goldenScreens = []struct {
 	{"select", ScreenSelect},
 	{"install", ScreenInstall},
 	{"done", ScreenDone},
+	{"settings", ScreenSettings},
 }
 
 func TestViewsNeverExceedTheWidth(t *testing.T) {

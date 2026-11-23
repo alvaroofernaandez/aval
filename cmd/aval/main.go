@@ -39,6 +39,7 @@ import (
 	"github.com/charmbracelet/x/term"
 
 	"github.com/alvaroofernaandez/aval/internal/agent/statusline"
+	"github.com/alvaroofernaandez/aval/internal/core/config"
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/manifest"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
@@ -415,13 +416,15 @@ func runInstallWith(repo, home string, dryRun, yes, forceCopy bool, deps install
 
 	fd := os.Stdout.Fd()
 	width, height, _ := term.GetSize(fd)
+	tty := term.IsTerminal(fd)
 	model := ui.NewModel(p, runner, ui.Options{
 		Version:  version,
 		Platform: ui.PlatformLabel(runtime.GOOS, runtime.GOARCH),
-		Caps:     caps.Detect(deps.ui.capsInputs(os.Getenv, runtime.GOOS, term.IsTerminal(fd), width, height)),
+		Caps:     caps.Detect(deps.ui.capsInputs(os.Getenv, runtime.GOOS, tty, width, height)),
 		Theme:    deps.ui.Theme,
 		Symlinks: symlinks,
 		DryRun:   dryRun,
+		Settings: deps.ui.settingsEnv(config.Path(os.Getenv, home, runtime.GOOS), home, os.Getenv, tty, width, height),
 	})
 	model.Unavailable = unavailableGroups(m, runtime.GOOS)
 

@@ -1,0 +1,18 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
+
+  Settings                                               ~/.config/aval/config
+
+  > Theme          aval           aval  catppuccin  tokyo-night  gruvbox ...
+    Background     auto           auto  dark  light
+    Glyphs         auto           auto  unicode  ascii
+    Motion         auto           auto  off
+    Update check   on             on  off
+    Repository     ~/.aval
+
+  Preview  [x] Selected   [ ] Not selected   ok linked   ! backed up
+           x failed
+
+  ----------------------------------------------------------------------------
+  up/down move  left/right change  enter save  esc discard  ? help  q quit

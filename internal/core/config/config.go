@@ -331,3 +331,11 @@ type UnknownKey struct {
 
 // UnknownKeys returns the unknown keys with their lines.
 func (f *File) UnknownKeys() []UnknownKey { return slices.Clone(f.unknownAt) }
+
+// EnvName is the environment variable that overrides key, or "".
+func EnvName(key string) string {
+	if key == "update_check" {
+		return noUpdateCheckEnv
+	}
+	return envNames[key]
+}

@@ -1,0 +1,15 @@
+ aval 0.2.0
+ Settings     ~/.config/aval/config
+
+ › Theme          aval         
+   Background     auto
+   Glyphs         auto
+   Motion         auto
+   Update check   on
+   Repository     ~/.aval
+
+ Preview  [√] Selected
+          [ ] Not selected
+          √ linked   ! backed up
+          × failed
+ enter save · esc discard · ? help

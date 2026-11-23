@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -192,5 +193,52 @@ func TestConfigIsListedInUsage(t *testing.T) {
 	printUsage(&b)
 	if !strings.Contains(b.String(), "aval config") {
 		t.Error("usage does not list config")
+	}
+}
+
+func TestBareConfigOnATerminalOpensSettings(t *testing.T) {
+	if openSettings == nil {
+		t.Fatal("openSettings is not wired: bare aval config can never open the settings view")
+	}
+	origOpen, origTerm := openSettings, isTerminal
+	t.Cleanup(func() { openSettings, isTerminal = origOpen, origTerm })
+
+	var gotPath string
+	openSettings = func(path string, getenv func(string) string) error {
+		gotPath = path
+		return nil
+	}
+	isTerminal = func(io.Writer) bool { return true }
+
+	e := newCfgEnv(t)
+	if err := e.run(); err != nil {
+		t.Fatal(err)
+	}
+	if gotPath != e.path {
+		t.Errorf("openSettings got path %q, want %q", gotPath, e.path)
+	}
+	if e.stdout.Len() != 0 {
+		t.Errorf("bare config on a terminal also listed:\n%s", e.stdout.String())
+	}
+	// A subcommand never opens the view, terminal or not.
+	gotPath = ""
+	if err := e.run("list"); err != nil || gotPath != "" {
+		t.Errorf("config list opened settings (err %v)", err)
+	}
+}
+
+func TestBareConfigWithoutATerminalStillLists(t *testing.T) {
+	origOpen := openSettings
+	t.Cleanup(func() { openSettings = origOpen })
+	openSettings = func(string, func(string) string) error {
+		t.Error("settings opened without a terminal")
+		return nil
+	}
+	e := newCfgEnv(t)
+	if err := e.run(); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(e.stdout.String(), "theme") {
+		t.Errorf("bare config without a terminal did not list:\n%s", e.stdout.String())
 	}
 }
