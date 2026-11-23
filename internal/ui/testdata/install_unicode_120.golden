@@ -1,0 +1,11 @@
+aval
+macOS (arm64)
+symlinked — edits in the repo apply immediately
+
+Installing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────  3/5
+
+  ~/.tmux.conf                             linked
+  ~/.config/some/very/long/destination/pa… already installed
+  ~/.zshrc                                 linked  (backed up)

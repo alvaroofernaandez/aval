@@ -1,0 +1,15 @@
+aval
+macOS (arm64)
+symlinked — edits in the repo apply immediately
+
+What to install
+
+> [x] Terminal and shell...  2 items
+      tmux, zsh and the prompt, wired for this machine
+  [ ] Editor                 1 items
+      LazyVim with the aval colour scheme
+  [-] Windows Terminal profile only offered on Windows, this machine runs macOS
+
+2 items selected
+
+↑/↓ move      space toggle      a all      n none      enter install      q quit

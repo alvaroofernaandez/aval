@@ -1,0 +1,15 @@
+aval
+macOS (arm64)
+symlinked — edits in the repo apply immediately
+
+Finished with 1 error(s)
+
+  linked             2
+  already installed  1
+
+  1 existing file(s) moved to:
+  /home/u/.aval-backup/20260101-000000
+
+  link ~/.config/some/very/long/destination/path/that/keeps/going/config.toml...
+
+enter close

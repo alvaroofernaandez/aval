@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
@@ -75,6 +76,13 @@ func NewModel(p *plan.Plan, pf platform.Platform, r *install.Runner, symlinks, d
 		screen:   ScreenSelect,
 		width:    80,
 	}
+}
+
+// WithTheme returns m rendering with t. Tests use it to pin a deterministic
+// theme; callers that know the terminal use it to apply their detected theme.
+func (m Model) WithTheme(t Theme) Model {
+	m.theme = t
+	return m
 }
 
 // Screen exposes the current view, for tests and for main's exit code.
@@ -205,12 +213,13 @@ func (m Model) header() string {
 	var b strings.Builder
 	b.WriteString(m.theme.Title.Render("aval"))
 	b.WriteString("\n")
-	b.WriteString(m.theme.Subtitle.Render(m.platform.Display()))
+	b.WriteString(m.theme.Subtitle.Render(m.fit(m.platform.Display(), m.width)))
 	if m.DryRun {
-		b.WriteString(m.theme.Warning.Render("  " + m.theme.Glyphs.Sep + "  dry run: nothing will be written"))
+		note := "  " + m.theme.Glyphs.Sep + "  dry run: nothing will be written"
+		b.WriteString(m.theme.Warning.Render(m.fit(note, m.width-lipgloss.Width(m.platform.Display()))))
 	}
 	b.WriteString("\n")
-	b.WriteString(m.theme.Muted.Render(m.platform.InstallStyle(m.Symlinks)))
+	b.WriteString(m.theme.Muted.Render(m.fit(m.platform.InstallStyle(m.Symlinks), m.width)))
 	b.WriteString("\n\n")
 	return b.String()
 }
@@ -239,19 +248,25 @@ func (m Model) viewSelect() string {
 			marker = m.theme.Marker.Render(m.theme.Glyphs.Cursor + " ")
 		}
 
-		line := fmt.Sprintf("%s %-22s %s", box, g.Label,
-			m.theme.Muted.Render(fmt.Sprintf("%d items", len(g.Actions))))
+		count := fmt.Sprintf("%d items", len(g.Actions))
+		// marker (2) + box (3) + two spaces + count must fit beside the label.
+		labelW := m.width - 2 - lipgloss.Width(box) - 2 - len(count)
+		if labelW > 22 {
+			labelW = 22
+		}
+		line := fmt.Sprintf("%s %s %s", box, m.pad(g.Label, labelW), m.theme.Muted.Render(count))
 		if i == m.cursor {
 			line = m.theme.Selected.Render(line)
 		}
 		b.WriteString(marker + line + "\n")
 		if g.Detail != "" {
-			b.WriteString("      " + m.theme.Muted.Render(g.Detail) + "\n")
+			b.WriteString("      " + m.theme.Muted.Render(m.fit(g.Detail, m.width-6)) + "\n")
 		}
 	}
 
 	for _, u := range m.Unavailable {
-		b.WriteString("  " + m.theme.Unavailable.Render(fmt.Sprintf("%s %-22s %s", m.theme.Glyphs.Partial, u.Label, u.Reason)) + "\n")
+		row := fmt.Sprintf("%s %-22s %s", m.theme.Glyphs.Partial, u.Label, u.Reason)
+		b.WriteString("  " + m.theme.Unavailable.Render(m.fit(row, m.width-2)) + "\n")
 	}
 
 	b.WriteString("\n")
@@ -307,9 +322,9 @@ func (m Model) viewDone() string {
 	}
 
 	if len(m.errs) > 0 {
-		b.WriteString(m.theme.Failure.Render(fmt.Sprintf("Finished with %d error(s)", len(m.errs))))
+		b.WriteString(m.theme.Failure.Render(m.fit(fmt.Sprintf("Finished with %d error(s)", len(m.errs)), m.width)))
 	} else if m.DryRun {
-		b.WriteString(m.theme.Warning.Render("Dry run complete: nothing was written"))
+		b.WriteString(m.theme.Warning.Render(m.fit("Dry run complete: nothing was written", m.width)))
 	} else {
 		b.WriteString(m.theme.Success.Render("Done"))
 	}
@@ -317,7 +332,7 @@ func (m Model) viewDone() string {
 
 	for _, s := range []install.Status{install.StatusLinked, install.StatusCopied, install.StatusAlready, install.StatusWould} {
 		if counts[s] > 0 {
-			b.WriteString(m.theme.Body.Render(fmt.Sprintf("  %-18s %d\n", s.String(), counts[s])))
+			b.WriteString(m.theme.Body.Render(m.fit(fmt.Sprintf("  %-18s %d", s.String(), counts[s]), m.width)) + "\n")
 		}
 	}
 
@@ -325,12 +340,12 @@ func (m Model) viewDone() string {
 	// on: their previous config is in there, not gone.
 	if backups > 0 {
 		b.WriteString("\n")
-		b.WriteString(m.theme.Warning.Render(fmt.Sprintf("  %d existing file(s) moved to:", backups)))
-		b.WriteString("\n  " + m.theme.Muted.Render(m.runner.BackupRoot()) + "\n")
+		b.WriteString(m.theme.Warning.Render(m.fit(fmt.Sprintf("  %d existing file(s) moved to:", backups), m.width)))
+		b.WriteString("\n  " + m.theme.Muted.Render(m.fitMiddle(m.runner.BackupRoot(), m.width-2)) + "\n")
 	}
 
 	for _, err := range m.errs {
-		b.WriteString("\n  " + m.theme.Failure.Render(err.Error()))
+		b.WriteString("\n  " + m.theme.Failure.Render(m.fit(err.Error(), m.width-2)))
 	}
 
 	b.WriteString("\n\n")
@@ -346,18 +361,114 @@ func (m Model) statusLine(r install.Result) string {
 	case install.StatusWould:
 		style = m.theme.Warning
 	}
-	line := fmt.Sprintf("%-40s %s", r.Action.Label, style.Render(r.Status.String()))
+	status := r.Status.String()
+	// Two columns of indent, one gap, then the status: the label gives way.
+	labelW := m.width - 2 - 1 - lipgloss.Width(status)
+	if labelW > 40 {
+		labelW = 40
+	}
+	if labelW < 1 {
+		// No room for a label at all: the status is the part that matters.
+		return style.Render(m.fit(status, m.width-2))
+	}
+	line := fmt.Sprintf("%s %s", m.pad(r.Action.Label, labelW), style.Render(status))
 	if r.Backup != "" {
-		line += m.theme.Warning.Render("  (backed up)")
+		const note = "  (backed up)"
+		if lipgloss.Width(line)+len(note)+2 <= m.width {
+			line += m.theme.Warning.Render(note)
+		}
 	}
 	return line
 }
 
 // help renders alternating key/description pairs.
 func (m Model) help(pairs ...string) string {
-	var parts []string
+	sep := m.theme.Muted.Render("  " + m.theme.Glyphs.Sep + "  ")
+	var lines []string
+	line, lineW := "", 0
 	for i := 0; i+1 < len(pairs); i += 2 {
-		parts = append(parts, m.theme.Key.Render(pairs[i])+" "+m.theme.Muted.Render(pairs[i+1]))
+		part := m.theme.Key.Render(pairs[i]) + " " + m.theme.Muted.Render(pairs[i+1])
+		w := lipgloss.Width(part)
+		// A hint that does not fit starts a new line instead of running past
+		// the edge; the width includes the separator that would precede it.
+		if line != "" && lineW+lipgloss.Width(sep)+w > m.width {
+			lines = append(lines, line)
+			line, lineW = "", 0
+		}
+		if line != "" {
+			line += sep
+			lineW += lipgloss.Width(sep)
+		}
+		line += part
+		lineW += w
 	}
-	return strings.Join(parts, m.theme.Muted.Render("  "+m.theme.Glyphs.Sep+"  "))
+	lines = append(lines, line)
+	return strings.Join(lines, "\n")
+}
+
+// fit shortens plain text to w columns, ending with the glyph tier's ellipsis.
+func (m Model) fit(s string, w int) string {
+	if w < 1 {
+		w = 1
+	}
+	if lipgloss.Width(s) <= w {
+		return s
+	}
+	ell := m.theme.Glyphs.Ellipsis
+	budget := w - lipgloss.Width(ell)
+	if budget < 0 {
+		// Not even the ellipsis fits: cut it rather than overflow.
+		return m.fitRunes(ell, w)
+	}
+	return strings.TrimRight(m.fitRunes(s, budget), " ") + ell
+}
+
+// fitRunes cuts s to at most w columns with no ellipsis.
+func (m Model) fitRunes(s string, w int) string {
+	var b strings.Builder
+	used := 0
+	for _, r := range s {
+		rw := lipgloss.Width(string(r))
+		if used+rw > w {
+			break
+		}
+		b.WriteRune(r)
+		used += rw
+	}
+	return b.String()
+}
+
+// fitMiddle shortens a path to w columns by cutting from the middle, so both
+// the root and the file name stay readable.
+func (m Model) fitMiddle(s string, w int) string {
+	if w < 1 {
+		w = 1
+	}
+	if lipgloss.Width(s) <= w {
+		return s
+	}
+	ell := m.theme.Glyphs.Ellipsis
+	keep := w - lipgloss.Width(ell)
+	if keep < 2 {
+		return m.fit(s, w)
+	}
+	r := []rune(s)
+	head := keep / 2
+	tail := keep - head
+	for lipgloss.Width(string(r[:head]))+lipgloss.Width(string(r[len(r)-tail:])) > keep && tail > 1 {
+		tail--
+	}
+	return string(r[:head]) + ell + string(r[len(r)-tail:])
+}
+
+// pad fits s into exactly w columns, padding with spaces on the right.
+func (m Model) pad(s string, w int) string {
+	if w < 1 {
+		w = 1
+	}
+	s = m.fit(s, w)
+	if gap := w - lipgloss.Width(s); gap > 0 {
+		s += strings.Repeat(" ", gap)
+	}
+	return s
 }
