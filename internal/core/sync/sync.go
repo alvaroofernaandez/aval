@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/core/install"
@@ -248,7 +249,10 @@ func ruleGlob(tool, pattern string) *regexp.Regexp {
 		case pattern[i] == '*':
 			b.WriteString(star)
 		default:
-			b.WriteString(regexp.QuoteMeta(string(pattern[i])))
+			// Whole characters, so a non-ASCII literal matches itself.
+			r, size := utf8.DecodeRuneInString(pattern[i:])
+			b.WriteString(regexp.QuoteMeta(string(r)))
+			i += size - 1
 		}
 	}
 	b.WriteString("$")

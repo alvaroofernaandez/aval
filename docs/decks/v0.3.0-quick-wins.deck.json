@@ -1,0 +1,33 @@
+{
+  "title": "v0.3.0 quick wins",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · v0.3.0 quick wins", "title": "Lo pequeño primero, y cada arreglo publicado", "lede": "Cerramos las issues más baratas de la milestone v0.3.0 una a una, y cada corrección sale como su propia versión de parche.", "note": "La idea: avanzar la milestone con entregas pequeñas y verificables."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "Un parche es una versión que solo corrige", "lede": "v0.2.1, v0.2.2: el tercer número sube con cada fix. Esas salen solas; una versión menor (v0.3.0) espera la aprobación del dueño."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "La milestone tiene 26 issues y casi todas son grandes", "items": [
+      {"title": "Promote bloqueado", "text": "Desde v0.2.0, cualquier merge tras un rc impide promocionarlo (#79).", "tone": "warn"},
+      {"title": "Fallos silenciosos", "text": "Un glob mal cerrado en una lesson la descarta sin avisar (#45, por verificar con el fuzz).", "tone": "warn"},
+      {"title": "Deuda sin medir", "text": "Dependencias, arquitectura y tamaño de funciones no tienen guardia (#58, #57, #59).", "tone": "warn"}
+    ]},
+    {"layout": "steps", "eyebrow": "El orden", "title": "Cinco tareas, de la más barata a la más larga", "items": [
+      {"title": "#79 promote", "text": "fix: promote etiqueta el rc aunque main avance. Sale como v0.2.1.", "tone": "good"},
+      {"title": "#45 fuzz de lessons", "text": "fix: los globs siempre compilan y el cuerpo no corta un carácter. v0.2.2."},
+      {"title": "#58 presupuesto de dependencias", "text": "chore: go.mod sin marcas indirect falsas y una tabla con el motivo de cada una."},
+      {"title": "#57 ARCHITECTURE.md", "text": "docs: una página que lista cada paquete, con un test que la mantiene al día."},
+      {"title": "#59 ratchet de tamaño", "text": "chore: límites de 500 líneas, 60 por función y complejidad 15, que solo pueden bajar."}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones", "title": "Por qué así", "columns": ["Decidimos", "Porque", "En lugar de"], "rows": [
+      ["Una versión por cada fix", "Cada arreglo se prueba y se revierte solo", "Una sola versión al final"],
+      ["docs y chore sin versión propia", "aval release no publica sin un fix o perf", "Disfrazar commits de fix"],
+      ["Solo el trozo libre de #45", "FuzzGuardCommand depende de #24, aún abierta", "Esperar a cerrar #45 entera"],
+      ["Promote avisa, no rechaza", "El dueño decide si los commits posteriores importan", "Obligar a un rc nuevo siempre"]
+    ]},
+    {"layout": "checklist", "eyebrow": "Garantías", "title": "Lo que cada entrega cumple", "items": [
+      {"title": "Test en rojo primero", "text": "Falla en su aserción antes de escribir el arreglo.", "tone": "good"},
+      {"title": "Suite completa con -race", "text": "go test -race ./..., go vet y gofmt limpios."},
+      {"title": "CI verde en los tres sistemas", "text": "Antes de fusionar y de etiquetar."},
+      {"title": "Notas en inglés y español", "text": "docs/releases y CHANGELOG, como exige el test."}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Fusionar #81 y publicar v0.2.1", "lede": "Después, el fuzz de lessons y v0.2.2."}
+  ]
+}
