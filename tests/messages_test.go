@@ -451,3 +451,73 @@ func TestMessagesDoctor(t *testing.T) {
 				"\n7 correctos, 2 avisos, 2 fallos\n"},
 	})
 }
+
+// The commands that change or inspect HOME: sync, restore and uninstall. The
+// words the core packages return (a restore step, an uninstall step) are
+// translated when the catalog knows them and printed as they are otherwise.
+func TestMessagesMaintenance(t *testing.T) {
+	// A repository with one manifest link, the repo-managed settings and the
+	// shared rules block; HOME holds a link into it.
+	machine := func(t *testing.T, dir, home string) {
+		repo := filepath.Join(dir, "repo")
+		write(t, filepath.Join(repo, "install.manifest"), "[g]\nlabel = G\ndetail = d\nplatforms = all\n\nsrc/a .a\n")
+		write(t, filepath.Join(repo, "src", "a"), "hi\n")
+		write(t, filepath.Join(repo, "config", "claude", "settings.json"), `{"spinnerTipsEnabled": false}`)
+		write(t, filepath.Join(repo, "config", "claude", "CLAUDE.md"), "<!-- shared:agent-rules -->\nr\n<!-- /shared:agent-rules -->\n")
+		if err := os.Symlink(filepath.Join(repo, "src", "a"), filepath.Join(home, ".a")); err != nil {
+			t.Skipf("symlinks unavailable: %v", err)
+		}
+	}
+	// The same machine with the live settings already in sync.
+	synced := func(t *testing.T, dir, home string) {
+		machine(t, dir, home)
+		write(t, filepath.Join(home, ".claude", "settings.json"), `{"spinnerTipsEnabled": false}`)
+	}
+	bare := func(t *testing.T, dir, _ string) {
+		write(t, filepath.Join(dir, "repo", "install.manifest"), "[g]\nlabel = G\ndetail = d\nplatforms = all\n")
+	}
+	es := []string{"AVAL_LANG=es"}
+	runMessages(t, []msgCase{
+		{name: "restore with no backups", setup: bare, args: []string{"restore", "--repo", "DIR/repo"}, stdout: "no backups yet\n"},
+		{name: "restore with no backups, Spanish", setup: bare, args: []string{"restore", "--repo", "DIR/repo"}, env: es, stdout: "aún no hay copias de seguridad\n"},
+
+		{name: "sync dry run", setup: machine, args: []string{"sync", "--dry-run", "--repo", "DIR/repo"},
+			stdout: "settings  would change spinnerTipsEnabled\n" +
+				"rules     ~/.codex/AGENTS.md skipped (agent not installed)\n" +
+				"rules     ~/.gemini/GEMINI.md skipped (agent not installed)\n" +
+				"\nDry run: nothing was written.\n"},
+		{name: "sync dry run, Spanish", setup: machine, args: []string{"sync", "--dry-run", "--repo", "DIR/repo"}, env: es,
+			stdout: "ajustes   cambiaría spinnerTipsEnabled\n" +
+				"reglas    ~/.codex/AGENTS.md omitido (agente no instalado)\n" +
+				"reglas    ~/.gemini/GEMINI.md omitido (agente no instalado)\n" +
+				"\nSimulación: no se escribió nada.\n"},
+		{name: "sync with nothing to change", setup: synced, args: []string{"sync", "--repo", "DIR/repo"},
+			stdout: "settings  ~/.claude/settings.json is up to date\n" +
+				"rules     ~/.codex/AGENTS.md skipped (agent not installed)\n" +
+				"rules     ~/.gemini/GEMINI.md skipped (agent not installed)\n"},
+		{name: "sync with nothing to change, Spanish", setup: synced, args: []string{"sync", "--repo", "DIR/repo"}, env: es,
+			stdout: "ajustes   ~/.claude/settings.json está al día\n" +
+				"reglas    ~/.codex/AGENTS.md omitido (agente no instalado)\n" +
+				"reglas    ~/.gemini/GEMINI.md omitido (agente no instalado)\n"},
+		{name: "sync check with drift", setup: machine, args: []string{"sync", "--check", "--repo", "DIR/repo"}, code: 1,
+			stdout: "drift  settings  ~/.claude/settings.json would change: file missing; spinnerTipsEnabled\n\nRun `aval sync` to apply.\n"},
+		{name: "sync check with drift, Spanish", setup: machine, args: []string{"sync", "--check", "--repo", "DIR/repo"}, env: es, code: 1,
+			stdout: "desfase  ajustes   ~/.claude/settings.json cambiaría: archivo ausente; spinnerTipsEnabled\n\nEjecute `aval sync` para aplicar.\n"},
+		{name: "sync check without drift", setup: synced, args: []string{"sync", "--check", "--repo", "DIR/repo"}, stdout: "sync: no drift\n"},
+		{name: "sync check without drift, Spanish", setup: synced, args: []string{"sync", "--check", "--repo", "DIR/repo"}, env: es, stdout: "sync: sin desfase\n"},
+
+		{name: "uninstall dry run", setup: machine, args: []string{"uninstall", "--dry-run", "--repo", "DIR/repo"},
+			stdout: "~/.a                                                         would remove link\n\nDry run: nothing was written.\n"},
+		{name: "uninstall dry run, Spanish", setup: machine, args: []string{"uninstall", "--dry-run", "--repo", "DIR/repo"}, env: es,
+			stdout: "~/.a                                                         quitaría el enlace\n\nSimulación: no se escribió nada.\n"},
+		{name: "uninstall declined", setup: machine, args: []string{"uninstall", "--repo", "DIR/repo"}, stdin: "n\n",
+			stdout: "~/.a                                                         would remove link\n\nProceed? [y/N] aborted, nothing was changed\n"},
+		{name: "uninstall declined, Spanish", setup: machine, args: []string{"uninstall", "--repo", "DIR/repo"}, env: es, stdin: "n\n",
+			stdout: "~/.a                                                         quitaría el enlace\n\n¿Continuar? [s/N] cancelado, no se cambió nada\n"},
+		{name: "uninstall confirmed in Spanish", setup: machine, args: []string{"uninstall", "--repo", "DIR/repo"}, env: es, stdin: "sí\n",
+			stdout: "~/.a                                                         quitaría el enlace\n\n¿Continuar? [s/N] \n" +
+				"~/.a                                                         enlace quitado\n\npara deshacer: aval restore latest\n"},
+		{name: "nothing to uninstall", setup: bare, args: []string{"uninstall", "--dry-run", "--repo", "DIR/repo"},
+			stdout: "nothing to uninstall: no manifest link points into this repo\n\nDry run: nothing was written.\n"},
+	})
+}

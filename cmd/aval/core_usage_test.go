@@ -160,6 +160,10 @@ func isUsage(err error) bool {
 	return errors.As(err, &u)
 }
 
+// englishTr is the English translator the logic tests run the commands with;
+// the wording itself is pinned in tests/messages_test.go.
+var englishTr = i18n.New(i18n.English)
+
 // englishEnv is the process environment with the language pinned, so a usage
 // assertion does not depend on the machine's locale.
 func englishEnv(k string) string {

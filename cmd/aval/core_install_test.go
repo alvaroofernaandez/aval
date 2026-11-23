@@ -180,7 +180,7 @@ func TestAStoppedRunCommitsItsBackupSoRestoreLatestUndoesIt(t *testing.T) {
 	}
 
 	var out bytes.Buffer
-	if err := runRestore(repo, home, []string{"latest"}, false, &out); err != nil {
+	if err := runRestore(repo, home, []string{"latest"}, false, &out, englishTr); err != nil {
 		t.Fatalf("aval restore latest: %v\n%s", err, out.String())
 	}
 	fi, err := os.Lstat(filepath.Join(home, ".a"))

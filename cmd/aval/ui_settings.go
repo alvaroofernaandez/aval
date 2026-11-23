@@ -104,6 +104,10 @@ func (s uiSettings) capsInputs(getenv func(string) string, goos string, isTTY bo
 func settingsForCommand(cmd string, flags uiFlags, getenv func(string) string, home string, stderr io.Writer) (uiSettings, error) {
 	switch cmd {
 	case "install", "doctor", "":
+	case "sync", "restore", "uninstall", "update":
+		// These print for people but draw nothing: they need the language
+		// only, and a config warning stays as quiet as it always was.
+		return langOnlySettings(flags, getenv)
 	default:
 		return uiSettings{}, nil
 	}
@@ -117,6 +121,18 @@ func settingsForCommand(cmd string, flags uiFlags, getenv func(string) string, h
 		}
 	}
 	return s, nil
+}
+
+// langOnlySettings resolves just the language for a command that prints for
+// people without drawing. A bad --lang is an error, like on the commands that
+// draw; a bad value in the file is skipped without a warning.
+func langOnlySettings(flags uiFlags, getenv func(string) string) (uiSettings, error) {
+	if flags.Lang != "" {
+		if msg := config.Validate("language", flags.Lang); msg != "" {
+			return uiSettings{}, fmt.Errorf("%w: %s", errBadLangFlag, msg)
+		}
+	}
+	return uiSettings{Lang: usageLang(getenv, flags.Lang)}, nil
 }
 
 // settingsEnv is what the settings view needs to read and write path and to

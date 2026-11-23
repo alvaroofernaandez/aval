@@ -9,6 +9,7 @@ import (
 	"runtime"
 
 	"github.com/alvaroofernaandez/aval/internal/core/repoloc"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // finishInstall is what install.sh did after linking: seed the Claude settings,
@@ -37,7 +38,7 @@ func completeInstall(repo, home string, dryRun bool) ([]string, error) {
 	if dryRun {
 		return nil, nil
 	}
-	_ = runSync(repo, home, nil, false, io.Discard)
+	_ = runSync(repo, home, nil, false, io.Discard, i18n.New(i18n.English))
 	var warnings []string
 	if w := recordRepo(repo, home); w != "" {
 		warnings = append(warnings, w)

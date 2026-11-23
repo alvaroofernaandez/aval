@@ -47,6 +47,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/platform"
 	"github.com/alvaroofernaandez/aval/internal/core/repoloc"
 	"github.com/alvaroofernaandez/aval/internal/core/update"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/release"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
@@ -301,13 +302,13 @@ func dispatch(argv []string, c cmdIO) error {
 	case "budget":
 		return runBudget(home, sub, c.stdout)
 	case "sync":
-		return runSync(repo, home, sub, *dryRun, c.stdout)
+		return runSync(repo, home, sub, *dryRun, c.stdout, i18n.New(uiCfg.Lang))
 	case "rules":
 		return runRules(repo, sub, c.stdout)
 	case "restore":
-		return runRestore(repo, home, sub, *dryRun, c.stdout)
+		return runRestore(repo, home, sub, *dryRun, c.stdout, i18n.New(uiCfg.Lang))
 	case "uninstall":
-		return runUninstall(repo, home, sub, *dryRun, *yes, c.stdin, c.stdout)
+		return runUninstall(repo, home, sub, *dryRun, *yes, c.stdin, c.stdout, i18n.New(uiCfg.Lang))
 	}
 
 	if fs.Arg(0) == "update" {
