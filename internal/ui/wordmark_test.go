@@ -23,6 +23,26 @@ var approvedWordmark = []string{
 	"  ▀▜████▜█▌     ▝█▛       ▝▀████▛██   ██",
 }
 
+// approvedWordmarkASCII is the ASCII tier from DESIGN.md section 10: each
+// cell of the same quadrant raster, mapped by how many quarters are filled.
+var approvedWordmarkASCII = []string{
+	"                     .##              ##",
+	"                    .##'              ##",
+	"   ,,,,,,,.  .,.    ##'    .,,,,,,,   ##",
+	" .##\"\"\"####  '##.  ###    ###\"\"\"###   ##",
+	" ##'    ###   '##.###    ###    '##   ##",
+	" ###.  ,###    '####     '##,  .###   ##",
+	"  \"########     '##       '\"#######   ##",
+}
+
+func TestWordmarkASCIIMatchesApprovedArt(t *testing.T) {
+	got := strings.Join(wordmarkASCII, "\n")
+	want := strings.Join(approvedWordmarkASCII, "\n")
+	if got != want {
+		t.Fatalf("ascii wordmark differs from DESIGN.md:\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	}
+}
+
 func TestWordmarkUnicodeMatchesApprovedArt(t *testing.T) {
 	got := strings.Join(wordmarkUnicode, "\n")
 	want := strings.Join(approvedWordmark, "\n")
@@ -52,8 +72,8 @@ func TestWordmarkASCIIIsPureASCII(t *testing.T) {
 	}
 	for i, row := range wordmarkASCII {
 		for _, r := range row {
-			if r != ' ' && r != '#' {
-				t.Errorf("ascii row %d has %q; only space and # are allowed", i, r)
+			if !strings.ContainsRune(" #\"',.", r) {
+				t.Errorf("ascii row %d has %q; only space, #, \", ', and . are allowed", i, r)
 			}
 		}
 	}

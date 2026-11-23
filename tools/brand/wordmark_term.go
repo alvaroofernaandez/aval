@@ -76,8 +76,35 @@ func raster(prims []prim, sw float64, b box, cols, rows int) [][]bool {
 	return g
 }
 
+// asciiCell maps one quadrant cell (tl, tr, bl, br) to ASCII, per DESIGN.md
+// section 10: 3 or 4 quarters are #, a top pair is ", a bottom pair is ",",
+// any other pair is #, a single top quarter is ', a single bottom one is ".".
+func asciiCell(k [4]bool) byte {
+	n := 0
+	for _, on := range k {
+		if on {
+			n++
+		}
+	}
+	top, bottom := k[0] || k[1], k[2] || k[3]
+	switch {
+	case n == 0:
+		return ' '
+	case n == 1 && top:
+		return '\''
+	case n == 1:
+		return '.'
+	case n == 2 && !bottom:
+		return '"'
+	case n == 2 && !top:
+		return ','
+	default:
+		return '#'
+	}
+}
+
 // termWordmark returns the Unicode tier (quadrant blocks) and the ASCII tier
-// (# at half resolution, one pixel per cell). Rows are right-trimmed and then
+// (asciiCell over the same quadrant raster, so the two never drift). Rows are right-trimmed and then
 // padded to a common width.
 func termWordmark() (unicode, ascii []string) {
 	prims, w := wordPrims(0, wordASC)
@@ -94,15 +121,10 @@ func termWordmark() (unicode, ascii []string) {
 		unicode = append(unicode, line.String())
 	}
 
-	h := raster(prims, wordS, b, cols, termRows)
-	for _, row := range h {
+	for r := 0; r < termRows; r++ {
 		var line strings.Builder
-		for _, on := range row {
-			if on {
-				line.WriteByte('#')
-			} else {
-				line.WriteByte(' ')
-			}
+		for c := 0; c < cols; c++ {
+			line.WriteByte(asciiCell([4]bool{q[2*r][2*c], q[2*r][2*c+1], q[2*r+1][2*c], q[2*r+1][2*c+1]}))
 		}
 		ascii = append(ascii, line.String())
 	}
@@ -131,7 +153,7 @@ func wordmarkTermSource() []byte {
 	fmt.Fprintf(&b, "// wordmarkUnicode is the wordmark in quadrant blocks: %d rows, %dx%d samples\n", termRows, termSS, termSS)
 	fmt.Fprintf(&b, "// per subpixel at %.2f coverage.\n", termThreshold)
 	writeRows(&b, "wordmarkUnicode", uni)
-	b.WriteString("\n// wordmarkASCII is the same raster in # at half resolution.\n")
+	b.WriteString("\n// wordmarkASCII is the same quadrant raster, one ASCII character per cell.\n")
 	writeRows(&b, "wordmarkASCII", asc)
 	out, err := format.Source(b.Bytes())
 	if err != nil {
