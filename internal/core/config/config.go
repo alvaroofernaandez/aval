@@ -189,7 +189,7 @@ func Set(path, key, value string) error {
 		return fmt.Errorf("config: unknown key %q. Valid: %s", key, strings.Join(keys, ", "))
 	}
 	if msg := validate(key, value); msg != "" {
-		return fmt.Errorf("config: %s: %s", path, msg)
+		return fmt.Errorf("config: %s: %w", path, &InvalidValueError{Key: key, Value: value, msg: msg})
 	}
 	var lines []string
 	if b, err := os.ReadFile(path); err == nil {
@@ -339,3 +339,12 @@ func EnvName(key string) string {
 	}
 	return envNames[key]
 }
+
+// InvalidValueError is a value Set refuses for Key. Its message says which
+// values are valid, with a suggestion when one is close.
+type InvalidValueError struct {
+	Key, Value string
+	msg        string
+}
+
+func (e *InvalidValueError) Error() string { return e.msg }

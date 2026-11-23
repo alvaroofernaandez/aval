@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -124,8 +125,8 @@ func TestParseRejectsUnknownPlatform(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error for an unknown platform")
 	}
-	if !strings.Contains(err.Error(), "solaris") {
-		t.Errorf("error should name the bad value, got: %v", err)
+	if !errors.Is(err, errUnknownPlatform) {
+		t.Errorf("err = %v, want errUnknownPlatform", err)
 	}
 }
 

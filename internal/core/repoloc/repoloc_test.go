@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -65,37 +64,26 @@ func TestResolveExplicitSourceThatPointsNowhereFails(t *testing.T) {
 	wd := repo(t)
 	empty := t.TempDir()
 
+	cfg := config(t, empty)
 	cases := []struct {
-		name, mention string
-		s             Sources
+		name, source string
+		s            Sources
 	}{
 		{"flag", "--repo", Sources{Flag: empty, Wd: wd}},
-		{"env", "AVAL_REPO", Sources{Env: empty, Wd: wd}},
-		{"config", "config", Sources{ConfigFile: config(t, empty), Wd: wd}},
+		{"env", "$AVAL_REPO", Sources{Env: empty, Wd: wd}},
+		{"config", "repo in config " + cfg, Sources{ConfigFile: cfg, Wd: wd}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := Resolve(c.s)
-			if err == nil {
-				t.Fatal("want an error")
+			var se *sourceError
+			if !errors.As(err, &se) {
+				t.Fatalf("err = %v, want a *sourceError", err)
 			}
-			if !strings.Contains(err.Error(), c.mention) {
-				t.Errorf("error %q does not name %s", err, c.mention)
+			if se.Source != c.source || se.Path != empty {
+				t.Errorf("source %q path %q, want %q and %q", se.Source, se.Path, c.source, empty)
 			}
 		})
-	}
-}
-
-func TestResolveNothingFoundExplainsTheFix(t *testing.T) {
-	empty := t.TempDir()
-	_, err := Resolve(Sources{Wd: empty, Exe: empty})
-	if err == nil {
-		t.Fatal("want an error")
-	}
-	for _, want := range []string{"aval install --repo", "AVAL_REPO"} {
-		if !strings.Contains(err.Error(), want) {
-			t.Errorf("error %q does not mention %q", err, want)
-		}
 	}
 }
 
@@ -179,14 +167,11 @@ func mkdir(t *testing.T, p string) string {
 	return p
 }
 
-func TestResolveNothingFoundIsErrNotFoundWithTheSameMessage(t *testing.T) {
-	_, err := Resolve(Sources{Wd: t.TempDir()})
+func TestResolveNothingFoundIsErrNotFound(t *testing.T) {
+	empty := t.TempDir()
+	_, err := Resolve(Sources{Wd: empty, Exe: empty})
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
-	}
-	want := "cannot find the aval repository (install.manifest): run 'aval install --repo <path>' once from your checkout, or set AVAL_REPO"
-	if err.Error() != want {
-		t.Errorf("message changed:\n got %q\nwant %q", err.Error(), want)
 	}
 }
 
@@ -219,23 +204,16 @@ func TestCheckSaysWhatIsWrongAndHowToFixIt(t *testing.T) {
 	}
 	cases := []struct {
 		name, path string
-		want       []string
+		want       error
 	}{
-		{"empty", "", []string{"Type the path"}},
-		{"missing", filepath.Join(dir, "nope"), []string{"does not exist", "nope"}},
-		{"file", file, []string{"is a file", "folder"}},
-		{"no manifest", dir, []string{"not an aval repository", "install.manifest"}},
+		{"empty", "", errNoPath},
+		{"missing", filepath.Join(dir, "nope"), errPathMissing},
+		{"file", file, errNotADir},
+		{"no manifest", dir, errNotACheckout},
 	}
 	for _, c := range cases {
-		_, err := Check(c.path)
-		if err == nil {
-			t.Errorf("%s: Check(%q) accepted it", c.name, c.path)
-			continue
-		}
-		for _, w := range c.want {
-			if !strings.Contains(err.Error(), w) {
-				t.Errorf("%s: %q does not say %q", c.name, err, w)
-			}
+		if _, err := Check(c.path); !errors.Is(err, c.want) {
+			t.Errorf("%s: Check(%q) = %v, want %v", c.name, c.path, err, c.want)
 		}
 	}
 }

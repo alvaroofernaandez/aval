@@ -71,7 +71,7 @@ func explicit(path, source string) (string, error) {
 	if root := walkUp(path); root != "" {
 		return root, nil
 	}
-	return "", fmt.Errorf("%s points at %s, which is not an aval repository (no %s)", source, path, Manifest)
+	return "", &sourceError{Source: source, Path: path}
 }
 
 func walkUp(start string) string {
@@ -124,23 +124,50 @@ var ErrNotFound = errors.New("cannot find the aval repository")
 // the root. Each error says what is wrong with the path and how to fix it.
 func Check(path string) (string, error) {
 	if path == "" {
-		return "", errors.New("Type the path to the folder where aval is cloned.")
+		return "", &checkError{errNoPath, "Type the path to the folder where aval is cloned."}
 	}
 	fi, err := os.Stat(path)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
-		return "", fmt.Errorf("%s does not exist. Check the spelling, or clone aval there first.", path)
+		return "", &checkError{errPathMissing, fmt.Sprintf("%s does not exist. Check the spelling, or clone aval there first.", path)}
 	case err != nil:
 		return "", fmt.Errorf("%s cannot be read: %v. Pick a folder you can open.", path, err)
 	case !fi.IsDir():
-		return "", fmt.Errorf("%s is a file. Type the folder that holds %s.", path, Manifest)
+		return "", &checkError{errNotADir, fmt.Sprintf("%s is a file. Type the folder that holds %s.", path, Manifest)}
 	}
 	if root := walkUp(path); root != "" {
 		return root, nil
 	}
-	return "", fmt.Errorf("%s is not an aval repository: it has no %s. Type the folder that holds it.", path, Manifest)
+	return "", &checkError{errNotACheckout, fmt.Sprintf("%s is not an aval repository: it has no %s. Type the folder that holds it.", path, Manifest)}
 }
 
 // Find returns the root of the checkout that contains start, or "" when
 // there is none within the walk limit.
 func Find(start string) string { return walkUp(start) }
+
+// sourceError is an explicit source (--repo, $AVAL_REPO, the config file)
+// that points at no checkout. Source names it as the message does.
+type sourceError struct{ Source, Path string }
+
+func (e *sourceError) Error() string {
+	return fmt.Sprintf("%s points at %s, which is not an aval repository (no %s)", e.Source, e.Path, Manifest)
+}
+
+// The ways a typed path fails Check. Each is wrapped in a checkError whose
+// message tells the person what to do.
+var (
+	errNoPath       = errors.New("no path")
+	errPathMissing  = errors.New("path does not exist")
+	errNotADir      = errors.New("path is a file")
+	errNotACheckout = errors.New("path is not a checkout")
+)
+
+// checkError is a Check failure: msg is what the person reads, kind which
+// failure it is.
+type checkError struct {
+	kind error
+	msg  string
+}
+
+func (e *checkError) Error() string { return e.msg }
+func (e *checkError) Unwrap() error { return e.kind }

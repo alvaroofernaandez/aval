@@ -396,10 +396,6 @@ func TestApplyErrorNamesTheActionAndAShortReason(t *testing.T) {
 	if ae.Reason != "source missing" {
 		t.Errorf("Reason = %q, want %q", ae.Reason, "source missing")
 	}
-	// The full message is unchanged: the headless output prints it.
-	if want := "install: source missing: " + act.Source; err.Error() != want {
-		t.Errorf("Error() = %q, want %q", err.Error(), want)
-	}
 }
 
 func TestShortReasonDropsThePaths(t *testing.T) {

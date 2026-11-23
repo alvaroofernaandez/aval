@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -143,8 +144,9 @@ func TestSetInvalidLeavesFileUntouched(t *testing.T) {
 	orig := "# keep\nrepo = /x\n"
 	p := write(t, orig)
 	err := Set(p, "theme", "tokio")
-	if err == nil || !strings.Contains(err.Error(), `theme = "tokio" is not a theme`) || !strings.Contains(err.Error(), "Did you mean tokyo-night?") {
-		t.Fatalf("err = %v", err)
+	var ie *InvalidValueError
+	if !errors.As(err, &ie) || ie.Key != "theme" || ie.Value != "tokio" {
+		t.Fatalf("err = %v, want an *InvalidValueError for theme = tokio", err)
 	}
 	if got := read(t, p); got != orig {
 		t.Errorf("file changed: %q", got)

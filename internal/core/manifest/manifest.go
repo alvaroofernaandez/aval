@@ -7,6 +7,7 @@ package manifest
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -139,7 +140,7 @@ func Parse(r io.Reader) (*Manifest, error) {
 				case "all":
 					cur.Platforms = PlatformAll
 				default:
-					return nil, fmt.Errorf("manifest: line %d: unknown platform %q", line, value)
+					return nil, fmt.Errorf("manifest: line %d: %w %q", line, errUnknownPlatform, value)
 				}
 				seenPlatforms = true
 			case "fanout-source":
@@ -191,3 +192,6 @@ func ParseLinks(r io.Reader) ([]Entry, error) {
 	}
 	return out, nil
 }
+
+// errUnknownPlatform is a platforms value that names no platform aval knows.
+var errUnknownPlatform = errors.New("unknown platform")
