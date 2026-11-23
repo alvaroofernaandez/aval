@@ -19,6 +19,7 @@ edited by hand after that point; the section below is the history before version
 - **ui:** welcome screen that finds or clones the repository
 - **ui:** shared frame, lockup and breakpoints; the colour is on the state glyph only
 - **ui:** themes (aval brand, terminal, mono and community themes) and a settings view with live preview
+- **i18n:** the hub, the installer and the human output of the CLI are translated into English and Spanish; `language = auto|en|es`, `--lang` and `AVAL_LANG` choose it, falling back to `LC_ALL`, `LC_MESSAGES` and `LANG`. `--json`, hooks, the statusline, logs and generated files stay English. Text that comes from the core packages (doctor check messages, plan labels, sync warnings, install error reasons) is not translated yet
 - **config:** `aval config list|get|set|path`; theme, glyph, motion and update settings reach every surface
 - **cli:** grouped, branded usage with a first-run hint, and styled status output for doctor and headless install
 - **backup:** runs record their origin
