@@ -16,7 +16,7 @@ func TestDocsDescribeTheHub(t *testing.T) {
 	golden := read(t, "internal/ui/testdata/view_hub_unicode_80x24.golden")
 	var menuLine string
 	for _, l := range strings.Split(golden, "\n") {
-		if strings.Contains(l, "Set up› ⇣ Install") {
+		if strings.Contains(l, "Set up  › ⇣ Install") {
 			menuLine = strings.TrimRight(l, " ")
 		}
 	}

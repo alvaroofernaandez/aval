@@ -92,7 +92,7 @@ Opening the hub still writes nothing and touches no network. The commits-behind 
 
 ## Tasks
 
-- [ ] **V1 (opus): DESIGN.md section 10 amendment and the hub v2 screen.**
+- [x] **V1 (opus): DESIGN.md section 10 amendment and the hub v2 screen.**
   - Implement icons, badges, gutter groups, the detail pane per entry, letter shortcuts, the new selection style, the narrow-width collapse, path shortening and the relative backup row.
   - RED tests, each on an assertion:
     - every icon passes the gate and is width 1;
@@ -106,9 +106,9 @@ Opening the hub still writes nothing and touches no network. The commits-behind 
     - the 80x24 golden matches the target;
     - under 80 columns the pane collapses to one line;
     - width and height invariants hold for 20 to 120 by 8 to 40.
-- [ ] **V2 (sonnet, parallel with V1): `Services.RepoStatus`.**
+- [x] **V2 (sonnet, parallel with V1): `Services.RepoStatus`.**
   - Return the commits behind the last fetched upstream and whether the tree is dirty, reading locally with no network and no writes.
   - Wire it in `cmd/aval/hub.go`.
   - RED tests: a temp repo with an upstream two commits ahead returns 2; a repo with no upstream returns unknown; the file tree is byte-identical after the call.
-- [ ] **V3 (sonnet, after V1 and V2): wiring, docs excerpt and GIF.**
+- [x] **V3 (sonnet, after V1 and V2): wiring, docs excerpt and GIF.**
   - Regenerate the README and guide hub excerpt from the new golden, and re-record `docs/assets/hub.gif`.

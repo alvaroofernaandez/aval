@@ -59,32 +59,32 @@ Three ways to get the binary; everything else is the same.
 > The npm package named `aval` and the prebuilt binaries are published by CI and are not yet
 > available under the new name.
 
-On a terminal, a bare `aval` opens the **hub**: the wordmark, a status panel (version from the update cache, repo, doctor, last backup, theme) and a menu. Opening it writes nothing and makes no network calls.
+On a terminal, a bare `aval` opens the **hub**: the wordmark, a status panel (version from the update cache, repo, doctor, last backup, theme) and a menu. Opening it writes nothing and makes no network calls. Each entry has an icon and, when there is something to know, a badge. A detail pane follows the cursor, and the letters in the footer jump straight to an entry.
 
 ```text
-                       ▗██              ██
-                      ▗██▘              ██  Version  0.3.0 · ! 0.3.1 available
-     ▄▄▄▄▄▄▄▖  ▗▄▖    ▟█▘    ▗▄▄▄▄▄▄▄   ██  Repo     ~/.aval
-   ▗██▀▀▀▜██▌  ▝██▖  ▟█▛    ▟█▛▀▀▀███   ██  Doctor   ! 9 ok, 1 warn, 0 fail
-   ██▘    ▜█▌   ▝██▖▟█▛    ▐█▛    ▝██   ██  Backup   2026-11-23 10:14 · sync…
-   ▜█▙▖  ▄██▌    ▝███▛     ▝██▄  ▗▟██   ██  Theme    mono · unicode
+                       ▗██              ██  Version  0.3.0 · ! 0.3.1 available
+                      ▗██▘              ██  Repo     ~/.aval
+     ▄▄▄▄▄▄▄▖  ▗▄▖    ▟█▘    ▗▄▄▄▄▄▄▄   ██  Doctor   ! 1 warn
+   ▗██▀▀▀▜██▌  ▝██▖  ▟█▛    ▟█▛▀▀▀███   ██  Backup   today 12:54 · install
+   ██▘    ▜█▌   ▝██▖▟█▛    ▐█▛    ▝██   ██  Theme    mono
+   ▜█▙▖  ▄██▌    ▝███▛     ▝██▄  ▗▟██   ██
     ▀▜████▜█▌     ▝█▛       ▝▀████▛██   ██
   Nothing passes without evidence.                               macOS (arm64)
   ────────────────────────────────────────────────────────────────────────────
 
-  Set up   › Install      link the repo configs into this home
-             Update       pull the repo, then re-apply
-             Sync         merge repo-managed settings into the live config
-  Health     Doctor       check this machine against the repo
-  Undo       Backups      list backup runs and restore one
-             Uninstall    remove the links aval made, put back what was there
-  Tools      Settings     theme, glyphs, motion and update checks
-             Dev sandbox  a throwaway home for trying aval
-             About        version, paths and links
+  Set up  › ⇣ Install        │ ⇣ Install                                     i
+            ⟳ Update     ↑ 3 │ Link the repo configs into this home.
+            ⇄ Sync           │
+  Health    ⊞ Doctor     ! 1 │ Repo      ~/.aval
+  Undo      ◷ Backups      4 │ Last run  today 12:54
+            ⌫ Uninstall      │
+  Tools     ⎈ Settings       │ enter  pick what to link
+            ⧉ Dev sandbox  2 │
+            ◉ About          │
 
   ────────────────────────────────────────────────────────────────────────────
   1 warning · open Doctor to see it
-  ↑↓ move · enter open · ? help · q quit
+  ↑↓ move · enter open · i u s d b x , v a jump · ? help · q quit
 ```
 
 Every write goes through preview, confirm, run and result. A destructive confirm opens on Cancel and names its safety net. Without a terminal, with `aval help` or `--help`, or with `TERM=dumb`, aval prints the usage byte for byte instead.

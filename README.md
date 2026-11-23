@@ -158,32 +158,32 @@ go install github.com/alvaroofernaandez/aval/cmd/aval@latest
 
 Or download an archive from [Releases](https://github.com/alvaroofernaandez/aval/releases) (checksums in `SHA256SUMS`).
 
-**2. Run `aval`.** On a terminal, a bare `aval` opens the **hub**: the wordmark, a status panel (version from the update cache, repo, doctor, last backup, theme) and a menu. Opening it writes nothing and makes no network calls.
+**2. Run `aval`.** On a terminal, a bare `aval` opens the **hub**: the wordmark, a status panel (version from the update cache, repo, doctor, last backup, theme) and a menu. Opening it writes nothing and makes no network calls. Each entry has an icon, and some a badge (updates, doctor warnings, backups, sandboxes); a detail pane beside the menu says what the highlighted entry will do, and a letter opens an entry directly (`?` lists them).
 
 ```text
-                       ▗██              ██
-                      ▗██▘              ██  Version  0.3.0 · ! 0.3.1 available
-     ▄▄▄▄▄▄▄▖  ▗▄▖    ▟█▘    ▗▄▄▄▄▄▄▄   ██  Repo     ~/.aval
-   ▗██▀▀▀▜██▌  ▝██▖  ▟█▛    ▟█▛▀▀▀███   ██  Doctor   ! 9 ok, 1 warn, 0 fail
-   ██▘    ▜█▌   ▝██▖▟█▛    ▐█▛    ▝██   ██  Backup   2026-11-23 10:14 · sync…
-   ▜█▙▖  ▄██▌    ▝███▛     ▝██▄  ▗▟██   ██  Theme    mono · unicode
+                       ▗██              ██  Version  0.3.0 · ! 0.3.1 available
+                      ▗██▘              ██  Repo     ~/.aval
+     ▄▄▄▄▄▄▄▖  ▗▄▖    ▟█▘    ▗▄▄▄▄▄▄▄   ██  Doctor   ! 1 warn
+   ▗██▀▀▀▜██▌  ▝██▖  ▟█▛    ▟█▛▀▀▀███   ██  Backup   today 12:54 · install
+   ██▘    ▜█▌   ▝██▖▟█▛    ▐█▛    ▝██   ██  Theme    mono
+   ▜█▙▖  ▄██▌    ▝███▛     ▝██▄  ▗▟██   ██
     ▀▜████▜█▌     ▝█▛       ▝▀████▛██   ██
   Nothing passes without evidence.                               macOS (arm64)
   ────────────────────────────────────────────────────────────────────────────
 
-  Set up   › Install      link the repo configs into this home
-             Update       pull the repo, then re-apply
-             Sync         merge repo-managed settings into the live config
-  Health     Doctor       check this machine against the repo
-  Undo       Backups      list backup runs and restore one
-             Uninstall    remove the links aval made, put back what was there
-  Tools      Settings     theme, glyphs, motion and update checks
-             Dev sandbox  a throwaway home for trying aval
-             About        version, paths and links
+  Set up  › ⇣ Install        │ ⇣ Install                                     i
+            ⟳ Update     ↑ 3 │ Link the repo configs into this home.
+            ⇄ Sync           │
+  Health    ⊞ Doctor     ! 1 │ Repo      ~/.aval
+  Undo      ◷ Backups      4 │ Last run  today 12:54
+            ⌫ Uninstall      │
+  Tools     ⎈ Settings       │ enter  pick what to link
+            ⧉ Dev sandbox  2 │
+            ◉ About          │
 
   ────────────────────────────────────────────────────────────────────────────
   1 warning · open Doctor to see it
-  ↑↓ move · enter open · ? help · q quit
+  ↑↓ move · enter open · i u s d b x , v a jump · ? help · q quit
 ```
 
 <div align="center">
