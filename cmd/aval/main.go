@@ -319,6 +319,62 @@ func unavailableGroups(m *manifest.Manifest) []ui.UnavailableGroup {
 }
 
 func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
+	return runInstallWith(repo, home, dryRun, yes, forceCopy, realInstallDeps())
+}
+
+// installDeps are the seams runInstall needs from the outside world.
+type installDeps struct {
+	isTTY  func(fd uintptr) bool
+	run    func(tea.Model) (tea.Model, error)
+	finish func(repo, home string, dryRun bool) error
+}
+
+func realInstallDeps() installDeps {
+	return installDeps{
+		isTTY: term.IsTerminal,
+		run: func(m tea.Model) (tea.Model, error) {
+			return tea.NewProgram(m, tea.WithAltScreen()).Run()
+		},
+		finish: finishInstall,
+	}
+}
+
+// installGuard refuses the interactive installer when there is nothing to
+// draw on: without --yes it needs a terminal on both stdin and stdout.
+func installGuard(yes bool, isTTY func(uintptr) bool) error {
+	if yes || (isTTY(os.Stdin.Fd()) && isTTY(os.Stdout.Fd())) {
+		return nil
+	}
+	return errors.New("aval install needs a terminal. For scripts use: aval install --yes")
+}
+
+// driveInstall runs the program and finishes the install only for a completed
+// run. closeRunner ends the backup run; finish seeds settings, syncs and
+// records the repo.
+func driveInstall(model ui.Model, run func(tea.Model) (tea.Model, error), closeRunner, finish func() error) error {
+	final, err := run(model)
+	if ferr := closeRunner(); err == nil {
+		err = ferr
+	}
+	if err != nil {
+		return err
+	}
+	if fm, ok := final.(ui.Model); ok && len(fm.Errs()) > 0 {
+		return fmt.Errorf("%d action(s) failed", len(fm.Errs()))
+	}
+	// Quitting on the select screen (or anywhere before the done screen) must
+	// leave settings, sync, the repo record and git hooks untouched. A dry run
+	// still reaches finish: finishInstall writes nothing when dryRun is set.
+	if fm, ok := final.(ui.Model); ok && !fm.Completed() {
+		return nil
+	}
+	return finish()
+}
+
+func runInstallWith(repo, home string, dryRun, yes, forceCopy bool, deps installDeps) error {
+	if err := installGuard(yes, deps.isTTY); err != nil {
+		return err
+	}
 	m, p, pf, err := buildPlan(repo, home)
 	if err != nil {
 		return err
@@ -352,17 +408,8 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 	})
 	model.Unavailable = unavailableGroups(m)
 
-	final, err := tea.NewProgram(model, tea.WithAltScreen()).Run()
-	if ferr := runner.Finish(); err == nil {
-		err = ferr
-	}
-	if err != nil {
-		return err
-	}
-	if fm, ok := final.(ui.Model); ok && len(fm.Errs()) > 0 {
-		return fmt.Errorf("%d action(s) failed", len(fm.Errs()))
-	}
-	return finishInstall(repo, home, dryRun)
+	return driveInstall(model, deps.run, runner.Finish,
+		func() error { return deps.finish(repo, home, dryRun) })
 }
 
 // finish closes the runner's backup run without hiding the original error.
