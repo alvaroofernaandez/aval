@@ -198,6 +198,7 @@ There are two tiers, picked from the terminal's capabilities:
 Rules for both tiers:
 - A state glyph is always followed by its word (`√ linked`).
 - No emoji, no Nerd Font icons, no powerline glyphs. States colour the glyph only; the word uses `text`. The Dingbat check marks fail `aval design gate emoji`, so the tiers use `√` and `×`.
+- The one exception to "no icons" is the hub's nine entry icons (see Hub icons below): one cell wide each, from that table only, never as decoration anywhere else.
 - Box drawing and block element characters (`▗▟█▛▜▙▀▄▌▐`) are allowed for the
   hub wordmark only. Nothing else uses them as decoration.
 - No em dashes in UI copy.
@@ -210,7 +211,8 @@ Rules for both tiers:
 - **Breakpoints:** compact under 40 columns, narrow 40 to 79, regular 80 and up.
 - **Invariants:** no line is wider than the terminal and the frame is never
   taller than it. Lists scroll with the cursor visible.
-- **Truncation:** labels end with an ellipsis; paths truncate in the middle.
+- **Truncation:** labels end with an ellipsis. Paths shorten from the front and
+  keep the tail (`…/dev/default/repo`); a path under HOME becomes `~/…`.
 
 ### Brand
 
@@ -283,8 +285,14 @@ Rows: Version, Repo, Doctor, Backup, Theme.
 - **Labels** in `muted`, **values** in `text`.
 - **Colour only on state glyphs** (`! 0.3.1 available`, `× not found`), per the
   state colour rule.
-- **Doctor** shows `checking` on first paint, then the worst state's glyph and
-  the CLI summary words. **Backup** shows an absolute time, or `none yet`.
+- **Doctor** shows `checking` on first paint, then the worst state's glyph, its
+  count and word (`! 1 warn`); the full counts live in the Doctor detail pane.
+- **Repo** keeps the tail of the path (Layout, Truncation).
+- **Backup** is a relative day plus origin: `today 12:54 · install`,
+  `yesterday 18:40 · sync`, older runs a date (`2026-11-20 09:00 · sync`), or
+  `none yet`. The run count moves to the Backups badge and detail.
+- **Theme** is the theme name; the glyph tier and motion live in the Settings
+  detail pane.
 - **Compact** collapses the panel to one status line.
 
 ### Menu
@@ -299,12 +307,63 @@ gutter, so they cost no rows; the gutter appears from 60 columns up.
 | Undo | Backups, Uninstall |
 | Tools | Settings, Dev sandbox, About |
 
-- Each entry is a name plus a one-line description; narrow ends the
-  description in an ellipsis, compact drops it.
-- **An unavailable entry is shown dimmed (`muted`) with its reason** in place
-  of the description. It never disappears, so the menu does not reflow. With no
+- Each row is the cursor gutter, an icon, the name and an optional badge. The
+  one-line description moves to the detail pane.
+- **An unavailable entry is shown dimmed (`muted`), its badge slot reads `off`
+  (so monochrome terminals still see it), and the detail pane shows its reason**
+  in place of the description. It never disappears, so the menu does not
+  reflow. With no
   repository only Install, Backups, Settings and About are live. Without a
   checkout or Go, Dev sandbox reads "needs a checkout and Go".
+
+### Hub icons
+
+Owner-approved on 2026-11-23 (hub v2). Each icon is one cell wide, passes
+`aval design gate emoji` and has a non-ambiguous East Asian width (one cell in
+CJK locales too). Rejected: ambiguous width (`↓ ● ◆ ⊕`), emoji variants
+(stopwatch U+23F1, information U+2139, gear U+2699) and Nerd Font glyphs. `⊕` from the first draft is ambiguous, so
+Doctor uses `⊞`, which keeps the plus of the ASCII `+`.
+
+| Entry | Unicode | ASCII | Key |
+| :--- | :--- | :--- | :--- |
+| Install | `⇣` | `v` | `i` |
+| Update | `⟳` | `@` | `u` |
+| Sync | `⇄` | `=` | `s` |
+| Doctor | `⊞` | `+` | `d` |
+| Backups | `◷` | `o` | `b` |
+| Uninstall | `⌫` | `x` | `x` |
+| Settings | `⎈` | `*` | `,` |
+| Dev sandbox | `⧉` | `#` | `v` |
+| About | `◉` | `i` | `a` |
+
+Icons are `muted`. The selected entry's icon and name are bold ink (`strong`).
+
+- **Selection:** the cursor `›` sits in the gutter, right after the group name,
+  and the selected row is bold. There is no reverse-video block on the hub.
+- **Badges:** right-aligned in the list, one to five cells, shown only when they
+  carry information: a state glyph plus a number, so colour stays on the glyph.
+
+| Entry | Badge |
+| :--- | :--- |
+| Update | `↑ N` (`^ N` in ASCII): commits behind the last fetched upstream, read locally; none when unknown or zero |
+| Doctor | worst state glyph and its count (`! 1`), none while checking |
+| Backups | run count |
+| Dev sandbox | sandbox count |
+
+- **Detail pane:** right of a `│` divider (`|` in ASCII), from 80 columns. It
+  shows the icon, the name and the shortcut letter; the one-line description
+  (or the reason the entry is unavailable); a state block of two or three lines
+  specific to the entry, built only from data the hub already holds (Doctor:
+  last run, counts, the top problem; Backups: the newest runs; Update: the
+  cached notice and the behind count; Settings: theme, glyphs, motion; Dev:
+  sandboxes; Install and Sync: the repo and their last run; Uninstall: its
+  description; About: version and channel); and the keys that entry's view
+  offers (`enter` plus its own).
+- **Under 80 columns** the pane collapses to one line under the list: the most
+  urgent state, else the description. **Compact** does not show it.
+- **Shortcuts:** a letter opens its entry directly, as enter would. The letters
+  come from the key map, so the `?` help and the hint line
+  (`i u s d b x , v a jump`) never drift.
 
 ### Navigation
 
@@ -353,6 +412,16 @@ Without a TTY, output is plain and byte-stable for scripts. Hooks, `statusline`
 and `tmux` helpers never read the visual settings.
 
 ## 8. Decision Log
+
+### 2026-11-23: Hub v2: icons, badges and a detail pane
+The v1 hub was correct but flat: every entry looked the same, the panel cut
+paths in the middle (`/Users/alvar…default/repo`), the reverse-video row was
+heavy, and nothing said what enter would do. The owner chose a list plus a
+detail pane. The "no icons" rule is lifted for exactly the nine one-cell hub
+icons (section 10, Hub icons); emoji and Nerd Font glyphs stay banned. The
+cursor row on the hub is `›` plus bold, no reverse video. Paths keep their tail,
+the backup row is relative, and every entry gets a letter from the key map.
+Doctor's `⊕` was replaced by `⊞`: `⊕` has an ambiguous East Asian width.
 
 ### 2026-11-23: TUI hub: gentle-ai structure, aval aesthetic
 Every command except install and config was text you had to know by name. The owner chose gentle-ai's structure (a home screen with a large logo, a status panel and a menu, one view per action) with aval's aesthetic: ink only, colour on state glyphs, the existing frame. Decided questions:

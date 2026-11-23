@@ -38,3 +38,20 @@ func TestDesignCoversTheHub(t *testing.T) {
 	mustContain(t, s, "needs a checkout and Go", "section 10 gives the dev sandbox reason")
 	mustContain(t, read(t, ".agents/DESIGN.md"), "### 2026-11-23: TUI hub", "the decision log records the hub")
 }
+
+// Hub v2 lifts "no icons" for exactly one one-cell set and moves the
+// description into a detail pane; the contract has to say so before the code.
+func TestDesignCoversHubV2(t *testing.T) {
+	s := designSection10(t)
+	mustHave(t, `^### Hub icons`, s, "section 10 has a Hub icons subsection")
+	for _, icon := range []string{"`⇣`", "`⟳`", "`⇄`", "`⊞`", "`◷`", "`⌫`", "`⎈`", "`⧉`", "`◉`"} {
+		mustContain(t, s, icon, "section 10 lists the hub icon "+icon)
+	}
+	mustContain(t, s, "non-ambiguous East Asian width", "section 10 requires one-cell icons in every locale")
+	mustContain(t, s, "no reverse-video block", "section 10 drops reverse video on the hub")
+	mustContain(t, s, "**Detail pane:**", "section 10 defines the detail pane")
+	mustContain(t, s, "keep the tail", "section 10 says paths keep their tail")
+	mustContain(t, s, "`today 12:54 · install`", "section 10 makes the backup row relative")
+	mustContain(t, s, "i u s d b x , v a", "section 10 lists the letter shortcuts")
+	mustContain(t, read(t, ".agents/DESIGN.md"), "### 2026-11-23: Hub v2", "the decision log records hub v2")
+}
