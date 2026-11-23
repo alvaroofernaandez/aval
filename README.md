@@ -131,11 +131,11 @@ terminal cursor.
 
 | Version | Goal |
 | :--- | :--- |
-| [v0.1.0](https://github.com/alvaroofernaandez/aval/milestone/12) | First release: signed binaries, npm packages, Windows support |
+| [v0.1.0](https://github.com/alvaroofernaandez/aval/milestone/12) | Released: signed binaries, SHA256SUMS and attestations, npm packages with provenance |
 | [v0.2.0](https://github.com/alvaroofernaandez/aval/milestone/13) | Released: the hub, a rebuilt installer, themes and settings, English and Spanish, plan decks ([notes](docs/releases/v0.2.0.md)) |
 | [v0.3.0](https://github.com/alvaroofernaandez/aval/milestone/1) | Maintainability first (one local check equal to CI, generated CLI reference, architecture map, dependency and size budgets), then the native harness core: guard, secrets, formatter, done gate, lint, shot, memory and context ports |
 | [v0.4.0](https://github.com/alvaroofernaandez/aval/milestone/2) | Agent runtime adapters |
-| [v0.5.0](https://github.com/alvaroofernaandez/aval/milestone/7) | Local observability and distribution: insights, usage, history, bench, update channels, Homebrew tap |
+| [v0.5.0](https://github.com/alvaroofernaandez/aval/milestone/7) | Local observability and distribution: insights, usage, history, bench, update channels, Homebrew tap, Windows support and `install.ps1` |
 | [v0.6.0](https://github.com/alvaroofernaandez/aval/milestone/3) | aval core |
 | [v0.7.0](https://github.com/alvaroofernaandez/aval/milestone/4) | aval TUI, and the retirement of tmux, Herdr and yazi |
 | [v0.8.0](https://github.com/alvaroofernaandez/aval/milestone/9) | Development workflow: `aval init`, commands, rule-compliance evals |
