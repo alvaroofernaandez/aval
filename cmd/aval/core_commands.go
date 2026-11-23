@@ -17,6 +17,7 @@ import (
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
 	"github.com/alvaroofernaandez/aval/internal/core/txsync"
 	"github.com/alvaroofernaandez/aval/internal/core/uninstall"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // errChecksFailed makes main exit 1 without printing "error:" — the doctor
@@ -54,6 +55,7 @@ func runDoctor(repo, home string, args []string, out io.Writer, ui uiSettings) e
 		return err
 	}
 
+	tr := i18n.New(ui.Lang)
 	opt := doctor.Options{
 		Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS,
 		Security: *security, Allow: allow,
@@ -63,10 +65,10 @@ func runDoctor(repo, home string, args []string, out io.Writer, ui uiSettings) e
 	if *fix {
 		removed, err := doctor.Fix(opt)
 		for _, p := range removed {
-			fmt.Fprintf(out, "removed broken link %s\n", short(home, p))
+			fmt.Fprintln(out, tr.T("cli.doctor.removed", i18n.Args{"path": short(home, p)}))
 		}
 		if len(removed) > 0 || err == nil {
-			fmt.Fprintln(out, "synced settings and agent rules")
+			fmt.Fprintln(out, tr.T("cli.doctor.synced", nil))
 		}
 		if err != nil {
 			return err
@@ -80,7 +82,7 @@ func runDoctor(repo, home string, args []string, out io.Writer, ui uiSettings) e
 			return err
 		}
 	} else {
-		doctor.RenderStyled(out, results, newPrinterFor(out, ui))
+		doctor.RenderText(out, results, newPrinterFor(out, ui), doctorText(tr))
 	}
 	if doctor.HasFail(results) {
 		return errChecksFailed

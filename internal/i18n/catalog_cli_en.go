@@ -51,4 +51,18 @@ var englishCLI = catalog{
 		"'aval install' recorded in ~/.config/aval/config, then the current directory.\n" +
 		"First time: clone the repo, cd into it and run 'aval install'."},
 	"cli.usage.first_run": {other: "Not set up yet. Run: aval install"},
+
+	// doctor
+	"cli.doctor.col.status":  {other: "STATUS"},
+	"cli.doctor.col.check":   {other: "CHECK"},
+	"cli.doctor.col.message": {other: "MESSAGE"},
+	"cli.doctor.status.ok":   {other: "OK"},
+	"cli.doctor.status.warn": {other: "WARN"},
+	"cli.doctor.status.fail": {other: "FAIL"},
+	"cli.doctor.fixable":     {other: "(fixable: aval doctor --fix)"},
+	"cli.doctor.count.ok":    {one: "{count} ok", other: "{count} ok"},
+	"cli.doctor.count.warn":  {one: "{count} warn", other: "{count} warn"},
+	"cli.doctor.count.fail":  {one: "{count} fail", other: "{count} fail"},
+	"cli.doctor.removed":     {other: "removed broken link {path}"},
+	"cli.doctor.synced":      {other: "synced settings and agent rules"},
 }

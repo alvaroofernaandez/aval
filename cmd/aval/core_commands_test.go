@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
@@ -355,5 +356,25 @@ func TestRestoreOutputIsPinned(t *testing.T) {
 	wantReal := "restored               ~/f\n\nrestored backup 20260102-030405\n"
 	if real.String() != wantReal {
 		t.Errorf("restore output changed:\n got %q\nwant %q", real.String(), wantReal)
+	}
+}
+
+// The lines --fix prints speak the resolved language.
+func TestRunDoctorFixSpeaksTheLanguage(t *testing.T) {
+	repo, home := fakeMachine(t)
+	dead := filepath.Join(home, ".claude/skills/dead")
+	if err := os.MkdirAll(filepath.Dir(dead), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(home, "gone"), dead); err != nil {
+		t.Skip("symlinks unavailable")
+	}
+	var out bytes.Buffer
+	_ = runDoctor(repo, home, []string{"--fix"}, &out, uiSettings{Lang: i18n.Spanish})
+	es := i18n.New(i18n.Spanish)
+	for _, want := range []string{es.T("cli.doctor.removed", i18n.Args{"path": "~/.claude/skills/dead"}), es.T("cli.doctor.synced", nil), es.T("cli.doctor.col.status", nil)} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("missing %q in:\n%s", want, out.String())
+		}
 	}
 }

@@ -51,4 +51,18 @@ var spanishCLI = catalog{
 		"'aval install' guardó en ~/.config/aval/config y el directorio actual.\n" +
 		"La primera vez: clone el repositorio, entre en él y ejecute 'aval install'."},
 	"cli.usage.first_run": {other: "Aún sin configurar. Ejecute: aval install"},
+
+	// doctor
+	"cli.doctor.col.status":  {other: "ESTADO"},
+	"cli.doctor.col.check":   {other: "COMPROBACIÓN"},
+	"cli.doctor.col.message": {other: "MENSAJE"},
+	"cli.doctor.status.ok":   {other: "OK"},
+	"cli.doctor.status.warn": {other: "AVISO"},
+	"cli.doctor.status.fail": {other: "FALLO"},
+	"cli.doctor.fixable":     {other: "(reparable: aval doctor --fix)"},
+	"cli.doctor.count.ok":    {one: "{count} correcto", other: "{count} correctos"},
+	"cli.doctor.count.warn":  {one: "{count} aviso", other: "{count} avisos"},
+	"cli.doctor.count.fail":  {one: "{count} fallo", other: "{count} fallos"},
+	"cli.doctor.removed":     {other: "enlace roto eliminado: {path}"},
+	"cli.doctor.synced":      {other: "ajustes y reglas de agentes sincronizados"},
 }

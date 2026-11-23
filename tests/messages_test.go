@@ -413,3 +413,41 @@ func TestMessagesUsageText(t *testing.T) {
 		{name: "a bare aval without a terminal, Spanish", args: []string{"--lang", "es"}, stdout: usageES},
 	})
 }
+
+// doctor's table: the header, the status words, the fix hint and the summary
+// are translated; the message of each check is data from the checks.
+func TestMessagesDoctor(t *testing.T) {
+	bare := func(t *testing.T, dir, _ string) {
+		write(t, filepath.Join(dir, "repo", "install.manifest"), "[g]\nlabel = G\ndetail = d\nplatforms = all\n")
+	}
+	runMessages(t, []msgCase{
+		{name: "doctor in English", setup: bare, args: []string{"doctor", "--repo", "DIR/repo"}, code: 1,
+			stdout: "STATUS  CHECK           MESSAGE\n" +
+				"OK      links           0 manifest links in place\n" +
+				"OK      broken-links    no dangling links in agent directories\n" +
+				"WARN    hooks-resolve   ~/.claude/settings.json is missing; hooks not checked (fixable: aval doctor --fix)\n" +
+				"WARN    hooks-retired   ~/.claude/settings.json is missing; hooks not checked (fixable: aval doctor --fix)\n" +
+				"FAIL    hooks-drift     ~/.claude/settings.json is missing (fixable: aval doctor --fix)\n" +
+				"OK      agents          no ~/.claude/agents directory\n" +
+				"OK      skills          no ~/.claude/skills directory\n" +
+				"OK      plugins         no live settings.json to check\n" +
+				"FAIL    settings-drift  sync: repo settings: open DIR/repo/config/claude/settings.json: no such file or directory\n" +
+				"OK      overlay         absent (optional): ~/.config/aval/private\n" +
+				"OK      config          no config file, using defaults\n" +
+				"\n7 ok, 2 warn, 2 fail\n"},
+		{name: "doctor in Spanish", setup: bare, args: []string{"--lang", "es", "doctor", "--repo", "DIR/repo"}, code: 1,
+			stdout: "ESTADO  COMPROBACIÓN    MENSAJE\n" +
+				"OK      links           0 manifest links in place\n" +
+				"OK      broken-links    no dangling links in agent directories\n" +
+				"AVISO   hooks-resolve   ~/.claude/settings.json is missing; hooks not checked (reparable: aval doctor --fix)\n" +
+				"AVISO   hooks-retired   ~/.claude/settings.json is missing; hooks not checked (reparable: aval doctor --fix)\n" +
+				"FALLO   hooks-drift     ~/.claude/settings.json is missing (reparable: aval doctor --fix)\n" +
+				"OK      agents          no ~/.claude/agents directory\n" +
+				"OK      skills          no ~/.claude/skills directory\n" +
+				"OK      plugins         no live settings.json to check\n" +
+				"FALLO   settings-drift  sync: repo settings: open DIR/repo/config/claude/settings.json: no such file or directory\n" +
+				"OK      overlay         absent (optional): ~/.config/aval/private\n" +
+				"OK      config          no config file, using defaults\n" +
+				"\n7 correctos, 2 avisos, 2 fallos\n"},
+	})
+}
