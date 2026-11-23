@@ -37,7 +37,20 @@ type Result struct {
 	Status  Status `json:"status"`
 	Message string `json:"message"`
 	Fixable bool   `json:"fixable"`
+	// Details is the full list behind Message, which truncates long lists.
+	Details []string `json:"-"`
+	// Fix says which repair, if any, the hub offers for this result.
+	Fix FixKind `json:"-"`
 }
+
+// FixKind says how a result can be repaired from the hub.
+type FixKind int
+
+const (
+	FixNone FixKind = iota
+	FixBrokenLinks
+	FixSync
+)
 
 // Options configures a run.
 type Options struct {
@@ -82,7 +95,21 @@ func Run(opt Options) []Result {
 	if opt.Security {
 		rs = append(rs, checkSecurity(opt)...)
 	}
+	for i := range rs {
+		rs[i].Fix = fixKind(rs[i])
+	}
 	return rs
+}
+
+// fixKind maps a fixable result to the repair that clears it.
+func fixKind(r Result) FixKind {
+	switch {
+	case !r.Fixable:
+		return FixNone
+	case r.ID == "broken-links":
+		return FixBrokenLinks
+	}
+	return FixSync
 }
 
 // RunOnly runs every check and keeps the ones whose ID equals, or starts
@@ -111,6 +138,23 @@ func Fix(opt Options) ([]string, error) {
 	}
 	_, err := avalsync.Run(avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS})
 	return removed, err
+}
+
+// RemoveBroken removes every dangling link, snapshotting each into rec first
+// so backup.Store.Restore can put it back. The caller owns rec and commits it.
+// The sync half of Fix is deliberately absent: txsync imports doctor.
+func RemoveBroken(opt Options, rec *backup.Recorder) ([]string, error) {
+	var removed []string
+	for _, p := range brokenLinks(opt) {
+		if _, err := rec.Snapshot(p); err != nil {
+			return removed, fmt.Errorf("doctor: back up %s: %w", p, err)
+		}
+		if err := os.Remove(p); err != nil {
+			return removed, fmt.Errorf("doctor: remove %s: %w", p, err)
+		}
+		removed = append(removed, p)
+	}
+	return removed, nil
 }
 
 // HasFail reports whether any result failed.
@@ -213,6 +257,12 @@ func result(id string, st Status, fixable bool, format string, a ...any) Result 
 	return Result{ID: id, Status: st, Message: fmt.Sprintf(format, a...), Fixable: fixable}
 }
 
+// withDetails attaches the untruncated items behind a result's message.
+func withDetails(r Result, items []string) Result {
+	r.Details = items
+	return r
+}
+
 // list shortens a long list for a one-line message.
 func list(items []string) string {
 	const max = 4
@@ -290,7 +340,7 @@ func summariseLinks(id string, total int, probs []*linkProblem, what string) Res
 		}
 		parts = append(parts, p.label+" ("+p.what+")")
 	}
-	return result(id, st, false, "%d of %d %s need attention: %s", len(probs), total, what, list(parts))
+	return withDetails(result(id, st, false, "%d of %d %s need attention: %s", len(probs), total, what, list(parts)), parts)
 }
 
 func checkLinks(opt Options) Result {
@@ -352,7 +402,7 @@ func checkBroken(opt Options) Result {
 	for i, p := range broken {
 		labels[i] = tilde(opt.Home, p)
 	}
-	return result("broken-links", Fail, true, "%d broken: %s", len(broken), list(labels))
+	return withDetails(result("broken-links", Fail, true, "%d broken: %s", len(broken), list(labels)), labels)
 }
 
 // --- hooks ------------------------------------------------------------------
@@ -436,12 +486,12 @@ func checkHooks(opt Options, live map[string]any, liveErr error) []Result {
 	if len(unresolved) == 0 {
 		rs = append(rs, result("hooks-resolve", OK, false, "%d hook commands resolve", len(cmds)))
 	} else {
-		rs = append(rs, result("hooks-resolve", Fail, false, "%d unresolved: %s", len(unresolved), list(unresolved)))
+		rs = append(rs, withDetails(result("hooks-resolve", Fail, false, "%d unresolved: %s", len(unresolved), list(unresolved)), unresolved))
 	}
 	if len(retired) == 0 {
 		rs = append(rs, result("hooks-retired", OK, false, "no retired SDD hooks"))
 	} else {
-		rs = append(rs, result("hooks-retired", Fail, false, "%d retired: %s", len(retired), list(retired)))
+		rs = append(rs, withDetails(result("hooks-retired", Fail, false, "%d retired: %s", len(retired), list(retired)), retired))
 	}
 
 	repo, err := avalsync.RepoSettings(avalsync.Options{Repo: opt.Repo, Home: opt.Home, GOOS: opt.GOOS})
@@ -539,7 +589,7 @@ func checkAgents(opt Options) Result {
 		}
 	}
 	if len(bad) > 0 {
-		return result("agents", Fail, false, "%d agent(s) pin a model that is not opus|sonnet|haiku|inherit: %s", len(bad), list(bad))
+		return withDetails(result("agents", Fail, false, "%d agent(s) pin a model that is not opus|sonnet|haiku|inherit: %s", len(bad), list(bad)), bad)
 	}
 	return result("agents", OK, false, "%d agents use model aliases", n)
 }
@@ -577,7 +627,7 @@ func checkSkills(opt Options) Result {
 		}
 	}
 	if len(bad) > 0 {
-		return result("skills", Warn, false, "%d skill(s) incomplete: %s", len(bad), list(bad))
+		return withDetails(result("skills", Warn, false, "%d skill(s) incomplete: %s", len(bad), list(bad)), bad)
 	}
 	return result("skills", OK, false, "%d skills have SKILL.md with name and description", n)
 }
@@ -611,7 +661,7 @@ func checkPlugins(opt Options, live map[string]any, liveErr error) Result {
 		}
 	}
 	if len(missing) > 0 {
-		return result("plugins", Warn, false, "%d enabled but not installed: %s", len(missing), list(missing))
+		return withDetails(result("plugins", Warn, false, "%d enabled but not installed: %s", len(missing), list(missing)), missing)
 	}
 	return result("plugins", OK, false, "%d enabled plugins are installed", len(want))
 }
@@ -624,7 +674,7 @@ func checkSettingsDrift(opt Options) Result {
 	if len(keys) == 0 {
 		return result("settings-drift", OK, false, "managed settings keys match the repo")
 	}
-	return result("settings-drift", Fail, true, "live settings differ in: %s", strings.Join(keys, ", "))
+	return withDetails(result("settings-drift", Fail, true, "live settings differ in: %s", strings.Join(keys, ", ")), keys)
 }
 
 // --- private overlay -------------------------------------------------------------

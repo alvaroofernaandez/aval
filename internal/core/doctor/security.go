@@ -71,8 +71,8 @@ func checkSecurity(opt Options) []Result {
 			for i, f := range kept {
 				texts[i] = f.text
 			}
-			out = append(out, result(c.id, c.status, false, "%s: %s (suppress: aval doctor --security --allow %s)",
-				c.failFmt, strings.Join(texts, ", "), c.id))
+			out = append(out, withDetails(result(c.id, c.status, false, "%s: %s (suppress: aval doctor --security --allow %s)",
+				c.failFmt, strings.Join(texts, ", "), c.id), texts))
 		case len(suppressed) > 0:
 			out = append(out, result(c.id, OK, false, "%d finding(s) allowed by the allow list", len(suppressed)))
 		default:

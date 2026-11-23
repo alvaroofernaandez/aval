@@ -32,7 +32,7 @@ func checkConfig(opt Options) Result {
 			opt.ConfigPath, u.Line, u.Key, strings.Join(config.Keys(), ", ")))
 	}
 	if len(problems) > 0 {
-		r.Status, r.Message = Warn, strings.Join(problems, " | ")
+		r.Status, r.Message, r.Details = Warn, strings.Join(problems, " | "), problems
 		return r
 	}
 	r.Message = opt.ConfigPath + " is valid"
