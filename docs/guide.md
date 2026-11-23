@@ -291,6 +291,7 @@ Full reference. `aval help` prints the usage, and so does a bare `aval` without 
 | `aval restore [--list] [latest\|<id>] [--pin <id>]` | Undoes an install or sync | yes |
 | `aval uninstall [--dry-run] [--yes]` | Removes this repo's links and returns what was displaced | yes |
 | `aval budget [--json] [--skip-hooks] [--runs N]` | Always-on context and hook latency | no |
+| `aval deps [--json] [--layer harness\|agent\|env]` | External tool inventory: layer, users, effect if missing, native substitute, and whether each is installed; exits 1 when a blocking tool is missing | no |
 | `aval review assess [--base <ref>] [--json]` | Risk level of the diff and reviewers | no |
 | `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `rate-guard`, `design-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push` | no |
 | `aval statusline` | Claude Code status line | no |
@@ -320,6 +321,15 @@ aval sync --check      # read-only: exits 1 and prints what has drifted
 `doctor` is offline and read-only: manifest links, broken links in the agent directories, hooks in the
 live `settings.json` (that they exist, that they are not retired commands, that they match the repo), each
 agent's `model:`, each skill's `SKILL.md`, and enabled plugins that are not installed.
+
+The `deps` row checks the external tool inventory, `internal/core/deps/deps.manifest` (embedded in the
+binary, 36 tools in three layers: `harness`, `agent`, `env`). Only `git` blocks: without it the row fails
+and `doctor` exits 1. Every other tool degrades: the row warns and names what is missing. Tools are looked
+up on `PATH`, macOS app bundles by path (skipped on other systems), shell plugins under the Homebrew
+`share/` directories; the doctor starts no process to do it. `aval deps` prints the full table, with each
+tool's users and the issue planned to absorb it, and adds versions; `--layer` narrows it. Brewfile lines
+that only the person uses sit in the manifest's `[personal]` list, so `tests/deps_inventory_test.go` can
+fail on a Brewfile tool that is in neither.
 
 `aval doctor --security` (off by default) fails or warns on: an overly broad `permissions.allow`
 (`*`, `Bash`, `Bash(*)`), hooks that download and execute remote code (`curl ... | sh`; `npx -y pkg@latest`
