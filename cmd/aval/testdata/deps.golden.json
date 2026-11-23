@@ -1,0 +1,502 @@
+[
+  {
+    "name": "git",
+    "layer": "harness",
+    "used_by": [
+      "aval install",
+      "aval update",
+      "aval review",
+      "aval release",
+      "aval dev",
+      "hook pre-push",
+      "hook code-review-graph"
+    ],
+    "if_missing": "blocks",
+    "native_substitute": "none",
+    "probe": "bin git --version",
+    "status": "present",
+    "path": "/fake/bin/git",
+    "version": "git 1.0"
+  },
+  {
+    "name": "go",
+    "layer": "harness",
+    "used_by": [
+      "aval dev",
+      "aval release",
+      "hub dev view"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin go version",
+    "status": "present",
+    "path": "/fake/bin/go",
+    "version": "go 1.0"
+  },
+  {
+    "name": "gh",
+    "layer": "harness",
+    "used_by": [
+      "aval release",
+      "config gh"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin gh --version",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "gitleaks",
+    "layer": "harness",
+    "used_by": [
+      "hook pre-push"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin gitleaks",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "rtk",
+    "layer": "harness",
+    "used_by": [
+      "hook rtk",
+      "config RTK.md"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#6",
+    "probe": "bin rtk",
+    "status": "present",
+    "path": "/fake/bin/rtk",
+    "version": "rtk 1.0"
+  },
+  {
+    "name": "gentle-ai",
+    "layer": "harness",
+    "used_by": [
+      "hook Stop review",
+      "statusline telemetry"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#4",
+    "probe": "bin gentle-ai",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "code-review-graph",
+    "layer": "harness",
+    "used_by": [
+      "hook SessionStart",
+      "hook PostToolUse"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#6",
+    "probe": "bin code-review-graph",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "brave-browser",
+    "layer": "harness",
+    "used_by": [
+      "aval deck build",
+      "skill design-pipeline"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "app /Applications/Brave Browser.app",
+    "status": "skipped",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "claude",
+    "layer": "agent",
+    "used_by": [
+      "config claude",
+      "aval sync",
+      "aval doctor"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#22",
+    "probe": "bin claude",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "opencode",
+    "layer": "agent",
+    "used_by": [
+      "config opencode",
+      "aval rules"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#22",
+    "probe": "bin opencode",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "engram",
+    "layer": "agent",
+    "used_by": [
+      "config CLAUDE.md",
+      "config opencode.json"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#7",
+    "probe": "bin engram",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "herdr",
+    "layer": "agent",
+    "used_by": [
+      "config herdr",
+      "skill herdr"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#12",
+    "probe": "bin hc",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "lightpanda",
+    "layer": "agent",
+    "used_by": [
+      "skill lightpanda-browser"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin lightpanda",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "node",
+    "layer": "agent",
+    "used_by": [
+      "aval pdf init",
+      "skill pdf-report",
+      "skill design-pipeline"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#43",
+    "probe": "bin node --version",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "docker",
+    "layer": "agent",
+    "used_by": [
+      "aval kiri",
+      "aval docker",
+      "skill kiri-docker"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin docker --version",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "docker-buildx",
+    "layer": "agent",
+    "used_by": [
+      "aval kiri",
+      "skill docker-build-optimized"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin docker-buildx",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "docker-compose",
+    "layer": "agent",
+    "used_by": [
+      "skill kiri-docker",
+      "zsh helpers"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin docker-compose",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "kiri",
+    "layer": "agent",
+    "used_by": [
+      "aval kiri",
+      "aval docker",
+      "skill kiri-health"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "app /Applications/Kiri.app",
+    "status": "skipped",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "tmux",
+    "layer": "env",
+    "used_by": [
+      "install terminal",
+      "aval tmux"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#15",
+    "probe": "bin tmux -V",
+    "status": "present",
+    "path": "/fake/bin/tmux",
+    "version": "tmux 1.0"
+  },
+  {
+    "name": "yazi",
+    "layer": "env",
+    "used_by": [
+      "install terminal",
+      "aval tmux"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#18",
+    "probe": "bin yazi",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "ghostty",
+    "layer": "env",
+    "used_by": [
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "#21",
+    "probe": "app /Applications/Ghostty.app",
+    "status": "skipped",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "zsh",
+    "layer": "env",
+    "used_by": [
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin zsh --version",
+    "status": "present",
+    "path": "/fake/bin/zsh",
+    "version": "zsh 1.0"
+  },
+  {
+    "name": "powerlevel10k",
+    "layer": "env",
+    "used_by": [
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "share powerlevel10k/powerlevel10k.zsh-theme",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "zsh-autocomplete",
+    "layer": "env",
+    "used_by": [
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "share zsh-autocomplete/zsh-autocomplete.plugin.zsh",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "zsh-autosuggestions",
+    "layer": "env",
+    "used_by": [
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "share zsh-autosuggestions/zsh-autosuggestions.zsh",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "zsh-syntax-highlighting",
+    "layer": "env",
+    "used_by": [
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "share zsh-syntax-highlighting/zsh-syntax-highlighting.zsh",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "fzf",
+    "layer": "env",
+    "used_by": [
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin fzf",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "zoxide",
+    "layer": "env",
+    "used_by": [
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin zoxide",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "atuin",
+    "layer": "env",
+    "used_by": [
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin atuin",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "carapace",
+    "layer": "env",
+    "used_by": [
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin carapace",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "git-lfs",
+    "layer": "env",
+    "used_by": [
+      "install git"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin git-lfs",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "ripgrep",
+    "layer": "env",
+    "used_by": [
+      "config CLAUDE.md",
+      "config AGENTS.md"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin rg",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "fd",
+    "layer": "env",
+    "used_by": [
+      "config CLAUDE.md",
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin fd",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "bat",
+    "layer": "env",
+    "used_by": [
+      "config CLAUDE.md",
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin bat",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "eza",
+    "layer": "env",
+    "used_by": [
+      "config CLAUDE.md",
+      "install terminal"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin eza",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  },
+  {
+    "name": "sd",
+    "layer": "env",
+    "used_by": [
+      "config CLAUDE.md"
+    ],
+    "if_missing": "degrades",
+    "native_substitute": "none",
+    "probe": "bin sd",
+    "status": "missing",
+    "path": "",
+    "version": ""
+  }
+]

@@ -20,6 +20,7 @@ var englishCLI = catalog{
 	"cli.usage.cmd.sync":       {other: "merge repo-managed settings into the live config"},
 	"cli.usage.cmd.rules":      {other: "mirror CLAUDE.md's shared rules into OpenCode's AGENTS.md"},
 	"cli.usage.cmd.budget":     {other: "always-on context per agent and hook latency"},
+	"cli.usage.cmd.deps":       {other: "external tools aval relies on, and which are missing"},
 	"cli.usage.cmd.review":     {other: "git-only risk tier and reviewer lenses"},
 	"cli.usage.cmd.design":     {other: "design gates for the project in the current directory"},
 	"cli.usage.cmd.config":     {other: "show or change aval settings (theme, glyphs, motion)"},
@@ -65,6 +66,22 @@ var englishCLI = catalog{
 	"cli.doctor.count.fail":  {one: "{count} fail", other: "{count} fail"},
 	"cli.doctor.removed":     {other: "removed broken link {path}"},
 	"cli.doctor.synced":      {other: "synced settings and agent rules"},
+
+	// deps
+	"cli.deps.usage":          {other: "usage: aval deps [--json] [--layer harness|agent|env]"},
+	"cli.deps.unknown_layer":  {other: "unknown layer {layer}; use harness, agent or env"},
+	"cli.deps.col.status":     {other: "STATUS"},
+	"cli.deps.col.tool":       {other: "TOOL"},
+	"cli.deps.col.layer":      {other: "LAYER"},
+	"cli.deps.col.if_missing": {other: "IF MISSING"},
+	"cli.deps.col.substitute": {other: "SUBSTITUTE"},
+	"cli.deps.col.used_by":    {other: "USED BY"},
+	"cli.deps.status.present": {other: "present"},
+	"cli.deps.status.missing": {other: "missing"},
+	"cli.deps.status.skipped": {other: "skipped"},
+	"cli.deps.count.present":  {one: "{count} present", other: "{count} present"},
+	"cli.deps.count.missing":  {one: "{count} missing", other: "{count} missing"},
+	"cli.deps.count.skipped":  {one: "{count} skipped", other: "{count} skipped"},
 
 	// shared
 	"cli.dry_run": {other: "Dry run: nothing was written."},

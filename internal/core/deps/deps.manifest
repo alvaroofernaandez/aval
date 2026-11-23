@@ -1,0 +1,349 @@
+# Every external tool aval, its hooks, its skills and its install rely on.
+#
+# `aval deps` lists this inventory and `aval doctor` checks it; the binary
+# embeds this file. tests/deps_inventory_test.go fails when a Brewfile line is
+# neither an entry here nor in [personal], and the doctor tests fail when a
+# hook in config/claude/settings.json calls a program that is not listed.
+#
+# Format
+# ------
+# [<name>]            one section per tool
+#   layer             harness -> aval itself, its commands and its hooks
+#                     agent   -> the agent runtimes and what their skills call
+#                     env     -> the shell and terminal environment install links
+#   used_by           comma-separated: the command, hook, skill or config that calls it
+#   if_missing        blocks   -> aval cannot work (aval doctor fails)
+#                     degrades -> a feature turns off (aval doctor warns)
+#                     ignored  -> listed for the record only
+#   native_substitute the issue that plans to absorb it (#N), or none
+#   probe             bin <name> [version args]  executable on PATH
+#                     app <bundle path>          macOS only, skipped elsewhere
+#                     share <path>               under a Homebrew share/ directory
+#
+# [personal]          Brewfile lines on the machine for the person, not for
+#                     aval: one name per line, never probed.
+
+# --- harness: aval, its commands and its hooks --------------------------------
+
+[git]
+layer = harness
+used_by = aval install, aval update, aval review, aval release, aval dev, hook pre-push, hook code-review-graph
+if_missing = blocks
+native_substitute = none
+probe = bin git --version
+
+[go]
+layer = harness
+used_by = aval dev, aval release, hub dev view
+if_missing = degrades
+native_substitute = none
+probe = bin go version
+
+[gh]
+layer = harness
+used_by = aval release, config gh
+if_missing = degrades
+native_substitute = none
+probe = bin gh --version
+
+[gitleaks]
+layer = harness
+used_by = hook pre-push
+if_missing = degrades
+native_substitute = none
+probe = bin gitleaks
+
+[rtk]
+layer = harness
+used_by = hook rtk, config RTK.md
+if_missing = degrades
+native_substitute = #6
+probe = bin rtk
+
+[gentle-ai]
+layer = harness
+used_by = hook Stop review, statusline telemetry
+if_missing = degrades
+native_substitute = #4
+probe = bin gentle-ai
+
+[code-review-graph]
+layer = harness
+used_by = hook SessionStart, hook PostToolUse
+if_missing = degrades
+native_substitute = #6
+probe = bin code-review-graph
+
+[brave-browser]
+layer = harness
+used_by = aval deck build, skill design-pipeline
+if_missing = degrades
+native_substitute = none
+probe = app /Applications/Brave Browser.app
+
+# --- agent: the runtimes and what their skills call ---------------------------
+
+[claude]
+layer = agent
+used_by = config claude, aval sync, aval doctor
+if_missing = degrades
+native_substitute = #22
+probe = bin claude
+
+[opencode]
+layer = agent
+used_by = config opencode, aval rules
+if_missing = degrades
+native_substitute = #22
+probe = bin opencode
+
+[engram]
+layer = agent
+used_by = config CLAUDE.md, config opencode.json
+if_missing = degrades
+native_substitute = #7
+probe = bin engram
+
+[herdr]
+layer = agent
+used_by = config herdr, skill herdr
+if_missing = degrades
+native_substitute = #12
+probe = bin hc
+
+[lightpanda]
+layer = agent
+used_by = skill lightpanda-browser
+if_missing = degrades
+native_substitute = none
+probe = bin lightpanda
+
+[node]
+layer = agent
+used_by = aval pdf init, skill pdf-report, skill design-pipeline
+if_missing = degrades
+native_substitute = #43
+probe = bin node --version
+
+[docker]
+layer = agent
+used_by = aval kiri, aval docker, skill kiri-docker
+if_missing = degrades
+native_substitute = none
+probe = bin docker --version
+
+[docker-buildx]
+layer = agent
+used_by = aval kiri, skill docker-build-optimized
+if_missing = degrades
+native_substitute = none
+probe = bin docker-buildx
+
+[docker-compose]
+layer = agent
+used_by = skill kiri-docker, zsh helpers
+if_missing = degrades
+native_substitute = none
+probe = bin docker-compose
+
+[kiri]
+layer = agent
+used_by = aval kiri, aval docker, skill kiri-health
+if_missing = degrades
+native_substitute = none
+probe = app /Applications/Kiri.app
+
+# --- env: the shell and terminal environment install links --------------------
+
+[tmux]
+layer = env
+used_by = install terminal, aval tmux
+if_missing = degrades
+native_substitute = #15
+probe = bin tmux -V
+
+[yazi]
+layer = env
+used_by = install terminal, aval tmux
+if_missing = degrades
+native_substitute = #18
+probe = bin yazi
+
+[ghostty]
+layer = env
+used_by = install terminal
+if_missing = degrades
+native_substitute = #21
+probe = app /Applications/Ghostty.app
+
+[zsh]
+layer = env
+used_by = install terminal
+if_missing = degrades
+native_substitute = none
+probe = bin zsh --version
+
+[powerlevel10k]
+layer = env
+used_by = install terminal
+if_missing = degrades
+native_substitute = none
+probe = share powerlevel10k/powerlevel10k.zsh-theme
+
+[zsh-autocomplete]
+layer = env
+used_by = install terminal
+if_missing = degrades
+native_substitute = none
+probe = share zsh-autocomplete/zsh-autocomplete.plugin.zsh
+
+[zsh-autosuggestions]
+layer = env
+used_by = install terminal
+if_missing = degrades
+native_substitute = none
+probe = share zsh-autosuggestions/zsh-autosuggestions.zsh
+
+[zsh-syntax-highlighting]
+layer = env
+used_by = install terminal
+if_missing = degrades
+native_substitute = none
+probe = share zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+[fzf]
+layer = env
+used_by = install terminal
+if_missing = degrades
+native_substitute = none
+probe = bin fzf
+
+[zoxide]
+layer = env
+used_by = install terminal
+if_missing = degrades
+native_substitute = none
+probe = bin zoxide
+
+[atuin]
+layer = env
+used_by = install terminal
+if_missing = degrades
+native_substitute = none
+probe = bin atuin
+
+[carapace]
+layer = env
+used_by = install terminal
+if_missing = degrades
+native_substitute = none
+probe = bin carapace
+
+[git-lfs]
+layer = env
+used_by = install git
+if_missing = degrades
+native_substitute = none
+probe = bin git-lfs
+
+[ripgrep]
+layer = env
+used_by = config CLAUDE.md, config AGENTS.md
+if_missing = degrades
+native_substitute = none
+probe = bin rg
+
+[fd]
+layer = env
+used_by = config CLAUDE.md, install terminal
+if_missing = degrades
+native_substitute = none
+probe = bin fd
+
+[bat]
+layer = env
+used_by = config CLAUDE.md, install terminal
+if_missing = degrades
+native_substitute = none
+probe = bin bat
+
+[eza]
+layer = env
+used_by = config CLAUDE.md, install terminal
+if_missing = degrades
+native_substitute = none
+probe = bin eza
+
+[sd]
+layer = env
+used_by = config CLAUDE.md
+if_missing = degrades
+native_substitute = none
+probe = bin sd
+
+[personal]
+actionlint
+age
+android-platform-tools
+android-studio
+cliclick
+cloudflared
+composer
+container
+coreutils
+dory
+ffmpeg
+font-fira-code-nerd-font
+font-iosevka-term-nerd-font
+gcc
+ghostscript
+gga
+git-filter-repo
+golangci-lint
+hiddenbar
+hyperfine
+imagemagick
+k6
+lazygit
+librsvg
+libreoffice
+llvm
+makensis
+minisign
+mole
+mypy
+mysql
+ngrok
+node@22
+notion
+nvm
+openjdk
+openjdk@21
+oxipng
+pandoc
+pango
+pgvector
+php@8.3
+pipx
+pnpm
+poppler
+postgresql@17
+potrace
+powershell
+pyright
+python@3.12
+qrencode
+rclone
+redis
+ruff
+sevenzip
+sshpass
+supabase
+tesseract
+tesseract-lang
+tree-sitter
+uv
+vhs
+whisper.cpp
+whisky
+yt-dlp
