@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 // The in-process seam: every command reachable through run(args, io, env)
@@ -27,10 +29,29 @@ func envMap(kv map[string]string) func(string) string {
 	return func(k string) string { return kv[k] }
 }
 
+// withHomeVars adds what os.UserHomeDir, UserCacheDir and UserConfigDir read on
+// Windows (USERPROFILE, LocalAppData, AppData) next to a HOME the test set, so
+// the same map isolates the home on every OS. Keys the test set stay as they are.
+func withHomeVars(env map[string]string) map[string]string {
+	home, ok := env["HOME"]
+	if !ok {
+		return env
+	}
+	out := make(map[string]string, len(env)+3)
+	for _, kv := range testenv.HomeEnv(home) {
+		k, v, _ := strings.Cut(kv, "=")
+		out[k] = v
+	}
+	for k, v := range env {
+		out[k] = v
+	}
+	return out
+}
+
 func runIn(t *testing.T, env map[string]string, stdin string, args ...string) invocation {
 	t.Helper()
 	var out, errb bytes.Buffer
-	code := run(args, strings.NewReader(stdin), &out, &errb, envMap(env))
+	code := run(args, strings.NewReader(stdin), &out, &errb, envMap(withHomeVars(env)))
 	return invocation{code, out.String(), errb.String()}
 }
 

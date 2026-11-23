@@ -19,6 +19,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 )
 
@@ -36,7 +37,7 @@ func repoRoot(t *testing.T) string {
 func hubFixture(t *testing.T) (home, cache string) {
 	t.Helper()
 	home, cache = t.TempDir(), t.TempDir()
-	t.Setenv("HOME", home)
+	testenv.SetHome(t, home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("XDG_CACHE_HOME", cache)
 	t.Setenv("AVAL_REPO", repoRoot(t))

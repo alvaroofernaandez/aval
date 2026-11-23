@@ -99,7 +99,7 @@ func TestRunHeadlessPlainOutputIsByteStable(t *testing.T) {
 			if !errors.As(err, &n) || n != 1 {
 				t.Fatalf("err = %v, want one failed action", err)
 			}
-			got := strings.ReplaceAll(out, root, "ROOT")
+			got := filepath.ToSlash(strings.ReplaceAll(out, root, "ROOT"))
 			if got != c.want {
 				t.Errorf("output changed.\n got: %q\nwant: %q", got, c.want)
 			}
@@ -123,8 +123,8 @@ func TestRunHeadlessToStyledKeepsTheWords(t *testing.T) {
 	if !strings.Contains(out, "\x1b[") {
 		t.Error("styled output carries no colour")
 	}
-	stripped := regexp.MustCompile("\x1b\\[[0-9;]*m").ReplaceAllString(out, "")
-	for _, want := range []string{"√ linked", "√ already installed", "× FAILED: install: source missing: " + root + "/repo/gone", "(backed up)"} {
+	stripped := filepath.ToSlash(regexp.MustCompile("\x1b\\[[0-9;]*m").ReplaceAllString(out, ""))
+	for _, want := range []string{"√ linked", "√ already installed", "× FAILED: install: source missing: " + filepath.ToSlash(root) + "/repo/gone", "(backed up)"} {
 		if !strings.Contains(stripped, want) {
 			t.Errorf("missing %q in:\n%s", want, stripped)
 		}
@@ -177,7 +177,7 @@ func TestRunHeadlessPlainSpanishOutput(t *testing.T) {
 			if !errors.As(err, &n) || n != 1 {
 				t.Fatalf("err = %v, want one failed action", err)
 			}
-			if got := strings.ReplaceAll(b.String(), root, "ROOT"); got != c.want {
+			if got := filepath.ToSlash(strings.ReplaceAll(b.String(), root, "ROOT")); got != c.want {
 				t.Errorf("output changed.\n got: %q\nwant: %q", got, c.want)
 			}
 		})
