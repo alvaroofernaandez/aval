@@ -431,3 +431,52 @@ func TestRenderJSON(t *testing.T) {
 		t.Errorf("empty = %q, want []", b.String())
 	}
 }
+
+// TestRenderPlainIsByteStable pins the exact bytes scripts parse today.
+func TestRenderPlainIsByteStable(t *testing.T) {
+	rs := []Result{
+		{ID: "links", Status: OK, Message: "12 links ok"},
+		{ID: "broken-links", Status: Fail, Message: "2 broken", Fixable: true},
+		{ID: "skills", Status: Warn, Message: "1 without SKILL.md", Fixable: true},
+	}
+	want := "STATUS  CHECK         MESSAGE\n" +
+		"OK      links         12 links ok\n" +
+		"FAIL    broken-links  2 broken (fixable: aval doctor --fix)\n" +
+		"WARN    skills        1 without SKILL.md (fixable: aval doctor --fix)\n" +
+		"\n1 ok, 1 warn, 1 fail\n"
+	var b bytes.Buffer
+	Render(&b, rs)
+	if b.String() != want {
+		t.Errorf("Render changed.\n got: %q\nwant: %q", b.String(), want)
+	}
+	b.Reset()
+	RenderStyled(&b, rs, nil)
+	if b.String() != want {
+		t.Errorf("RenderStyled(nil) differs from Render.\n got: %q", b.String())
+	}
+}
+
+type fakeStyler struct{}
+
+func (fakeStyler) OK(w string) string   { return "V " + w }
+func (fakeStyler) Warn(w string) string { return "! " + w }
+func (fakeStyler) Fail(w string) string { return "X " + w }
+func (fakeStyler) Width(s string) int   { return len(s) }
+
+func TestRenderStyledAddsGlyphAndKeepsWord(t *testing.T) {
+	rs := []Result{
+		{ID: "links", Status: OK, Message: "fine"},
+		{ID: "broken-links", Status: Fail, Message: "bad"},
+		{ID: "skills", Status: Warn, Message: "hm"},
+	}
+	want := "STATUS  CHECK         MESSAGE\n" +
+		"V OK    links         fine\n" +
+		"X FAIL  broken-links  bad\n" +
+		"! WARN  skills        hm\n" +
+		"\n1 ok, 1 warn, 1 fail\n"
+	var b bytes.Buffer
+	RenderStyled(&b, rs, fakeStyler{})
+	if b.String() != want {
+		t.Errorf("got: %q\nwant: %q", b.String(), want)
+	}
+}

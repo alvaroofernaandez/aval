@@ -119,16 +119,47 @@ func HasFail(rs []Result) bool {
 }
 
 // Render prints the aligned table and the summary line.
-func Render(w io.Writer, rs []Result) {
+func Render(w io.Writer, rs []Result) { RenderStyled(w, rs, nil) }
+
+// Styler decorates a status word for a terminal. The doctor package owns the
+// interface so internal/core never imports the UI layer.
+type Styler interface {
+	OK(word string) string
+	Warn(word string) string
+	Fail(word string) string
+	// Width is the visible width of a styled cell (escape codes excluded).
+	Width(s string) int
+}
+
+// RenderStyled is Render with an optional Styler. A nil Styler prints the
+// plain, byte-stable table scripts rely on.
+func RenderStyled(w io.Writer, rs []Result, st Styler) {
 	width := len("CHECK")
 	for _, r := range rs {
 		if len(r.ID) > width {
 			width = len(r.ID)
 		}
 	}
-	fmt.Fprintf(w, "%-6s  %-*s  %s\n", "STATUS", width, "CHECK", "MESSAGE")
+	cells := make([]string, len(rs))
+	statusWidth := len("STATUS")
+	for i, r := range rs {
+		cells[i] = statusCell(r.Status, st)
+		if st != nil {
+			if cw := st.Width(cells[i]); cw > statusWidth {
+				statusWidth = cw
+			}
+		}
+	}
+	pad := func(cell string) string {
+		n := statusWidth - len(cell)
+		if st != nil {
+			n = statusWidth - st.Width(cell)
+		}
+		return cell + strings.Repeat(" ", max(n, 0))
+	}
+	fmt.Fprintf(w, "%s  %-*s  %s\n", pad("STATUS"), width, "CHECK", "MESSAGE")
 	var ok, warn, fail int
-	for _, r := range rs {
+	for i, r := range rs {
 		switch r.Status {
 		case OK:
 			ok++
@@ -141,9 +172,26 @@ func Render(w io.Writer, rs []Result) {
 		if r.Fixable && r.Status != OK {
 			msg += " (fixable: aval doctor --fix)"
 		}
-		fmt.Fprintf(w, "%-6s  %-*s  %s\n", strings.ToUpper(string(r.Status)), width, r.ID, msg)
+		fmt.Fprintf(w, "%s  %-*s  %s\n", pad(cells[i]), width, r.ID, msg)
 	}
 	fmt.Fprintf(w, "\n%d ok, %d warn, %d fail\n", ok, warn, fail)
+}
+
+// statusCell is the upper-case status word, decorated when a Styler is given.
+func statusCell(s Status, st Styler) string {
+	word := strings.ToUpper(string(s))
+	if st == nil {
+		return word
+	}
+	switch s {
+	case OK:
+		return st.OK(word)
+	case Warn:
+		return st.Warn(word)
+	case Fail:
+		return st.Fail(word)
+	}
+	return word
 }
 
 // RenderJSON prints the results as a JSON array.

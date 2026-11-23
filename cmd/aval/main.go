@@ -46,6 +46,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/update"
 	"github.com/alvaroofernaandez/aval/internal/release"
 	"github.com/alvaroofernaandez/aval/internal/ui"
+	"github.com/alvaroofernaandez/aval/internal/ui/cli"
 )
 
 // Stamped at build time by GoReleaser (see .goreleaser.yaml):
@@ -360,36 +361,45 @@ func finish(r *install.Runner, err error) error {
 }
 
 // runHeadless is the provisioning path: no TUI, one line per action, and a
-// non-zero exit if anything failed.
+// non-zero exit if anything failed. Status cells are styled only when stdout is
+// a terminal; otherwise the output is plain and byte-stable.
 func runHeadless(p *plan.Plan, pf platform.Platform, runner *install.Runner, symlinks, dryRun bool) error {
-	fmt.Printf("aval %s — %s\n", version, pf.Display())
-	fmt.Printf("%s\n\n", pf.InstallStyle(symlinks))
+	return runHeadlessTo(os.Stdout, newPrinter(os.Stdout), p, pf, runner, symlinks, dryRun)
+}
+
+func runHeadlessTo(w io.Writer, pr *cli.Printer, p *plan.Plan, pf platform.Platform, runner *install.Runner, symlinks, dryRun bool) error {
+	fmt.Fprintf(w, "aval %s — %s\n", version, pf.Display())
+	fmt.Fprintf(w, "%s\n\n", pf.InstallStyle(symlinks))
 
 	var failures int
 	backups := 0
 	for _, a := range p.SelectedActions() {
 		res, err := runner.Apply(a)
 		if err != nil {
-			fmt.Printf("  %-44s %s\n", a.Label, "FAILED: "+err.Error())
+			fmt.Fprintf(w, "  %-44s %s\n", a.Label, pr.Fail("FAILED: "+err.Error()))
 			failures++
 			continue
 		}
+		status := pr.OK(res.Status.String())
+		if res.Status == install.StatusWould {
+			status = pr.Muted(res.Status.String())
+		}
 		note := ""
 		if res.Backup != "" {
-			note = "  (backed up)"
+			note = "  " + pr.Muted("(backed up)")
 			backups++
 		}
-		fmt.Printf("  %-44s %s%s\n", a.Label, res.Status, note)
+		fmt.Fprintf(w, "  %-44s %s%s\n", a.Label, status, note)
 	}
 
 	if backups > 0 {
-		fmt.Printf("\n%d existing file(s) moved to %s\n", backups, runner.BackupRoot())
+		fmt.Fprintf(w, "\n%d existing file(s) moved to %s\n", backups, runner.BackupRoot())
 	}
 	if failures > 0 {
 		return fmt.Errorf("%d action(s) failed", failures)
 	}
 	if dryRun {
-		fmt.Println("\nDry run — nothing was written.")
+		fmt.Fprintln(w, "\nDry run — nothing was written.")
 	}
 	return nil
 }

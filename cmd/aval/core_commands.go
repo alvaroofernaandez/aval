@@ -77,7 +77,7 @@ func runDoctor(repo, home string, args []string, out io.Writer) error {
 			return err
 		}
 	} else {
-		doctor.Render(out, results)
+		doctor.RenderStyled(out, results, newPrinter(out))
 	}
 	if doctor.HasFail(results) {
 		return errChecksFailed
