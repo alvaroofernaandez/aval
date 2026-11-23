@@ -310,7 +310,7 @@ Rules for every task:
 - [x] **T18 (sonnet, after T3, T4 and T12): wire the settings into every surface.** Add a `doctor` config check.
 
 ### Phase 4: ship
-- [ ] **T19 (sonnet): docs and demo.** README, guide, npm README, and re-recording the GIF with vhs.
+- [x] **T19 (sonnet): docs and demo.** README, guide, npm README, and re-recording the GIF with vhs.
 - [ ] **T20 (opus): cross-terminal verification.**
   - Ghostty dark and light, Terminal.app, Windows Terminal, conhost, the Linux console, `NO_COLOR` and a 36x10 pane.
   - Decide the large wordmark from the screenshots.

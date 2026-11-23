@@ -168,3 +168,37 @@ func TestDoneStaysWithinTerminalHeight(t *testing.T) {
 		}
 	}
 }
+
+// DESIGN.md section 10: colour belongs to state glyphs only; headings are
+// bold ink. The headline must never be painted in a state colour.
+func TestDoneHeadlineIsBoldInkNotAStateColour(t *testing.T) {
+	m := doneModel(t).WithTheme(trueColorTheme(t, "aval"))
+	m.width, m.height = 80, 40
+	stateColours := map[string]string{
+		"ok":   "38;2;152;187;10",
+		"warn": "38;2;230;195;13",
+		"fail": "38;2;228;104;11",
+	}
+	for _, tc := range []struct {
+		name    string
+		mutate  func(*Model)
+		stopped bool
+	}{
+		{"failed", func(*Model) {}, false},
+		{"clean", func(m *Model) { m.errs = nil }, false},
+		{"dry run", func(m *Model) { m.DryRun = true }, false},
+		{"stopped", func(*Model) {}, true},
+	} {
+		mm := m
+		tc.mutate(&mm)
+		headline := mm.doneContent(mm.layout(), math.MaxInt32, tc.stopped)[0]
+		for state, seq := range stateColours {
+			if strings.Contains(headline, seq) {
+				t.Errorf("%s headline is painted in the %s colour: %q", tc.name, state, headline)
+			}
+		}
+		if !strings.Contains(headline, "\x1b[1") && !strings.Contains(headline, ";1m") && !strings.Contains(headline, "[1;") {
+			t.Errorf("%s headline is not bold: %q", tc.name, headline)
+		}
+	}
+}

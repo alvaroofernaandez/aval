@@ -74,17 +74,17 @@ func (m Model) doneContent(l layout, h int, stopped bool) []string {
 	applied, total := m.Progress()
 	written := !m.DryRun && (linked > 0 || backups > 0 || (stopped && applied > 0))
 
-	// Headline.
+	// Headline: bold ink. Colour belongs to state glyphs only (DESIGN.md 10).
 	var headline string
 	switch {
 	case m.DryRun:
-		headline = m.theme.Warning.Render(m.fit("Dry run complete: nothing was written.", l.width))
+		headline = m.theme.Heading.Render(m.fit("Dry run complete: nothing was written.", l.width))
 	case stopped:
-		headline = m.theme.Warning.Render(m.fit(fmt.Sprintf("Stopped after %d of %d.", applied, total), l.width))
+		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("Stopped after %d of %d.", applied, total), l.width))
 	case failed > 0:
-		headline = m.theme.Failure.Render(m.fit(fmt.Sprintf("Installed. %d linked, %d failed.", linked, failed), l.width))
+		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("Installed. %d linked, %d failed.", linked, failed), l.width))
 	default:
-		headline = m.theme.Success.Render(m.fit(fmt.Sprintf("Installed. %d linked.", linked), l.width))
+		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("Installed. %d linked.", linked), l.width))
 	}
 
 	// Failures: the path and the reason, verbatim.
