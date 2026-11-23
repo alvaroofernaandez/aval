@@ -20,6 +20,7 @@ const releaseUsage = `usage: aval release <command>
   rc | beta              cut the next prerelease of the upcoming version
   promote                turn the latest rc into the stable release (same commit)
   environment <tag>      the GitHub environment the tag publishes from (used by CI)
+  npm-tag <tag>          the npm dist-tag the tag publishes under (used by CI)
 
   cut commands take --yes (skip the prompt) and --dry-run (show only)`
 
@@ -87,7 +88,9 @@ func runRelease(wd string, args []string, in io.Reader, out io.Writer) error {
 	case "status":
 		return releaseStatus(g, out)
 	case "environment":
-		return releaseEnvironment(g, args[1:], out)
+		return releaseRule(g, args[1:], out, release.Environment)
+	case "npm-tag":
+		return releaseRule(g, args[1:], out, release.NpmTag)
 	case "patch", "minor", "major", "rc", "beta", "promote":
 		fs := flag.NewFlagSet("release "+kind, flag.ContinueOnError)
 		fs.SetOutput(io.Discard)
@@ -105,9 +108,10 @@ func runRelease(wd string, args []string, in io.Reader, out io.Writer) error {
 	return newUsage(releaseUsage)
 }
 
-// releaseEnvironment prints the environment a tag publishes from: release.yml
-// runs it so the patch rule lives in Go, next to its tests.
-func releaseEnvironment(g release.Git, args []string, out io.Writer) error {
+// releaseRule prints what a release rule answers for one tag, given every tag
+// in the repository: the environment it publishes from, or its npm dist-tag.
+// release.yml runs them so the rules live in Go, next to their tests.
+func releaseRule(g release.Git, args []string, out io.Writer, rule func(release.Version, []release.Version) string) error {
 	if len(args) != 1 {
 		return newUsage(releaseUsage)
 	}
@@ -119,7 +123,7 @@ func releaseEnvironment(g release.Git, args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintln(out, release.Environment(v, st.Tags))
+	_, err = fmt.Fprintln(out, rule(v, st.Tags))
 	return err
 }
 

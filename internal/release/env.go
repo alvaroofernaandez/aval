@@ -39,3 +39,28 @@ func lineBase(v Version) Version {
 	}
 	return Version{Major: v.Major}
 }
+
+// npm dist-tags a release publishes under. NpmSuperseded moves nothing users
+// install: the workflow removes it right after publishing.
+const (
+	NpmLatest     = "latest"
+	NpmNext       = "next"
+	NpmSuperseded = "superseded"
+)
+
+// NpmTag picks the npm dist-tag a tag publishes under. A stable release
+// moves `latest` only when no stable tag is newer; a prerelease moves `next`
+// only when no tag at all is newer, so `next` never falls behind `latest`.
+// Anything older publishes as NpmSuperseded: re-running an old release, or
+// approving rcs out of order, never sends users back.
+func NpmTag(v Version, tags []Version) string {
+	for _, t := range tags {
+		if (v.IsPre() || !t.IsPre()) && t.Compare(v) > 0 {
+			return NpmSuperseded
+		}
+	}
+	if v.IsPre() {
+		return NpmNext
+	}
+	return NpmLatest
+}

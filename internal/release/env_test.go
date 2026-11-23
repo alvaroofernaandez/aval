@@ -35,3 +35,35 @@ func TestEnvironment(t *testing.T) {
 		}
 	}
 }
+
+// A release moves `latest` or `next` only when it is the newest of its kind:
+// publishing an older rc after a newer one (or re-running an old release) must
+// not send users back to it.
+func TestNpmTag(t *testing.T) {
+	tags := []Version{}
+	for _, s := range []string{"v0.2.3", "v0.2.4", "v0.3.0-rc.1", "v0.3.0-rc.2", "v0.3.0-rc.4"} {
+		v, err := Parse(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tags = append(tags, v)
+	}
+	cases := []struct{ tag, want, why string }{
+		{"v0.3.0-rc.4", NpmNext, "the newest prerelease moves next"},
+		{"v0.3.0-rc.5", NpmNext, "a prerelease newer than every tag moves next"},
+		{"v0.3.0-rc.1", NpmSuperseded, "an older rc published late must not move next back"},
+		{"v0.2.4", NpmLatest, "the newest stable moves latest"},
+		{"v0.2.3", NpmSuperseded, "an older stable re-run must not move latest back"},
+		{"v0.3.0", NpmLatest, "a stable newer than every stable moves latest"},
+		{"v0.2.4-rc.1", NpmSuperseded, "a prerelease older than a released stable moves nothing"},
+	}
+	for _, c := range cases {
+		v, err := Parse(c.tag)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := NpmTag(v, tags); got != c.want {
+			t.Errorf("NpmTag(%s) = %q, want %q: %s", c.tag, got, c.want, c.why)
+		}
+	}
+}

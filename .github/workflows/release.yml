@@ -54,7 +54,7 @@ jobs:
       actions: read # read ci.yml's conclusion for the tagged commit
     outputs:
       version: ${{ steps.tag.outputs.version }}
-      npm_tag: ${{ steps.tag.outputs.npm_tag }}
+      npm_tag: ${{ steps.env.outputs.npm_tag }}
       environment: ${{ steps.env.outputs.environment }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -75,11 +75,7 @@ jobs:
           git fetch --no-tags origin main:refs/remotes/origin/main
           git merge-base --is-ancestor "$TAG^{commit}" origin/main \
             || { echo "::error::$TAG is not reachable from origin/main"; exit 1; }
-          version="${TAG#v}"
-          npm_tag=latest
-          [[ "$version" == *-* ]] && npm_tag=next
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-          echo "npm_tag=${npm_tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: ci.yml passed on the tagged commit
         env:
@@ -95,13 +91,17 @@ jobs:
         with:
           go-version: "1.25"
 
-      - name: publishing environment
+      # Both rules live in Go (internal/release/env.go): the environment, and
+      # the npm dist-tag, which only the newest release of its kind moves.
+      - name: publishing environment and npm dist-tag
         id: env
         run: |
           set -euo pipefail
           environment="$(go run ./cmd/aval release environment "$TAG")"
+          npm_tag="$(go run ./cmd/aval release npm-tag "$TAG")"
           echo "environment=${environment}" >> "$GITHUB_OUTPUT"
-          echo "$TAG publishes from the \"${environment}\" environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "npm_tag=${npm_tag}" >> "$GITHUB_OUTPUT"
+          echo "$TAG publishes from the \"${environment}\" environment under the npm tag \"${npm_tag}\"" >> "$GITHUB_STEP_SUMMARY"
 
       - name: install goreleaser
         run: |
@@ -276,6 +276,10 @@ jobs:
               return 0
             fi
             npm publish "${dir}" --access public --provenance --tag "$NPM_TAG"
+            # An older release moves no tag users install: drop the neutral one.
+            if [ "$NPM_TAG" = superseded ]; then
+              npm dist-tag rm "${name}" superseded
+            fi
           }
 
           for dir in ./dist-npm/aval-*/; do
