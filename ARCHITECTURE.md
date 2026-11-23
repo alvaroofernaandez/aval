@@ -30,6 +30,7 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/devmode` | leaf | The `aval dev` sandbox: a throwaway HOME for trying aval. |
 | `internal/deck` | leaf | Renders a JSON slide spec into a PDF deck. |
 | `internal/agent/budget` | leaf | Measures always-on context and hook latency per agent. |
+| `internal/agent/fmthook` | leaf | Hook that formats the file an agent just edited with its project's formatter. |
 | `internal/agent/lessons` | leaf | Hook that injects a short lesson when a tool call matches it. |
 | `internal/agent/prepush` | leaf | The git pre-push gate against employer material and secrets. |
 | `internal/agent/rateguard` | leaf | Hook that stops bursts of requests to hosts that ban rapid clients. |
