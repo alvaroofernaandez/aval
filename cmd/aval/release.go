@@ -19,6 +19,7 @@ const releaseUsage = `usage: aval release <command>
   patch | minor | major  cut a stable release
   rc | beta              cut the next prerelease of the upcoming version
   promote                turn the latest rc into the stable release (same commit)
+  environment <tag>      the GitHub environment the tag publishes from (used by CI)
 
   cut commands take --yes (skip the prompt) and --dry-run (show only)`
 
@@ -85,6 +86,8 @@ func runRelease(wd string, args []string, in io.Reader, out io.Writer) error {
 	switch kind := args[0]; kind {
 	case "status":
 		return releaseStatus(g, out)
+	case "environment":
+		return releaseEnvironment(g, args[1:], out)
 	case "patch", "minor", "major", "rc", "beta", "promote":
 		fs := flag.NewFlagSet("release "+kind, flag.ContinueOnError)
 		fs.SetOutput(io.Discard)
@@ -100,6 +103,24 @@ func runRelease(wd string, args []string, in io.Reader, out io.Writer) error {
 		})
 	}
 	return newUsage(releaseUsage)
+}
+
+// releaseEnvironment prints the environment a tag publishes from: release.yml
+// runs it so the patch rule lives in Go, next to its tests.
+func releaseEnvironment(g release.Git, args []string, out io.Writer) error {
+	if len(args) != 1 {
+		return newUsage(releaseUsage)
+	}
+	v, err := release.Parse(args[0])
+	if err != nil || v.Tag() != args[0] {
+		return newUsage(releaseUsage)
+	}
+	st, err := release.Inspect(g)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(out, release.Environment(v, st.Tags))
+	return err
 }
 
 func releaseStatus(g release.Git, out io.Writer) error {

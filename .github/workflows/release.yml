@@ -3,13 +3,15 @@
 #
 #   preflight  read-only: the tag is annotated, on main, CI passed on that exact
 #              commit, and the GoReleaser config builds (a snapshot dry run)
-#   publish    owner approval ("release" environment): GoReleaser builds the
-#              archives and the GitHub release; the archives get a provenance
-#              attestation
+#   publish    GoReleaser builds the archives and the GitHub release; the
+#              archives get a provenance attestation. It runs in the environment
+#              preflight picks with `aval release environment`: "release-patch"
+#              (no approval) for a stable patch over a released minor, else
+#              "release" (owner approval)
 #   verify     read-only: downloads what was published and checks SHA256SUMS,
 #              the attestations and the stamped version
-#   npm        owner approval: publishes the npm packages from those same
-#              verified archives (dist-tag `next` for prereleases, else `latest`)
+#   npm        same environment as publish: publishes the npm packages from those
+#              same verified archives (dist-tag `next` for prereleases, else `latest`)
 #
 # Cut a tag with `aval release` — see docs/releasing.md. A push to main runs
 # ci.yml and nothing else.
@@ -52,6 +54,7 @@ jobs:
     outputs:
       version: ${{ steps.tag.outputs.version }}
       npm_tag: ${{ steps.tag.outputs.npm_tag }}
+      environment: ${{ steps.env.outputs.environment }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -91,6 +94,14 @@ jobs:
         with:
           go-version: "1.25"
 
+      - name: publishing environment
+        id: env
+        run: |
+          set -euo pipefail
+          environment="$(go run ./cmd/aval release environment "$TAG")"
+          echo "environment=${environment}" >> "$GITHUB_OUTPUT"
+          echo "$TAG publishes from the \"${environment}\" environment" >> "$GITHUB_STEP_SUMMARY"
+
       - name: install goreleaser
         run: |
           set -euo pipefail
@@ -110,7 +121,7 @@ jobs:
     needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: release
+    environment: ${{ needs.preflight.outputs.environment }}
     permissions:
       contents: write # create the release
       id-token: write # sign the provenance attestation
@@ -201,7 +212,7 @@ jobs:
     needs: [preflight, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: release # holds NPM_TOKEN
+    environment: ${{ needs.preflight.outputs.environment }} # both hold NPM_TOKEN
     permissions:
       contents: read
       id-token: write # npm provenance

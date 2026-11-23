@@ -468,3 +468,27 @@ func failLine(out string) string {
 	}
 	return ""
 }
+
+func TestCutSaysWhetherTheReleaseWaitsForApproval(t *testing.T) {
+	f := newFixture(t)
+	f.commit("feat: a")
+	f.tag("v0.1.0")
+	f.commit("fix: b")
+	f.push()
+	o, out := f.opts("patch", "y\n")
+	if err := Cut(f.g, o); err != nil {
+		t.Fatalf("patch: %v\n%s", err, out)
+	}
+	if !strings.Contains(out.String(), "publishes on its own") || strings.Contains(out.String(), "waiting for approval") {
+		t.Errorf("a patch over a released minor publishes without approval; the output must say so:\n%s", out)
+	}
+	f.commit("feat: c")
+	f.push()
+	o, out = f.opts("minor", "y\n")
+	if err := Cut(f.g, o); err != nil {
+		t.Fatalf("minor: %v\n%s", err, out)
+	}
+	if !strings.Contains(out.String(), "waiting for approval") {
+		t.Errorf("a minor waits for the owner; the output must say so:\n%s", out)
+	}
+}

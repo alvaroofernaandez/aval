@@ -30,7 +30,7 @@ complexity|internal/design/gate/tokens.go|Tokens|22
 complexity|internal/design/hook/gate.go|Gate|18
 complexity|internal/devops/kiri/kiri.go|Up|16
 complexity|internal/docs/pdfreport/assets.go|Assets|32
-complexity|internal/release/git.go|Cut|21
+complexity|internal/release/git.go|Cut|19
 complexity|internal/release/git.go|Gate.Run|19
 complexity|internal/release/next.go|Next|17
 complexity|internal/term/tmux/paste.go|pasteRouter|17
@@ -76,7 +76,7 @@ func-lines|internal/design/hook/gate.go|Gate|71
 func-lines|internal/devops/dockerclean/dockerclean.go|Cleanup|62
 func-lines|internal/devops/kiri/kiri.go|Up|69
 func-lines|internal/docs/pdfreport/assets.go|Assets|163
-func-lines|internal/release/git.go|Cut|90
+func-lines|internal/release/git.go|Cut|83
 func-lines|internal/release/git.go|Gate.Run|72
 func-lines|internal/term/tmux/launch.go|launch|69
 func-lines|internal/term/tmux/paste.go|pasteRouter|83
