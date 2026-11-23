@@ -46,7 +46,7 @@ func Render(d Deck) (string, error) {
 		Deck
 		Lang string
 		CSS  template.CSS
-	}{d, lang, template.CSS(deckCSS)})
+	}{d, lang, template.CSS(fontFaces() + deckCSS)})
 	if err != nil {
 		return "", err
 	}
