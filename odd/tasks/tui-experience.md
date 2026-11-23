@@ -81,12 +81,12 @@ Non-interactive paths never open a TUI, and their output stays byte-identical wh
 ```
   Choose what to install               symlinked: repo edits apply at once
 
-  › [✓] Terminal environment   11 items   8 new · 3 linked
+  › [√] Terminal environment   11 items   8 new · 3 linked
         tmux, yazi, Ghostty, zsh and Powerlevel10k
-    [✓] Git and GitHub CLI      3 items   3 linked
+    [√] Git and GitHub CLI      3 items   3 linked
     [ ] Claude Code             7 items   6 new · 1 replaces a file
-    [✓] OpenCode                5 items   5 new
-    [✓] Agent skills           31 items   31 new
+    [√] OpenCode                5 items   5 new
+    [√] Agent skills           31 items   31 new
 
   ────────────────────────────────────────────────────────────────────────
   50 of 57 items selected · 44 new · 6 linked · 0 files moved to backup
@@ -97,9 +97,9 @@ Non-interactive paths never open a TUI, and their output stays byte-identical wh
 ```
   Installing                                                     23 of 50
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────
-    ✓ linked     ~/.config/yazi
+    √ linked     ~/.config/yazi
     ! backed up  ~/.zshrc
-    ✗ failed     ~/.config/ghostty   source missing
+    × failed     ~/.config/ghostty   source missing
     › linking    ~/.zprofile
   ────────────────────────────────────────────────────────────────────────
   1 failed so far · ctrl+c stops after the current step
@@ -133,7 +133,7 @@ Non-interactive paths never open a TUI, and their output stays byte-identical wh
     Update check   on             on · off
     Repository     ~/.aval
 
-  Preview   [✓] Selected   [ ] Not selected   ✓ linked   ! backed up   ✗ failed
+  Preview   [√] Selected   [ ] Not selected   √ linked   ! backed up   × failed
   ────────────────────────────────────────────────────────────────────────
   theme is set by $AVAL_THEME in this shell; the file value applies elsewhere
   ↑↓ move · ←→ change · enter save · esc discard
@@ -216,8 +216,8 @@ One `Caps` value, computed once:
 | Role | Unicode | ASCII |
 | :--- | :--- | :--- |
 | cursor | `›` | `>` |
-| check states | `[✓]` `[ ]` `[-]` | `[x]` `[ ]` `[-]` |
-| ok / warn / fail | `✓` `!` `✗` | `ok` `!` `x` |
+| check states | `[√]` `[ ]` `[-]` | `[x]` `[ ]` `[-]` |
+| ok / warn / fail | `√` `!` `×` | `ok` `!` `x` |
 | progress | `━` `─` | `#` `-` |
 | separator, ellipsis | `·` `…` | two spaces, `...` |
 | keys | `↑↓` `←→` | `up/down` `left/right` |
