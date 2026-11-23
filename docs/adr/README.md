@@ -59,3 +59,4 @@ What changed and why.
 | [0003](0003-pre-push-scans-ci-tests.md) | Accepted (2026-11-23) | Pre-push scans outgoing commits; CI runs the tests on three operating systems. |
 | [0004](0004-hub-writes-nothing-offline.md) | Accepted (2026-11-23) | Opening the hub writes nothing and makes no network call. |
 | [0005](0005-cost-aware-context-relay.md) | Proposed (2026-11-23) | The context relay triggers on absolute tokens and cache state, not a window percentage. |
+| [0006](0006-i18n-human-output.md) | Accepted (2026-11-23) | Human output is English or Spanish; machine output stays English. |

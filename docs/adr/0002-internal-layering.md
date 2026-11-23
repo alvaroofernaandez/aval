@@ -53,3 +53,21 @@ is the precise rule:
 - `ui/caps` is a leaf.
 
 `docs/architecture/model.md` is generated from that table.
+
+### 2026-11-23
+
+`internal/i18n` is a new leaf (ADR 0006): it holds the message catalog and
+the language selection, and imports nothing internal. Who may import it:
+
+- `cmd/aval`, already allowed everything: it resolves the language and
+  renders the config warnings that need it.
+- `ui`, which carries the resolved language in `Options` and its frame for
+  the TUI strings (task I2 of `odd/tasks/i18n.md`).
+- `ui/cli`, whose `Printer` carries the language for the human CLI output
+  (task I3).
+
+`core/*` may not import it. Core returns data and typed errors
+(`config.InvalidValueError`, `config.Warning`), and the front ends turn them
+into text. The language is itself a config key, so `config.Load` reports a bad
+value before any language is known; only the caller can render that warning in
+the language that wins. Core results also feed `--json`, which stays English.
