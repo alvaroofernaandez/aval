@@ -88,6 +88,10 @@ type Services struct {
 	// CachedNotice is the update line from the last check's cache; it never
 	// fetches.
 	CachedNotice func() coreupdate.Notice
+	// RepoStatus reads, locally, how many commits the repo is behind its last
+	// fetched upstream and whether its tree has uncommitted changes. known is
+	// false without an upstream. It never fetches and never writes.
+	RepoStatus func() (behind int, known bool, dirty bool)
 }
 
 // BuildInfo is the build block of `aval version`.

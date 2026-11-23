@@ -453,3 +453,21 @@ func TestHubReapplyCommitsItsRunWhenItCloses(t *testing.T) {
 		t.Errorf("after closing the hub: %d runs, want exactly 1", len(runs))
 	}
 }
+
+func TestHubRepoStatusIsWiredWithARepoAndNilWithout(t *testing.T) {
+	home, _ := hubFixture(t)
+	e := fakeEnv(true, "xterm", nil)
+	svc, closeFn := newHubServices(e, home, "", uiSettings{})
+	if svc.RepoStatus == nil {
+		t.Error("RepoStatus is nil with a repo")
+	}
+	closeFn()
+
+	t.Setenv("AVAL_REPO", "")
+	t.Chdir(t.TempDir())
+	svc, closeFn = newHubServices(e, home, "", uiSettings{})
+	defer closeFn()
+	if svc.RepoStatus != nil {
+		t.Error("RepoStatus must be nil without a repo")
+	}
+}

@@ -244,6 +244,7 @@ func newHubServices(e hubEnv, home, repoFlag string, us uiSettings) (ui.Services
 		}
 		return update.DryRun(ctx, git, update.ManagedPaths(m))
 	}
+	svc.RepoStatus = func() (int, bool, bool) { return update.LocalStatus(context.Background(), git) }
 	svc.Pull = func(ctx context.Context) (update.Status, error) { return update.Pull(ctx, git) }
 	svc.Reapply = func() (ui.Model, error) {
 		prep, err := prepare(repo)
