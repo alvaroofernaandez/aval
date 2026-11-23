@@ -190,6 +190,9 @@ type Gate struct {
 	RunTests  func() error
 	CI        func(sha string) (string, error) // "" when green, else a reason
 	SkipTests bool
+	// Promote checks the rc commit, not HEAD: the branch and up-to-date
+	// checks do not apply, since promote tags a commit already on the branch.
+	Promote bool
 }
 
 // Run executes every check, printing one line each, and fails if any failed.
@@ -210,14 +213,18 @@ func (gt Gate) Run(target string, w io.Writer) error {
 		report(true, "working tree clean")
 	}
 
-	if b, _ := gt.Git.Run("rev-parse", "--abbrev-ref", "HEAD"); b != gt.Branch {
+	if gt.Promote {
+		note("branch and up-to-date checks (promote tags the rc commit, already on %s)", gt.Branch)
+	} else if b, _ := gt.Git.Run("rev-parse", "--abbrev-ref", "HEAD"); b != gt.Branch {
 		report(false, "on branch %q; releases are cut from %s", b, gt.Branch)
 	} else {
 		report(true, "on %s", gt.Branch)
 	}
 
 	upstream := gt.Remote + "/" + gt.Branch
-	if _, err := gt.Git.Run("fetch", "--quiet", gt.Remote); err != nil {
+	if gt.Promote {
+		// Checked by promoteCheck before the gate runs.
+	} else if _, err := gt.Git.Run("fetch", "--quiet", gt.Remote); err != nil {
 		report(false, "cannot fetch %s: %v", gt.Remote, err)
 	} else if counts, err := gt.Git.Run("rev-list", "--left-right", "--count", "HEAD..."+upstream); err != nil {
 		report(false, "cannot compare with %s: %v", upstream, err)
@@ -297,8 +304,12 @@ func Cut(g Git, o CutOptions) error {
 	if err != nil {
 		return err
 	}
-	if o.Kind == "promote" && p.Target != st.Head {
-		return fmt.Errorf("%w (%s); promote only tags the rc's own commit. Cut a new rc, or check out %s", errMovedPastRC, short(st.Head), short(p.Target))
+	var after []Commit
+	if o.Kind == "promote" {
+		if after, err = promoteCheck(g, p.Target, o.Remote, o.Gate.Branch); err != nil {
+			return err
+		}
+		o.Gate.Promote = true
 	}
 
 	channel := ChannelStable
@@ -312,6 +323,9 @@ func Cut(g Git, o CutOptions) error {
 	} else {
 		fmt.Fprintln(w, "(no user-facing changes to list)")
 		fmt.Fprintln(w)
+	}
+	if err := reportAfterRC(g, after, w); err != nil {
+		return err
 	}
 
 	fmt.Fprintln(w, "Checks")
@@ -382,5 +396,65 @@ func (n gateFailed) Error() string {
 	return fmt.Sprintf("%d check(s) failed; nothing was tagged", int(n))
 }
 
-// errMovedPastRC refuses a promote once main has commits the rc does not have.
-var errMovedPastRC = errors.New("main has moved past the release candidate")
+// errRCNotOnMain refuses a promote whose rc commit is not on the release branch.
+var errRCNotOnMain = errors.New("the release candidate is not on the release branch")
+
+// promoteCheck requires the rc commit to be on remote/branch and returns the
+// commits the branch gained after it, which the stable tag will not contain.
+func promoteCheck(g Git, target, remote, branch string) ([]Commit, error) {
+	if branch == "" {
+		branch = "main"
+	}
+	upstream := remote + "/" + branch
+	if _, err := g.Run("merge-base", "--is-ancestor", target, upstream); err != nil {
+		return nil, fmt.Errorf("%w: %s is not an ancestor of %s; cut a new rc from %s", errRCNotOnMain, short(target), upstream, branch)
+	}
+	return commitsIn(g, target+".."+upstream)
+}
+
+// reportAfterRC lists the commits made after the rc and warns when any of them
+// changes shipped code. It never refuses: the owner decides.
+func reportAfterRC(g Git, after []Commit, w io.Writer) error {
+	if len(after) == 0 {
+		return nil
+	}
+	fmt.Fprintf(w, "Not in this release: %d commit(s) after the rc\n", len(after))
+	code := false
+	for _, c := range after {
+		out, err := g.Run("diff-tree", "--no-commit-id", "--name-only", "-r", c.Hash)
+		if err != nil {
+			return err
+		}
+		mark := ""
+		if shipsCode(strings.Fields(out)) {
+			code, mark = true, "  (shipped code)"
+		}
+		fmt.Fprintf(w, "  %s %s%s\n", short(c.Hash), c.Subject, mark)
+	}
+	if code {
+		fmt.Fprintln(w, "Warning: commits after the rc change shipped code; the stable will not include them. Consider cutting a new rc.")
+	}
+	fmt.Fprintln(w)
+	return nil
+}
+
+// shipsCode reports whether any path is part of what a release builds, that
+// is, outside docs, tests, plans, agent skills and Markdown files.
+func shipsCode(paths []string) bool {
+	for _, p := range paths {
+		if strings.HasSuffix(p, ".md") {
+			continue
+		}
+		skip := false
+		for _, dir := range []string{"docs/", "tests/", "odd/", ".claude/"} {
+			if strings.HasPrefix(p, dir) {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			return true
+		}
+	}
+	return false
+}

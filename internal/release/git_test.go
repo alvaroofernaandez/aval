@@ -343,23 +343,105 @@ func TestCutPromoteTagsTheRCCommit(t *testing.T) {
 	}
 }
 
-func TestCutPromoteRefusesWhenMainMovedOn(t *testing.T) {
+// commitPath commits one file at a repo-relative path.
+func (f *fixture) commitPath(path, subject string) string {
+	f.t.Helper()
+	p := filepath.Join(f.work, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		f.t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte(subject), 0o644); err != nil {
+		f.t.Fatal(err)
+	}
+	git(f.t, f.work, "add", "-A")
+	git(f.t, f.work, "commit", "-m", subject)
+	return git(f.t, f.work, "rev-parse", "HEAD")
+}
+
+// cutRC cuts v0.1.0-rc.1 on a pushed main and returns the rc commit.
+func (f *fixture) cutRC() string {
+	f.t.Helper()
+	f.commit("feat: a")
+	f.push()
+	o, out := f.opts("rc", "y\n")
+	if err := Cut(f.g, o); err != nil {
+		f.t.Fatalf("rc: %v\n%s", err, out)
+	}
+	return git(f.t, f.work, "rev-parse", "HEAD")
+}
+
+func TestCutPromoteAfterDocsOnlyCommits(t *testing.T) {
+	f := newFixture(t)
+	rc := f.cutRC()
+	f.commitPath("docs/releasing.md", "docs: notes after the rc")
+	f.commitPath("CHANGELOG.md", "docs: changelog")
+	f.push()
+
+	o, out := f.opts("promote", "y\n")
+	if err := Cut(f.g, o); err != nil {
+		t.Fatalf("promote after docs-only commits: %v\n%s", err, out)
+	}
+	if got := git(t, f.work, "rev-list", "-n1", "v0.1.0"); got != rc {
+		t.Errorf("v0.1.0 points at %s, want the rc commit %s", got, rc)
+	}
+	if !strings.Contains(f.remoteTags(), "v0.1.0") {
+		t.Errorf("stable tag not pushed: %q", f.remoteTags())
+	}
+	if strings.Contains(out.String(), "shipped code") {
+		t.Errorf("docs-only commits must not warn about shipped code:\n%s", out)
+	}
+}
+
+func TestCutPromoteWarnsAboutCodeCommitsAfterTheRC(t *testing.T) {
+	f := newFixture(t)
+	rc := f.cutRC()
+	f.commitPath("internal/x/x.go", "fix: later code change")
+	f.push()
+
+	o, out := f.opts("promote", "y\n")
+	if err := Cut(f.g, o); err != nil {
+		t.Fatalf("promote: %v\n%s", err, out)
+	}
+	if got := git(t, f.work, "rev-list", "-n1", "v0.1.0"); got != rc {
+		t.Errorf("v0.1.0 points at %s, want the rc commit %s", got, rc)
+	}
+	for _, want := range []string{"later code change", "shipped code", "new rc"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output missing %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestCutPromoteRefusesAnRCNotOnMain(t *testing.T) {
 	f := newFixture(t)
 	f.commit("feat: a")
 	f.push()
-	o, _ := f.opts("rc", "y\n")
-	if err := Cut(f.g, o); err != nil {
-		t.Fatal(err)
-	}
-	f.commit("fix: later")
-	f.push()
-	o, _ = f.opts("promote", "y\n")
+	git(t, f.work, "checkout", "-b", "side")
+	f.commit("feat: side work")
+	f.tag("v0.1.0-rc.1")
+	git(t, f.work, "checkout", "main")
+
+	o, out := f.opts("promote", "y\n")
 	err := Cut(f.g, o)
-	if !errors.Is(err, errMovedPastRC) {
-		t.Errorf("err = %v, want errMovedPastRC", err)
+	if !errors.Is(err, errRCNotOnMain) {
+		t.Errorf("err = %v, want errRCNotOnMain\n%s", err, out)
 	}
 	if strings.Contains(git(t, f.work, "tag", "--list"), "v0.1.0\n") {
 		t.Error("stable tag must not exist")
+	}
+}
+
+func TestShipsCode(t *testing.T) {
+	cases := map[string]bool{
+		"docs/releasing.md": false, "tests/x_test.go": false, "odd/tasks/a.md": false,
+		".claude/skills/x/SKILL.md": false, "CHANGELOG.md": false, "README.md": false,
+		"internal/release/git.go": true, "cmd/aval/main.go": true, "go.mod": true,
+		".github/workflows/release.yml": true,
+	}
+	for path, want := range cases {
+		if got := shipsCode([]string{path}); got != want {
+			t.Errorf("shipsCode(%q) = %v, want %v", path, got, want)
+		}
 	}
 }
 

@@ -41,6 +41,7 @@ Copy [assets/template.md](assets/template.md).
 3. Rewrite relative paths, resolving them from `docs/releases/`:
    - images to `https://raw.githubusercontent.com/alvaroofernaandez/aval/<tag>/<path>`;
    - links to `https://github.com/alvaroofernaandez/aval/blob/<tag>/<path>`.
+   - after a `promote`, the notes written after the rc are not in the tag: the body comes from `main`, so pin those links and images to `main` instead.
 4. **Mermaid does not render in a release body.** Replace each diagram with a table that says the same, for example numbered columns for a flow or an Order, Source, Example table for a precedence.
 5. Run `gh release edit <tag> --notes-file <file>`. This is a remote action: only with the owner's authorization.
 6. Check the rendered HTML with `gh api repos/alvaroofernaandez/aval/releases/tags/<tag> -H "Accept: application/vnd.github.html+json" --jq .body_html`. It must contain no `highlight-source-mermaid`, every `src=` must be absolute, and the alerts must be there.

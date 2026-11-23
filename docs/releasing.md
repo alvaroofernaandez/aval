@@ -59,7 +59,14 @@ Before 1.0: `feat` and a breaking change (`!` or `BREAKING CHANGE:`) bump the mi
 justify a version: if that is all there is, `aval release` says there is nothing to publish.
 
 `promote` only tags the rc's commit, so the stable binary is the one you already tested.
-If `main` has moved on since the rc, it refuses: cut another rc.
+It checks the rc, not `HEAD`: the rc commit must be an ancestor of `origin/main` (otherwise it refuses),
+and the branch and up-to-date checks are skipped. CI must be green on the rc commit.
+If `main` has moved on since the rc, promote still tags the rc and lists the commits the stable
+will not contain. When one of them changes shipped code (anything outside `docs/`, `tests/`,
+`odd/`, `.claude/` and `*.md`), it warns and suggests a new rc; the decision is yours.
+
+The notes and the `CHANGELOG.md` section written after the rc are not in the promoted tag. The
+GitHub release body comes from `main`, so its links to those files point at `main`, not at the tag.
 
 ## What each job does
 
