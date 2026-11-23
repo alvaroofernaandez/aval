@@ -114,3 +114,20 @@ func TestSystemProberChecksShareUnderEachPrefix(t *testing.T) {
 		t.Errorf("share, absent: want ErrNotFound, got %v", err)
 	}
 }
+
+// A tool the lookup found is present even when the probe's time ran out: a
+// slow PATH walk (Windows, many probes at once) must not turn a present tool
+// into a missing one, and neither must a version command that hangs.
+func TestSystemProberFoundToolStaysPresentAfterTheDeadline(t *testing.T) {
+	dir := t.TempDir()
+	want := executable(t, dir, "tool", "#!/bin/sh\nsleep 5\n")
+	expired, cancel := context.WithCancel(context.Background())
+	cancel()
+	for _, noVersion := range []bool{true, false} {
+		s := SystemProber{GOOS: runtime.GOOS, Getenv: envWith(map[string]string{"PATH": dir}), NoVersion: noVersion}
+		f, err := s.Probe(expired, Probe{Kind: ProbeBin, Target: "tool", Args: []string{"--version"}})
+		if err != nil || f.Path != want {
+			t.Errorf("NoVersion=%v: got %+v, %v; want present at %s", noVersion, f, err, want)
+		}
+	}
+}

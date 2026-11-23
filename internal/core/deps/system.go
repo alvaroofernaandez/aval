@@ -38,7 +38,7 @@ func (s SystemProber) Probe(ctx context.Context, p Probe) (Found, error) {
 			return Found{}, err
 		}
 		if s.NoVersion || len(p.Args) == 0 {
-			return Found{Path: path}, ctx.Err()
+			return Found{Path: path}, nil // found is final, however long the walk took
 		}
 		return s.version(ctx, path, p.Args)
 	case ProbeApp:
@@ -92,16 +92,13 @@ func (s SystemProber) lookPath(name string) (string, error) {
 }
 
 // version runs the tool with args and keeps the first line of its output.
-// A tool that is found but cannot print its version is still present.
+// A tool that is found but cannot print its version in time is still present.
 func (s SystemProber) version(ctx context.Context, path string, args []string) (Found, error) {
 	cmd := exec.CommandContext(ctx, path, args...)
 	cmd.Stdin = nil
 	out, err := cmd.Output()
-	if ctx.Err() != nil {
-		return Found{}, ctx.Err()
-	}
 	f := Found{Path: path}
-	if err == nil {
+	if err == nil && ctx.Err() == nil {
 		sc := bufio.NewScanner(bytes.NewReader(out))
 		if sc.Scan() {
 			f.Version = strings.TrimSpace(sc.Text())
