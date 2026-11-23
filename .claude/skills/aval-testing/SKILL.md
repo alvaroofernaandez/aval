@@ -20,17 +20,19 @@ Load before writing or changing a test, or before running any suite, in this rep
 | What you verify | Level | Where |
 | --- | --- | --- |
 | A parser, planner, mapping, renderer | Unit, pure, scratch via `t.TempDir()` | `_test.go` next to the code in `internal/` |
-| A subcommand's behaviour | In process through the `run` seam | `cmd/aval` (target state, see below) |
-| Process startup: argv, exit code, PATH, Windows `.exe` | One real-binary smoke test per subcommand | `tests/` (builds the binary once) |
+| A subcommand's behaviour | In process through the `run` seam | `cmd/aval` |
+| Process startup: argv, exit code, PATH, Windows `.exe` | One real-binary smoke test per entry point | `tests/cli_smoke_test.go` (builds the binary once) |
+| Text a person reads: CLI stderr | Exact pin, real binary | `tests/messages_test.go`, the only place |
 | Repository rules: budgets, docs, workflows, architecture, ADRs | Repo-level guard | `tests/` |
 | Real tmux, terminals, long flows | e2e behind a build tag | e.g. `internal/term/tmux/e2e` (`//go:build !windows`) |
 
-**The `run` seam is pending (S6 of `odd/tasks/engineering-standards.md`).** Target: `run(args, stdin, stdout, stderr, env) int` in `cmd/aval`, `main` a thin wrapper, every subcommand tested in process and one real-binary smoke test each. Until S6 lands many tests spawn the binary; do not add new binary-spawning tests where an in-process one is possible today (`cmd/aval/hub_test.go` drives the hub in process).
+**The `run` seam (landed in S6 of `odd/tasks/engineering-standards.md`).** `run(args, stdin, stdout, stderr, env) int` in `cmd/aval` is the whole command line; `main` only passes the real streams and `os.Getenv`. Test a subcommand in process through `run` (or the `runX` it dispatches to) with buffers and an env map; nothing is shared between two calls. A real binary is spawned only for what only a process proves: one smoke test per entry point in `tests/cli_smoke_test.go`, and the user-text pins in `tests/messages_test.go`. Do not add a binary-spawning test where an in-process one can assert the same thing.
 
 ## Assertions
 
-- Errors: `errors.Is` for sentinels, `errors.As` for typed errors. Never compare `err.Error()` or `strings.Contains(err.Error(), ...)`: that is a change detector. If the code returns no sentinel, add one (RED first).
-- User-facing text is pinned in exactly one place (S7 makes that a single messages test). Logic tests assert data, not sentences.
+- Errors: `errors.Is` for sentinels, `errors.As` for typed errors. Never compare `err.Error()` or `strings.Contains(err.Error(), ...)`: that is a change detector. If the code returns no sentinel, add one in the package that owns the error (RED first: a stub that is not wired fails on the assertion). Wrap with `%w` so the message stays byte-identical; a typed error carries the data a test checks (the slide, the variable, the source). Unexported unless another package's test needs it.
+- User-facing text is pinned in exactly one place: `tests/messages_test.go`, one table per surface, exact stderr of the real binary with scratch paths folded into `HOME`, `DIR`, `CONFIG`. A new or reworded message changes that file and nothing else. Logic tests assert data, not sentences. TUI text is asserted on the rendered view in `internal/ui`.
+- `TestHygieneNoErrorTextComparisons` (`tests/test_hygiene_test.go`) fails on an `X.Error()` compared with `==`/`!=`, switched on, passed to a text matcher or stored to compare later, in any `_test.go` but `tests/messages_test.go`. Exemptions go in `errTextExempt` with a reason; it is empty today.
 - One reason to fail per test; a parameterised table in one file instead of the same invariant across many files.
 - Prefer in-memory fakes over mocks that assert call sequences. A fake behaves like the real thing: what the real one stores, the fake stores.
 

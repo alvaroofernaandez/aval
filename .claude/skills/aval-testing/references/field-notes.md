@@ -7,8 +7,8 @@ Background for the rules in `../SKILL.md`. Read only when a rule needs its why.
 | Rule | Mechanism or record |
 | --- | --- |
 | Temp dirs through `t.TempDir()`, no fixed sleeps | `tests/test_hygiene_test.go` (S5) |
-| Assert errors with `errors.Is`/`errors.As` | `AGENTS.md` hard rules; S7 adds sentinels and a hygiene rule against `err.Error()` comparisons |
-| One real-binary smoke test per subcommand | S6, the in-process `run` seam (pending) |
+| Assert errors with `errors.Is`/`errors.As` | `AGENTS.md` hard rules; S7: sentinels and typed errors where tests needed them, `TestHygieneNoErrorTextComparisons`, user text pinned once in `tests/messages_test.go` |
+| One real-binary smoke test per subcommand | S6, the in-process `run` seam; smokes in `tests/cli_smoke_test.go` |
 | Every test package runs in CI on three OSes | ADR 0003, `tests/workflows_test.go` |
 | Layering is a test, not a review comment | ADR 0002, `tests/architecture_test.go` |
 | Guards prove they catch what they claim | planted-violation self-tests (architecture), `AVAL_TEST_REPO` mutated copies |
