@@ -23,13 +23,13 @@ Status: approved by the owner on 2026-11-23 ("si, procede").
 - [x] **R2: Spanish hub GIF.**
   - Add `docs/hub-demo-es.tape`, a copy of `docs/hub-demo.tape` with `AVAL_LANG=es`, producing `docs/assets/hub-es.gif`.
   - The Spanish notes show it.
-- [ ] **R3: PR and merge.**
+- [x] **R3: PR and merge.**
   - Open a PR from `feat/tui-experience` into `main` and wait for CI on ubuntu, macos and windows.
   - Merge with a merge commit, so the conventional commit subjects survive for GoReleaser.
-- [ ] **R4: cut `v0.2.0-rc.1`.**
+- [x] **R4: cut `v0.2.0-rc.1`.**
   - On a clean `main`, run `aval release status`, then `aval release rc --dry-run`, then the cut.
   - The `release` environment approval is the owner's.
-- [ ] **R5: bilingual release body and verification.**
+- [x] **R5: bilingual release body and verification.**
   - After publish, set the body with `gh release edit`.
   - Verify the checksums, the attestation, `aval version` and `npx @alvaroofernaandez/aval@next version`.
   - Clean up the merged branches.
