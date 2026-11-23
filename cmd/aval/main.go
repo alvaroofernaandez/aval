@@ -662,7 +662,7 @@ func previewUpdate(ctx context.Context, g update.Git, repo string, out io.Writer
 		return err
 	}
 	if p.Behind == 0 {
-		fmt.Fprintf(out, "Already up to date (%s)\n\nDry run — nothing was changed.\n", p.Current)
+		fmt.Fprintf(out, "Already up to date (%s)\n\nDry run: nothing was changed.\n", p.Current)
 		return nil
 	}
 	fmt.Fprintf(out, "Would update %s → %s (%d commit(s))\n", p.Current, p.Latest, p.Behind)
@@ -677,7 +677,7 @@ func previewUpdate(ctx context.Context, g update.Git, repo string, out io.Writer
 	for _, r := range p.Removed {
 		fmt.Fprintf(out, "  - manifest entry %s\n", r)
 	}
-	fmt.Fprintln(out, "\nDry run — nothing was changed.")
+	fmt.Fprintln(out, "\nDry run: nothing was changed.")
 	return nil
 }
 

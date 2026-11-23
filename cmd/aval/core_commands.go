@@ -166,7 +166,7 @@ func runRestore(repo, home string, args []string, dryRun bool, out io.Writer) er
 		return err
 	}
 	if *dry {
-		fmt.Fprintln(out, "\nDry run — nothing was written.")
+		fmt.Fprintln(out, "\nDry run: nothing was written.")
 	} else {
 		fmt.Fprintf(out, "\nrestored backup %s\n", run.ID)
 	}
@@ -192,7 +192,7 @@ func runUninstall(repo, home string, args []string, dryRun, yes bool, in io.Read
 	}
 	printUninstall(out, home, items)
 	if *dry {
-		fmt.Fprintln(out, "\nDry run — nothing was written.")
+		fmt.Fprintln(out, "\nDry run: nothing was written.")
 		return nil
 	}
 	if len(items) == 0 {
@@ -287,7 +287,7 @@ func printSync(out io.Writer, home string, rep *avalsync.Report, dry bool) {
 		fmt.Fprintf(out, "overlay   %s %s\n", short(home, l.Dest), l.Status)
 	}
 	if dry {
-		fmt.Fprintln(out, "\nDry run — nothing was written.")
+		fmt.Fprintln(out, "\nDry run: nothing was written.")
 	}
 }
 

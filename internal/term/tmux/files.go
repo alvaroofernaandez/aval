@@ -34,7 +34,7 @@ func closeFile(env Env) int {
 
 	tagged, _ := tm.Query("display", "-p", "-t", pane, "#{?@file_window,1,0}")
 	if trim(tagged) != "1" {
-		fmt.Fprintln(env.Stderr, "close-file: this window was not opened from the sidebar — refusing to close it")
+		fmt.Fprintln(env.Stderr, "close-file: this window was not opened from the sidebar, refusing to close it")
 		return 1
 	}
 
