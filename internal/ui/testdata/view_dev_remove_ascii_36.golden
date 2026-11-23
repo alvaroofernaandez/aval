@@ -1,0 +1,10 @@
+ aval 0.3.0
+ Dev sandbox      ~/.cache/aval/dev
+
+ Remove deletes sandbox default and
+ everything in it.
+
+   Remove default  delete its files
+ > Cancel          change nothing
+ There is no backup: a sandbox i...
+ enter choose  ? help

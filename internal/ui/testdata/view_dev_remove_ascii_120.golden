@@ -1,0 +1,14 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
+
+  Dev sandbox                                                ~/.cache/aval/dev
+
+  Remove deletes sandbox default and everything in it.
+
+    Remove default  delete its files
+  > Cancel          change nothing
+
+  ----------------------------------------------------------------------------
+  There is no backup: a sandbox is disposable. Your real home is not touched.
+  up/down move  enter choose  ? help  q quit

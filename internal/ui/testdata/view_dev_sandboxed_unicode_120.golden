@@ -1,0 +1,14 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Dev sandbox                                                ~/.cache/aval/dev
+
+  You are inside sandbox alpha. Exit it to manage sandboxes.
+
+  › default  √ ready       ~/.cache/aval/dev/default
+    release  ! incomplete  ~/.cache/aval/dev/release
+
+  ────────────────────────────────────────────────────────────────────────────
+  Read-only inside a sandbox
+  ↑↓ move · ? help · q quit
