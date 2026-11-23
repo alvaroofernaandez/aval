@@ -5,6 +5,7 @@ terminal UI, not web UI, so the constraints are different and stricter:
 
 - **The tmux status bar**: sections 1 to 7. ASCII only, no motion.
 - **The installer TUI** (`aval install`, `aval config`): section 10.
+- **The hub** (bare `aval` on a TTY) and its views: section 10.
 - **CLI output** (`aval` usage, `aval doctor`, `aval install --yes`): section 10.
 
 Sections 1 to 7 govern only the status bar; section 10 does not relax them.
@@ -197,6 +198,8 @@ There are two tiers, picked from the terminal's capabilities:
 Rules for both tiers:
 - A state glyph is always followed by its word (`√ linked`).
 - No emoji, no Nerd Font icons, no powerline glyphs. States colour the glyph only; the word uses `text`. The Dingbat check marks fail `aval design gate emoji`, so the tiers use `√` and `×`.
+- Box drawing and block element characters (`▗▟█▛▜▙▀▄▌▐`) are allowed for the
+  hub wordmark only. Nothing else uses them as decoration.
 - No em dashes in UI copy.
 
 ### Layout
@@ -225,11 +228,123 @@ Rules for both tiers:
 - **Keys follow convention (Jakob):** arrows move, space toggles, enter
   confirms, esc goes back, q quits, `?` shows every binding of the screen.
 - **Option counts stay small (Hick):** the welcome screen has 2 choices, the
-  select screen 5 groups, the settings screen 6 rows.
+  select screen 5 groups, the settings screen 6 rows, the hub 4 groups of at
+  most 3 entries.
+
+### Hub
+
+Bare `aval` opens the hub, and only with a terminal on stdin and stdout and
+`TERM` not `dumb`. `aval install` and `aval config` still go straight to their
+screens; `aval help`, `--help`, pipes and CI keep the usage text byte for byte.
+
+- **Opening the hub writes nothing and makes no network calls.** The doctor
+  summary is read-only, and the update line is read from the cache that the
+  last update check left, never fetched.
+- **Layout:** the wordmark beside the status panel, a rule, the menu, a rule,
+  the status line and the key hints. Every view it opens uses the existing
+  frame (lockup, tagline, rule, body, rule, status line, hints).
+- **Inside `aval dev`** the sandbox marker (`[aval dev:default]`) replaces the
+  platform label.
+
+### Wordmark
+
+Owner-approved on 2026-11-23. A raster of the real brand geometry (section 9):
+each `a` is a ring plus a stem, the `v` is the check, the `l` is the ascender.
+It is generated, never hand-drawn: a generator in `tools/brand` emits
+`internal/ui/wordmark_gen.go`, and a test fails when the file is stale.
+
+- **Unicode tier:** quadrant block elements, 7 rows by 41 columns, sampled 4x4
+  per subpixel at a 0.42 coverage threshold.
+- **ASCII tier:** the same raster in `#`, at half resolution.
+- **Colour:** ink only, bold `strong`. No state colour, no gradient.
+
+```
+                     ▗██              ██
+                    ▗██▘              ██
+   ▄▄▄▄▄▄▄▖  ▗▄▖    ▟█▘    ▗▄▄▄▄▄▄▄   ██
+ ▗██▀▀▀▜██▌  ▝██▖  ▟█▛    ▟█▛▀▀▀███   ██
+ ██▘    ▜█▌   ▝██▖▟█▛    ▐█▛    ▝██   ██
+ ▜█▙▖  ▄██▌    ▝███▛     ▝██▄  ▗▟██   ██
+  ▀▜████▜█▌     ▝█▛       ▝▀████▛██   ██
+```
+
+- **Size rule:** at 80 columns or more, beside the status panel. From 40 to 79
+  columns, stacked above it. Compact (under 40) never shows it.
+- **Fallback order** when the height runs short: the wordmark gives way to the
+  one-line lockup, then the gaps go, then the tagline, then the panel
+  collapses, and finally the menu scrolls.
+- **Hub only.** No other screen shows the wordmark.
+- **Rejected:** braille (reads dotted and grainy in screenshots) and a
+  hand-drawn box-letter `a`.
+
+### Status panel
+
+Rows: Version, Repo, Doctor, Backup, Theme.
+- **Labels** in `muted`, **values** in `text`.
+- **Colour only on state glyphs** (`! 0.3.1 available`, `× not found`), per the
+  state colour rule.
+- **Doctor** shows `checking` on first paint, then the worst state's glyph and
+  the CLI summary words. **Backup** shows an absolute time, or `none yet`.
+- **Compact** collapses the panel to one status line.
+
+### Menu
+
+Nine entries in four groups of at most three (Hick). Group names sit in a left
+gutter, so they cost no rows; the gutter appears from 60 columns up.
+
+| Group | Entries |
+| --- | --- |
+| Set up | Install, Update, Sync |
+| Health | Doctor |
+| Undo | Backups, Uninstall |
+| Tools | Settings, Dev sandbox, About |
+
+- Each entry is a name plus a one-line description; narrow ends the
+  description in an ellipsis, compact drops it.
+- **An unavailable entry is shown dimmed (`muted`) with its reason** in place
+  of the description. It never disappears, so the menu does not reflow. With no
+  repository only Install, Backups, Settings and About are live. Without a
+  checkout or Go, Dev sandbox reads "needs a checkout and Go".
+
+### Navigation
+
+- **Stack.** The hub is the bottom. Enter pushes a view, `esc` pops one; at the
+  hub, `esc` does nothing.
+- **Global keys** are added by the router to every screen's key map, so hints
+  and `?` help keep one source:
+
+| Key | Idle | Text field open | Operation running |
+| --- | --- | --- | --- |
+| `esc` | back | close the field | cancel if cancellable, else inert |
+| `q` | quit | typed as text | stop after the current step |
+| `ctrl+c` | quit | quit | stop after the current step; never mid-write |
+| `?` | help | typed as text | help |
+
+- **Running operations** are stepped (install, re-apply: a stop still commits
+  the backup run), network (fetch, pull, clone: spinner, `esc` cancels) or
+  atomic (sync, restore, uninstall, doctor fix: keys are inert and the program
+  cannot quit).
+- **Back at the hub,** the doctor row re-runs in the background and the backup
+  row reloads.
+
+### Operation pattern
+
+Anything that writes goes through four steps: preview, confirm, run, result.
+- **Preview** writes nothing.
+- **Confirm** is two rows chosen with the arrows and enter. No `y` key, no box.
+- **A destructive action opens on `Cancel`,** on its own step: restore,
+  uninstall, a doctor fix, sandbox reset and sandbox remove. Update and sync put
+  their two rows under the preview with the cursor on the action.
+- **The safety net is always named** on the confirm step (`~/.aval-backup`,
+  `aval restore latest`, the run's `.displaced` folder), or the step says there
+  is none.
+- **Result** reports counts, the backup id and the undo command, never
+  "Success".
 
 ### Motion
 
-One spinner, for network waits only (cloning). Progress bars show real state.
+One spinner, for network waits only: cloning, and the update fetch and pull.
+Local work (sync, doctor, restore) never spins. Progress bars show real state.
 With `motion = off` or no TTY, the spinner becomes static text.
 
 ### Non-interactive output
@@ -238,6 +353,12 @@ Without a TTY, output is plain and byte-stable for scripts. Hooks, `statusline`
 and `tmux` helpers never read the visual settings.
 
 ## 8. Decision Log
+
+### 2026-11-23: TUI hub: gentle-ai structure, aval aesthetic
+Every command except install and config was text you had to know by name. The owner chose gentle-ai's structure (a home screen with a large logo, a status panel and a menu, one view per action) with aval's aesthetic: ink only, colour on state glyphs, the existing frame. Decided questions:
+- **Wordmark:** a 7-row by 41-column quadrant raster generated from the real brand geometry in `tools/brand`, with a `#` ASCII tier. Braille and a hand-drawn box-letter `a` were rejected.
+- **Update line:** read from the cache, so opening the hub stays offline and writes nothing.
+- **Dev sandbox without a checkout:** shown dimmed as unavailable with the reason "needs a checkout and Go", not hidden.
 
 ### 2026-11-23: Installer TUI and CLI output join the contract; aval brand theme by default
 The installer had hardcoded Tokyo Night, with muted text at 2.76:1 and unchecked items at 1.91:1, outside any contract. The owner chose the aval brand colours as the default and the widely used community themes as opt-in. Rejected options: Tokyo Night by default, and ANSI-only by default. ANSI-only is kept as the `terminal` theme. The unicode glyph tier and the single network spinner apply to this surface only; the status bar stays ASCII and motionless.
