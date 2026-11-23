@@ -155,6 +155,74 @@ func TestUninstallRunErrorIsShown(t *testing.T) {
 	}
 }
 
+// longUninstallItems is n links, named so each row is distinct.
+func longUninstallItems(n int) []uninstall.Item {
+	items := make([]uninstall.Item, n)
+	for i := range items {
+		items[i] = uninstall.Item{Path: fmt.Sprintf("/home/u/link%02d", i), Kind: uninstall.KindRemoveLink}
+	}
+	return items
+}
+
+// firstRow is the path of the first item row on screen ("" when none).
+func firstRow(out string) string {
+	for _, line := range strings.Split(out, "\n") {
+		if i := strings.Index(line, "~/link"); i >= 0 && strings.Contains(line, "remove link") {
+			return strings.Fields(line[i:])[0]
+		}
+	}
+	return ""
+}
+
+func TestUninstallPreviewScrollsALongList(t *testing.T) {
+	m := goldenOpViewApp(t, true, newUninstallView(uninstallServices(&uninstallProbe{}, longUninstallItems(60))), false)
+	out := renderModelAt(m, 80, 24)
+	lines := strings.Split(out, "\n")
+	if len(lines) > 24 {
+		t.Errorf("frame is %d lines tall at 24 rows:\n%s", len(lines), out)
+	}
+	for _, want := range []string{"Uninstall", "60 links removed", "Nothing has changed yet", "↑↓ scroll"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("preview lacks %q:\n%s", want, out)
+		}
+	}
+	rows := strings.Count(out, "remove link")
+	if want := fmt.Sprintf("%d more below", 60-rows); !strings.Contains(out, want) {
+		t.Errorf("want %q (60 items, %d visible):\n%s", want, rows, out)
+	}
+	before := firstRow(out)
+	next, _ := m.Update(key("down"))
+	after := firstRow(renderModelAt(next, 80, 24))
+	if before == "" || after == "" || before == after {
+		t.Errorf("scroll did not move the first visible row: %q then %q", before, after)
+	}
+	// k and j scroll too; scrolling back up returns to the top.
+	next, _ = next.Update(key("up"))
+	if got := firstRow(renderModelAt(next, 80, 24)); got != before {
+		t.Errorf("up: first row %q, want %q", got, before)
+	}
+}
+
+func TestUninstallScrollsToTheLastRow(t *testing.T) {
+	var m tea.Model = goldenOpViewApp(t, true, newUninstallView(uninstallServices(&uninstallProbe{}, longUninstallItems(60))), false)
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	for range 100 {
+		m, _ = m.Update(key("down"))
+	}
+	out := renderModelAt(m, 80, 24)
+	if !strings.Contains(out, "~/link59") || strings.Contains(out, "more below") {
+		t.Errorf("end of the list:\n%s", out)
+	}
+}
+
+func TestUninstallShortListHasNoScrollHint(t *testing.T) {
+	m := goldenOpViewApp(t, true, newUninstallView(uninstallServices(&uninstallProbe{}, uninstallItems())), false)
+	out := renderModelAt(m, 80, 24)
+	if strings.Contains(out, "scroll") || strings.Contains(out, "more below") {
+		t.Errorf("a list that fits shows scroll cues:\n%s", out)
+	}
+}
+
 // opPhaseOf reads the phase of the operation inside the view's wrapper.
 func opPhaseOf[P any](t *testing.T, s screen) opPhase {
 	t.Helper()
@@ -182,6 +250,11 @@ func init() {
 		build func(t *testing.T, unicode bool) tea.Model
 	}{"uninstall_confirm", func(t *testing.T, unicode bool) tea.Model {
 		return goldenOpViewApp(t, unicode, newUninstallView(uninstallServices(&uninstallProbe{}, uninstallItems())), true)
+	}}, struct {
+		name  string
+		build func(t *testing.T, unicode bool) tea.Model
+	}{"uninstall_long", func(t *testing.T, unicode bool) tea.Model {
+		return goldenOpViewApp(t, unicode, newUninstallView(uninstallServices(&uninstallProbe{}, longUninstallItems(60))), false)
 	}}, struct {
 		name  string
 		build func(t *testing.T, unicode bool) tea.Model

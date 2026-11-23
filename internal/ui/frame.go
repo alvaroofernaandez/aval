@@ -120,32 +120,8 @@ func (c chrome) renderWith(v view, km keyMap) string {
 		}
 	}
 
-	showTagline, showRules, showGaps, wrapHints := !compact, !compact, !compact, !compact
-	fixed := func() int {
-		n := 1 // lockup
-		if showTagline {
-			n++
-		}
-		if showRules {
-			n += 2
-		}
-		if showGaps {
-			n += 2
-		}
-		if v.status != "" {
-			n++
-		}
-		return n + len(c.hintLines(l, wrapHints, km))
-	}
-
-	natural := len(v.body(l, math.MaxInt32))
-	for _, drop := range []*bool{&showGaps, &showTagline, &wrapHints} {
-		if natural <= c.height-fixed() {
-			break
-		}
-		*drop = false
-	}
-	budget := max(c.height-fixed(), 1)
+	plan := c.framePlan(v, km, l)
+	showTagline, showRules, showGaps, wrapHints, budget := plan.tagline, plan.rules, plan.gaps, plan.wrapHints, plan.budget
 
 	var lines []string
 	lines = append(lines, c.lockup(l))
@@ -186,6 +162,47 @@ func (c chrome) renderWith(v view, km keyMap) string {
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+// framePlan is what the frame keeps at the chrome's height: the optional
+// rows that survive and the lines left for the body.
+type framePlan struct {
+	tagline, rules, gaps, wrapHints bool
+	budget                          int
+}
+
+// framePlan decides, for v and km at the chrome's height, which optional rows
+// stay and how many lines the body gets. Views ask it too (a list that does
+// not fit in the budget scrolls, and says so in the key map).
+func (c chrome) framePlan(v view, km keyMap, l layout) framePlan {
+	compact := l.bp == bpCompact
+	p := framePlan{tagline: !compact, rules: !compact, gaps: !compact, wrapHints: !compact}
+	fixed := func() int {
+		n := 1 // lockup
+		if p.tagline {
+			n++
+		}
+		if p.rules {
+			n += 2
+		}
+		if p.gaps {
+			n += 2
+		}
+		if v.status != "" {
+			n++
+		}
+		return n + len(c.hintLines(l, p.wrapHints, km))
+	}
+
+	natural := len(v.body(l, math.MaxInt32))
+	for _, drop := range []*bool{&p.gaps, &p.tagline, &p.wrapHints} {
+		if natural <= c.height-fixed() {
+			break
+		}
+		*drop = false
+	}
+	p.budget = max(c.height-fixed(), 1)
+	return p
 }
 
 // renderHero lays v out with its hero rows in place of the lockup, and the

@@ -80,6 +80,10 @@ type operationSpec[P any] struct {
 
 	// PreviewBody renders the preview.
 	PreviewBody func(c chrome, l layout, p P) []string
+	// PreviewRows renders the preview as a head that always shows and rows
+	// that scroll when they do not fit (up, down, "N more below"). It is
+	// used instead of PreviewBody.
+	PreviewRows func(c chrome, l layout, p P) (head, rows []string)
 	// PreviewStatus is the destructive preview's status line, for example
 	// "Nothing has changed yet".
 	PreviewStatus string
@@ -99,8 +103,10 @@ type operation[P any] struct {
 	preview P
 	loadErr error
 	confirm confirm
-	result  opResult
-	runErr  error
+	// top is the first scrolled row of a PreviewRows preview.
+	top    int
+	result opResult
+	runErr error
 	// stopping: a stepped run was asked to stop and is finishing its step.
 	stopping bool
 
@@ -249,8 +255,16 @@ func (o operation[P]) key(msg tea.KeyMsg) (screen, tea.Cmd) {
 		if o.spec.Mode == confirmInline {
 			return o.choose(msg)
 		}
-		if act, ok := o.keys().lookup(msg.String()); ok && act == actOpContinue {
+		act, ok := o.keys().lookup(msg.String())
+		switch {
+		case !ok:
+		case act == actOpContinue:
 			o.phase, o.confirm = phaseConfirm, o.newConfirmFor()
+		case act == actUp:
+			o.top = max(o.top-1, 0)
+		case act == actDown:
+			n, room := o.scrollRows()
+			o.top = min(o.top+1, max(n-room, 0))
 		}
 	case phaseConfirm:
 		return o.choose(msg)
@@ -327,6 +341,34 @@ var (
 	opResultKeys   = keyMap{{keys: []string{"enter"}, action: actOpClose, label: "enter", desc: "close", core: true}}
 )
 
+var opScrollKeys = keyMap{
+	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "scroll"},
+	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "scroll"},
+}
+
+// scrollRows is how many rows a PreviewRows preview has and how many it
+// shows at the frame's height; room is 0 when the preview is not a scrolling
+// list or the size is not known yet.
+func (o operation[P]) scrollRows() (n, room int) {
+	if o.spec.PreviewRows == nil || o.c.height <= 0 {
+		return 0, 0
+	}
+	l := o.c.layout()
+	head, rows := o.spec.PreviewRows(o.c, l, o.preview)
+	v := view{body: o.previewLines, status: o.spec.PreviewStatus}
+	budget := o.c.framePlan(v, opContinueKeys, l).budget
+	if len(head)+len(rows) <= budget {
+		return len(rows), len(rows)
+	}
+	return len(rows), max(budget-len(head)-1, 0)
+}
+
+// scrolls reports whether the preview has rows below or above the window.
+func (o operation[P]) scrolls() bool {
+	n, room := o.scrollRows()
+	return n > room
+}
+
 func (o operation[P]) keys() keyMap {
 	switch o.phase {
 	case phasePreview:
@@ -335,6 +377,9 @@ func (o operation[P]) keys() keyMap {
 			return nil
 		case o.spec.Mode == confirmInline:
 			return o.confirm.keys()
+		}
+		if o.scrolls() {
+			return append(append(keyMap(nil), opContinueKeys...), opScrollKeys...)
 		}
 		return opContinueKeys
 	case phaseConfirm:
@@ -393,6 +438,9 @@ func (o operation[P]) previewLines(l layout, h int) []string {
 	switch {
 	case o.loadErr != nil:
 		body = o.failLines(l, o.loadErr)
+	case o.spec.PreviewRows != nil:
+		head, rows := o.spec.PreviewRows(c, l, o.preview)
+		body = o.scrollList(l, h, head, rows)
 	case o.spec.PreviewBody != nil:
 		body = o.spec.PreviewBody(c, l, o.preview)
 	}
@@ -407,6 +455,25 @@ func (o operation[P]) previewLines(l layout, h int) []string {
 		body = append(body, "")
 	}
 	return append(body, rows...)
+}
+
+// scrollList is head plus the rows that fit under it from o.top, with a line
+// saying how many are out of sight when some are.
+func (o operation[P]) scrollList(l layout, h int, head, rows []string) []string {
+	if len(head)+len(rows) <= h {
+		return append(head, rows...)
+	}
+	room := max(h-len(head)-1, 0)
+	start, end := scrollWindow(len(rows), o.top+room-1, room)
+	var parts []string
+	if start > 0 {
+		parts = append(parts, fmt.Sprintf("%d above", start))
+	}
+	if end < len(rows) {
+		parts = append(parts, fmt.Sprintf("%d more below", len(rows)-end))
+	}
+	out := append(head, rows[start:end]...)
+	return append(out, o.c.theme.Muted.Render(o.c.fit(strings.Join(parts, o.c.sep()), l.width)))
 }
 
 // waitLines is the one spinner beside label, or static text with motion off.

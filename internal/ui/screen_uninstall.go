@@ -78,7 +78,7 @@ func newUninstallView(svc Services) screen {
 				Undo:    undoLatest,
 			}, nil
 		},
-		PreviewBody: func(c chrome, l layout, items []uninstall.Item) []string {
+		PreviewRows: func(c chrome, l layout, items []uninstall.Item) ([]string, []string) {
 			return uninstallBody(c, l, svc.Home, items)
 		},
 		PreviewStatus: "Nothing has changed yet",
@@ -145,13 +145,13 @@ func uninstallWord(k uninstall.ItemKind) string {
 	return string(k)
 }
 
-// uninstallBody is the heading, the counts line and one row per item; an
-// empty preview says why there is nothing to do.
-func uninstallBody(c chrome, l layout, home string, items []uninstall.Item) []string {
+// uninstallBody is the head (heading and counts line) and one row per item;
+// an empty preview says why there is nothing to do. The rows scroll.
+func uninstallBody(c chrome, l layout, home string, items []uninstall.Item) (head, rows []string) {
 	out := c.headingRow(l, "Uninstall", c.theme.Strong, "", c.theme.Muted)
 	out = append(out, "")
 	if len(items) == 0 {
-		return append(out, c.theme.State(StateOK, c.fit("nothing to uninstall: no link points into this repo", l.width-2)))
+		return append(out, c.theme.State(StateOK, c.fit("nothing to uninstall: no link points into this repo", l.width-2))), nil
 	}
 	var parts []string
 	for _, n := range uninstallCounts(items) {
@@ -161,6 +161,7 @@ func uninstallBody(c chrome, l layout, home string, items []uninstall.Item) []st
 		out = append(out, c.theme.Text.Render(s))
 	}
 	out = append(out, "")
+	head = out
 
 	const note = "restores the previous file"
 	lead := uninstallStateW + 2 + 2 // glyph and space are in the state cell
@@ -180,9 +181,9 @@ func uninstallBody(c chrome, l layout, home string, items []uninstall.Item) []st
 		if it.Restores && withNote {
 			line += "  " + c.theme.Muted.Render(note)
 		}
-		out = append(out, strings.TrimRight(line, " "))
+		rows = append(rows, strings.TrimRight(line, " "))
 	}
-	return out
+	return head, rows
 }
 
 func init() { registerView(viewUninstall, newUninstallView) }
