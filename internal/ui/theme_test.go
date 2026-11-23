@@ -268,3 +268,33 @@ func TestProgressBarHandlesDegenerateInput(t *testing.T) {
 		t.Errorf("zero width = %q, want empty", got)
 	}
 }
+
+func TestStateColoursOnlyTheGlyph(t *testing.T) {
+	th := mustTheme(t, "aval", capsFor(termenv.TrueColor, true), renderer(termenv.TrueColor))
+	got := th.State(StateOK, "linked")
+	ok := "38;2;152;187;108" // #98BB6C
+	i := strings.Index(got, ok)
+	if i < 0 || i > strings.Index(got, th.Glyphs.OK) {
+		t.Fatalf("State = %q, want the ok sequence before the glyph", got)
+	}
+	word := got[strings.Index(got, th.Glyphs.OK)+len(th.Glyphs.OK):]
+	if strings.Contains(word, ok) {
+		t.Errorf("word carries the ok colour: %q", word)
+	}
+	if want := th.Text.Render("linked"); !strings.HasSuffix(got, want) {
+		t.Errorf("State = %q, want the word wrapped as %q", got, want)
+	}
+}
+
+func TestStateIsPlainUnderAscii(t *testing.T) {
+	for _, uni := range []bool{true, false} {
+		c := capsFor(termenv.Ascii, true)
+		c.Unicode = uni
+		th := mustTheme(t, "aval", c, renderer(termenv.TrueColor))
+		for k, g := range map[StateKind]string{StateOK: th.Glyphs.OK, StateWarn: th.Glyphs.Warn, StateFail: th.Glyphs.Fail} {
+			if got, want := th.State(k, "word"), g+" word"; got != want {
+				t.Errorf("State(%d) = %q, want %q", k, got, want)
+			}
+		}
+	}
+}

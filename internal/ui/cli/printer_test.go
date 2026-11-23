@@ -3,6 +3,7 @@ package cli
 import (
 	"io"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/charmbracelet/lipgloss"
@@ -88,5 +89,18 @@ func TestWidthIgnoresEscapes(t *testing.T) {
 	}
 	if w := Plain().Width("abc"); w != 3 {
 		t.Errorf("plain Width = %d", w)
+	}
+}
+
+func TestPrinterColoursOnlyTheGlyph(t *testing.T) {
+	c := caps.Caps{Profile: termenv.TrueColor, Unicode: true, Dark: true, Width: 80, Height: 24}
+	th := theme(t, c)
+	p := New(c, th)
+	got := p.OK("linked")
+	if want := th.Text.Render("linked"); !strings.HasSuffix(got, want) {
+		t.Errorf("OK = %q, want the word in the text colour %q", got, want)
+	}
+	if strings.Contains(got[strings.Index(got, "√")+len("√"):], "38;2;152;187;108") {
+		t.Errorf("OK colours the word: %q", got)
 	}
 }

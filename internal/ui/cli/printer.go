@@ -27,14 +27,14 @@ func New(c caps.Caps, t ui.Theme) *Printer {
 // Plain returns a Printer that adds nothing: no glyph, no escapes.
 func Plain() *Printer { return &Printer{} }
 
-// OK is the glyph, a space and the word, in the OK colour.
-func (p *Printer) OK(word string) string { return p.cell(p.glyphs.OK, word, p.theme.OK) }
+// OK is the glyph in the OK colour, a space and the word in the text colour.
+func (p *Printer) OK(word string) string { return p.cell(ui.StateOK, word) }
 
 // Warn is the warning glyph and word.
-func (p *Printer) Warn(word string) string { return p.cell(p.glyphs.Warn, word, p.theme.Warn) }
+func (p *Printer) Warn(word string) string { return p.cell(ui.StateWarn, word) }
 
 // Fail is the failure glyph and word.
-func (p *Printer) Fail(word string) string { return p.cell(p.glyphs.Fail, word, p.theme.Fail) }
+func (p *Printer) Fail(word string) string { return p.cell(ui.StateFail, word) }
 
 // Muted dims secondary text.
 func (p *Printer) Muted(s string) string { return p.text(s, p.theme.Muted) }
@@ -45,11 +45,11 @@ func (p *Printer) Strong(s string) string { return p.text(s, p.theme.Strong) }
 // Width is the visible width of s, escape codes excluded.
 func (p *Printer) Width(s string) int { return lipgloss.Width(s) }
 
-func (p *Printer) cell(glyph, word string, st lipgloss.Style) string {
+func (p *Printer) cell(k ui.StateKind, word string) string {
 	if !p.styled {
 		return word
 	}
-	return st.Render(glyph + " " + word)
+	return p.theme.State(k, word)
 }
 
 func (p *Printer) text(s string, st lipgloss.Style) string {

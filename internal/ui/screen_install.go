@@ -59,21 +59,28 @@ func (m Model) installBody(l layout, h int) []string {
 // installRows is the log: "√ linked  ~/.config/yazi", then the step running now.
 func (m Model) installRows(l layout) []string {
 	g := m.theme.Glyphs
+	// A cell is a state kind and its word; the running step is the one cell
+	// that is not a state, so it renders through the key token instead.
 	type cell struct {
-		state string
-		style lipgloss.Style
-		label string
+		kind    StateKind
+		word    string
+		running bool
+		label   string
+	}
+	render := func(c cell, word string) string {
+		if c.running {
+			return m.theme.Key.Render(g.Cursor + " " + word)
+		}
+		return m.theme.State(c.kind, word)
 	}
 	var cells []cell
 	for _, r := range m.results {
-		c := cell{state: g.OK + " " + r.Status.String(), style: m.theme.Success, label: r.Action.Label}
+		c := cell{kind: StateOK, word: r.Status.String(), label: r.Action.Label}
 		switch {
 		case r.Backup != "":
-			c.state, c.style = g.Warn+" backed up", m.theme.Warning
-		case r.Status == install.StatusAlready:
-			c.style = m.theme.Muted
+			c.kind, c.word = StateWarn, "backed up"
 		case r.Status == install.StatusWould:
-			c.state, c.style = g.Warn+" "+r.Status.String(), m.theme.Warning
+			c.kind = StateWarn
 		}
 		cells = append(cells, c)
 	}
@@ -85,23 +92,24 @@ func (m Model) installRows(l layout) []string {
 		case m.Symlinks:
 			verb = "linking"
 		}
-		cells = append(cells, cell{state: g.Cursor + " " + verb, style: m.theme.Key, label: m.queue[m.index].Label})
+		cells = append(cells, cell{running: true, word: verb, label: m.queue[m.index].Label})
 	}
 
 	stateW := 0
 	for _, c := range cells {
-		stateW = max(stateW, lipgloss.Width(c.state))
+		stateW = max(stateW, lipgloss.Width(render(c, c.word)))
 	}
 	var rows []string
 	for _, c := range cells {
 		pathW := l.width - 2 - stateW - 2
 		if pathW < 4 {
-			// No room for a path: the state is the part that matters.
-			rows = append(rows, "  "+c.style.Render(m.fit(c.state, l.width-2)))
+			// No room for a path: the state is the part that matters. The
+			// word is cut, never the glyph.
+			rows = append(rows, "  "+render(c, m.fit(c.word, l.width-2-lipgloss.Width(render(c, "")))))
 			continue
 		}
-		state := c.state + strings.Repeat(" ", stateW-lipgloss.Width(c.state))
-		rows = append(rows, "  "+c.style.Render(state)+"  "+m.fitMiddle(c.label, pathW))
+		cell := render(c, c.word)
+		rows = append(rows, "  "+cell+strings.Repeat(" ", stateW-lipgloss.Width(cell))+"  "+m.fitMiddle(c.label, pathW))
 	}
 	return rows
 }

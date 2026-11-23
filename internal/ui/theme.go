@@ -44,6 +44,12 @@ type Theme struct {
 	Bar         lipgloss.Style
 	BarEmpty    lipgloss.Style
 	Unavailable lipgloss.Style
+
+	// stateGlyph styles the glyph of each StateKind. A palette whose state
+	// token fell back to strong has no marker of its own, so the glyph is bold
+	// whenever the value equals strong. plain is set under an Ascii profile.
+	stateGlyph [3]lipgloss.Style
+	plain      bool
 }
 
 // NewTheme resolves name (a family that follows c.Dark, or a pinned variant)
@@ -91,6 +97,18 @@ func NewTheme(name string, c caps.Caps, r *lipgloss.Renderer) (Theme, error) {
 	// stays on bold and reverse only, and muted is never faint anywhere.
 	if p.Rule == "" && p.Name == "terminal" {
 		t.Rule = t.Rule.Faint(true)
+	}
+
+	t.plain = c.Profile == termenv.Ascii
+	for k, v := range map[StateKind]struct {
+		val   string
+		style lipgloss.Style
+	}{StateOK: {p.OK, t.OK}, StateWarn: {p.Warn, t.Warn}, StateFail: {p.Fail, t.Fail}} {
+		st := v.style
+		if p.Strong != "" && v.val == p.Strong {
+			st = st.Bold(true)
+		}
+		t.stateGlyph[k] = st
 	}
 
 	t.Title = t.Strong
@@ -154,4 +172,30 @@ func (t Theme) ProgressBar(done, total, width int) string {
 		}
 	}
 	return bar
+}
+
+// StateKind selects the glyph and token of a state cell.
+type StateKind int
+
+const (
+	StateOK StateKind = iota
+	StateWarn
+	StateFail
+)
+
+// State renders a state cell: the glyph in the state token, a space, then the
+// word in the text token. Colour sits on the glyph only (DESIGN.md section 10).
+// Under an Ascii profile it is plain "glyph word", with no escapes at all.
+func (t Theme) State(k StateKind, word string) string {
+	glyph, style := t.Glyphs.OK, t.stateGlyph[StateOK]
+	switch k {
+	case StateWarn:
+		glyph, style = t.Glyphs.Warn, t.stateGlyph[StateWarn]
+	case StateFail:
+		glyph, style = t.Glyphs.Fail, t.stateGlyph[StateFail]
+	}
+	if t.plain {
+		return glyph + " " + word
+	}
+	return style.Render(glyph) + " " + t.Text.Render(word)
 }
