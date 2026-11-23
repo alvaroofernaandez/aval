@@ -1,0 +1,84 @@
+{
+  "title": "Experiencia TUI de aval",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · tui-experience", "title": "Instalar aval se entiende a la primera", "lede": "El instalador y la salida de aval pasan a ser una sola superficie diseñada: con marca, legible en cualquier terminal y configurable desde un archivo o desde la propia pantalla.", "note": "Lo que cambia para quien instala: sabe qué va a pasar antes de que pase."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "La TUI es la pantalla interactiva del terminal", "lede": "La lista que aparece al ejecutar aval install: eliges con el teclado qué instalar y ves el progreso. Hoy son tres pantallas sin marca, sin primer arranque y sin ajustes."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "Hoy el primer contacto falla en tres sitios", "items": [
+      {"title": "Salir no es salir", "text": "Pulsar q en la selección igualmente escribe en tu HOME: ajustes, hooks y repo registrado.", "tone": "warn"},
+      {"title": "Texto que no se lee", "text": "El texto secundario está a 2.76:1 y los desmarcados a 1.91:1; el contrato exige 4.5:1.", "tone": "warn"},
+      {"title": "npx no lleva a nada", "text": "Sin un clon del repo, aval install falla antes de mostrar ninguna pantalla.", "tone": "warn"}
+    ]},
+    {"layout": "compare", "eyebrow": "La idea", "title": "De una lista muda a una pantalla que avisa", "items": [
+      {"tag": "hoy", "title": "Eliges a ciegas", "text": "Ves grupos y casillas. Qué archivos se reemplazan lo descubres al final.", "tone": "muted"},
+      {"tag": "con este plan", "title": "Ves el efecto antes", "text": "Cada grupo dice cuántos destinos son nuevos, ya enlazados o reemplazan un archivo.", "tone": "good"}
+    ]},
+    {"layout": "steps", "eyebrow": "El recorrido", "title": "Cinco pantallas, en orden", "items": [
+      {"title": "Bienvenida", "text": "Solo la primera vez: dónde está el repo, o clonarlo a ~/.aval si lo eliges."},
+      {"title": "Selección", "text": "Qué instalar y qué pasará con cada archivo."},
+      {"title": "Instalación", "text": "Paso actual y fallos en el momento; ctrl+c para tras el paso en curso."},
+      {"title": "Hecho", "text": "Recuento, dónde fue la copia de seguridad, cómo deshacer y tres siguientes pasos.", "tone": "good"},
+      {"title": "Ajustes", "text": "aval config: tema, fondo, glifos, animación y avisos de versión."}
+    ]},
+    {"layout": "timeline", "eyebrow": "Un ejemplo", "title": "Un portátil nuevo, de cero a configurado", "items": [
+      {"tag": "10:00", "title": "npx @alvaroofernaandez/aval install", "text": "No hay repo: aparece la bienvenida en lugar de un error."},
+      {"tag": "10:01", "title": "Elige clonar a ~/.aval", "text": "Un spinner mientras clona; si falla, reintentar o escribir una ruta."},
+      {"tag": "10:02", "title": "Selección: 44 nuevos, 6 enlazados", "text": "Ve que Claude Code reemplazaría un archivo y lo deja para después."},
+      {"tag": "10:03", "title": "Instalado. 49 enlazados, 1 fallido", "text": "El fallo dice qué y dónde. Deshacer: aval restore latest.", "tone": "good"}
+    ]},
+    {"layout": "checklist", "eyebrow": "Lo que se garantiza", "title": "Funciona en cualquier terminal", "items": [
+      {"title": "Nunca solo color", "text": "Cada estado lleva glifo y palabra: ✓ linked, ! backed up, ✗ failed."},
+      {"title": "NO_COLOR manda", "text": "Por encima de cualquier tema o flag."},
+      {"title": "Nada más ancho ni alto que el terminal", "text": "Probado de 20 a 120 columnas y de 8 a 40 filas."},
+      {"title": "Scripts intactos", "text": "Sin terminal, la salida de --yes y doctor no cambia ni un byte."},
+      {"title": "Teclado primero", "text": "? muestra todas las teclas de la pantalla actual."}
+    ]},
+    {"layout": "groups", "eyebrow": "A quién le cambia", "title": "Tres tipos de terminal, tres niveles", "items": [
+      {"title": "Terminales modernos", "text": "Ghostty, Windows Terminal, iTerm.", "chips": ["unicode", "truecolor"], "tone": "good"},
+      {"title": "Terminales básicos", "text": "Terminal.app, consola de Linux.", "chips": ["256 colores", "ASCII si hace falta"]},
+      {"title": "Sin capacidades", "text": "conhost, TERM=dumb, CI, NO_COLOR.", "chips": ["ASCII", "sin color"], "tone": "muted"}
+    ]},
+    {"layout": "section", "eyebrow": "Segunda parte", "title": "Por dentro: cómo se construye", "lede": "Las piezas, cómo se conectan y por qué se diseñan así."},
+    {"layout": "flow", "eyebrow": "Las piezas", "title": "Cuatro piezas alimentan cada pantalla", "items": [
+      {"title": "Detector", "text": "Lee el terminal una vez: color, fondo, glifos, animación y tamaño (Caps)."},
+      {"title": "Configuración", "text": "Lee flags, variables y archivo, y dice de dónde viene cada valor."},
+      {"title": "Temas", "text": "Convierte los tokens en estilos, con contraste comprobado.", "tone": "good"},
+      {"title": "Pantallas", "text": "Un archivo por pantalla, un marco común y un mapa de teclas único."}
+    ]},
+    {"layout": "tree", "eyebrow": "Cómo decide", "title": "Qué valor gana en cada ajuste", "items": [
+      {"title": "¿Hay NO_COLOR?", "tag": "Sin color, siempre", "tone": "warn"},
+      {"title": "¿Hay un flag (--theme, --plain)?", "tag": "Gana el flag"},
+      {"title": "¿Hay variable AVAL_*?", "tag": "Gana la variable"},
+      {"title": "¿Está en el archivo de config?", "tag": "Gana el archivo"},
+      {"title": "Si no, valor por defecto", "tag": "Por defecto", "tone": "good"}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones", "title": "Por qué se construye así", "columns": ["Decidimos", "Porque", "En lugar de"], "rows": [
+      ["Colores de aval por defecto", "La marca: tinta pura y color solo en estados", "Tokyo Night fijo"],
+      ["Mismo archivo key = value", "Sin migración ni parser nuevo", "TOML o YAML"],
+      ["Golden files", "Cada cambio visual es un diff", "teatest (x/exp)"],
+      ["Valor inválido: aviso", "Un typo no bloquea comandos", "Fallar en duro"]
+    ]},
+    {"layout": "table", "eyebrow": "Mapa", "title": "Dónde vive cada parte", "columns": ["Parte", "Dónde"], "rows": [
+      ["Contrato de diseño", ".agents/DESIGN.md"],
+      ["Detector", "internal/ui/caps"],
+      ["Configuración", "internal/core/config (repoloc delega)"],
+      ["Temas y glifos", "internal/ui/theme.go, glyphs.go"],
+      ["Pantallas", "internal/ui/screen_*.go, frame.go, keys.go"],
+      ["Comando", "aval config list | get | set | path"]
+    ]},
+    {"layout": "checklist", "eyebrow": "Frenos", "title": "Qué pasa cuando algo falla", "items": [
+      {"title": "Salir no escribe nada", "text": "Solo una instalación completada toca tu HOME."},
+      {"title": "Sin terminal, mensaje claro", "text": "Indica usar aval install --yes."},
+      {"title": "Clonar nunca es automático", "text": "Es una opción que eliges; si falla, reintentar o escribir la ruta."},
+      {"title": "Hooks y statusline aislados", "text": "Nunca leen los ajustes visuales: no se ralentizan."}
+    ]},
+    {"layout": "steps", "eyebrow": "El camino", "title": "Siete tandas, con una puerta al inicio", "items": [
+      {"title": "Puerta: tus 5 decisiones", "text": "Tema por defecto, glifos y spinner en DESIGN.md, versión, clonado e idioma.", "tone": "warn"},
+      {"title": "Cimientos", "text": "DESIGN.md, detector, configuración, vista previa de la instalación, temas y golden files."},
+      {"title": "Vistas", "text": "Marco común; luego selección, instalación, hecho y ayuda en paralelo."},
+      {"title": "Primer arranque y ajustes", "text": "Arreglo de la salida con q, bienvenida, aval config y vista de ajustes."},
+      {"title": "Publicar", "text": "Docs, nuevo GIF y capturas en 7 terminales.", "tone": "good"}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Decide el tema por defecto", "lede": "Con tus cinco respuestas arranca la primera tanda: DESIGN.md con Opus y detector, configuración y vista previa con Sonnet, en paralelo.", "note": "Lo no verificado: contraste de los temas claros, wordmark grande y detección de fondo en tmux."}
+  ]
+}
