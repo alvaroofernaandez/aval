@@ -9,6 +9,18 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.3.0-rc.5 (2026-11-23)
+
+[Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
+
+### Fixes
+
+- **release:** an older release published late never moves the npm `latest` or `next` tag
+
+### Maintenance
+
+- **release:** release candidates, patches and minors after 1.0 publish without approval; only the first stable release of a breaking line waits for the owner
+
 ## v0.3.0-rc.4 (2026-11-23)
 
 [Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
