@@ -229,3 +229,25 @@ const goldenJSON = `[
   }
 ]
 `
+
+// A doctor fix names itself in the backup run, so the hub's Backups view
+// can say which command made it.
+func TestRemoveBrokenRecordsDoctorAsTheRunOrigin(t *testing.T) {
+	o := healthy(t)
+	link(t, filepath.Join(o.Home, "gone"), filepath.Join(o.Home, ".claude/skills/dead"))
+	store := backup.NewStore(o.Home)
+	rec := store.Begin()
+	if _, err := RemoveBroken(o, rec); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := rec.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	runs, err := store.List()
+	if err != nil || len(runs) == 0 {
+		t.Fatalf("runs = %v, %v", runs, err)
+	}
+	if runs[0].Origin != "doctor" {
+		t.Errorf("Origin = %q, want doctor", runs[0].Origin)
+	}
+}

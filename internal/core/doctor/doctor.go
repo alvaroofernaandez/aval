@@ -145,6 +145,7 @@ func Fix(opt Options) ([]string, error) {
 // The sync half of Fix is deliberately absent: txsync imports doctor.
 func RemoveBroken(opt Options, rec *backup.Recorder) ([]string, error) {
 	var removed []string
+	rec.SetOrigin("doctor")
 	for _, p := range brokenLinks(opt) {
 		if _, err := rec.Snapshot(p); err != nil {
 			return removed, fmt.Errorf("doctor: back up %s: %w", p, err)
