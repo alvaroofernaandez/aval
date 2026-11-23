@@ -103,13 +103,15 @@ func (c chrome) wrap(s string, w int) []string {
 	return lines
 }
 
-// tildeUnder shortens p to ~/... when it sits under home.
+// tildeUnder shortens p to ~/... when it sits under home. The tail always uses
+// slashes, as the docs and every other label do, so a screen reads the same on
+// Windows.
 func tildeUnder(home, p string) string {
 	if home == "" || p == "" {
 		return p
 	}
 	if rel, err := filepath.Rel(home, p); err == nil && rel != "." && !strings.HasPrefix(rel, "..") {
-		return filepath.Join("~", rel)
+		return "~/" + filepath.ToSlash(rel)
 	}
 	return p
 }

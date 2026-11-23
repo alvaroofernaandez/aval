@@ -179,7 +179,10 @@ func configGet(path, key string, stdout, stderr io.Writer, getenv func(string) s
 // tildePath shortens a path under home for display.
 func tildePath(path, home string) string {
 	if rel, err := filepath.Rel(home, path); err == nil && !strings.HasPrefix(rel, "..") {
-		return filepath.Join("~", rel)
+		if rel == "." {
+			return "~"
+		}
+		return "~/" + filepath.ToSlash(rel)
 	}
 	return path
 }

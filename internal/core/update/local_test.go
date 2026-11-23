@@ -52,9 +52,11 @@ func cloneWithUpstreamAhead(t *testing.T) string {
 	return a
 }
 
-func hashGitDir(t *testing.T, repo string) string {
+// snapshotGitDir maps every path under .git to its mode, size, mtime and a
+// digest of its content, so a failure names what changed.
+func snapshotGitDir(t *testing.T, repo string) map[string]string {
 	t.Helper()
-	h := sha256.New()
+	snap := map[string]string{}
 	err := filepath.WalkDir(filepath.Join(repo, ".git"), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -63,7 +65,7 @@ func hashGitDir(t *testing.T, repo string) string {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(h, "%s %v %d %d\n", p, info.Mode(), info.Size(), info.ModTime().UnixNano())
+		h := sha256.New()
 		if d.Type().IsRegular() {
 			b, err := os.ReadFile(p)
 			if err != nil {
@@ -71,12 +73,13 @@ func hashGitDir(t *testing.T, repo string) string {
 			}
 			h.Write(b)
 		}
+		snap[p] = fmt.Sprintf("%v %d %d %x", info.Mode(), info.Size(), info.ModTime().UnixNano(), h.Sum(nil))
 		return nil
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return snap
 }
 
 func TestLocalStatusCountsFetchedCommitsBehind(t *testing.T) {
@@ -122,10 +125,20 @@ func TestLocalStatusLeavesGitDirByteIdentical(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(repo, "one"), []byte("one"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	before := hashGitDir(t, repo)
+	before := snapshotGitDir(t, repo)
 	LocalStatus(context.Background(), NewGit(repo))
-	if after := hashGitDir(t, repo); after != before {
-		t.Error(".git changed after LocalStatus")
+	after := snapshotGitDir(t, repo)
+	for p, was := range before {
+		if now, ok := after[p]; !ok {
+			t.Errorf(".git/%s removed by LocalStatus", filepath.ToSlash(p))
+		} else if now != was {
+			t.Errorf(".git/%s changed by LocalStatus:\n was %s\n now %s", filepath.ToSlash(p), was, now)
+		}
+	}
+	for p := range after {
+		if _, ok := before[p]; !ok {
+			t.Errorf(".git/%s created by LocalStatus", filepath.ToSlash(p))
+		}
 	}
 }
 
