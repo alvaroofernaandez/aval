@@ -152,7 +152,10 @@ func resolve(p string) (string, error) {
 // GuardNested refuses `aval dev` inside a dev shell unless nested is set.
 func GuardNested(getenv func(string) string, nested bool) error {
 	if getenv("AVAL_DEV") == "1" && !nested {
-		return errors.New("already inside an aval dev shell (AVAL_DEV=1); exit it first, or pass --nested to stack another sandbox")
+		return errNested
 	}
 	return nil
 }
+
+// errNested is `aval dev` run inside a dev shell without --nested.
+var errNested = errors.New("already inside an aval dev shell (AVAL_DEV=1); exit it first, or pass --nested to stack another sandbox")

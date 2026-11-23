@@ -209,12 +209,13 @@ func TestVerifyEnvCatchesAnEscape(t *testing.T) {
 	s, realHome := sandboxAt(t)
 	env := Env(s, nil, "linux", realHome)
 	bad := append(env, "CODEX_HOME="+filepath.Join(realHome, ".codex"))
-	if err := VerifyEnv(bad, s.Root, "linux"); err == nil || !strings.Contains(err.Error(), "CODEX_HOME") {
-		t.Fatalf("VerifyEnv must name the escaping variable, got %v", err)
+	var ee *envError
+	if err := VerifyEnv(bad, s.Root, "linux"); !errors.As(err, &ee) || ee.Var != "CODEX_HOME" || ee.Value == "" {
+		t.Fatalf("VerifyEnv must name the escaping variable CODEX_HOME, got %v", err)
 	}
 	missing := envWithout(env, "CLAUDE_CONFIG_DIR")
-	if err := VerifyEnv(missing, s.Root, "linux"); err == nil {
-		t.Fatal("VerifyEnv must fail when an isolated variable is unset")
+	if err := VerifyEnv(missing, s.Root, "linux"); !errors.As(err, &ee) || ee.Var != "CLAUDE_CONFIG_DIR" || ee.Value != "" {
+		t.Fatalf("VerifyEnv must name the unset variable CLAUDE_CONFIG_DIR, got %v", err)
 	}
 }
 
@@ -289,7 +290,7 @@ func TestGuardNested(t *testing.T) {
 		return ""
 	}
 	out := func(string) string { return "" }
-	if err := GuardNested(in, false); err == nil || !strings.Contains(err.Error(), "--nested") {
+	if err := GuardNested(in, false); !errors.Is(err, errNested) {
 		t.Errorf("inside a dev shell without --nested: %v", err)
 	}
 	if err := GuardNested(in, true); err != nil {

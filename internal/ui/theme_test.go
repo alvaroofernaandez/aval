@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"io"
 	"regexp"
 	"strings"
@@ -203,19 +204,16 @@ func TestNoStylePaintsABackground(t *testing.T) {
 
 func TestUnknownThemeSuggestsClosestName(t *testing.T) {
 	for in, want := range map[string]string{
-		"avl":        `"aval"`,
-		"termnal":    `"terminal"`,
-		"mon":        `"mono"`,
-		"aval-drak":  `"aval-dark"`,
-		"aval-lihgt": `"aval-light"`,
+		"avl":        "aval",
+		"termnal":    "terminal",
+		"mon":        "mono",
+		"aval-drak":  "aval-dark",
+		"aval-lihgt": "aval-light",
 	} {
 		_, err := NewTheme(in, capsFor(termenv.ANSI, true), renderer(termenv.ANSI))
-		if err == nil {
-			t.Errorf("NewTheme(%q) = nil error, want unknown theme", in)
-			continue
-		}
-		if !strings.Contains(err.Error(), "did you mean "+want) {
-			t.Errorf("NewTheme(%q) error = %q, want a suggestion of %s", in, err, want)
+		var ue *unknownThemeError
+		if !errors.As(err, &ue) || ue.Name != in || ue.Suggestion != want {
+			t.Errorf("NewTheme(%q) error = %v, want an *unknownThemeError suggesting %s", in, err, want)
 		}
 	}
 }

@@ -138,7 +138,7 @@ func unknownTheme(name string) error {
 			best, bestD = n, d
 		}
 	}
-	return fmt.Errorf("unknown theme %q: did you mean %q? (themes: %s)", name, best, strings.Join(names, ", "))
+	return &unknownThemeError{Name: name, Suggestion: best, themes: names}
 }
 
 // editDistance is the Levenshtein distance with adjacent transpositions
@@ -166,4 +166,15 @@ func editDistance(a, b string) int {
 		}
 	}
 	return d[len(ra)][len(rb)]
+}
+
+// unknownThemeError is a theme name aval does not know, with the closest
+// known name as the suggestion.
+type unknownThemeError struct {
+	Name, Suggestion string
+	themes           []string
+}
+
+func (e *unknownThemeError) Error() string {
+	return fmt.Sprintf("unknown theme %q: did you mean %q? (themes: %s)", e.Name, e.Suggestion, strings.Join(e.themes, ", "))
 }

@@ -9,7 +9,6 @@ package deck
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -126,8 +125,9 @@ func Parse(r io.Reader) (Deck, error) {
 
 // Validate reports every problem at once, each with the slide it is on.
 func (d Deck) Validate() error {
-	var errs []string
-	add := func(format string, a ...any) { errs = append(errs, fmt.Sprintf(format, a...)) }
+	var errs []Problem
+	slide := 0 // the slide add attributes a problem to; 0 is the deck itself
+	add := func(format string, a ...any) { errs = append(errs, Problem{slide, fmt.Sprintf(format, a...)}) }
 	limit := func(where, field, s string, max int) {
 		if n := utf8.RuneCountInString(s); n > max {
 			add("%s: %s is %d characters, the limit is %d", where, field, n, max)
@@ -143,11 +143,13 @@ func (d Deck) Validate() error {
 	case len(d.Slides) > maxSlides:
 		add("a deck has at most 40 slides, this one has %d: split it", len(d.Slides))
 	case d.Slides[0].Layout != "cover":
+		slide = 1
 		add("slide 1 must be a cover, got %q", d.Slides[0].Layout)
 	}
 
 	for i, s := range d.Slides {
 		n := i + 1
+		slide = n
 		r, ok := rules[s.Layout]
 		if !ok {
 			add("slide %d: unknown layout %q (one of: %s)", n, s.Layout, strings.Join(Layouts(), ", "))
@@ -226,7 +228,25 @@ func (d Deck) Validate() error {
 	}
 
 	if len(errs) > 0 {
-		return errors.New("the deck spec has problems:\n  " + strings.Join(errs, "\n  "))
+		return &SpecError{Problems: errs}
 	}
 	return nil
+}
+
+// SpecError is every problem Validate found, in order, so a fix is one round
+// trip. Its message lists them under one heading.
+type SpecError struct{ Problems []Problem }
+
+// Problem is one broken rule. Slide is 1-based, 0 for the deck as a whole.
+type Problem struct {
+	Slide int
+	Text  string
+}
+
+func (e *SpecError) Error() string {
+	lines := make([]string, len(e.Problems))
+	for i, p := range e.Problems {
+		lines[i] = p.Text
+	}
+	return "the deck spec has problems:\n  " + strings.Join(lines, "\n  ")
 }

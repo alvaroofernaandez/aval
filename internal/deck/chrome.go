@@ -82,7 +82,7 @@ func FindBrowser(e Env) (string, error) {
 		if e.Exists(p) {
 			return p, nil
 		}
-		return "", fmt.Errorf("AVAL_CHROME points at %s, which does not exist", p)
+		return "", &chromeEnvError{Path: p}
 	}
 	var tried []string
 	try := func(p string) bool {
@@ -124,7 +124,7 @@ func FindBrowser(e Env) (string, error) {
 			return p, nil
 		}
 	}
-	return "", fmt.Errorf("no Chromium-based browser found to print the PDF (tried %d places); install Chrome, Brave, Edge or Chromium, or set AVAL_CHROME to its executable", len(tried))
+	return "", fmt.Errorf("%w (tried %d places); install Chrome, Brave, Edge or Chromium, or set AVAL_CHROME to its executable", errNoBrowser, len(tried))
 }
 
 // joinFor joins path parts with the separator of the target OS, which is not
@@ -207,7 +207,7 @@ func Build(d Deck, pdf string, o BuildOptions) error {
 		return errors.New("the layout check did not finish: the browser returned no overflow report")
 	}
 	if len(bad) > 0 {
-		return fmt.Errorf("slides %s overflow their margins: shorten the text or split the slide", strings.Join(bad, ", "))
+		return &overflowError{Slides: bad}
 	}
 
 	tmpPDF := filepath.Join(work, "deck.pdf")
@@ -232,4 +232,21 @@ func fileURL(p string) string {
 		p = "/" + p
 	}
 	return (&url.URL{Scheme: "file", Path: p}).String()
+}
+
+// errNoBrowser is no Chromium-based browser anywhere aval looks.
+var errNoBrowser = errors.New("no Chromium-based browser found to print the PDF")
+
+// chromeEnvError is $AVAL_CHROME naming a file that does not exist.
+type chromeEnvError struct{ Path string }
+
+func (e *chromeEnvError) Error() string {
+	return fmt.Sprintf("AVAL_CHROME points at %s, which does not exist", e.Path)
+}
+
+// overflowError names the slides whose content runs past their margins.
+type overflowError struct{ Slides []string }
+
+func (e *overflowError) Error() string {
+	return fmt.Sprintf("slides %s overflow their margins: shorten the text or split the slide", strings.Join(e.Slides, ", "))
 }
