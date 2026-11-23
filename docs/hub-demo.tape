@@ -36,23 +36,19 @@ Sleep 700ms
 Enter
 Sleep 3s
 
-# Doctor is the fourth entry: Install, Update, Sync, Doctor.
+# Moving the cursor changes the detail pane beside the menu.
 Down
-Sleep 600ms
+Sleep 1500ms
 Down
-Sleep 600ms
+Sleep 1500ms
 Down
-Sleep 1s
-Enter
-Sleep 3500ms
-Escape
+Sleep 1500ms
+Down
 Sleep 1500ms
 
-# Backups is the fifth.
-Down
-Sleep 1s
-Enter
-Sleep 3s
+# A letter opens its entry directly: d is Doctor.
+Type "d"
+Sleep 3500ms
 Escape
 Sleep 1500ms
 

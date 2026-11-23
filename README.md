@@ -187,7 +187,7 @@ Or download an archive from [Releases](https://github.com/alvaroofernaandez/aval
 ```
 
 <div align="center">
-<img src="docs/assets/hub.gif" alt="The hub: open Doctor, go back, open Backups, then the key help" width="100%">
+<img src="docs/assets/hub.gif" alt="The hub: move the cursor, open Doctor with d, go back, then the key help" width="100%">
 </div>
 
 Every write goes through preview, confirm, run and result. A destructive confirm opens on Cancel and names its safety net. Without a terminal, with `aval help` or `--help`, or with `TERM=dumb`, aval prints the usage byte for byte instead.
