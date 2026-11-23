@@ -73,20 +73,27 @@ func splitPair(pair string, i int) string {
 }
 
 // helpRows is "keys, description" for every binding of the current screen.
-func (m Model) helpRows() [][2]string {
+func (m Model) helpRows() [][2]string { return m.keyRows(m.screenKeys()) }
+
+// keyRows is "keys, description" for every binding of km, hidden ones
+// included.
+func (c chrome) keyRows(km keyMap) [][2]string {
 	var rows [][2]string
-	for _, b := range m.screenKeys() {
+	for _, b := range km {
 		names := make([]string, len(b.keys))
 		for i, k := range b.keys {
-			names[i] = m.theme.Glyphs.keyName(k)
+			names[i] = c.theme.Glyphs.keyName(k)
 		}
 		rows = append(rows, [2]string{strings.Join(names, ", "), b.desc})
 	}
 	return rows
 }
 
-func (m Model) helpBody(l layout, h int) []string {
-	rows := m.helpRows()
+func (m Model) helpBody(l layout, h int) []string { return m.keysBody(m.helpRows(), m.helpTop, l, h) }
+
+// keysBody is the help overlay body: a Keys heading and rows, scrolled from
+// top.
+func (c chrome) keysBody(rows [][2]string, top int, l layout, h int) []string {
 	keyW := 0
 	for _, r := range rows {
 		keyW = max(keyW, lipgloss.Width(r[0]))
@@ -94,13 +101,13 @@ func (m Model) helpBody(l layout, h int) []string {
 	// Keep room for at least a few columns of description.
 	keyW = min(keyW, max(l.width/2, 1))
 
-	lines := []string{m.theme.Strong.Render("Keys")}
+	lines := []string{c.theme.Strong.Render("Keys")}
 	room := max(h-len(lines), 0)
-	start, end := scrollWindow(len(rows), m.helpTop, room)
+	start, end := scrollWindow(len(rows), top, room)
 	for _, r := range rows[start:end] {
-		keys := m.pad(r[0], keyW)
-		desc := m.fit(r[1], max(l.width-keyW-2, 1))
-		lines = append(lines, m.theme.Key.Render(keys)+"  "+m.theme.Text.Render(desc))
+		keys := c.pad(r[0], keyW)
+		desc := c.fit(r[1], max(l.width-keyW-2, 1))
+		lines = append(lines, c.theme.Key.Render(keys)+"  "+c.theme.Text.Render(desc))
 	}
 	return lines
 }

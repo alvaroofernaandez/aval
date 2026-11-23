@@ -69,11 +69,11 @@ type doneMsg struct{}
 
 // Model is the installer UI.
 type Model struct {
-	theme    Theme
-	version  string
-	platform string
-	plan     *plan.Plan
-	runner   *install.Runner
+	// chrome is the theme, the lockup labels and the terminal size.
+	chrome
+
+	plan   *plan.Plan
+	runner *install.Runner
 
 	Unavailable []UnavailableGroup
 	Symlinks    bool
@@ -109,7 +109,6 @@ type Model struct {
 	help    bool
 	helpTop int
 
-	width, height int
 	// Quitting records a deliberate exit, so main can tell "the user pressed q"
 	// apart from "the install finished".
 	Quitting bool
@@ -121,8 +120,10 @@ const (
 	defaultHeight = 24
 )
 
-// NewModel builds the initial state.
-func NewModel(p *plan.Plan, r *install.Runner, o Options) Model {
+// newChrome builds the frame from the options: the named theme (the default
+// when empty or unknown) and the detected size, or 80x24 until the terminal
+// reports its own.
+func newChrome(o Options) chrome {
 	name := o.Theme
 	if name == "" {
 		name = DefaultThemeName
@@ -133,29 +134,30 @@ func NewModel(p *plan.Plan, r *install.Runner, o Options) Model {
 			th = DefaultTheme()
 		}
 	}
-	m := Model{
-		theme:    th,
-		version:  o.Version,
-		platform: o.Platform,
+	c := chrome{theme: th, version: o.Version, platform: o.Platform, width: defaultWidth, height: defaultHeight}
+	if o.Caps.Width > 0 {
+		c.width = o.Caps.Width
+	}
+	if o.Caps.Height > 0 {
+		c.height = o.Caps.Height
+	}
+	return c
+}
+
+// NewModel builds the initial state.
+func NewModel(p *plan.Plan, r *install.Runner, o Options) Model {
+	return Model{
+		chrome:   newChrome(o),
 		plan:     p,
 		runner:   r,
 		Symlinks: o.Symlinks,
 		DryRun:   o.DryRun,
 		screen:   ScreenSelect,
-		width:    defaultWidth,
-		height:   defaultHeight,
 		sel:      newSelectState(p, r),
 
 		settingsEnv: o.Settings,
 		caps:        o.Caps,
 	}
-	if o.Caps.Width > 0 {
-		m.width = o.Caps.Width
-	}
-	if o.Caps.Height > 0 {
-		m.height = o.Caps.Height
-	}
-	return m
 }
 
 // WithTheme returns m rendering with t. Tests use it to pin a deterministic

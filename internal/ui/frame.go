@@ -46,6 +46,17 @@ func breakpointFor(width int) breakpoint {
 	return bpRegular
 }
 
+// chrome is the shared frame state: the theme, the lockup labels and the
+// terminal size. Model embeds it for the installer screens; App holds one
+// for the screen stack, so every view draws the same frame.
+type chrome struct {
+	theme    Theme
+	version  string
+	platform string
+
+	width, height int
+}
+
 // layout is the box a screen body draws into.
 type layout struct {
 	bp     breakpoint
@@ -54,12 +65,12 @@ type layout struct {
 	width int
 }
 
-func (m Model) layout() layout {
-	l := layout{bp: breakpointFor(m.width), margin: 2}
+func (c chrome) layout() layout {
+	l := layout{bp: breakpointFor(c.width), margin: 2}
 	if l.bp == bpCompact {
 		l.margin = 1
 	}
-	l.width = min(m.width-2*l.margin, maxContent)
+	l.width = min(c.width-2*l.margin, maxContent)
 	if l.width < 1 {
 		l.width = 1
 	}
@@ -77,13 +88,22 @@ type view struct {
 	status string
 }
 
-// render lays v out inside the frame at the model's size.
-func (m Model) render(v view) string {
-	l := m.layout()
+// render lays v out inside the frame with the model's own key map.
+func (m Model) render(v view) string { return m.renderWith(v, m.keyMap()) }
+
+// hintLines renders the model's own key map; see chrome.hintLines.
+func (m Model) hintLines(l layout, wrap bool) []string {
+	return m.chrome.hintLines(l, wrap, m.keyMap())
+}
+
+// renderWith lays v out inside the frame at the chrome's size, with the hint
+// line built from km.
+func (c chrome) renderWith(v view, km keyMap) string {
+	l := c.layout()
 	compact := l.bp == bpCompact
 
 	showTagline, showRules, showGaps, wrapHints := !compact, !compact, !compact, !compact
-	chrome := func() int {
+	fixed := func() int {
 		n := 1 // lockup
 		if showTagline {
 			n++
@@ -97,25 +117,25 @@ func (m Model) render(v view) string {
 		if v.status != "" {
 			n++
 		}
-		return n + len(m.hintLines(l, wrapHints))
+		return n + len(c.hintLines(l, wrapHints, km))
 	}
 
 	natural := len(v.body(l, math.MaxInt32))
 	for _, drop := range []*bool{&showGaps, &showTagline, &wrapHints} {
-		if natural <= m.height-chrome() {
+		if natural <= c.height-fixed() {
 			break
 		}
 		*drop = false
 	}
-	budget := max(m.height-chrome(), 1)
+	budget := max(c.height-fixed(), 1)
 
 	var lines []string
-	lines = append(lines, m.lockup(l))
+	lines = append(lines, c.lockup(l))
 	if showTagline {
-		lines = append(lines, m.theme.Muted.Render(m.fit(tagline, l.width)))
+		lines = append(lines, c.theme.Muted.Render(c.fit(tagline, l.width)))
 	}
 	if showRules {
-		lines = append(lines, m.rule(l))
+		lines = append(lines, c.rule(l))
 	}
 	if showGaps {
 		lines = append(lines, "")
@@ -129,17 +149,17 @@ func (m Model) render(v view) string {
 		lines = append(lines, "")
 	}
 	if showRules {
-		lines = append(lines, m.rule(l))
+		lines = append(lines, c.rule(l))
 	}
 	if v.status != "" {
-		lines = append(lines, m.theme.Text.Render(m.fit(v.status, l.width)))
+		lines = append(lines, c.theme.Text.Render(c.fit(v.status, l.width)))
 	}
-	lines = append(lines, m.hintLines(l, wrapHints)...)
+	lines = append(lines, c.hintLines(l, wrapHints, km)...)
 
 	// Below the 8-row floor something has to go; the bottom of the frame
 	// goes first, since the top says where you are.
-	if m.height > 0 && len(lines) > m.height {
-		lines = lines[:m.height]
+	if c.height > 0 && len(lines) > c.height {
+		lines = lines[:c.height]
 	}
 	pad := strings.Repeat(" ", l.margin)
 	for i, line := range lines {
@@ -152,51 +172,50 @@ func (m Model) render(v view) string {
 
 // lockup is "aval  <version>" with the platform right-aligned. Compact keeps
 // "aval <version>" only.
-func (m Model) lockup(l layout) string {
-	name := m.theme.Title.Render("aval")
-	if m.version == "" {
+func (c chrome) lockup(l layout) string {
+	name := c.theme.Title.Render("aval")
+	if c.version == "" {
 		return name
 	}
 	gap := "  "
 	if l.bp == bpCompact {
 		gap = " "
 	}
-	ver := m.theme.Muted.Render(m.fit(m.version, l.width-lipgloss.Width(name)-len(gap)))
+	ver := c.theme.Muted.Render(c.fit(c.version, l.width-lipgloss.Width(name)-len(gap)))
 	left := name + gap + ver
-	if l.bp == bpCompact || m.platform == "" {
+	if l.bp == bpCompact || c.platform == "" {
 		return left
 	}
-	if room := l.width - lipgloss.Width(left) - lipgloss.Width(m.platform); room >= 2 {
-		return left + strings.Repeat(" ", room) + m.theme.Muted.Render(m.platform)
+	if room := l.width - lipgloss.Width(left) - lipgloss.Width(c.platform); room >= 2 {
+		return left + strings.Repeat(" ", room) + c.theme.Muted.Render(c.platform)
 	}
 	return left
 }
 
-func (m Model) rule(l layout) string {
-	return m.theme.Rule.Render(strings.Repeat(m.theme.Glyphs.BarEmpty, l.width))
+func (c chrome) rule(l layout) string {
+	return c.theme.Rule.Render(strings.Repeat(c.theme.Glyphs.BarEmpty, l.width))
 }
 
 // sep is the hint and list separator: " · " in Unicode, two spaces in ASCII.
-func (m Model) sep() string {
-	if strings.TrimSpace(m.theme.Glyphs.Sep) == "" {
+func (c chrome) sep() string {
+	if strings.TrimSpace(c.theme.Glyphs.Sep) == "" {
 		return "  "
 	}
-	return " " + m.theme.Glyphs.Sep + " "
+	return " " + c.theme.Glyphs.Sep + " "
 }
 
-// hintLines renders the current key map. With wrap, hints that do not fit
+// hintLines renders km. With wrap, hints that do not fit
 // start a new line. Without it (compact, or a short terminal) the line keeps
 // every hint if they fit on one line and only the core ones otherwise, with
 // `? help` on a line of its own when it does not fit beside them.
-func (m Model) hintLines(l layout, wrap bool) []string {
-	km := m.keyMap()
-	all := km.hints(m.theme.Glyphs)
+func (c chrome) hintLines(l layout, wrap bool, km keyMap) []string {
+	all := km.hints(c.theme.Glyphs)
 	if len(all) == 0 {
 		return nil
 	}
-	sep := m.theme.Muted.Render(m.sep())
+	sep := c.theme.Muted.Render(c.sep())
 	part := func(h hint) string {
-		return m.theme.Key.Render(h.key) + " " + m.theme.Muted.Render(h.desc)
+		return c.theme.Key.Render(h.key) + " " + c.theme.Muted.Render(h.desc)
 	}
 	join := func(hs []hint) string {
 		parts := make([]string, len(hs))
@@ -216,7 +235,7 @@ func (m Model) hintLines(l layout, wrap bool) []string {
 		// core line when it fits, on its own line otherwise.
 		var line, help string
 		var core []hint
-		for _, h := range km.hintsWhere(m.theme.Glyphs, true) {
+		for _, h := range km.hintsWhere(c.theme.Glyphs, true) {
 			if h.key == helpBinding.label {
 				help = part(h)
 			} else {
@@ -261,7 +280,7 @@ func (m Model) hintLines(l layout, wrap bool) []string {
 		}
 		// A single hint wider than the content is cut rather than overflow.
 		if lipgloss.Width(p) > l.width {
-			p = m.theme.Muted.Render(m.fit(h.key+" "+h.desc, l.width))
+			p = c.theme.Muted.Render(c.fit(h.key+" "+h.desc, l.width))
 		}
 		line += p
 	}
@@ -271,16 +290,16 @@ func (m Model) hintLines(l layout, wrap bool) []string {
 // headingRow puts right beside left when both fit with a two-column gap, and
 // on its own line below otherwise. Either side may be empty. Both come in
 // plain and are styled here, so they can be fitted first.
-func (m Model) headingRow(l layout, left string, leftStyle lipgloss.Style, right string, rightStyle lipgloss.Style) []string {
+func (c chrome) headingRow(l layout, left string, leftStyle lipgloss.Style, right string, rightStyle lipgloss.Style) []string {
 	if right == "" {
-		return []string{leftStyle.Render(m.fit(left, l.width))}
+		return []string{leftStyle.Render(c.fit(left, l.width))}
 	}
 	if room := l.width - lipgloss.Width(left) - lipgloss.Width(right); room >= 2 {
 		return []string{leftStyle.Render(left) + strings.Repeat(" ", room) + rightStyle.Render(right)}
 	}
 	return []string{
-		leftStyle.Render(m.fit(left, l.width)),
-		rightStyle.Render(m.fit(right, l.width)),
+		leftStyle.Render(c.fit(left, l.width)),
+		rightStyle.Render(c.fit(right, l.width)),
 	}
 }
 
