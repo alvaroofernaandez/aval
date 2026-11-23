@@ -2,8 +2,32 @@
 
 aval uses [SemVer](https://semver.org): `vX.Y.Z` for stable releases and `vX.Y.Z-rc.N` / `vX.Y.Z-beta.N`
 for prereleases. A release is an **annotated tag** on `main`; pushing it makes `release.yml` do
-the rest. A summarised history is in [CHANGELOG.md](../CHANGELOG.md); from the first release on,
-the notes come from the GitHub release.
+the rest. A summarised history is in [CHANGELOG.md](../CHANGELOG.md); the full notes of each
+release are written by hand in [docs/releases/](releases/) in English and Spanish, and the GitHub
+release body is those notes followed by GoReleaser's generated commit list.
+
+## Release notes
+
+Before cutting, write `docs/releases/vX.Y.Z.md` (English) and `docs/releases/vX.Y.Z.es.md` (Spanish;
+a prerelease `vX.Y.Z-rc.N` uses the base version's files), and give the `CHANGELOG.md` section
+`## vX.Y.Z-rc.N (date)` a line linking both. `tests/release_notes_test.go` fails if a section from
+v0.2.0 on lacks either link or file. Every number in the notes is measured from the repo.
+
+After the publish succeeds (GoReleaser has created the release with its generated list), set the
+body once:
+
+```sh
+gh release view vX.Y.Z-rc.N -R alvaroofernaandez/aval --json body -q .body > generated.md
+cat docs/releases/vX.Y.Z.md docs/releases/vX.Y.Z.es.md generated.md > body.md   # English, Spanish, generated
+gh release edit vX.Y.Z-rc.N -R alvaroofernaandez/aval --notes-file body.md
+```
+
+The release page does not resolve repo-relative paths, so rewrite them in `body.md` first: links
+(`../adr/x.md`, `../../CHANGELOG.md`, `v0.2.0.es.md`) to
+`https://github.com/alvaroofernaandez/aval/blob/<tag>/<path from the repo root>`, and images
+(`../assets/x.gif`, `../assets/x.svg`) to `https://raw.githubusercontent.com/alvaroofernaandez/aval/<tag>/<path>`.
+Resolve each against `docs/releases/`. The two Mermaid diagrams may not render in the release body;
+the files in the repo are the reference. Keep `body.md` out of the repo.
 
 ## The flow (3 commands)
 

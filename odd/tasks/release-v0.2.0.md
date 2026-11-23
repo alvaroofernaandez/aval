@@ -15,12 +15,12 @@ Status: approved by the owner on 2026-11-23 ("si, procede").
 
 ## Tasks
 
-- [ ] **R1: notes and changelog.**
+- [x] **R1: notes and changelog.**
   - Write `docs/releases/v0.2.0.md` and `docs/releases/v0.2.0.es.md`.
   - Rename the CHANGELOG section to `v0.2.0-rc.1`, linking both notes.
   - Amend `docs/releasing.md` and the `aval-release` skill.
   - Add a docs test that each release section links to notes that exist in both languages (RED first).
-- [ ] **R2: Spanish hub GIF.**
+- [x] **R2: Spanish hub GIF.**
   - Add `docs/hub-demo-es.tape`, a copy of `docs/hub-demo.tape` with `AVAL_LANG=es`, producing `docs/assets/hub-es.gif`.
   - The Spanish notes show it.
 - [ ] **R3: PR and merge.**
