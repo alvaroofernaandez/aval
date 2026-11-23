@@ -5,9 +5,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/agent/lessons"
+	"github.com/alvaroofernaandez/aval/internal/agent/rateguard"
 	"github.com/alvaroofernaandez/aval/internal/agent/repoprofile"
 	"github.com/alvaroofernaandez/aval/internal/agent/rtkhook"
 	"github.com/alvaroofernaandez/aval/internal/deck"
@@ -48,6 +50,9 @@ func runHook(args []string, in io.Reader, out io.Writer) error {
 			return nil
 		}
 		hook.ShotStop(in, out, hook.StopOptions{Off: os.Getenv("DESIGN_PIPELINE_OFF") != "", Cache: cache})
+	case "rate-guard":
+		// PreToolUse on Bash, sync: fails open, exits 0 whatever happens.
+		rateguard.Run(in, out, rateGuardHosts)
 	case "rtk-rewrite":
 		rtkhook.Run(in, out, os.Stderr, rtkhook.Lookup())
 	case "pre-push":
@@ -57,7 +62,7 @@ func runHook(args []string, in io.Reader, out io.Writer) error {
 		// can be mistaken for a block.
 		_ = lessons.Run(in, out, lessonsOptions())
 	default:
-		return fmt.Errorf("usage: aval hook lessons|repo-profile|design-gate|plan-gate|design-shot-stop|rtk-rewrite|pre-push (reads hook JSON on stdin)")
+		return fmt.Errorf("usage: aval hook lessons|repo-profile|design-gate|plan-gate|design-shot-stop|rate-guard|rtk-rewrite|pre-push (reads hook JSON on stdin)")
 	}
 	return nil
 }
@@ -76,4 +81,11 @@ func lessonsOptions() lessons.Options {
 		state = filepath.Join(state, "aval", "lessons")
 	}
 	return lessons.Options{Dir: dir, StateDir: state}
+}
+
+// rateGuardHosts reads only the rate-guard hosts file and env, never the aval
+// config: the hook runs before every Bash call.
+func rateGuardHosts() ([]string, error) {
+	home, _ := os.UserHomeDir()
+	return rateguard.Hosts(os.Getenv, os.ReadFile, runtime.GOOS, home)
 }

@@ -2,7 +2,6 @@ package tests
 
 import (
 	"encoding/json"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -146,34 +145,7 @@ func TestLessonsHookLatency(t *testing.T) {
 	dir := t.TempDir()
 	in := filepath.Join(dir, "in.json")
 	write(t, in, `{"session_id":"lat","tool_name":"Edit","tool_input":{"file_path":"/p/main.go"}}`)
-	out := filepath.Join(dir, "hf.json")
-	run(repo, isoEnv(dir, "AVAL_LESSONS_DIR="+lessonsDir()), "", "hyperfine", "-N", "--warmup", "10", "--runs", "50",
-		"--input", in, "--export-json", out, aval+" hook lessons")
-	var hf struct {
-		Results []struct {
-			Mean    *float64 `json:"mean"`
-			Summary *struct {
-				Wall struct {
-					Mean float64 `json:"mean"`
-				} `json:"time_wall_clock"`
-			} `json:"summary"`
-		} `json:"results"`
-	}
-	b, err := os.ReadFile(out)
-	if err != nil {
-		t.Fatalf("hyperfine wrote no report: %v", err)
-	}
-	_ = json.Unmarshal(b, &hf)
-	if len(hf.Results) == 0 {
-		t.Fatal("hyperfine report has no results")
-	}
-	mean := 0.0
-	if hf.Results[0].Summary != nil { // newer hyperfine nests it under summary
-		mean = hf.Results[0].Summary.Wall.Mean
-	} else if hf.Results[0].Mean != nil {
-		mean = *hf.Results[0].Mean
-	}
-	ms := mean * 1000
+	ms := hyperfineMeanMs(t, isoEnv(dir, "AVAL_LESSONS_DIR="+lessonsDir()), in, aval+" hook lessons")
 	isTrue(t, "the lessons hook runs in under 10 ms (is "+strconv.FormatFloat(ms, 'f', 1, 64)+" ms)", ms > 0 && ms < 10)
 }
 
