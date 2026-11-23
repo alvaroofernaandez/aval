@@ -247,7 +247,7 @@ Full reference. `aval` or `aval help` prints the usage. Global flags: `--repo`, 
 | `aval uninstall [--dry-run] [--yes]` | Removes this repo's links and returns what was displaced | yes |
 | `aval budget [--json] [--skip-hooks] [--runs N]` | Always-on context and hook latency | no |
 | `aval review assess [--base <ref>] [--json]` | Risk level of the diff and reviewers | no |
-| `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `design-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push` | no |
+| `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `rate-guard`, `design-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push` | no |
 | `aval statusline` | Claude Code status line | no |
 | `aval design ack <surface>` | Design pipeline ack (required by the `design-gate` hook) | no |
 | `aval design gate <gate> …` | `contrast <fg> <bg> [--large]` · `tokens` · `pairs <colors.json> [--aaa]` · `hardcodes [--ext] [--no-tw]` · `theme-refs --theme` · `component [--root]` · `emoji` · `native` | no |
@@ -349,6 +349,20 @@ Body of the lesson, at most 600 characters.
 A lesson fires only once per session, prints nothing when there is no match, never blocks, and takes ~3 ms.
 The hook uses `~/.local/bin/aval` or, if absent, the `aval` on `PATH`; without a binary it is a silent no-op.
 OpenCode has no such hook: it reads the lessons by hand.
+
+**Rate guard** (`aval hook rate-guard`). Some hosts ban the client IP after a burst of requests: Helice
+(`innohelp.es`, `helice.app`) did, after ~45 back-to-back `curl` calls. The PreToolUse hook (`Bash`) denies a
+command only when an HTTP client (`curl`, `wget`, `wget2`, httpie `http`/`https`, `xh`, `aria2c`, `lynx`,
+`links`, `w3m`) contacts a guarded host **and** the command is a batch: a `for`/`while`/`until` loop, `xargs`,
+`parallel`, a `-P` flag, more than 3 guarded URLs, or a URL list fed in (`-i`/`--input-file` for wget,
+`-K`/`--config`, `xargs`). One-off requests, loops over other hosts and a host merely mentioned (`echo`, `grep`)
+pass. A host matches itself and its subdomains, never lookalikes (`notinnohelp.es` passes).
+
+Guarded hosts are the seed (`innohelp.es`, `helice.app`) plus one host per line (`#` comments) in
+`${XDG_CONFIG_HOME:-~/.config}/aval/rate-guard-hosts` (`%APPDATA%\aval\rate-guard-hosts` on Windows) plus the
+comma-separated `AVAL_RATE_GUARD_HOSTS`. It never reads the aval config, execs nothing, takes ~5 ms, and fails
+open: bad JSON, another tool, an unreadable hosts file or an internal error print nothing. OpenCode runs the
+same binary from `config/opencode/plugin/rate-guard.ts` before every `bash` call.
 
 **Budget** (`aval budget`). A table of the always-on context: Claude (`CLAUDE.md`, `@imports`, skills
 visible according to `skillOverrides`, agents and commands) and OpenCode (`AGENTS.md` and skills), in characters and

@@ -47,7 +47,7 @@ The hook must stay under the existing hook budget, the 10 ms measured for `lesso
 
 ## Tasks
 
-- [ ] **R1 (opus): `internal/agent/rateguard` package.**
+- [x] **R1 (opus): `internal/agent/rateguard` package.**
   - API: `Decide(command string, hosts []string) (deny bool, reason string)`, plus `Hosts(getenv, readFile)`.
   - RED cases, as one table test:
     - deny: a for loop with curl on innohelp.es;
@@ -62,7 +62,7 @@ The hook must stay under the existing hook budget, the 10 ms measured for `lesso
     - allow: a guarded host mentioned in an echo or grep with no HTTP client;
     - allow: an empty command.
   - Also tested: host parsing for the seed, the file (with comments) and the env var; subdomain matching.
-- [ ] **R2 (sonnet, after R1): `aval hook rate-guard` dispatch.**
+- [x] **R2 (sonnet, after R1): `aval hook rate-guard` dispatch.**
   - Wire it in `cmd/aval/agent_hook.go`.
   - RED:
     - The exact deny JSON for a batch command.
@@ -70,7 +70,7 @@ The hook must stay under the existing hook budget, the 10 ms measured for `lesso
     - Fail-open: bad JSON, a non-Bash tool and an unreadable hosts file each give empty output and exit 0.
     - The hot-path test still passes.
     - A latency test in the style of `TestLessonsHookLatency`.
-- [ ] **R3 (sonnet, after R2): register the hook.**
+- [x] **R3 (sonnet, after R2): register the hook.**
   - Add a PreToolUse entry with matcher `Bash` in `config/claude/settings.json`, using the same `a=... || true` wrapper as `lessons`.
   - Add the OpenCode equivalent if it is cheap, following `config/opencode/plugin/design-gate.ts`.
   - Document it in docs/guide.md under hooks.
