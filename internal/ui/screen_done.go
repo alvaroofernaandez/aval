@@ -81,6 +81,10 @@ func (m Model) doneContent(l layout, h int, stopped bool) []string {
 		headline = m.theme.Heading.Render(m.fit("Dry run complete: nothing was written.", l.width))
 	case stopped:
 		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("Stopped after %d of %d.", applied, total), l.width))
+	case m.doneLead != "" && failed > 0:
+		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("%s %d linked, %d failed.", m.doneLead, linked, failed), l.width))
+	case m.doneLead != "":
+		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("%s %d linked, %d already in place.", m.doneLead, linked, already), l.width))
 	case failed > 0:
 		headline = m.theme.Heading.Render(m.fit(fmt.Sprintf("Installed. %d linked, %d failed.", linked, failed), l.width))
 	default:

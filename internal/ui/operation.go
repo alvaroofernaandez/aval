@@ -69,6 +69,8 @@ type operationSpec[P any] struct {
 	// action from the preview ("Remove 2 links").
 	Confirm   confirmSpec
 	ActionFor func(p P) string
+	// NoteFor, when set, names the action's note from the preview.
+	NoteFor func(p P) string
 	// Ready reports whether the preview leaves anything to do; when false
 	// there is no confirm and only esc back. Nil means always ready.
 	Ready func(p P) bool
@@ -193,6 +195,9 @@ func (o operation[P]) newConfirmFor() confirm {
 	cs := o.spec.Confirm
 	if o.spec.ActionFor != nil {
 		cs.Action = o.spec.ActionFor(o.preview)
+	}
+	if o.spec.NoteFor != nil {
+		cs.ActionNote = o.spec.NoteFor(o.preview)
 	}
 	c, err := newConfirm(o.spec.Mode, cs)
 	if err != nil {

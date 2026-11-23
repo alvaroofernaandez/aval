@@ -45,7 +45,11 @@ func (m Model) installView() view {
 
 func (m Model) installBody(l layout, h int) []string {
 	done, total := m.index, len(m.queue)
-	out := m.headingRow(l, "Installing", m.theme.Heading, fmt.Sprintf("%d of %d", done, total), m.theme.Muted)
+	title := "Installing"
+	if m.runTitle != "" {
+		title = m.runTitle
+	}
+	out := m.headingRow(l, title, m.theme.Heading, fmt.Sprintf("%d of %d", done, total), m.theme.Muted)
 	out = append(out, m.theme.ProgressBar(done, total, l.width))
 
 	rows := m.installRows(l)

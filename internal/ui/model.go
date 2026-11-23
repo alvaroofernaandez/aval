@@ -116,6 +116,10 @@ type Model struct {
 	// hosted is set by the flow screen: the Model runs inside the router, so
 	// leaving it returns to the hub instead of ending the program.
 	hosted bool
+
+	// runTitle and doneLead retitle a re-apply (see reapplying): the progress
+	// heading and the start of the done headline. Empty is the installer's.
+	runTitle, doneLead string
 }
 
 // Fallback size until the terminal reports its own.
@@ -183,7 +187,24 @@ func (m Model) Results() []install.Result { return m.results }
 // Errs exposes failures. A non-empty slice means a non-zero exit.
 func (m Model) Errs() []error { return m.errs }
 
-func (m Model) Init() tea.Cmd { return nil }
+// Init starts the run when the Model opens on the progress screen (a
+// re-apply); the installer opens on select or welcome and waits for keys.
+func (m Model) Init() tea.Cmd {
+	if m.screen == ScreenInstall {
+		return m.applyNext()
+	}
+	return nil
+}
+
+// reapplying turns m into a re-apply of its default selection, as `aval
+// update` does after a pull: it opens on the progress screen titled
+// "Re-applying" and its done headline starts with lead ("Updated a → b.").
+func (m Model) reapplying(lead string) Model {
+	m.runTitle, m.doneLead = "Re-applying", lead
+	m.queue = m.plan.SelectedActions()
+	m.screen, m.index = ScreenInstall, 0
+	return m
+}
 
 // Update handles one message.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

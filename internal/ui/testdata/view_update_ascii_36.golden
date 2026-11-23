@@ -1,0 +1,21 @@
+ aval 0.2.0
+ Update                     ~/.aval
+
+ 3 commits behind origin
+ a1b2c3d -> d4e5f6a
+
+ Managed paths that change
+   config/zsh/.zshrc       12 +++--
+   skills/pl...k/SKILL.md   4 +-
+ New manifest entries
+   + skills/new-s...kills/new-skill
+
+ > Update and re-apply
+   pull with --ff-only, then link
+   what is new
+   Back
+   change nothing
+ Files in the way move to
+ ~/.aval-backup first  undo: aval
+ restore latest
+ enter choose  esc back  ? help
