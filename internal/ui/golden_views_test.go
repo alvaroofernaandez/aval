@@ -19,7 +19,10 @@ import (
 var goldenViews = []struct {
 	name  string
 	build func(t *testing.T, unicode bool) tea.Model
-}{}
+}{
+	{"confirm_destructive", func(t *testing.T, unicode bool) tea.Model { return goldenConfirmApp(t, unicode, confirmDestructive) }},
+	{"confirm_inline", func(t *testing.T, unicode bool) tea.Model { return goldenConfirmApp(t, unicode, confirmInline) }},
+}
 
 // renderModelAt drives m with a window size and returns its View.
 func renderModelAt(m tea.Model, width, height int) string {
