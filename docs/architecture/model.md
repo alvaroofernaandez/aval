@@ -42,6 +42,7 @@ flowchart TD
   cmd_aval --> devmode
   cmd_aval --> devops
   cmd_aval --> docs
+  cmd_aval --> i18n
   cmd_aval --> release
   cmd_aval --> term
   cmd_aval --> ui
@@ -54,9 +55,11 @@ flowchart TD
   design_hook -.->|test| testenv
   ui --> core
   ui --> devmode
+  ui --> i18n
   ui --> release
   ui --> ui_caps
   ui -.->|test| design_gate
+  ui_cli --> i18n
   ui_cli --> ui
   ui_cli --> ui_caps
 ```

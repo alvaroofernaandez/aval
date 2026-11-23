@@ -134,6 +134,7 @@ func dispatch(argv []string, c cmdIO) error {
 		forceCopy = fs.Bool("copy", false, "copy files instead of symlinking them")
 		themeFlag = fs.String("theme", "", "colour theme for this run (default: $AVAL_THEME, then the config file, then aval)")
 		plainFlag = fs.Bool("plain", false, "monochrome, ASCII glyphs and no motion")
+		langFlag  = fs.String("lang", "", "language for human output: auto, en or es (default: $AVAL_LANG, then the config file, then the locale)")
 	)
 	fs.Usage = func() { printUsage(fs.Output(), c.env) }
 	// The exit codes flag.ExitOnError used: 0 for -h, 2 for a bad flag; the
@@ -159,7 +160,7 @@ func dispatch(argv []string, c cmdIO) error {
 	}
 	if fs.NArg() == 0 && !legacyInstall {
 		// On a terminal this opens the hub; everywhere else, the usage.
-		return runBare(c.stdout, *repoFlag, uiFlags{Theme: *themeFlag, Plain: *plainFlag}, realHubEnv().with(c))
+		return runBare(c.stdout, *repoFlag, uiFlags{Theme: *themeFlag, Plain: *plainFlag, Lang: *langFlag}, realHubEnv().with(c))
 	}
 	if !legacyInstall && !knownCommand(fs.Arg(0)) {
 		return fmt.Errorf("unknown command %q; run 'aval help'", fs.Arg(0))
@@ -258,7 +259,7 @@ func dispatch(argv []string, c cmdIO) error {
 	if legacyInstall {
 		cmdName = "install"
 	}
-	uiCfg, err := settingsForCommand(cmdName, uiFlags{Theme: *themeFlag, Plain: *plainFlag}, c.env, home, c.stderr)
+	uiCfg, err := settingsForCommand(cmdName, uiFlags{Theme: *themeFlag, Plain: *plainFlag, Lang: *langFlag}, c.env, home, c.stderr)
 	if err != nil {
 		return err
 	}
@@ -547,6 +548,7 @@ func runInstallWith(resolve func() (string, error), home string, dryRun, yes, fo
 		Platform: ui.PlatformLabel(runtime.GOOS, runtime.GOARCH),
 		Caps:     caps.Detect(deps.ui.capsInputs(os.Getenv, runtime.GOOS, tty, width, height)),
 		Theme:    deps.ui.Theme,
+		Lang:     deps.ui.Lang,
 		DryRun:   dryRun,
 		Settings: deps.ui.settingsEnv(config.Path(os.Getenv, home, runtime.GOOS), home, os.Getenv, tty, width, height),
 	}

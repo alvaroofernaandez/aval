@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The frame is the chrome every screen shares (DESIGN.md section 10):
@@ -56,6 +58,8 @@ type chrome struct {
 	// Motion is the resolved motion setting (caps.Caps.Motion): false with
 	// motion off or without a TTY, and every spinner then shows static text.
 	Motion bool
+	// tr speaks the resolved language; every view's text goes through it.
+	tr i18n.Translator
 
 	width, height int
 }

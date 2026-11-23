@@ -111,10 +111,29 @@ func TestMessagesPlatform(t *testing.T) {
 
 func TestMessagesConfig(t *testing.T) {
 	runMessages(t, []msgCase{
-		{name: "get an unknown key", args: []string{"config", "get", "bogus"}, code: 1, stderr: "error: unknown config key \"bogus\". Valid: repo, theme, background, glyphs, motion, update_check\n"},
+		{name: "get an unknown key", args: []string{"config", "get", "bogus"}, code: 1, stderr: "error: unknown config key \"bogus\". Valid: repo, theme, background, glyphs, motion, update_check, language\n"},
 		{name: "set a misspelt theme", args: []string{"config", "set", "theme", "catpuccin"}, code: 1, stderr: "error: config: CONFIG: theme = \"catpuccin\" is not a theme. Valid: aval, aval-dark, aval-light, terminal, mono, catppuccin, catppuccin-mocha, catppuccin-latte, catppuccin-frappe, catppuccin-macchiato, tokyo-night, tokyo-night-storm, tokyo-night-day, gruvbox, gruvbox-dark, gruvbox-light, dracula, dracula-alucard, nord, kanagawa, kanagawa-wave, kanagawa-dragon, kanagawa-lotus, rose-pine, rose-pine-moon, rose-pine-dawn, solarized, solarized-dark, solarized-light, one-dark, one-light, everforest, everforest-dark, everforest-light. Did you mean catppuccin?\n"},
 		{name: "set a theme by its prefix", args: []string{"config", "set", "theme", "tokio"}, code: 1, stderr: "error: config: CONFIG: theme = \"tokio\" is not a theme. Valid: aval, aval-dark, aval-light, terminal, mono, catppuccin, catppuccin-mocha, catppuccin-latte, catppuccin-frappe, catppuccin-macchiato, tokyo-night, tokyo-night-storm, tokyo-night-day, gruvbox, gruvbox-dark, gruvbox-light, dracula, dracula-alucard, nord, kanagawa, kanagawa-wave, kanagawa-dragon, kanagawa-lotus, rose-pine, rose-pine-moon, rose-pine-dawn, solarized, solarized-dark, solarized-light, one-dark, one-light, everforest, everforest-dark, everforest-light. Did you mean tokyo-night?\n"},
 		{name: "a bad --theme", args: []string{"--theme", "tokio-night", "doctor"}, code: 1, stderr: "error: invalid --theme: theme = \"tokio-night\" is not a theme. Valid: aval, aval-dark, aval-light, terminal, mono, catppuccin, catppuccin-mocha, catppuccin-latte, catppuccin-frappe, catppuccin-macchiato, tokyo-night, tokyo-night-storm, tokyo-night-day, gruvbox, gruvbox-dark, gruvbox-light, dracula, dracula-alucard, nord, kanagawa, kanagawa-wave, kanagawa-dragon, kanagawa-lotus, rose-pine, rose-pine-moon, rose-pine-dawn, solarized, solarized-dark, solarized-light, one-dark, one-light, everforest, everforest-dark, everforest-light. Did you mean tokyo-night?\n"},
+	})
+}
+
+// The language setting. isoEnv pins AVAL_LANG=en, so a row that wants
+// detection drops it and sets the locale itself.
+func TestMessagesLanguage(t *testing.T) {
+	badFile := func(t *testing.T, _, home string) { write(t, configFile(home), "language = esp\n") }
+	detectSpanish := []string{"AVAL_LANG", "LC_ALL", "LC_MESSAGES", "LANG=es_ES.UTF-8"}
+	runMessages(t, []msgCase{
+		{name: "a bad language in the file", setup: badFile, args: []string{"config", "list"}, code: 0,
+			stderr: "warning: config: CONFIG:1: language = \"esp\" is not a valid language. Valid: auto, en, es. Did you mean es?\n"},
+		{name: "a bad language in the file, Spanish locale", setup: badFile, args: []string{"config", "list"}, env: detectSpanish, code: 0,
+			stderr: "warning: config: CONFIG:1: language = \"esp\" no es un idioma válido. Valores válidos: auto, en, es. ¿Quiso decir es?\n"},
+		{name: "a bad language in the file, AVAL_LANG=es", setup: badFile, args: []string{"config", "list"}, env: []string{"AVAL_LANG=es"}, code: 0,
+			stderr: "warning: config: CONFIG:1: language = \"esp\" no es un idioma válido. Valores válidos: auto, en, es. ¿Quiso decir es?\n"},
+		{name: "set a misspelt language", args: []string{"config", "set", "language", "esp"}, code: 1,
+			stderr: "error: config: CONFIG: language = \"esp\" is not a valid language. Valid: auto, en, es. Did you mean es?\n"},
+		{name: "a bad --lang", args: []string{"--lang", "esp", "doctor"}, code: 1,
+			stderr: "error: invalid --lang: language = \"esp\" is not a valid language. Valid: auto, en, es. Did you mean es?\n"},
 	})
 }
 

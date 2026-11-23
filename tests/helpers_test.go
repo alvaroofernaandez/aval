@@ -242,6 +242,8 @@ func isoEnv(home string, kv ...string) []string {
 		"XDG_CONFIG_HOME="+filepath.Join(home, ".config"),
 		"GIT_CONFIG_GLOBAL="+os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
+		// The pinned human text is English whatever the machine's locale.
+		"AVAL_LANG=en",
 	)
 	return withEnv(base, kv...)
 }

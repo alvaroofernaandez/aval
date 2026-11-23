@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
 
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
@@ -102,5 +103,16 @@ func TestPrinterColoursOnlyTheGlyph(t *testing.T) {
 	}
 	if strings.Contains(got[strings.Index(got, "√")+len("√"):], "38;2;152;187;108") {
 		t.Errorf("OK colours the word: %q", got)
+	}
+}
+
+func TestPrinterCarriesItsLanguage(t *testing.T) {
+	if got := Plain().Lang(); got != i18n.English {
+		t.Errorf("Plain() speaks %q, want en", got)
+	}
+	p := Plain()
+	es := p.WithLang(i18n.Spanish)
+	if es.Lang() != i18n.Spanish || p.Lang() != i18n.English {
+		t.Errorf("WithLang: copy speaks %q, original %q", es.Lang(), p.Lang())
 	}
 }

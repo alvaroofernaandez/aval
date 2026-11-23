@@ -32,7 +32,7 @@ var Themes = []string{
 	"everforest", "everforest-dark", "everforest-light",
 }
 
-var keys = []string{"repo", "theme", "background", "glyphs", "motion", "update_check"}
+var keys = []string{"repo", "theme", "background", "glyphs", "motion", "update_check", "language"}
 
 var defaults = map[string]string{
 	"repo":         "",
@@ -41,6 +41,7 @@ var defaults = map[string]string{
 	"glyphs":       "auto",
 	"motion":       "auto",
 	"update_check": "on",
+	"language":     "auto",
 }
 
 var enums = map[string][]string{
@@ -48,6 +49,7 @@ var enums = map[string][]string{
 	"glyphs":       {"auto", "unicode", "ascii"},
 	"motion":       {"auto", "off"},
 	"update_check": {"on", "off"},
+	"language":     {"auto", "en", "es"},
 }
 
 var envNames = map[string]string{
@@ -56,6 +58,7 @@ var envNames = map[string]string{
 	"background": "AVAL_BACKGROUND",
 	"glyphs":     "AVAL_GLYPHS",
 	"motion":     "AVAL_MOTION",
+	"language":   "AVAL_LANG",
 }
 
 // noUpdateCheckEnv is the legacy switch: any non-empty value means update_check=off.
@@ -70,6 +73,9 @@ func Keys() []string { return slices.Clone(keys) }
 type Warning struct {
 	Line    int
 	Message string
+	// Invalid is the bad value as data, so a front end can render the
+	// warning in the user's language.
+	Invalid *InvalidValueError
 }
 
 func (w Warning) String() string { return w.Message }
@@ -142,8 +148,8 @@ func Load(path string) (*File, []Warning, error) {
 		if _, dup := f.vals[k]; dup {
 			continue
 		}
-		if msg := validate(k, v); msg != "" {
-			warns = append(warns, Warning{Line: i + 1, Message: fmt.Sprintf("config: %s:%d: %s", path, i+1, msg)})
+		if bad := invalid(k, v); bad != nil {
+			warns = append(warns, Warning{Line: i + 1, Message: fmt.Sprintf("config: %s:%d: %s", path, i+1, bad.msg), Invalid: bad})
 			continue
 		}
 		f.vals[k] = entry{v, i + 1}
@@ -188,8 +194,8 @@ func Set(path, key, value string) error {
 	if !slices.Contains(keys, key) {
 		return fmt.Errorf("config: unknown key %q. Valid: %s", key, strings.Join(keys, ", "))
 	}
-	if msg := validate(key, value); msg != "" {
-		return fmt.Errorf("config: %s: %w", path, &InvalidValueError{Key: key, Value: value, msg: msg})
+	if bad := invalid(key, value); bad != nil {
+		return fmt.Errorf("config: %s: %w", path, bad)
 	}
 	var lines []string
 	if b, err := os.ReadFile(path); err == nil {
@@ -264,24 +270,35 @@ func keyValue(line string) (key, value string, ok bool) {
 
 // validate returns an error message ("" when valid). repo is never validated here.
 func validate(key, value string) string {
-	switch key {
-	case "repo":
-		return ""
-	case "theme":
-		if slices.Contains(Themes, value) {
-			return ""
-		}
-		msg := fmt.Sprintf("theme = %q is not a theme. Valid: %s.", value, strings.Join(Themes, ", "))
-		if s := closest(value, Themes); s != "" {
-			msg += " Did you mean " + s + "?"
-		}
-		return msg
+	if bad := invalid(key, value); bad != nil {
+		return bad.msg
 	}
-	valid := enums[key]
+	return ""
+}
+
+// invalid returns the error for a bad value, or nil when value is valid for
+// key. theme and language get a suggestion when one is close; the other enums
+// are short enough to read at a glance.
+func invalid(key, value string) *InvalidValueError {
+	if key == "repo" {
+		return nil
+	}
+	valid, noun := enums[key], "a valid "+key
+	if key == "theme" {
+		valid, noun = Themes, "a theme"
+	}
 	if slices.Contains(valid, value) {
-		return ""
+		return nil
 	}
-	return fmt.Sprintf("%s = %q is not a valid %s. Valid: %s.", key, value, key, strings.Join(valid, ", "))
+	e := &InvalidValueError{Key: key, Value: value, Valid: slices.Clone(valid)}
+	if key == "theme" || key == "language" {
+		e.Suggestion = closest(value, valid)
+	}
+	e.msg = fmt.Sprintf("%s = %q is not %s. Valid: %s.", key, value, noun, strings.Join(valid, ", "))
+	if e.Suggestion != "" {
+		e.msg += " Did you mean " + e.Suggestion + "?"
+	}
+	return e
 }
 
 // closest returns the candidate nearest to in, or "" when none is close. A
@@ -344,6 +361,9 @@ func EnvName(key string) string {
 // values are valid, with a suggestion when one is close.
 type InvalidValueError struct {
 	Key, Value string
+	// Valid lists the accepted values; Suggestion is the closest one, or "".
+	Valid      []string
+	Suggestion string
 	msg        string
 }
 

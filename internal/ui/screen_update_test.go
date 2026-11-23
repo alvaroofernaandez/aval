@@ -382,7 +382,7 @@ func TestNetworkWaitFollowsTheChromeMotion(t *testing.T) {
 
 func TestNewHubCarriesTheMotionSetting(t *testing.T) {
 	for _, motion := range []bool{true, false} {
-		a := NewHub(goldenTheme(t, true), "macOS (arm64)", Services{}, motion).(App)
+		a := NewHub(goldenTheme(t, true), "macOS (arm64)", Services{}, motion, "").(App)
 		if a.chrome.Motion != motion {
 			t.Errorf("NewHub(motion=%v): chrome.Motion = %v", motion, a.chrome.Motion)
 		}

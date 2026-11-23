@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/alvaroofernaandez/aval/internal/core/config"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
@@ -18,10 +19,11 @@ var loadUIConfig = config.Load
 // command. The zero value is not valid for resolveUI callers, but every
 // consumer treats empty strings as "auto"/default, so tests may pass it.
 type uiSettings struct {
-	Theme      string // a config.Themes name
-	Background string // auto | dark | light
-	Glyphs     string // auto | unicode | ascii
-	Motion     string // auto | off
+	Theme      string    // a config.Themes name
+	Background string    // auto | dark | light
+	Glyphs     string    // auto | unicode | ascii
+	Motion     string    // auto | off
+	Lang       i18n.Lang // the resolved language for human output
 
 	UpdateCheck bool // false when update_check = off or AVAL_NO_UPDATE_CHECK is set
 	ColorOff    bool // NO_COLOR: above every other setting
@@ -35,16 +37,25 @@ type uiSettings struct {
 type uiFlags struct {
 	Theme string // --theme
 	Plain bool   // --plain
+	Lang  string // --lang
 }
 
 // resolveUI applies flag > env > file > default to the UI keys, then --plain
-// and NO_COLOR on top. A bad file value comes back as a warning (file, line
-// and a suggestion) and the default applies; a bad --theme is an error. Only
+// and NO_COLOR on top; the language adds detection before the default
+// (resolveLang). A bad file value comes back as a warning (file, line and a
+// suggestion) and the next layer applies; a bad --theme or --lang is an
+// error. Only
 // commands that draw call it: hooks, statusline and tmux never read config.
 func resolveUI(flags uiFlags, getenv func(string) string, cfgPath string) (uiSettings, []string, error) {
 	if flags.Theme != "" {
 		if msg := config.Validate("theme", flags.Theme); msg != "" {
 			return uiSettings{}, nil, fmt.Errorf("%w: %s", errBadThemeFlag, msg)
+		}
+	}
+
+	if flags.Lang != "" {
+		if msg := config.Validate("language", flags.Lang); msg != "" {
+			return uiSettings{}, nil, fmt.Errorf("%w: %s", errBadLangFlag, msg)
 		}
 	}
 
@@ -54,9 +65,8 @@ func resolveUI(flags uiFlags, getenv func(string) string, cfgPath string) (uiSet
 		warns = append(warns, "config: "+err.Error()+"; using defaults")
 		f, _, _ = config.Load("") // empty path: no file, defaults only
 	}
-	for _, w := range loadWarns {
-		warns = append(warns, w.String())
-	}
+	lang := resolveLang(f, flags.Lang, getenv)
+	warns = append(warns, configWarnings(i18n.New(lang), cfgPath, loadWarns)...)
 
 	pick := func(key string) string {
 		v, _ := f.Resolve(key, map[string]string{"theme": flags.Theme}, getenv)
@@ -68,6 +78,7 @@ func resolveUI(flags uiFlags, getenv func(string) string, cfgPath string) (uiSet
 		Background:  pick("background"),
 		Glyphs:      pick("glyphs"),
 		Motion:      pick("motion"),
+		Lang:        lang,
 		UpdateCheck: update != "off",
 		ColorOff:    getenv("NO_COLOR") != "",
 		flags:       flags,
@@ -133,3 +144,6 @@ func (s uiSettings) settingsEnv(path, home string, getenv func(string) string, i
 
 // errBadThemeFlag is a --theme that names no theme.
 var errBadThemeFlag = errors.New("invalid --theme")
+
+// errBadLangFlag is a --lang that names no language.
+var errBadLangFlag = errors.New("invalid --lang")

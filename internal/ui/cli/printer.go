@@ -6,6 +6,7 @@ package cli
 import (
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
@@ -16,6 +17,8 @@ type Printer struct {
 	glyphs  ui.Glyphs
 	theme   ui.Theme
 	colored bool
+	// tr speaks the resolved language for the human output.
+	tr i18n.Translator
 }
 
 // New builds a Printer for a terminal. Glyphs follow the Unicode tier of c;
@@ -58,3 +61,13 @@ func (p *Printer) text(s string, st lipgloss.Style) string {
 	}
 	return st.Render(s)
 }
+
+// WithLang returns a copy of p that speaks l.
+func (p *Printer) WithLang(l i18n.Lang) *Printer {
+	c := *p
+	c.tr = i18n.New(l)
+	return &c
+}
+
+// Lang is the language p speaks.
+func (p *Printer) Lang() i18n.Lang { return p.tr.Lang() }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
 
@@ -43,6 +44,8 @@ type Options struct {
 	// Theme names the palette; empty means DefaultThemeName. An unknown name
 	// falls back to the default.
 	Theme string
+	// Lang is the resolved language for the TUI text; empty means English.
+	Lang i18n.Lang
 
 	Symlinks bool
 	DryRun   bool
@@ -142,7 +145,7 @@ func newChrome(o Options) chrome {
 			th = DefaultTheme()
 		}
 	}
-	c := chrome{theme: th, version: o.Version, platform: o.Platform, width: defaultWidth, height: defaultHeight}
+	c := chrome{theme: th, version: o.Version, platform: o.Platform, tr: i18n.New(o.Lang), width: defaultWidth, height: defaultHeight}
 	if o.Caps.Width > 0 {
 		c.width = o.Caps.Width
 	}

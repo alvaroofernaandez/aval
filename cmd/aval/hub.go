@@ -107,7 +107,7 @@ func runBare(out io.Writer, repoFlag string, flags uiFlags, e hubEnv) error {
 		return err
 	}
 	svc, closeFn := newHubServices(e, home, repoFlag, us)
-	_, err = e.run(ui.NewHub(theme, ui.PlatformLabel(runtime.GOOS, runtime.GOARCH), svc, c.Motion))
+	_, err = e.run(ui.NewHub(theme, ui.PlatformLabel(runtime.GOOS, runtime.GOARCH), svc, c.Motion, us.Lang))
 	if cerr := closeFn(); err == nil {
 		err = cerr
 	}
@@ -187,6 +187,7 @@ func newHubServices(e hubEnv, home, repoFlag string, us uiSettings) (ui.Services
 		Platform: ui.PlatformLabel(goos, runtime.GOARCH),
 		Caps:     hubCaps(e, us),
 		Theme:    us.Theme,
+		Lang:     us.Lang,
 		Settings: svc.Settings(),
 	}
 	prepare := func(r string) (ui.Prepared, error) {

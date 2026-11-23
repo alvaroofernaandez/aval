@@ -104,9 +104,11 @@ Global flags:
   --repo <path>   the aval repository to use
   --theme <name>  colour theme for this run (aval, terminal, mono, catppuccin, ...)
   --plain         monochrome, ASCII glyphs and no motion
+  --lang <code>   language for human output: auto, en or es
 
-Settings: theme, background, glyphs, motion, update_check. Precedence is flag,
-then AVAL_* environment, then ~/.config/aval/config. NO_COLOR turns colour off.
+Settings: theme, background, glyphs, motion, update_check, language. Precedence
+is flag, then AVAL_* environment, then ~/.config/aval/config; language then
+follows the locale (LC_ALL, LC_MESSAGES, LANG). NO_COLOR turns colour off.
 
 The repository is found from, in order: --repo, $AVAL_REPO, the location
 'aval install' recorded in ~/.config/aval/config, then the current directory.

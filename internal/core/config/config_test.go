@@ -110,6 +110,8 @@ func TestInvalidValueMessages(t *testing.T) {
 		{`glyphs = emoji`, `glyphs = "emoji" is not a valid glyphs. Valid: auto, unicode, ascii.`},
 		{`motion = on`, `motion = "on" is not a valid motion. Valid: auto, off.`},
 		{`update_check = maybe`, `update_check = "maybe" is not a valid update_check. Valid: on, off.`},
+		{`language = esp`, `language = "esp" is not a valid language. Valid: auto, en, es. Did you mean es?`},
+		{`language = fr`, `language = "fr" is not a valid language. Valid: auto, en, es.`},
 	}
 	for _, c := range cases {
 		t.Run(c.line, func(t *testing.T) {
@@ -217,7 +219,7 @@ func TestNoUpdateCheckEnvMapsToOff(t *testing.T) {
 }
 
 func TestKeysAndThemes(t *testing.T) {
-	if got := strings.Join(Keys(), ","); got != "repo,theme,background,glyphs,motion,update_check" {
+	if got := strings.Join(Keys(), ","); got != "repo,theme,background,glyphs,motion,update_check,language" {
 		t.Errorf("Keys = %s", got)
 	}
 	if len(Themes) != 34 || Themes[0] != "aval" {
@@ -270,10 +272,51 @@ func TestEnvNameNamesTheOverride(t *testing.T) {
 	for key, want := range map[string]string{
 		"theme": "AVAL_THEME", "repo": "AVAL_REPO", "glyphs": "AVAL_GLYPHS",
 		"background": "AVAL_BACKGROUND", "motion": "AVAL_MOTION",
-		"update_check": "AVAL_NO_UPDATE_CHECK", "nope": "",
+		"update_check": "AVAL_NO_UPDATE_CHECK", "language": "AVAL_LANG", "nope": "",
 	} {
 		if got := EnvName(key); got != want {
 			t.Errorf("EnvName(%q) = %q, want %q", key, got, want)
 		}
+	}
+}
+
+// A bad value comes back as data as well as text, so a front end can render
+// it in the user's language: the key, the value, what is valid and the
+// closest valid value.
+func TestInvalidValueCarriesItsData(t *testing.T) {
+	_, warns, err := Load(write(t, "language = esp\n"))
+	if err != nil || len(warns) != 1 {
+		t.Fatalf("err=%v warns=%v", err, warns)
+	}
+	ie := warns[0].Invalid
+	if ie == nil {
+		t.Fatal("Warning.Invalid is nil")
+	}
+	if ie.Key != "language" || ie.Value != "esp" || strings.Join(ie.Valid, ",") != "auto,en,es" || ie.Suggestion != "es" {
+		t.Errorf("Invalid = %+v", *ie)
+	}
+	err = Set(write(t, ""), "language", "esp")
+	var se *InvalidValueError
+	if !errors.As(err, &se) || se.Suggestion != "es" || strings.Join(se.Valid, ",") != "auto,en,es" {
+		t.Errorf("Set error = %v", err)
+	}
+}
+
+// language follows the same precedence as every key: AVAL_LANG beats the
+// file, and auto is the default (the caller then detects the locale).
+func TestResolveLanguage(t *testing.T) {
+	f, _, _ := Load(write(t, "language = es\n"))
+	if v, s := f.Resolve("language", nil, env(nil)); v != "es" || s.String() != "file:1" {
+		t.Errorf("file: %q %s", v, s)
+	}
+	if v, s := f.Resolve("language", nil, env(map[string]string{"AVAL_LANG": "en"})); v != "en" || s.String() != "env" {
+		t.Errorf("env: %q %s", v, s)
+	}
+	if v, s := f.Resolve("language", map[string]string{"language": "auto"}, env(map[string]string{"AVAL_LANG": "en"})); v != "auto" || s.String() != "flag" {
+		t.Errorf("flag: %q %s", v, s)
+	}
+	empty, _, _ := Load(write(t, ""))
+	if v, s := empty.Resolve("language", nil, env(nil)); v != "auto" || s.String() != "default" {
+		t.Errorf("default: %q %s", v, s)
 	}
 }

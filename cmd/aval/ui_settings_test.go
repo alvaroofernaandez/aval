@@ -12,6 +12,7 @@ import (
 	"github.com/muesli/termenv"
 
 	"github.com/alvaroofernaandez/aval/internal/core/config"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
 
@@ -37,7 +38,7 @@ func TestResolveUIDefaults(t *testing.T) {
 	if err != nil || len(warns) != 0 {
 		t.Fatalf("err=%v warns=%v", err, warns)
 	}
-	want := uiSettings{Theme: "aval", Background: "auto", Glyphs: "auto", Motion: "auto", UpdateCheck: true}
+	want := uiSettings{Theme: "aval", Background: "auto", Glyphs: "auto", Motion: "auto", Lang: i18n.English, UpdateCheck: true}
 	if s != want {
 		t.Errorf("defaults = %+v, want %+v", s, want)
 	}
@@ -211,5 +212,108 @@ func TestSettingsForCommandWarnsOnceExceptDoctor(t *testing.T) {
 func TestSettingsForCommandBadThemeFlagFails(t *testing.T) {
 	if _, err := settingsForCommand("install", uiFlags{Theme: "nope"}, envOf(nil), t.TempDir(), io.Discard); err == nil {
 		t.Error("bad --theme must fail install")
+	}
+}
+
+// The language follows flag > env > file > detection > English. Each row sets
+// only the layers it names, plus a locale that disagrees with the winner, so
+// only the winning layer can explain the result.
+func TestResolveUILanguagePrecedence(t *testing.T) {
+	esLocale := map[string]string{"LANG": "es_ES.UTF-8"}
+	rows := []struct {
+		name string
+		flag string
+		env  map[string]string
+		file string
+		want i18n.Lang
+	}{
+		{"nothing set is English", "", nil, "", i18n.English},
+		{"C locale is English", "", map[string]string{"LANG": "C"}, "", i18n.English},
+		{"detection: LANG es_ES.UTF-8", "", esLocale, "", i18n.Spanish},
+		{"detection: LC_ALL beats LANG", "", map[string]string{"LC_ALL": "en_US.UTF-8", "LANG": "es_ES.UTF-8"}, "", i18n.English},
+		{"file auto detects", "", esLocale, "language = auto\n", i18n.Spanish},
+		{"file beats detection (en)", "", esLocale, "language = en\n", i18n.English},
+		{"file beats detection (es)", "", map[string]string{"LANG": "en_US.UTF-8"}, "language = es\n", i18n.Spanish},
+		{"env beats file (en)", "", map[string]string{"AVAL_LANG": "en", "LANG": "es_ES.UTF-8"}, "language = es\n", i18n.English},
+		{"env beats file (es)", "", map[string]string{"AVAL_LANG": "es"}, "language = en\n", i18n.Spanish},
+		{"env auto detects over the file", "", map[string]string{"AVAL_LANG": "auto", "LANG": "C"}, "language = es\n", i18n.English},
+		{"a bad env is skipped", "", map[string]string{"AVAL_LANG": "klingon"}, "language = es\n", i18n.Spanish},
+		{"flag beats env (en)", "en", map[string]string{"AVAL_LANG": "es", "LANG": "es_ES.UTF-8"}, "language = es\n", i18n.English},
+		{"flag beats env (es)", "es", map[string]string{"AVAL_LANG": "en"}, "language = en\n", i18n.Spanish},
+		{"flag auto detects", "auto", map[string]string{"AVAL_LANG": "en", "LANG": "es_ES.UTF-8"}, "", i18n.Spanish},
+	}
+	for _, r := range rows {
+		t.Run(r.name, func(t *testing.T) {
+			s, warns, err := resolveUI(uiFlags{Lang: r.flag}, envOf(r.env), cfgFile(t, r.file))
+			if err != nil || len(warns) != 0 {
+				t.Fatalf("err=%v warns=%v", err, warns)
+			}
+			if s.Lang != r.want {
+				t.Errorf("Lang = %q, want %q", s.Lang, r.want)
+			}
+		})
+	}
+}
+
+// A bad language in the file warns once, with the file, the line and a
+// suggestion, and the next layer (detection) decides.
+func TestResolveUIBadLanguageWarnsWithSuggestionAndFallsBack(t *testing.T) {
+	for _, c := range []struct {
+		locale string
+		want   i18n.Lang
+	}{{"es_ES.UTF-8", i18n.Spanish}, {"C", i18n.English}} {
+		p := cfgFile(t, "language = esp\ntheme = nord\n")
+		s, warns, err := resolveUI(uiFlags{}, envOf(map[string]string{"LANG": c.locale}), p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if s.Lang != c.want {
+			t.Errorf("LANG=%s: Lang = %q, want the detected %q", c.locale, s.Lang, c.want)
+		}
+		if s.Theme != "nord" {
+			t.Errorf("a good sibling value was lost: theme = %q", s.Theme)
+		}
+		if len(warns) != 1 || !strings.Contains(warns[0], p+":1") || !strings.Contains(warns[0], "esp") || !strings.Contains(warns[0], " es?") {
+			t.Errorf("LANG=%s: warnings = %q", c.locale, warns)
+		}
+	}
+}
+
+// In English the rendered warning is exactly the config package's own text,
+// so a language that is English changes nothing.
+func TestLanguageWarningInEnglishMatchesTheConfigText(t *testing.T) {
+	p := cfgFile(t, "language = esp\n")
+	_, cw, _ := config.Load(p)
+	_, warns, _ := resolveUI(uiFlags{}, envOf(nil), p)
+	if len(cw) != 1 || len(warns) != 1 || warns[0] != cw[0].Message {
+		t.Errorf("rendered %q, config says %q", warns, cw)
+	}
+}
+
+func TestResolveUIBadLangFlagIsAnError(t *testing.T) {
+	_, _, err := resolveUI(uiFlags{Lang: "esp"}, envOf(nil), cfgFile(t, ""))
+	if !errors.Is(err, errBadLangFlag) {
+		t.Fatalf("err = %v, want errBadLangFlag", err)
+	}
+}
+
+// The language setting accepts auto and exactly the languages with a catalog.
+func TestLanguageValuesMatchTheCatalog(t *testing.T) {
+	for _, l := range i18n.Languages() {
+		if msg := config.Validate("language", string(l)); msg != "" {
+			t.Errorf("language = %s has a catalog but config rejects it: %s", l, msg)
+		}
+	}
+	if config.Validate("language", "auto") != "" {
+		t.Error("language = auto rejected")
+	}
+	if config.Validate("language", "fr") == "" {
+		t.Error("language = fr accepted without a catalog")
+	}
+}
+
+func TestNewPrinterForCarriesTheLanguage(t *testing.T) {
+	if got := newPrinterFor(io.Discard, uiSettings{Lang: i18n.Spanish}).Lang(); got != i18n.Spanish {
+		t.Errorf("printer speaks %q, want es", got)
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/doctor"
 	coreupdate "github.com/alvaroofernaandez/aval/internal/core/update"
 	"github.com/alvaroofernaandez/aval/internal/devmode"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
 
@@ -144,8 +145,8 @@ type hub struct {
 
 // NewHub builds the hub as the program runs it: a router with the hub at the
 // root. Every service it reads at start is read-only.
-func NewHub(theme Theme, platform string, svc Services, motion bool) tea.Model {
-	c := chrome{theme: theme, version: svc.Build.Version, platform: platform, Motion: motion}
+func NewHub(theme Theme, platform string, svc Services, motion bool, lang i18n.Lang) tea.Model {
+	c := chrome{theme: theme, version: svc.Build.Version, platform: platform, Motion: motion, tr: i18n.New(lang)}
 	return newApp(c, svc, newHub(svc))
 }
 

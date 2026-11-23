@@ -19,7 +19,7 @@ import (
 func newPrinterFor(w io.Writer, s uiSettings) *cli.Printer {
 	f, ok := w.(*os.File)
 	if !ok || !term.IsTerminal(f.Fd()) {
-		return cli.Plain()
+		return cli.Plain().WithLang(s.Lang)
 	}
 	width, height, _ := term.GetSize(f.Fd())
 	c := caps.Detect(s.capsInputs(os.Getenv, runtime.GOOS, true, width, height))
@@ -27,9 +27,9 @@ func newPrinterFor(w io.Writer, s uiSettings) *cli.Printer {
 	r.SetColorProfile(c.Profile)
 	th, err := ui.NewTheme(themeOrDefault(s.Theme), c, r)
 	if err != nil {
-		return cli.Plain()
+		return cli.Plain().WithLang(s.Lang)
 	}
-	return cli.New(c, th)
+	return cli.New(c, th).WithLang(s.Lang)
 }
 
 // themeOrDefault maps the zero value of uiSettings.Theme to the default theme.

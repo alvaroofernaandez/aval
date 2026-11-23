@@ -59,3 +59,42 @@ func TestHotPathsNeverReadConfig(t *testing.T) {
 		}
 	}
 }
+
+// Hooks and the statusline are machine output and hot paths: --lang,
+// AVAL_LANG, a Spanish locale and a language in the config change nothing,
+// not even a bad --lang.
+func TestHooksIgnoreTheLanguage(t *testing.T) {
+	cases := [][]string{{"statusline"}, {"hook", "design-gate"}, {"hook", "plan-gate"}}
+	spanish := map[string]string{"AVAL_LANG": "es", "LANG": "es_ES.UTF-8", "LC_ALL": "es_ES.UTF-8"}
+	for _, args := range cases {
+		base := langRun(t, "", nil, args...)
+		for _, extra := range [][]string{{"--lang", "es"}, {"--lang", "klingon"}, nil} {
+			got := langRun(t, "language = es\n", spanish, append(extra, args...)...)
+			if got != base {
+				t.Errorf("%v %v: %+v, want the same as without a language: %+v", extra, args, got, base)
+			}
+		}
+	}
+}
+
+// langRun runs args in process with cfg as the config file and env on top of
+// a scratch HOME.
+func langRun(t *testing.T, cfg string, env map[string]string, args ...string) invocation {
+	t.Helper()
+	xdg, home := t.TempDir(), t.TempDir()
+	if cfg != "" {
+		p := filepath.Join(xdg, "aval", "config")
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(cfg), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Chdir(t.TempDir())
+	all := map[string]string{"XDG_CONFIG_HOME": xdg, "HOME": home, "USERPROFILE": home, "AVAL_NO_UPDATE_CHECK": "1"}
+	for k, v := range env {
+		all[k] = v
+	}
+	return runIn(t, all, "{}", args...)
+}

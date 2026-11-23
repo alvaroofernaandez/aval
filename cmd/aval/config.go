@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/x/term"
 
 	"github.com/alvaroofernaandez/aval/internal/core/config"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
@@ -40,6 +41,7 @@ func runSettingsView(path string, getenv func(string) string) error {
 		Platform: ui.PlatformLabel(runtime.GOOS, runtime.GOARCH),
 		Caps:     caps.Detect(s.capsInputs(getenv, runtime.GOOS, true, width, height)),
 		Theme:    s.Theme,
+		Lang:     s.Lang,
 		Settings: s.settingsEnv(path, home, getenv, true, width, height),
 	})
 	_, err = tea.NewProgram(m, tea.WithAltScreen()).Run()
@@ -89,19 +91,20 @@ func runConfig(args []string, stdout, stderr io.Writer, getenv func(string) stri
 	return newUsage(fmt.Sprintf("unknown config command %q; %s", sub, configUsage))
 }
 
-func loadConfig(path string, stderr io.Writer) (*config.File, error) {
+func loadConfig(path string, stderr io.Writer, getenv func(string) string) (*config.File, error) {
 	f, warns, err := config.Load(path)
 	if err != nil {
 		return nil, err
 	}
-	for _, w := range warns {
+	tr := i18n.New(resolveLang(f, "", getenv))
+	for _, w := range configWarnings(tr, path, warns) {
 		fmt.Fprintln(stderr, "warning:", w)
 	}
 	return f, nil
 }
 
 func configList(path string, stdout, stderr io.Writer, getenv func(string) string) error {
-	f, err := loadConfig(path, stderr)
+	f, err := loadConfig(path, stderr, getenv)
 	if err != nil {
 		return err
 	}
@@ -150,7 +153,7 @@ func configGet(path, key string, stdout, stderr io.Writer, getenv func(string) s
 	if !valid {
 		return fmt.Errorf("%w %q. Valid: %s", errUnknownKey, key, strings.Join(config.Keys(), ", "))
 	}
-	f, err := loadConfig(path, stderr)
+	f, err := loadConfig(path, stderr, getenv)
 	if err != nil {
 		return err
 	}
