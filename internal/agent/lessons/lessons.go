@@ -23,6 +23,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // MaxBody is the longest lesson body that is injected, in bytes.
@@ -202,7 +203,11 @@ func Parse(name, src string) (Lesson, bool) {
 
 	body := strings.TrimSpace(strings.Join(lines[end+1:], "\n"))
 	if len(body) > MaxBody {
-		body = body[:MaxBody]
+		cut := MaxBody
+		for cut > 0 && !utf8.RuneStart(body[cut]) {
+			cut--
+		}
+		body = body[:cut]
 	}
 	l.Body = body
 	return l, true
@@ -224,13 +229,14 @@ func globRegexp(glob string) string {
 	var b strings.Builder
 	b.WriteString(`(?:^|/)`)
 	braces := 0
-	for i := 0; i < len(glob); i++ {
-		c := glob[i]
+	runes := []rune(glob)
+	for i := 0; i < len(runes); i++ {
+		c := runes[i]
 		switch c {
 		case '*':
-			if i+1 < len(glob) && glob[i+1] == '*' {
+			if i+1 < len(runes) && runes[i+1] == '*' {
 				i++
-				if i+1 < len(glob) && glob[i+1] == '/' {
+				if i+1 < len(runes) && runes[i+1] == '/' {
 					i++
 					b.WriteString(`(?:.*/)?`)
 				} else {
@@ -261,6 +267,8 @@ func globRegexp(glob string) string {
 			b.WriteString(regexp.QuoteMeta(string(c)))
 		}
 	}
+	// An unclosed brace still yields a valid regexp instead of a dropped trigger.
+	b.WriteString(strings.Repeat(`)`, braces))
 	b.WriteString(`$`)
 	return b.String()
 }
