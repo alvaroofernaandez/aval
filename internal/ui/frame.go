@@ -145,9 +145,7 @@ func (c chrome) renderWith(v view, km keyMap) string {
 	if showRules {
 		lines = append(lines, c.rule(l))
 	}
-	if v.status != "" {
-		lines = append(lines, c.theme.Text.Render(c.fit(v.status, l.width)))
-	}
+	lines = append(lines, c.statusLines(v.status, l)...)
 	lines = append(lines, c.hintLines(l, wrapHints, km)...)
 
 	// Below the 8-row floor something has to go; the bottom of the frame
@@ -162,6 +160,59 @@ func (c chrome) renderWith(v view, km keyMap) string {
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+// maxStatusLines is how many lines the status line may wrap to; the safety
+// line at the narrowest width needs three, and anything longer is cut.
+const maxStatusLines = 3
+
+// statusLines is the status text wrapped to the content width, so a safety
+// sentence is never cut short at narrow widths. Empty status has no lines.
+func (c chrome) statusLines(status string, l layout) []string {
+	lines := c.wrapKeepingGaps(status, l.width)
+	if len(lines) > maxStatusLines {
+		last := strings.Join(lines[maxStatusLines-1:], " ")
+		lines = append(lines[:maxStatusLines-1], c.fit(last, l.width))
+	}
+	for i, line := range lines {
+		lines[i] = c.theme.Text.Render(line)
+	}
+	return lines
+}
+
+// wrapKeepingGaps is wrap that leaves runs of spaces inside a line alone, so
+// the two-space separator of the ASCII tier survives; only the gap where a
+// line breaks goes. Text that fits stays a single untouched line.
+func (c chrome) wrapKeepingGaps(s string, w int) []string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	if lipgloss.Width(s) <= w {
+		return []string{s}
+	}
+	var lines []string
+	line := ""
+	for _, word := range strings.Split(s, " ") {
+		if lipgloss.Width(word) > w {
+			word = c.fit(word, w)
+		}
+		switch {
+		case line == "":
+			if word != "" {
+				line = word
+			}
+		case lipgloss.Width(line)+1+lipgloss.Width(word) <= w:
+			line += " " + word
+		default:
+			lines = append(lines, strings.TrimRight(line, " "))
+			line = word
+		}
+	}
+	if line = strings.TrimRight(line, " "); line != "" {
+		lines = append(lines, line)
+	}
+	return lines
 }
 
 // framePlan is what the frame keeps at the chrome's height: the optional
@@ -188,9 +239,7 @@ func (c chrome) framePlan(v view, km keyMap, l layout) framePlan {
 		if p.gaps {
 			n += 2
 		}
-		if v.status != "" {
-			n++
-		}
+		n += len(c.statusLines(v.status, l))
 		return n + len(c.hintLines(l, p.wrapHints, km))
 	}
 
@@ -217,10 +266,8 @@ func (c chrome) renderHero(v view, km keyMap, l layout) (string, bool) {
 	l.hero = true
 	body := v.body(l, math.MaxInt32)
 	hints := c.hintLines(l, true, km)
-	n := len(hero) + 1 + 2 + 2 + len(body) + len(hints)
-	if v.status != "" {
-		n++
-	}
+	status := c.statusLines(v.status, l)
+	n := len(hero) + 1 + 2 + 2 + len(body) + len(hints) + len(status)
 	if n > c.height {
 		return "", false
 	}
@@ -229,9 +276,7 @@ func (c chrome) renderHero(v view, km keyMap, l layout) (string, bool) {
 	lines = append(lines, c.rule(l), "")
 	lines = append(lines, body...)
 	lines = append(lines, "", c.rule(l))
-	if v.status != "" {
-		lines = append(lines, c.theme.Text.Render(c.fit(v.status, l.width)))
-	}
+	lines = append(lines, status...)
 	lines = append(lines, hints...)
 	pad := strings.Repeat(" ", l.margin)
 	for i, line := range lines {

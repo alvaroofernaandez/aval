@@ -6,5 +6,6 @@
    Remove 2 links
    back up, then unlink
  › Cancel          change nothing
- Recorded in ~/.aval-backup first;…
+ Recorded in ~/.aval-backup first;
+ undo with aval restore latest
  enter choose · esc back · ? help

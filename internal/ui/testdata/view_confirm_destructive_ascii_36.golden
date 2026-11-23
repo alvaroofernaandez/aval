@@ -5,5 +5,7 @@
    Remove 2 links
    back up, then unlink
  > Cancel          change nothing
- Files in the way move to ~/.ava...
+ Files in the way move to
+ ~/.aval-backup first, undo: aval
+ restore latest
  enter choose  esc back  ? help

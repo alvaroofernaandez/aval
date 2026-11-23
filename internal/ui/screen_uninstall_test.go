@@ -223,6 +223,36 @@ func TestUninstallShortListHasNoScrollHint(t *testing.T) {
 	}
 }
 
+// At 36 columns the safety line used to end in an ellipsis; it wraps instead
+// so the safety net is always named in full.
+func TestUninstallConfirmWrapsTheSafetyLineAt36(t *testing.T) {
+	for _, unicode := range []bool{true, false} {
+		for _, h := range []int{24, 40} {
+			m := goldenOpViewApp(t, unicode, newUninstallView(uninstallServices(&uninstallProbe{}, uninstallItems())), true)
+			out := renderModelAt(m, 36, h)
+			if n := len(strings.Split(out, "\n")); n > h {
+				t.Errorf("unicode=%v 36x%d: frame is %d lines tall", unicode, h, n)
+			}
+			if strings.ContainsAny(out, "…") || strings.Contains(out, "...") {
+				t.Errorf("unicode=%v 36x%d: text is truncated:\n%s", unicode, h, out)
+			}
+			words := strings.Join(strings.Fields(out), " ")
+			sep := "·"
+			if !unicode {
+				sep = "-"
+			}
+			want := "Everything is recorded in ~/.aval-backup first " + sep + " undo: aval restore latest"
+			if !unicode {
+				want = strings.ReplaceAll(want, " - ", " ")
+				words = strings.Join(strings.Fields(strings.ReplaceAll(words, " - ", " ")), " ")
+			}
+			if !strings.Contains(words, want) {
+				t.Errorf("unicode=%v 36x%d: safety sentence is not whole:\n%s", unicode, h, out)
+			}
+		}
+	}
+}
+
 // opPhaseOf reads the phase of the operation inside the view's wrapper.
 func opPhaseOf[P any](t *testing.T, s screen) opPhase {
 	t.Helper()

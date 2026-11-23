@@ -14,5 +14,7 @@
    back up, write, verify with
    doctor, roll back on failure
    Back        change nothing
- The previous files are saved to...
+ The previous files are saved to
+ ~/.aval-backup  undo: aval restore
+ latest
  enter choose  esc back  ? help
