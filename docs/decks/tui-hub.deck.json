@@ -1,0 +1,69 @@
+{
+  "title": "Hub de aval",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · tui-hub", "title": "Escribe aval y lo tienes todo delante", "lede": "Un menú principal con el logo de la marca, el estado de tu máquina y una vista para cada acción. La estructura de gentle-ai con la estética de aval.", "note": "Hoy cada comando es texto que tienes que conocer por su nombre."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "El hub es la pantalla de inicio de aval", "lede": "Lo que aparece al escribir aval sin nada más en un terminal: el logo, el estado y un menú. Eliges con las flechas y vuelves con esc."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "Hoy hay que saberse los comandos", "items": [
+      {"title": "aval solo imprime ayuda", "text": "Una lista de comandos; nada que elegir con el teclado.", "tone": "warn"},
+      {"title": "Siete acciones sin vista", "text": "Update, sync, doctor, restore, uninstall, dev y version son solo texto.", "tone": "warn"},
+      {"title": "Sin estado a la vista", "text": "Para saber si algo falla o hay versión nueva hay que preguntar comando a comando.", "tone": "warn"}
+    ]},
+    {"layout": "compare", "eyebrow": "La idea", "title": "De una lista de comandos a un menú", "items": [
+      {"tag": "hoy", "title": "aval → texto de ayuda", "text": "Lees, eliges un comando, lo escribes y lees su salida.", "tone": "muted"},
+      {"tag": "con este plan", "title": "aval → hub", "text": "Logo, estado (versión, repo, doctor, último backup) y nueve acciones en cuatro grupos.", "tone": "good"}
+    ]},
+    {"layout": "groups", "eyebrow": "El menú", "title": "Nueve acciones, cuatro grupos", "items": [
+      {"title": "Set up", "text": "Preparar la máquina.", "chips": ["Install", "Update", "Sync"], "tone": "good"},
+      {"title": "Health", "text": "Saber si todo está bien.", "chips": ["Doctor"]},
+      {"title": "Undo", "text": "Volver atrás.", "chips": ["Backups", "Uninstall"]},
+      {"title": "Tools", "text": "Ajustes y utilidades.", "chips": ["Settings", "Dev sandbox", "About"], "tone": "muted"}
+    ]},
+    {"layout": "steps", "eyebrow": "Cada acción que escribe", "title": "Ver, confirmar, hacer, comprobar", "items": [
+      {"title": "Vista previa", "text": "Qué va a cambiar, sin escribir nada."},
+      {"title": "Confirmar", "text": "Las destructivas abren con el cursor en Cancel y nombran la red de seguridad.", "tone": "warn"},
+      {"title": "Ejecutar", "text": "Con progreso; ctrl+c para tras el paso en curso."},
+      {"title": "Resultado", "text": "Recuentos, id del backup y el comando para deshacer.", "tone": "good"}
+    ]},
+    {"layout": "timeline", "eyebrow": "Un ejemplo", "title": "Un lunes por la mañana", "items": [
+      {"tag": "09:00", "title": "Escribe aval", "text": "El hub dice: doctor con 1 aviso y la 0.3.1 disponible."},
+      {"tag": "09:01", "title": "Abre Doctor", "text": "Ve 2 enlaces rotos; pulsa f y confirma. Quedan en backup.", "tone": "good"},
+      {"tag": "09:02", "title": "Abre Update", "text": "Ve 3 commits y los archivos que cambian; actualiza y vuelve a enlazar."},
+      {"tag": "09:04", "title": "esc al hub", "text": "El panel se refresca: todo en orden.", "tone": "good"}
+    ]},
+    {"layout": "checklist", "eyebrow": "Lo que se garantiza", "title": "Abrir el hub no toca nada", "items": [
+      {"title": "Sin escribir y sin red", "text": "La versión nueva se lee de caché; doctor es solo lectura."},
+      {"title": "Scripts intactos", "text": "Sin terminal, aval help y --help siguen imprimiendo lo mismo byte a byte."},
+      {"title": "aval install y aval config igual que hoy", "text": "El hub es solo para aval a secas."},
+      {"title": "Estética de aval", "text": "Tinta pura; color solo en los glifos √ ! ×."}
+    ]},
+    {"layout": "section", "eyebrow": "Segunda parte", "title": "Por dentro: cómo se construye", "lede": "El logo, el enrutador, los datos que necesitan las vistas y el orden de trabajo."},
+    {"layout": "statement", "eyebrow": "El logo", "title": "Generado desde la geometría de la marca", "lede": "Las mismas formas del SVG (anillo y palo, check, ascendente) rasterizadas a bloques de cuadrante: 7 filas por 41 columnas. Si la marca cambia, el logo de la terminal cambia con ella."},
+    {"layout": "flow", "eyebrow": "Las piezas", "title": "Un enrutador apila las vistas", "items": [
+      {"title": "Enrutador", "text": "Pila de pantallas: enter apila, esc desapila."},
+      {"title": "Vistas", "text": "Una por acción; el instalador y los ajustes se reutilizan tal cual.", "tone": "good"},
+      {"title": "Servicios", "text": "Funciones inyectadas: la UI nunca llama al disco por su cuenta."},
+      {"title": "Núcleo", "text": "doctor, backup, uninstall y update devuelven datos, no texto."}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones", "title": "Por qué se construye así", "columns": ["Decidimos", "Porque", "En lugar de"], "rows": [
+      ["Logo rasterizado (cuadrantes)", "Fiel a la marca, nítido", "Dibujo a mano o braille"],
+      ["Versión leída de caché", "Abrir no escribe ni sale a red", "Comprobar en vivo"],
+      ["Dev sandbox atenuada", "Se sabe que existe", "Ocultarla"],
+      ["Alojar el Model actual", "Los tests de hoy no cambian", "Reescribir el instalador"]
+    ]},
+    {"layout": "checklist", "eyebrow": "Frenos", "title": "Qué pasa cuando algo falla", "items": [
+      {"title": "Destructivas abren en Cancel", "text": "Restore, uninstall, fix de doctor, borrar sandbox."},
+      {"title": "No se sale a mitad de escritura", "text": "Las operaciones atómicas ignoran teclas hasta terminar."},
+      {"title": "Resultados viejos se descartan", "text": "Cada respuesta lleva su generación."},
+      {"title": "Golden files de hoy intactos", "text": "Las vistas nuevas van en una tabla aparte."}
+    ]},
+    {"layout": "steps", "eyebrow": "El camino", "title": "Seis tandas", "items": [
+      {"title": "Contrato y datos", "text": "DESIGN.md; doctor, backup, uninstall y update como datos."},
+      {"title": "Enrutador y logo", "text": "Pila de vistas y generador del logo."},
+      {"title": "Hub y confirmaciones", "text": "Instalador y ajustes alojados; patrón de confirmación."},
+      {"title": "Vistas", "text": "Doctor, backups, uninstall, sync, dev, about; luego update."},
+      {"title": "Publicar", "text": "Docs, GIF y prueba en varios terminales.", "tone": "good"}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Arrancar la primera tanda", "lede": "DESIGN.md con Opus y los datos de doctor, backup y update con Sonnet, en paralelo.", "note": "Sin verificar aún: que ExecProcess conserve stderr en bubbletea 1.3.10 y cómo se ven las diagonales en cada fuente."}
+  ]
+}
