@@ -9,6 +9,15 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.2.2 (2026-11-23)
+
+[Release notes](docs/releases/v0.2.2.md) · [Notas en español](docs/releases/v0.2.2.es.md)
+
+### Fixes
+
+- **lessons:** trigger globs always compile, match non-ASCII literals, and bodies keep whole characters (#45, lessons slice)
+- **sync:** permission globs match non-ASCII literals
+
 ## v0.2.1 (2026-11-23)
 
 [Release notes](docs/releases/v0.2.1.md) · [Notas en español](docs/releases/v0.2.1.es.md)
