@@ -136,7 +136,7 @@ func dispatch(argv []string, c cmdIO) error {
 		plainFlag = fs.Bool("plain", false, "monochrome, ASCII glyphs and no motion")
 		langFlag  = fs.String("lang", "", "language for human output: auto, en or es (default: $AVAL_LANG, then the config file, then the locale)")
 	)
-	fs.Usage = func() { printUsage(fs.Output(), c.env) }
+	fs.Usage = func() { printUsageFor(fs.Output(), c.env, *langFlag) }
 	// The exit codes flag.ExitOnError used: 0 for -h, 2 for a bad flag; the
 	// message and the usage are already on stderr.
 	if err := fs.Parse(hoistGlobals(argv)); err != nil {
@@ -155,7 +155,7 @@ func dispatch(argv []string, c cmdIO) error {
 	// writes nothing): installing writes to HOME, so it is never the default. Unknown commands fail here, before any repository lookup.
 	legacyInstall := fs.NArg() == 0 && installFlagsGiven(fs)
 	if fs.Arg(0) == "help" {
-		printUsage(c.stdout, c.env)
+		printUsageFor(c.stdout, c.env, *langFlag)
 		return nil
 	}
 	if fs.NArg() == 0 && !legacyInstall {

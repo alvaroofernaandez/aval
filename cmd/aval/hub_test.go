@@ -49,8 +49,11 @@ func fakeEnv(tty bool, termName string, run func(tea.Model) (tea.Model, error)) 
 	e := realHubEnv()
 	e.isTTY = func(uintptr) bool { return tty }
 	e.getenv = func(k string) string {
-		if k == "TERM" {
+		switch k {
+		case "TERM":
 			return termName
+		case "AVAL_LANG":
+			return "en" // the golden usage is English whatever the machine's locale
 		}
 		return os.Getenv(k)
 	}

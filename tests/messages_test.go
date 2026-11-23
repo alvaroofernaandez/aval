@@ -33,6 +33,7 @@ type msgCase struct {
 	unix   bool // the command is Unix only: on Windows it prints the WSL refusal instead
 	code   int
 	stderr string
+	stdout string // pinned exactly when set
 }
 
 // configFile is where aval keeps its settings under home, per OS.
@@ -70,6 +71,10 @@ func runMessages(t *testing.T, cases []msgCase) {
 			got = filepath.ToSlash(got)
 			eq(t, "exit code\n"+r.Out(), c.code, r.Code)
 			eq(t, "stderr", c.stderr, got)
+			if c.stdout != "" {
+				out := strings.NewReplacer(configFile(home), "CONFIG", dir, "DIR", home, "HOME").Replace(r.Stdout)
+				eq(t, "stdout", c.stdout, filepath.ToSlash(out))
+			}
 		})
 	}
 }
@@ -222,5 +227,189 @@ func TestMessagesTools(t *testing.T) {
 		{name: "rules sync without the shared block", setup: noBlock, args: []string{"rules", "sync", "--repo", "DIR/repo"}, code: 1, stderr: "error: rules sync: no block found in DIR/repo/config/claude/CLAUDE.md\n"},
 		{name: "pdf assets with a missing brand dir", setup: emptyDir("project"), args: []string{"pdf", "assets", "DIR/project", "--brand-dir", "DIR/gone"}, code: 1, stderr: "error: Brand image directory not found: DIR/gone\n"},
 		{name: "dev inside a dev shell", args: []string{"dev"}, env: []string{"AVAL_DEV=1"}, code: 1, stderr: "error: already inside an aval dev shell (AVAL_DEV=1); exit it first, or pass --nested to stack another sandbox\n"},
+	})
+}
+
+// The usage text. The version is "dev": the suite builds the binary without
+// release stamps.
+const usageEN = `aval dev
+Nothing passes without evidence.
+
+aval installs and maintains this machine's dotfiles and agent configs.
+
+Usage:
+  aval <command> [flags]
+
+Setup
+  aval install            link the repo's configs into HOME (TUI; --yes for none)
+                            [--dry-run] [--yes] [--copy]
+  aval update             pull the repo, then re-apply
+                            [--dry-run]
+  aval sync               merge repo-managed settings into the live config
+                            [--dry-run]
+  aval config             show or change aval settings (theme, glyphs, motion)
+                            [list | get <key> | set <key> <value> | path]
+  aval dev                sandboxed HOME for developing aval
+                            [run | diff | reset | ls | rm | project]
+
+Health
+  aval doctor             check this machine against the repo
+                            [--fix] [--json]
+  aval budget             always-on context per agent and hook latency
+                            [--json]
+  aval version            version, commit, build date and channel
+  aval help               show this help
+
+Undo
+  aval restore            list or restore backup runs
+                            [--list | latest | <id> | --pin <id>]
+  aval uninstall          remove aval's links and restore what they displaced
+                            [--dry-run] [--yes]
+
+Agent tooling
+  aval rules              mirror CLAUDE.md's shared rules into OpenCode's AGENTS.md
+                            sync [--check]
+  aval review             git-only risk tier and reviewer lenses
+                            assess [--base] [--json]
+  aval design             design gates for the project in the current directory
+                            <gate|ack> ...
+  aval deck               turn a plan into a PDF slide deck, rendered locally
+                            <build|check|example> ...
+  aval pdf                scaffold PDF report projects and their brand assets
+                            <init|assets> ...
+  aval release            cut a release
+                            <status|next|patch|minor|major|rc|beta|promote>
+
+Plumbing
+  Called by hooks and scripts, rarely by hand.
+  aval hook               agent hooks and the git pre-push gate
+                            <lessons|design-gate|pre-push|...>
+  aval statusline         Claude Code status line
+  aval tmux               tmux, Ghostty and zsh helpers
+                            <helper>
+  aval macos              macOS defaults and LaunchAgents
+                            <helper>
+  aval reap-orphan-tests  end orphaned test processes
+                            [--min-age] [--dry-run]
+  aval kiri               make Docker ready on Kiri
+                            up
+  aval docker             safe Docker prunes on the kiri context
+                            cleanup [--dry-run]
+
+Global flags:
+  --repo <path>   the aval repository to use
+  --theme <name>  colour theme for this run (aval, terminal, mono, catppuccin, ...)
+  --plain         monochrome, ASCII glyphs and no motion
+  --lang <code>   language for human output: auto, en or es
+
+Settings: theme, background, glyphs, motion, update_check, language. Precedence
+is flag, then AVAL_* environment, then ~/.config/aval/config; language then
+follows the locale (LC_ALL, LC_MESSAGES, LANG). NO_COLOR turns colour off.
+
+The repository is found from, in order: --repo, $AVAL_REPO, the location
+'aval install' recorded in ~/.config/aval/config, then the current directory.
+First time: clone the repo, cd into it and run 'aval install'.
+
+Not set up yet. Run: aval install
+`
+
+const usageES = `aval dev
+Nada pasa sin evidencia.
+
+aval instala y mantiene los dotfiles y las configuraciones de agentes de este equipo.
+
+Uso:
+  aval <comando> [opciones]
+
+Preparación
+  aval install            enlaza las configuraciones del repositorio en HOME (TUI; --yes para omitirla)
+                            [--dry-run] [--yes] [--copy]
+  aval update             actualiza el repositorio y vuelve a aplicar
+                            [--dry-run]
+  aval sync               fusiona los ajustes del repositorio en la configuración activa
+                            [--dry-run]
+  aval config             muestra o cambia los ajustes de aval (tema, glifos, movimiento)
+                            [list | get <key> | set <key> <value> | path]
+  aval dev                HOME aislado para desarrollar aval
+                            [run | diff | reset | ls | rm | project]
+
+Salud
+  aval doctor             comprueba este equipo frente al repositorio
+                            [--fix] [--json]
+  aval budget             contexto fijo por agente y latencia de los hooks
+                            [--json]
+  aval version            versión, commit, fecha de compilación y canal
+  aval help               muestra esta ayuda
+
+Deshacer
+  aval restore            lista o restaura copias de seguridad
+                            [--list | latest | <id> | --pin <id>]
+  aval uninstall          quita los enlaces de aval y restaura lo que desplazaron
+                            [--dry-run] [--yes]
+
+Herramientas de agentes
+  aval rules              refleja las reglas compartidas de CLAUDE.md en el AGENTS.md de OpenCode
+                            sync [--check]
+  aval review             nivel de riesgo según git y lentes de revisión
+                            assess [--base] [--json]
+  aval design             controles de diseño para el proyecto del directorio actual
+                            <gate|ack> ...
+  aval deck               convierte un plan en una presentación PDF, generada en local
+                            <build|check|example> ...
+  aval pdf                crea proyectos de informes PDF y sus recursos de marca
+                            <init|assets> ...
+  aval release            publica una versión
+                            <status|next|patch|minor|major|rc|beta|promote>
+
+Piezas internas
+  Las llaman los hooks y los scripts, pocas veces a mano.
+  aval hook               hooks de agentes y el control previo al push de git
+                            <lessons|design-gate|pre-push|...>
+  aval statusline         línea de estado de Claude Code
+  aval tmux               utilidades de tmux, Ghostty y zsh
+                            <helper>
+  aval macos              ajustes de macOS y LaunchAgents
+                            <helper>
+  aval reap-orphan-tests  termina los procesos de pruebas huérfanos
+                            [--min-age] [--dry-run]
+  aval kiri               deja Docker listo en Kiri
+                            up
+  aval docker             limpiezas seguras de Docker en el contexto kiri
+                            cleanup [--dry-run]
+
+Opciones globales:
+  --repo <path>   el repositorio de aval que se usa
+  --theme <name>  tema de color para esta ejecución (aval, terminal, mono, catppuccin, ...)
+  --plain         monocromo, glifos ASCII y sin movimiento
+  --lang <code>   idioma de la salida para personas: auto, en o es
+
+Ajustes: theme, background, glyphs, motion, update_check, language. La precedencia
+es opción, luego variable AVAL_*, luego ~/.config/aval/config; language sigue
+después la configuración regional (LC_ALL, LC_MESSAGES, LANG). NO_COLOR desactiva el color.
+
+El repositorio se busca, en orden, en: --repo, $AVAL_REPO, la ubicación que
+'aval install' guardó en ~/.config/aval/config y el directorio actual.
+La primera vez: clone el repositorio, entre en él y ejecute 'aval install'.
+
+Aún sin configurar. Ejecute: aval install
+`
+
+// The usage text. The language comes from --lang, AVAL_LANG, the config file
+// or the locale; a machine with a config file has no first-run hint.
+func TestMessagesUsageText(t *testing.T) {
+	cfgES := func(t *testing.T, _, home string) { write(t, configFile(home), "language = es\n") }
+	configured := func(t *testing.T, _, home string) { write(t, configFile(home), "theme = aval\n") }
+	noHint := func(s, hint string) string { return strings.TrimSuffix(s, hint) }
+	const hintEN, hintES = "\nNot set up yet. Run: aval install\n", "\nAún sin configurar. Ejecute: aval install\n"
+	runMessages(t, []msgCase{
+		{name: "help in English", args: []string{"help"}, stdout: usageEN},
+		{name: "help with --lang es", args: []string{"--lang", "es", "help"}, stdout: usageES},
+		{name: "help with AVAL_LANG=es", args: []string{"help"}, env: []string{"AVAL_LANG=es"}, stdout: usageES},
+		{name: "help with a Spanish locale", args: []string{"help"}, env: []string{"AVAL_LANG", "LANG=es_ES.UTF-8"}, stdout: usageES},
+		{name: "--lang beats AVAL_LANG", args: []string{"--lang", "en", "help"}, env: []string{"AVAL_LANG=es"}, stdout: usageEN},
+		{name: "help with language = es in the file", setup: cfgES, args: []string{"help"}, env: []string{"AVAL_LANG"}, stdout: noHint(usageES, hintES)},
+		{name: "help on a configured machine", setup: configured, args: []string{"help"}, stdout: noHint(usageEN, hintEN)},
+		{name: "a bare aval without a terminal", args: []string{}, stdout: usageEN},
+		{name: "a bare aval without a terminal, Spanish", args: []string{"--lang", "es"}, stdout: usageES},
 	})
 }
