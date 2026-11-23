@@ -37,3 +37,22 @@ func TestContextBudgetAlwaysOnInstructionsStayUnderTheirCeiling(t *testing.T) {
 	}
 	isTrue(t, "always-on instructions stay under 26000 B (are "+itoa(n)+" B)", n <= maxBytes)
 }
+
+// The project AGENTS.md is @imported by the project CLAUDE.md, so it is paid on
+// every turn of every session in this repo, on top of the global set above.
+// 6000 B is about 1.5K tokens: room for the skill table, the hard rules, the
+// commands and the output contract, and nothing else. Detail belongs in the
+// project skills, which cost only their description until invoked.
+func TestContextBudgetProjectAgentsMdStaysUnderItsCeiling(t *testing.T) {
+	const maxBytes = 6000
+	n := len(read(t, "AGENTS.md"))
+	isTrue(t, "AGENTS.md stays under 6000 B (is "+itoa(n)+" B)", n <= maxBytes)
+}
+
+// The project CLAUDE.md is only the import line; anything more would be a
+// second, unmeasured instruction file.
+func TestContextBudgetProjectClaudeMdIsOneLine(t *testing.T) {
+	const maxBytes = len("@AGENTS.md\n")
+	n := len(read(t, "CLAUDE.md"))
+	isTrue(t, "CLAUDE.md stays under "+itoa(maxBytes)+" B (is "+itoa(n)+" B)", n <= maxBytes)
+}
