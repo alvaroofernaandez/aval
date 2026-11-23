@@ -1,0 +1,18 @@
+ aval 0.2.0
+ Sync       ~/.claude/settings.json
+
+ ! would change  settings
+   hooks, statusLine, env
+ √ up to date  rules
+   ~/.codex/AGENTS.md
+ ! would update  rules
+   ~/.gemini/GEMINI.md
+ √ linked  overlay
+   ~/.claude/skills/private-skill
+
+ › Apply sync
+   back up, write, verify with
+   doctor, roll back on failure
+   Back        change nothing
+ The previous files are saved to ~…
+ enter choose · esc back · ? help

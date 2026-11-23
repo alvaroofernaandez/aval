@@ -1,0 +1,11 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ────────────────────────────────────────────────────────────────────────────
+
+  × rolled back
+    The previous files are back in place.
+  × settings ~/.claude/settings.json has no hooks
+  backup 20261123-101402
+
+  ────────────────────────────────────────────────────────────────────────────
+  enter close · esc back · ? help · q quit

@@ -1,0 +1,17 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
+
+  Sync                                                 ~/.claude/settings.json
+
+  ! would change  settings  hooks, statusLine, env
+  ok up to date   rules     ~/.codex/AGENTS.md
+  ! would update  rules     ~/.gemini/GEMINI.md
+  ok linked       overlay   ~/.claude/skills/private-skill
+
+  > Apply sync  back up, write, verify with doctor, roll back on failure
+    Back        change nothing
+
+  ----------------------------------------------------------------------------
+  The previous files are saved to ~/.aval-backup  undo: aval restore latest
+  up/down move  enter choose  esc back  ? help  q quit
