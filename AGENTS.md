@@ -56,7 +56,7 @@ Report only what ran and what you observed. Never invent evidence.
 ## Where things live
 
 - `cmd/aval`: the entry point, a thin wrapper.
-- `internal/`: leaves (`agent/*`, `devops/*`, `term/*`, `herdr/*`, `deck`, `design/ack`, `design/gate`, `release`, `docs/*`, `devmode`, `ui/caps`, `testenv`) and `tools/*` import nothing internal; `design/hook` imports only `design/ack`; `core/*` imports only `core/*` and `release`; `ui` sits on `core/*`, `devmode`, `release` and `ui/caps`; `ui/cli` on `ui` and `ui/caps`. The model and the allowlist are in `docs/architecture/model.md` and ADR 0002; `go test ./tests/ -run Architecture` enforces them.
+- `internal/`: leaves (`agent/*`, `devops/*`, `term/*`, `herdr/*`, `deck`, `design/ack`, `design/gate`, `release`, `docs/*`, `devmode`, `i18n`, `ui/caps`, `testenv`) and `tools/*` import nothing internal; `design/hook` imports only `design/ack`; `core/*` imports only `core/*` and `release`; `ui` sits on `core/*`, `devmode`, `i18n`, `release` and `ui/caps`; `ui/cli` on `ui`, `ui/caps` and `i18n`. The model and the allowlist are in `docs/architecture/model.md` and ADR 0002; `go test ./tests/ -run Architecture` enforces them.
 - `tests/`: repo-level guards (budgets, workflows, docs, architecture).
 - `odd/tasks/`: plans, one file per feature.
 - `docs/adr/`: architecture decision records.

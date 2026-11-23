@@ -25,6 +25,7 @@ flowchart TD
     devops["devops/*"]
     docs["docs/*"]
     herdr["herdr/*"]
+    i18n["i18n"]
     release["release"]
     term["term/*"]
     testenv["testenv"]
@@ -65,8 +66,8 @@ flowchart TD
 | Package | May import | In tests only | Why |
 | :--- | :--- | :--- | :--- |
 | `cmd/aval` | `internal/*` | - | composition root: wires every package |
-| `internal/ui` | `internal/core/*`, `internal/devmode`, `internal/release`, `internal/ui/caps` | `internal/design/gate` | the hub drives core use cases; tests check the design gate |
-| `internal/ui/cli` | `internal/ui`, `internal/ui/caps` | - | plain-terminal front end over the ui models |
+| `internal/ui` | `internal/core/*`, `internal/devmode`, `internal/i18n`, `internal/release`, `internal/ui/caps` | `internal/design/gate` | the hub drives core use cases; tests check the design gate |
+| `internal/ui/cli` | `internal/i18n`, `internal/ui`, `internal/ui/caps` | - | plain-terminal front end over the ui models |
 | `internal/ui/caps` | nothing internal | - | leaf: terminal capabilities |
 | `internal/core/*` | `internal/core/*`, `internal/release` | - | domain: install, sync, doctor, update |
 | `internal/design/hook` | `internal/design/ack` | - | the PreToolUse gate reads the ack it checks |
@@ -80,6 +81,7 @@ flowchart TD
 | `internal/deck` | nothing internal | - | leaf |
 | `internal/release` | nothing internal | - | leaf |
 | `internal/devmode` | nothing internal | - | leaf |
+| `internal/i18n` | nothing internal | - | leaf: message catalog and language selection (ADR 0006) |
 | `internal/testenv` | nothing internal | - | leaf: test-only helpers |
 | `tools/*` | nothing internal | - | leaf: build-time tools |
 | `tests` | nothing internal | - | repository checks: drive the binary, import nothing internal |

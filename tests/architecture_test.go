@@ -41,9 +41,9 @@ type archRule struct {
 // nothing may import cmd/aval. Changing this table needs an ADR (docs/adr).
 var archRules = []archRule{
 	{pkg: "cmd/aval", allow: []string{"internal/*"}, why: "composition root: wires every package"},
-	{pkg: "internal/ui", allow: []string{"internal/core/*", "internal/devmode", "internal/release", "internal/ui/caps"},
+	{pkg: "internal/ui", allow: []string{"internal/core/*", "internal/devmode", "internal/i18n", "internal/release", "internal/ui/caps"},
 		allowTest: []string{"internal/design/gate"}, why: "the hub drives core use cases; tests check the design gate"},
-	{pkg: "internal/ui/cli", allow: []string{"internal/ui", "internal/ui/caps"}, why: "plain-terminal front end over the ui models"},
+	{pkg: "internal/ui/cli", allow: []string{"internal/i18n", "internal/ui", "internal/ui/caps"}, why: "plain-terminal front end over the ui models"},
 	{pkg: "internal/ui/caps", why: "leaf: terminal capabilities"},
 	{pkg: "internal/core/*", allow: []string{"internal/core/*", "internal/release"}, why: "domain: install, sync, doctor, update"},
 	{pkg: "internal/design/hook", allow: []string{"internal/design/ack"}, why: "the PreToolUse gate reads the ack it checks"},
@@ -57,6 +57,7 @@ var archRules = []archRule{
 	{pkg: "internal/deck", why: "leaf"},
 	{pkg: "internal/release", why: "leaf"},
 	{pkg: "internal/devmode", why: "leaf"},
+	{pkg: "internal/i18n", why: "leaf: message catalog and language selection (ADR 0006)"},
 	{pkg: "internal/testenv", why: "leaf: test-only helpers"},
 	{pkg: "tools/*", why: "leaf: build-time tools"},
 	{pkg: "tests", why: "repository checks: drive the binary, import nothing internal"},

@@ -11,7 +11,7 @@ Load before a structural change in this repository: a new package under `interna
 
 - **Evidence before abstractions.** A new package, interface or seam is a visible cost. Name its need before you add it: a second implementation that exists or is planned in `odd/tasks/`, a test seam a test uses, or a security or ownership boundary. "Cleaner" or "more flexible" is not a need. No need, no abstraction.
 - **AS-IS and TO-BE stay separate.** AS-IS is what `go list` and `docs/architecture/model.md` show at this commit. TO-BE is your proposal, labelled as one. Never draw a proposed package or edge into the generated model.
-- **The allowlist is the law.** `archRules` in `tests/architecture_test.go` implements ADR 0002 (with its 2026-11-23 amendment). A package no rule matches is itself a violation, so a new package forces a decision.
+- **The allowlist is the law.** `archRules` in `tests/architecture_test.go` implements ADR 0002 (with its 2026-11-23 amendments). A package no rule matches is itself a violation, so a new package forces a decision.
 - **Change order: ADR, then table, then code.** To change the layering: (1) add a dated `### YYYY-MM-DD` amendment to ADR 0002 or write a new ADR (`docs/adr/README.md`; `tests/adr_test.go` checks it); (2) edit `archRules`; (3) write the import; (4) regenerate the model. Never rewrite the accepted ADR text.
 - **The ratchet only shrinks.** `archExceptions` lists edges that break the rules today; `archMaxExceptions` caps it (0 now). A new violation fails; an exception that no longer matches also fails. Fix the import. Raising the cap is never part of a feature change.
 - **archsieve is a report, never a gate.** ADR 0001: Node tooling is never a dependency, and in Go archsieve only sees import cycles, which the compiler already rejects. No test, hook or CI step may depend on it.
@@ -21,11 +21,11 @@ Load before a structural change in this repository: a new package under `interna
 | Package | May import (internal) |
 | --- | --- |
 | `cmd/aval` | anything under `internal/` (composition root) |
-| `internal/ui` | `core/*`, `devmode`, `release`, `ui/caps`; `design/gate` in tests only |
-| `internal/ui/cli` | `ui`, `ui/caps` |
+| `internal/ui` | `core/*`, `devmode`, `i18n`, `release`, `ui/caps`; `design/gate` in tests only |
+| `internal/ui/cli` | `ui`, `ui/caps`, `i18n` |
 | `internal/core/*` | `core/*`, `release` |
 | `internal/design/hook` | `design/ack` |
-| leaves: `agent/*`, `devops/*`, `term/*`, `docs/*`, `herdr/*`, `deck`, `design/ack`, `design/gate`, `release`, `devmode`, `ui/caps`, `testenv`, `tools/*` | nothing internal |
+| leaves: `agent/*`, `devops/*`, `term/*`, `docs/*`, `herdr/*`, `deck`, `design/ack`, `design/gate`, `release`, `devmode`, `i18n`, `ui/caps`, `testenv`, `tools/*` | nothing internal |
 
 Everywhere: `internal/testenv` only from `_test.go` files; nothing imports `cmd/aval`. The table above is a reading aid; `archRules` is the source.
 
