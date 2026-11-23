@@ -84,7 +84,7 @@ func TestForOSWindowsHooksUseExecForm(t *testing.T) {
 		t.Errorf("only %d aval hooks were adapted; the repo has at least lessons, design-gate, repo-profile, design-shot-stop", adapted)
 	}
 
-	want := []string{"lessons", "design-gate", "repo-profile", "design-shot-stop"}
+	want := []string{"lessons", "design-gate", "repo-profile", "design-shot-stop", "fmt"}
 	found := map[string]bool{}
 	for _, r := range eachHook(got) {
 		args, ok := r.h["args"].([]any)
@@ -150,6 +150,7 @@ func TestAvalArgs(t *testing.T) {
 	}{
 		{`a="$HOME/.local/bin/aval"; [ -x "$a" ] || a="$(command -v aval)"; [ -x "$a" ] && "$a" hook lessons || true`, []string{"hook", "lessons"}, true},
 		{`a="$HOME/.local/bin/aval"; [ -x "$a" ] || a="$(command -v aval)"; [ -x "$a" ] && "$a" statusline || echo claude`, []string{"statusline"}, true},
+		{`a="$HOME/.local/bin/aval"; [ -x "$a" ] || a="$(command -v aval)"; [ -x "$a" ] && "$a" hook fmt || true`, []string{"hook", "fmt"}, true},
 		{`code-review-graph status`, nil, false},
 		{`rm -f /tmp/dk_* 2>/dev/null`, nil, false},
 	}

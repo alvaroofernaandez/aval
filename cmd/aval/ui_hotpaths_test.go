@@ -64,7 +64,7 @@ func TestHotPathsNeverReadConfig(t *testing.T) {
 // AVAL_LANG, a Spanish locale and a language in the config change nothing,
 // not even a bad --lang.
 func TestHooksIgnoreTheLanguage(t *testing.T) {
-	cases := [][]string{{"statusline"}, {"hook", "design-gate"}, {"hook", "plan-gate"}}
+	cases := [][]string{{"statusline"}, {"hook", "design-gate"}, {"hook", "plan-gate"}, {"hook", "fmt"}}
 	spanish := map[string]string{"AVAL_LANG": "es", "LANG": "es_ES.UTF-8", "LC_ALL": "es_ES.UTF-8"}
 	for _, args := range cases {
 		base := langRun(t, "", nil, args...)

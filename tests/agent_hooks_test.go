@@ -68,6 +68,23 @@ func TestAgentHooksRunOnlyKnownPrograms(t *testing.T) {
 	}
 }
 
+// The fmt hook formats the file an agent just edited, so the agent's next read
+// sees the formatted file: it must run synchronously, after Edit and Write.
+func TestAgentHooksFormatAfterEveryEdit(t *testing.T) {
+	s := repoSettings(t)
+	found := false
+	for _, g := range s.Hooks["PostToolUse"] {
+		for _, h := range g.Hooks {
+			if strings.Contains(h.Command, "hook fmt") {
+				found = true
+				eq(t, "the fmt hook matcher", "Edit|Write", g.Matcher)
+				isTrue(t, "the fmt hook runs synchronously", !h.Async)
+			}
+		}
+	}
+	isTrue(t, "a PostToolUse hook runs aval hook fmt", found)
+}
+
 // 21 commits in 60 days carried Co-Authored-By despite the rule: Claude Code
 // itself injects the trailer unless the setting hides it. A rule the harness
 // contradicts on every commit is a coin flip; the setting is not.

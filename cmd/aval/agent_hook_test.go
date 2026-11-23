@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -238,4 +239,35 @@ func TestLessonsInjectionAgainstTheRealLessons(t *testing.T) {
 	if got := fire(`{"session_id":"d1","tool_name":"Edit","tool_input":{"file_path":"/p/api/Dockerfile"}}`); got != "" {
 		t.Errorf("a lesson shows once per session: got %q", got)
 	}
+}
+
+func TestRunHookFmtFormatsTheEditedFile(t *testing.T) {
+	if !fileExists(gofmtPath(t)) {
+		t.Skip("gofmt not installed")
+	}
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, ".git", "HEAD"), "ref: refs/heads/main\n")
+	file := filepath.Join(root, "x.go")
+	writeFile(t, file, "package x\nfunc  F( ) {\n}\n")
+	in := `{"hook_event_name":"PostToolUse","tool_name":"Edit","cwd":` + q(root) + `,"tool_input":{"file_path":` + q(file) + `}}`
+	var out bytes.Buffer
+	if err := runHook([]string{"fmt"}, procIO(strings.NewReader(in), &out)); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := os.ReadFile(file)
+	if want := "package x\n\nfunc F() {\n}\n"; string(got) != want {
+		t.Errorf("file = %q, want %q", got, want)
+	}
+	if out.Len() != 0 {
+		t.Errorf("the fmt hook prints nothing on stdout, got %q", out.String())
+	}
+}
+
+func gofmtPath(t *testing.T) string {
+	t.Helper()
+	p, err := exec.LookPath("gofmt")
+	if err != nil {
+		return ""
+	}
+	return p
 }

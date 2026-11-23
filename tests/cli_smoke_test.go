@@ -31,6 +31,7 @@ func TestCLIBinarySmoke(t *testing.T) {
 		{"unknown command", []string{"instal"}, "", 1, "", `unknown command "instal"`},
 		{"statusline with a broken config", []string{"statusline"}, "{}", 0, "", ""},
 		{"hook plan-gate with a broken config", []string{"hook", "plan-gate"}, "{}", 0, "", ""},
+		{"hook fmt with an empty payload", []string{"hook", "fmt"}, "{}", 0, "", ""},
 		{"doctor rejects a bad --theme", []string{"--theme", "tokio-night", "doctor"}, "", 1, "", "tokyo-night"},
 	}
 	for _, c := range cases {

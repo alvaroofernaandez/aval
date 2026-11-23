@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/alvaroofernaandez/aval/internal/agent/fmthook"
 	"github.com/alvaroofernaandez/aval/internal/agent/lessons"
 	"github.com/alvaroofernaandez/aval/internal/agent/rateguard"
 	"github.com/alvaroofernaandez/aval/internal/agent/repoprofile"
@@ -57,12 +58,16 @@ func runHook(args []string, c cmdIO) error {
 		rtkhook.Run(in, out, c.stderr, rtkhook.Lookup())
 	case "pre-push":
 		return runPrePush(args[1:], in, out, c.stderr, getenv)
+	case "fmt":
+		// PostToolUse, sync: formats the edited file; a failure is one line on
+		// stderr and never fails the edit.
+		fmthook.Run(in, c.stderr, fmthook.DefaultOptions())
 	case "lessons":
 		// Exit 0 whatever happens: a lessons hook that can fail is a hook that
 		// can be mistaken for a block.
 		_ = lessons.Run(in, out, lessonsOptions(getenv))
 	default:
-		return newUsage("usage: aval hook lessons|repo-profile|design-gate|plan-gate|design-shot-stop|rate-guard|rtk-rewrite|pre-push (reads hook JSON on stdin)")
+		return newUsage("usage: aval hook lessons|repo-profile|design-gate|plan-gate|design-shot-stop|rate-guard|rtk-rewrite|pre-push|fmt (reads hook JSON on stdin)")
 	}
 	return nil
 }
