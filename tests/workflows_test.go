@@ -271,6 +271,7 @@ var ciExemptTools = map[string]string{
 	"fzf":       "optional fuzzy finder; its test skips when absent and CI does not install it",
 	"ghostty":   "GUI terminal, not available on CI runners; the test skips when absent",
 	"hyperfine": "optional benchmark tool; its test skips when absent and CI does not install it",
+	"pdffonts":  "poppler tool for the opt-in deck e2e test (AVAL_DECK_E2E), which CI does not run",
 	"yazi":      "optional file manager; the tmux e2e case that needs it skips when absent",
 	"zoxide":    "optional directory jumper; its test skips when absent and CI does not install it",
 }
@@ -899,5 +900,25 @@ func TestCIFuzzesEveryFuzzTarget(t *testing.T) {
 	}
 	if !strings.Contains(job, "actions/upload-artifact@") {
 		t.Error("the fuzz job must upload the corpus it found as an artifact")
+	}
+}
+
+// The brand fonts ship inside the binary, so their OFL licences ship in every
+// release archive.
+func TestGoReleaserArchivesTheFontLicences(t *testing.T) {
+	cfg := read(t, ".goreleaser.yaml")
+	lics, _ := filepath.Glob(p("internal", "deck", "assets", "fonts", "OFL-*.txt"))
+	if len(lics) == 0 {
+		t.Fatal("no font licences found")
+	}
+	files := regexp.MustCompile(`(?m)^    files: \[([^\]]*)\]`).FindStringSubmatch(cfg)
+	if files == nil {
+		t.Fatal(".goreleaser.yaml archives have no files list")
+	}
+	for _, l := range lics {
+		rel, _ := filepath.Rel(repo, l)
+		if !strings.Contains(files[1], filepath.ToSlash(rel)) {
+			t.Errorf("the release archives must include %s", filepath.ToSlash(rel))
+		}
 	}
 }

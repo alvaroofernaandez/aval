@@ -9,6 +9,14 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.3.0-rc.2 (2026-11-23)
+
+[Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
+
+### Features
+
+- **deck:** the brand fonts are embedded, a deck needs no network (#73)
+
 ## v0.3.0-rc.1 (2026-11-23)
 
 [Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
