@@ -40,6 +40,11 @@ type catalog map[string]message
 // catalogs is every language's table.
 var catalogs = map[Lang]catalog{English: english, Spanish: spanish}
 
+// Key marks a literal as a message key that is stored now and looked up with
+// T or N later (a key binding's description in a package-level table). It
+// returns k unchanged; the catalog tests count it as a use of the key.
+func Key(k string) string { return k }
+
 // Translator looks messages up in one language. The zero value is English.
 type Translator struct {
 	lang Lang

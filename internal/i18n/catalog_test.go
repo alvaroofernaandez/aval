@@ -89,7 +89,7 @@ func pluralGaps(cats map[Lang]catalog) []string {
 }
 
 // lookups returns every string literal passed as the first argument of a .T
-// or .N call in the non-test Go files under root, with one position each.
+// or .N call, or marked with Key, in the non-test Go files under root, with one position each.
 // Keys are literals by rule, so the scan can see them.
 func lookups(t *testing.T, root string) map[string]string {
 	t.Helper()
@@ -119,7 +119,7 @@ func lookups(t *testing.T, root string) map[string]string {
 				return true
 			}
 			sel, ok := call.Fun.(*ast.SelectorExpr)
-			if !ok || (sel.Sel.Name != "T" && sel.Sel.Name != "N") {
+			if !ok || (sel.Sel.Name != "T" && sel.Sel.Name != "N" && sel.Sel.Name != "Key") {
 				return true
 			}
 			lit, ok := call.Args[0].(*ast.BasicLit)
@@ -212,6 +212,7 @@ func f(tr interface {
 	_ = tr.T("scan.plain", nil)
 	_ = tr.N("scan.plural", 2, nil)
 	_ = tr.T(dynamic, nil)
+	_ = i18n.Key("scan.marked")
 }
 
 var dynamic = "not.a.literal"
@@ -232,7 +233,7 @@ func g(tr interface{ T(string, map[string]any) string }) { _ = tr.T("scan.test.o
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	if want := []string{"scan.plain", "scan.plural"}; !reflect.DeepEqual(keys, want) {
+	if want := []string{"scan.marked", "scan.plain", "scan.plural"}; !reflect.DeepEqual(keys, want) {
 		t.Errorf("lookups = %q, want %q (literals only, test files skipped)", keys, want)
 	}
 }
