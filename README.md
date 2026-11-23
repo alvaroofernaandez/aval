@@ -296,7 +296,7 @@ Palettes come from each theme's upstream repository; sources and licences are in
 | `aval rules sync` | Mirrors the shared rules of `CLAUDE.md` and the lessons into OpenCode's `AGENTS.md` (`--check`) |
 | `aval hook <name>` | `lessons` · `design-gate` · `design-shot-stop` · `rtk-rewrite` · `repo-profile` · `pre-push` |
 | `aval statusline` | Claude Code status line |
-| `aval deck build <spec> -o <pdf> --plan <plan>` | Plan deck as a PDF, rendered with the local browser; unlocks the plan gate |
+| `aval deck build <spec> -o <pdf> --plan <plan>` | Plan deck as a PDF, rendered with the local browser; unlocks the plan gate in Claude Code and OpenCode |
 | `aval design ack <surface>` · `aval design gate <…>` | Design pipeline ack · measured gates: `contrast`, `tokens`, `pairs`, `hardcodes`, `theme-refs`, `component`, `emoji`, `native` |
 | `aval tmux <…>` | `sidebar-toggle`, `sidebar-follow`, `sidebar-watch`, `open-file`, `close-file`, `paste-router`, `statusbar`, `launch` |
 | `aval macos <…>` | `defaults`, `screenshot-clipboard install` / `copy` |
