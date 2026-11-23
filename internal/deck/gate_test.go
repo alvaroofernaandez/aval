@@ -170,3 +170,16 @@ func TestAckPlanNeedsAPlanFile(t *testing.T) {
 		t.Fatal("want an error for a missing plan")
 	}
 }
+
+func TestPlanGateDeniesNamesThatStartWithTwoDots(t *testing.T) {
+	g := newGateRepo(t)
+	g.plan("feature.md", openPlan, time.Hour)
+	for _, c := range []struct{ tool, rel string }{
+		{"Edit", "..notes.go"},
+		{"Write", "..cache/x.go"},
+	} {
+		if r := g.edit(c.tool, c.rel, false); r == "" {
+			t.Errorf("%s %s is inside the repo and must be denied while the plan has no deck", c.tool, c.rel)
+		}
+	}
+}
