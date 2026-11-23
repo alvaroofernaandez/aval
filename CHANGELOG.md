@@ -3,11 +3,15 @@
 All notable changes to aval. Versions follow [SemVer](https://semver.org): `vX.Y.Z`,
 with `-rc.N` / `-beta.N` prereleases (see [docs/releasing.md](docs/releasing.md)).
 
-From the first tagged release on, entries come from the GitHub release notes, which
-`aval release` and GoReleaser generate from conventional commits. This file is not
-edited by hand after that point; the section below is the history before versions existed.
+Each release has hand-written notes in `docs/releases/`, in English (`vX.Y.Z.md`) and
+Spanish (`vX.Y.Z.es.md`). The GitHub release body is those notes followed by the commit
+list GoReleaser generates from conventional commits (see [docs/releasing.md](docs/releasing.md)).
+This file keeps a short, dated summary per release and links the notes; the section
+"Before v0.1.0" is the history before versions existed.
 
-## Unreleased
+## v0.2.0-rc.1 (2026-11-23)
+
+[Release notes](docs/releases/v0.2.0.md) · [Notas en español](docs/releases/v0.2.0.es.md)
 
 ### Features
 
