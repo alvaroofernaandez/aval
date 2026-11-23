@@ -32,7 +32,7 @@ func TestRunHookLessonsUsesEnvDirsAndXDGState(t *testing.T) {
 
 	var out bytes.Buffer
 	in := `{"session_id":"abc","tool_name":"Bash","tool_input":{"command":"git commit -m x"}}`
-	if err := runHook([]string{"lessons"}, strings.NewReader(in), &out); err != nil {
+	if err := runHook([]string{"lessons"}, procIO(strings.NewReader(in), &out)); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "No trailers.") {
@@ -51,7 +51,7 @@ func TestRunHookLessonsDefaultsToHomeClaudeLessons(t *testing.T) {
 	writeFile(t, filepath.Join(home, ".claude", "lessons", "x.md"), "---\ntriggers:\n  - '**/*.tsx'\n---\nHi.\n")
 	var out bytes.Buffer
 	in := `{"session_id":"s","tool_name":"Edit","tool_input":{"file_path":"/p/a.tsx"}}`
-	if err := runHook([]string{"lessons"}, strings.NewReader(in), &out); err != nil {
+	if err := runHook([]string{"lessons"}, procIO(strings.NewReader(in), &out)); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "Hi.") {
@@ -63,7 +63,7 @@ func TestRunHookLessonsDefaultsToHomeClaudeLessons(t *testing.T) {
 }
 
 func TestRunHookUnknownHookIsAnError(t *testing.T) {
-	if err := runHook([]string{"nope"}, strings.NewReader(""), &bytes.Buffer{}); err == nil {
+	if err := runHook([]string{"nope"}, procIO(strings.NewReader(""), &bytes.Buffer{})); err == nil {
 		t.Error("an unknown hook name must be reported")
 	}
 }
@@ -76,7 +76,7 @@ func TestRunHookDesignGateReadsEnvAndDenies(t *testing.T) {
 	in := `{"session_id":"s","cwd":` + q(proj) + `,"tool_name":"Edit","tool_input":{"file_path":` + q(filepath.Join(proj, "Button.tsx")) + `}}`
 
 	var out bytes.Buffer
-	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil {
+	if err := runHook([]string{"design-gate"}, procIO(strings.NewReader(in), &out)); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), `"permissionDecision":"deny"`) || !strings.Contains(out.String(), "`aval design ack <surface>`") {
@@ -85,7 +85,7 @@ func TestRunHookDesignGateReadsEnvAndDenies(t *testing.T) {
 
 	t.Setenv("DESIGN_PIPELINE_OFF", "1")
 	out.Reset()
-	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil || out.Len() != 0 {
+	if err := runHook([]string{"design-gate"}, procIO(strings.NewReader(in), &out)); err != nil || out.Len() != 0 {
 		t.Errorf("DESIGN_PIPELINE_OFF must silence the gate, got %q err=%v", out.String(), err)
 	}
 }
@@ -95,12 +95,12 @@ func TestRunHookDesignGateAllowsAfterAck(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", cache)
 	t.Setenv("DESIGN_PIPELINE_OFF", "")
 	t.Setenv("DESIGN_ACK_TTL", "")
-	if err := runDesign([]string{"ack", "pricing"}, proj, &bytes.Buffer{}); err != nil {
+	if err := runDesign([]string{"ack", "pricing"}, proj, &bytes.Buffer{}, os.Getenv); err != nil {
 		t.Fatal(err)
 	}
 	in := `{"session_id":"s","cwd":` + q(proj) + `,"tool_name":"Write","tool_input":{"file_path":` + q(filepath.Join(proj, "app.css")) + `}}`
 	var out bytes.Buffer
-	if err := runHook([]string{"design-gate"}, strings.NewReader(in), &out); err != nil || out.Len() != 0 {
+	if err := runHook([]string{"design-gate"}, procIO(strings.NewReader(in), &out)); err != nil || out.Len() != 0 {
 		t.Errorf("an acked project must be allowed, got %q err=%v", out.String(), err)
 	}
 	if !fileExists(filepath.Join(cache, "design-gate", "ui-edited.s")) {
@@ -114,7 +114,7 @@ func TestRunHookDesignShotStopUsesCache(t *testing.T) {
 	t.Setenv("DESIGN_PIPELINE_OFF", "")
 	writeFile(t, filepath.Join(cache, "design-gate", "ui-edited.s9"), proj)
 	var out bytes.Buffer
-	if err := runHook([]string{"design-shot-stop"}, strings.NewReader(`{"session_id":"s9"}`), &out); err != nil {
+	if err := runHook([]string{"design-shot-stop"}, procIO(strings.NewReader(`{"session_id":"s9"}`), &out)); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), `"decision":"block"`) {
@@ -125,7 +125,7 @@ func TestRunHookDesignShotStopUsesCache(t *testing.T) {
 func TestRunHookRtkRewriteWithoutRtkIsASilentNoOp(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	var out bytes.Buffer
-	if err := runHook([]string{"rtk-rewrite"}, strings.NewReader(`{"tool_input":{"command":"git status"}}`), &out); err != nil || out.Len() != 0 {
+	if err := runHook([]string{"rtk-rewrite"}, procIO(strings.NewReader(`{"tool_input":{"command":"git status"}}`), &out)); err != nil || out.Len() != 0 {
 		t.Errorf("no rtk on PATH must pass through, got %q err=%v", out.String(), err)
 	}
 }
@@ -142,7 +142,7 @@ func rateGuardEnv(t *testing.T) string {
 func rateGuard(t *testing.T, in string) string {
 	t.Helper()
 	var out bytes.Buffer
-	if err := runHook([]string{"rate-guard"}, strings.NewReader(in), &out); err != nil {
+	if err := runHook([]string{"rate-guard"}, procIO(strings.NewReader(in), &out)); err != nil {
 		t.Fatalf("rate-guard must exit 0, got %v", err)
 	}
 	return out.String()

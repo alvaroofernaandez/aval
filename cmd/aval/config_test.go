@@ -190,7 +190,7 @@ func TestConfigIsListedInUsage(t *testing.T) {
 		t.Fatal("config is not a known command")
 	}
 	var b bytes.Buffer
-	printUsage(&b)
+	printUsage(&b, os.Getenv)
 	if !strings.Contains(b.String(), "aval config") {
 		t.Error("usage does not list config")
 	}

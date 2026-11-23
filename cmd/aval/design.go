@@ -24,7 +24,7 @@ const designUsage = `usage:
 
 // runDesign dispatches `aval design`. It needs no repository: the gates work
 // on whatever project the current directory is in.
-func runDesign(args []string, cwd string, out io.Writer) error {
+func runDesign(args []string, cwd string, out io.Writer, getenv func(string) string) error {
 	if len(args) == 0 {
 		return errors.New(designUsage)
 	}
@@ -33,12 +33,12 @@ func runDesign(args []string, cwd string, out io.Writer) error {
 		if len(args) != 2 {
 			return errors.New(designUsage)
 		}
-		cache, err := ack.CacheDir()
+		cache, err := ack.CacheDirFrom(getenv, func() (string, error) { return userHomeDir(getenv) })
 		if err != nil {
 			return err
 		}
 		return ack.Ack(out, ack.Options{
-			Surface: args[1], Dir: cwd, Cache: cache, Now: time.Now(), TTL: ack.TTLFromEnv(),
+			Surface: args[1], Dir: cwd, Cache: cache, Now: time.Now(), TTL: ack.TTLFrom(getenv),
 		})
 	case "gate":
 		return runDesignGate(args[1:], out)

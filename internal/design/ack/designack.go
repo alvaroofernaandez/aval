@@ -32,8 +32,11 @@ type Options struct {
 
 // TTLFromEnv reads DESIGN_ACK_TTL the way the gate does: anything that is not
 // a plain number falls back to the default.
-func TTLFromEnv() int {
-	n, err := strconv.Atoi(os.Getenv("DESIGN_ACK_TTL"))
+func TTLFromEnv() int { return TTLFrom(os.Getenv) }
+
+// TTLFrom is TTLFromEnv over an injected environment.
+func TTLFrom(getenv func(string) string) int {
+	n, err := strconv.Atoi(getenv("DESIGN_ACK_TTL"))
 	if err != nil || n < 0 {
 		return DefaultTTL
 	}
@@ -41,15 +44,18 @@ func TTLFromEnv() int {
 }
 
 // CacheDir is XDG_CACHE_HOME, else ~/.cache.
-func CacheDir() (string, error) {
-	if x := os.Getenv("XDG_CACHE_HOME"); x != "" {
+func CacheDir() (string, error) { return CacheDirFrom(os.Getenv, os.UserHomeDir) }
+
+// CacheDirFrom is CacheDir over an injected environment and home lookup.
+func CacheDirFrom(getenv func(string) string, home func() (string, error)) (string, error) {
+	if x := getenv("XDG_CACHE_HOME"); x != "" {
 		return x, nil
 	}
-	home, err := os.UserHomeDir()
+	h, err := home()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".cache"), nil
+	return filepath.Join(h, ".cache"), nil
 }
 
 func sha1hex(b []byte) string {

@@ -83,7 +83,7 @@ func runDev(repoFlag string, args []string) error {
 			return err
 		}
 		if code != 0 {
-			os.Exit(code)
+			return exitCode(code)
 		}
 	case "project":
 		if len(rest) != 1 {

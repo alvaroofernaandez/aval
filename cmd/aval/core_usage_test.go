@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"testing"
 )
@@ -10,7 +11,7 @@ import (
 // install command, the repo override and every subcommand.
 func TestUsage(t *testing.T) {
 	var out bytes.Buffer
-	printUsage(&out)
+	printUsage(&out, os.Getenv)
 	text := out.String()
 	for _, want := range []string{"Usage:", "aval install", "--dry-run", "--yes", "--copy", "--repo", "AVAL_REPO"} {
 		if !strings.Contains(text, want) {
@@ -141,7 +142,7 @@ func TestUsageCopyRules(t *testing.T) {
 
 func TestUsageDocumentsThemeAndPlain(t *testing.T) {
 	var b strings.Builder
-	printUsage(&b)
+	printUsage(&b, os.Getenv)
 	for _, want := range []string{"--theme <name>", "--plain", "NO_COLOR"} {
 		if !strings.Contains(b.String(), want) {
 			t.Errorf("usage lacks %q", want)

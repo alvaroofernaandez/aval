@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -62,7 +63,7 @@ func TestUpdateDryRunPreviewsWithoutChangingAnything(t *testing.T) {
 	before := git(t, repo, "rev-parse", "HEAD")
 
 	var out bytes.Buffer
-	if err := runUpdate(repo, home, true, false, &out); err != nil {
+	if err := runUpdate(repo, home, true, false, &out, io.Discard); err != nil {
 		t.Fatalf("dry run failed: %v\n%s", err, out.String())
 	}
 	if after := git(t, repo, "rev-parse", "HEAD"); after != before {
@@ -86,7 +87,7 @@ func TestUpdateDryRunRefusesADirtyTree(t *testing.T) {
 	repo, home := upstreamPair(t)
 	writeFile(t, filepath.Join(repo, "config/claude/agents/a.md"), "local edit\n")
 	var out bytes.Buffer
-	err := runUpdate(repo, home, true, false, &out)
+	err := runUpdate(repo, home, true, false, &out, io.Discard)
 	if err == nil || !strings.Contains(err.Error(), "uncommitted changes") {
 		t.Errorf("err = %v, want the dirty-tree refusal", err)
 	}

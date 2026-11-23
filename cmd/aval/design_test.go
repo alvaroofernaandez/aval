@@ -47,7 +47,7 @@ func TestRunDesign(t *testing.T) {
 	}
 	for _, tc := range tests {
 		var b bytes.Buffer
-		err := runDesign(tc.args, dir, &b)
+		err := runDesign(tc.args, dir, &b, os.Getenv)
 		switch {
 		case tc.failed && !errors.Is(err, errChecksFailed):
 			t.Errorf("%s: err = %v, want errChecksFailed\n%s", tc.name, err, b.String())

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 )
@@ -37,7 +38,7 @@ func TestDryRunOutputHasNoEmDashes(t *testing.T) {
 	t.Run("update", func(t *testing.T) {
 		repo, home := upstreamPair(t)
 		var out bytes.Buffer
-		if err := runUpdate(repo, home, true, false, &out); err != nil {
+		if err := runUpdate(repo, home, true, false, &out, io.Discard); err != nil {
 			t.Fatal(err)
 		}
 		assertDryRunCopy(t, out.String(), "Dry run: nothing was changed.")

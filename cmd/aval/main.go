@@ -63,202 +63,265 @@ var (
 )
 
 func main() {
-	if err := run(); err != nil {
-		if !errors.Is(err, errChecksFailed) {
-			fmt.Fprintln(os.Stderr, "error:", err)
-		}
-		os.Exit(1)
-	}
+	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr, os.Getenv))
 }
 
-func run() error {
+// cmdIO is what a command gets from the process: its streams and its
+// environment. main passes the real ones; tests pass buffers and a map, so a
+// command runs in process with nothing shared between two calls.
+type cmdIO struct {
+	stdin          io.Reader
+	stdout, stderr io.Writer
+	env            func(string) string
+}
+
+// exitCode is an error that ends run with exactly this code and prints
+// nothing: tmux and `aval dev run` hand back the code of what they ran.
+type exitCode int
+
+func (c exitCode) Error() string { return fmt.Sprintf("exit status %d", int(c)) }
+
+// run is the whole command line behind a seam: args (without the program
+// name), streams and environment in, exit code out. 0 is success, 1 any
+// failure (reported on stderr unless the checks already were), 2 a bad global
+// flag (the flag package's own code), and tmux or `dev run` pass theirs.
+func run(args []string, stdin io.Reader, stdout, stderr io.Writer, env func(string) string) int {
+	err := dispatch(args, cmdIO{stdin: stdin, stdout: stdout, stderr: stderr, env: env})
+	if err == nil {
+		return 0
+	}
+	var code exitCode
+	if errors.As(err, &code) {
+		return int(code)
+	}
+	if !errors.Is(err, errChecksFailed) {
+		fmt.Fprintln(stderr, "error:", err)
+	}
+	return 1
+}
+
+// userHomeDir is os.UserHomeDir over an injected environment: HOME, or
+// USERPROFILE on Windows (plan9's home, and the fixed answers for android and
+// ios, as the standard library has them).
+func userHomeDir(getenv func(string) string) (string, error) {
+	key := "HOME"
+	switch runtime.GOOS {
+	case "windows":
+		key = "USERPROFILE"
+	case "plan9":
+		key = "home"
+	}
+	if v := getenv(key); v != "" {
+		return v, nil
+	}
+	switch runtime.GOOS {
+	case "android":
+		return "/sdcard", nil
+	case "ios":
+		return "/", nil
+	}
+	return "", errors.New("$" + key + " is not defined")
+}
+
+func dispatch(argv []string, c cmdIO) error {
+	fs := flag.NewFlagSet("aval", flag.ContinueOnError)
+	fs.SetOutput(c.stderr)
 	var (
-		dryRun    = flag.Bool("dry-run", false, "show what would happen, change nothing")
-		yes       = flag.Bool("yes", false, "install everything applicable without the TUI")
-		repoFlag  = flag.String("repo", "", "path to the aval repository (default: $AVAL_REPO, then the one aval install recorded)")
-		showVer   = flag.Bool("version", false, "print the version and exit")
-		forceCopy = flag.Bool("copy", false, "copy files instead of symlinking them")
-		themeFlag = flag.String("theme", "", "colour theme for this run (default: $AVAL_THEME, then the config file, then aval)")
-		plainFlag = flag.Bool("plain", false, "monochrome, ASCII glyphs and no motion")
+		dryRun    = fs.Bool("dry-run", false, "show what would happen, change nothing")
+		yes       = fs.Bool("yes", false, "install everything applicable without the TUI")
+		repoFlag  = fs.String("repo", "", "path to the aval repository (default: $AVAL_REPO, then the one aval install recorded)")
+		showVer   = fs.Bool("version", false, "print the version and exit")
+		forceCopy = fs.Bool("copy", false, "copy files instead of symlinking them")
+		themeFlag = fs.String("theme", "", "colour theme for this run (default: $AVAL_THEME, then the config file, then aval)")
+		plainFlag = fs.Bool("plain", false, "monochrome, ASCII glyphs and no motion")
 	)
-	flag.Usage = func() { printUsage(flag.CommandLine.Output()) }
-	_ = flag.CommandLine.Parse(hoistGlobals(os.Args[1:])) // ExitOnError: never returns an error
+	fs.Usage = func() { printUsage(fs.Output(), c.env) }
+	// The exit codes flag.ExitOnError used: 0 for -h, 2 for a bad flag; the
+	// message and the usage are already on stderr.
+	if err := fs.Parse(hoistGlobals(argv)); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return exitCode(0)
+		}
+		return exitCode(2)
+	}
 
 	if *showVer {
-		fmt.Print(currentBuild().text(runtime.GOOS, runtime.GOARCH))
+		fmt.Fprint(c.stdout, currentBuild().text(runtime.GOOS, runtime.GOARCH))
 		return nil
 	}
 
 	// A bare `aval` prints the usage (or opens the hub on a terminal, which
 	// writes nothing): installing writes to HOME, so it is never the default. Unknown commands fail here, before any repository lookup.
-	legacyInstall := flag.NArg() == 0 && installFlagsGiven()
-	if flag.Arg(0) == "help" {
-		printUsage(os.Stdout)
+	legacyInstall := fs.NArg() == 0 && installFlagsGiven(fs)
+	if fs.Arg(0) == "help" {
+		printUsage(c.stdout, c.env)
 		return nil
 	}
-	if flag.NArg() == 0 && !legacyInstall {
+	if fs.NArg() == 0 && !legacyInstall {
 		// On a terminal this opens the hub; everywhere else, the usage.
-		return runBare(os.Stdout, *repoFlag, uiFlags{Theme: *themeFlag, Plain: *plainFlag}, realHubEnv())
+		return runBare(c.stdout, *repoFlag, uiFlags{Theme: *themeFlag, Plain: *plainFlag}, realHubEnv().with(c))
 	}
-	if !legacyInstall && !knownCommand(flag.Arg(0)) {
-		return fmt.Errorf("unknown command %q; run 'aval help'", flag.Arg(0))
+	if !legacyInstall && !knownCommand(fs.Arg(0)) {
+		return fmt.Errorf("unknown command %q; run 'aval help'", fs.Arg(0))
 	}
+	sub := fs.Args()[min(1, fs.NArg()):]
 
 	// version and release need no aval repository: release works on the
 	// repository in the current directory.
-	if flag.Arg(0) == "version" {
-		fmt.Print(currentBuild().text(runtime.GOOS, runtime.GOARCH))
+	if fs.Arg(0) == "version" {
+		fmt.Fprint(c.stdout, currentBuild().text(runtime.GOOS, runtime.GOARCH))
 		return nil
 	}
-	if flag.Arg(0) == "release" {
+	if fs.Arg(0) == "release" {
 		wd, err := os.Getwd()
 		if err != nil {
 			return err
 		}
-		return runRelease(wd, flag.Args()[1:], os.Stdin, os.Stdout)
+		return runRelease(wd, sub, c.stdin, c.stdout)
 	}
 
 	// The status line refreshes constantly: no repo lookup, no network.
-	if flag.Arg(0) == "statusline" {
-		fmt.Fprintln(os.Stdout, statusline.Render(os.Stdin))
+	if fs.Arg(0) == "statusline" {
+		fmt.Fprintln(c.stdout, statusline.Render(c.stdin))
 		return nil
 	}
 
 	// Agent hooks run on every tool call: no repo lookup, no network.
-	if flag.Arg(0) == "hook" {
-		return runHook(flag.Args()[1:], os.Stdin, os.Stdout)
+	if fs.Arg(0) == "hook" {
+		return runHook(sub, c)
 	}
 
 	// review works on the repository in the current directory, not on aval's.
-	if flag.Arg(0) == "review" {
+	if fs.Arg(0) == "review" {
 		wd, err := os.Getwd()
 		if err != nil {
 			return err
 		}
-		return runReview(wd, flag.Args()[1:], os.Stdout)
+		return runReview(wd, sub, c.stdout)
 	}
 
 	// design gates and ack work on the project in the current directory.
-	if flag.Arg(0) == "design" {
+	if fs.Arg(0) == "design" {
 		wd, _ := os.Getwd()
-		return runDesign(flag.Args()[1:], wd, os.Stdout)
+		return runDesign(sub, wd, c.stdout, c.env)
 	}
 
 	// config reads and writes only aval's own settings file: no repo lookup.
-	if flag.Arg(0) == "config" {
-		home, err := os.UserHomeDir()
+	if fs.Arg(0) == "config" {
+		home, err := userHomeDir(c.env)
 		if err != nil {
 			return fmt.Errorf("cannot determine home directory: %w", err)
 		}
-		return runConfig(flag.Args()[1:], os.Stdout, os.Stderr, os.Getenv, home)
+		return runConfig(sub, c.stdout, c.stderr, c.env, home)
 	}
 
 	// Unix-only commands say so instead of failing somewhere inside.
-	if err := unsupportedHere(runtime.GOOS, flag.Arg(0)); err != nil {
+	if err := unsupportedHere(runtime.GOOS, fs.Arg(0)); err != nil {
 		return err
 	}
 
 	// tmux/Ghostty/zsh helpers run on every refresh or cd: no repo lookup.
-	if flag.Arg(0) == "tmux" {
-		os.Exit(runTmux(flag.Args()[1:]))
+	if fs.Arg(0) == "tmux" {
+		return exitCode(runTmux(sub))
 	}
 
 	// macOS helpers and the orphan-test reaper are called by launchd with no
 	// repository around: no repo lookup.
-	if flag.Arg(0) == "macos" {
-		return runMacos(flag.Args()[1:], os.Stdout)
+	if fs.Arg(0) == "macos" {
+		return runMacos(sub, c.stdout)
 	}
-	if flag.Arg(0) == "reap-orphan-tests" {
-		return runReap(flag.Args()[1:], os.Stdout)
+	if fs.Arg(0) == "reap-orphan-tests" {
+		return runReap(sub, c.stdout)
 	}
 
 	// Skill tooling: standalone, no repository and no update check.
-	switch flag.Arg(0) {
+	switch fs.Arg(0) {
 	case "kiri":
-		return runKiri(flag.Args()[1:])
+		return runKiri(sub)
 	case "docker":
-		return runDocker(flag.Args()[1:])
+		return runDocker(sub)
 	case "pdf":
-		return runPDF(flag.Args()[1:], os.Stdout)
+		return runPDF(sub, c.stdout)
 	case "deck":
-		return runDeck(flag.Args()[1:], os.Stdout, realDeckDeps())
+		return runDeck(sub, c.stdout, realDeckDeps())
 	case "dev":
-		return runDev(*repoFlag, flag.Args()[1:])
+		return runDev(*repoFlag, sub)
 	}
 
 	// Only commands that draw read the UI settings; everything above this line
 	// is a hot path or standalone and never touches the config file.
-	home, err := os.UserHomeDir()
+	home, err := userHomeDir(c.env)
 	if err != nil {
 		return fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	cmdName := flag.Arg(0)
+	cmdName := fs.Arg(0)
 	if legacyInstall {
 		cmdName = "install"
 	}
-	uiCfg, err := settingsForCommand(cmdName, uiFlags{Theme: *themeFlag, Plain: *plainFlag}, os.Getenv, home, os.Stderr)
+	uiCfg, err := settingsForCommand(cmdName, uiFlags{Theme: *themeFlag, Plain: *plainFlag}, c.env, home, c.stderr)
 	if err != nil {
 		return err
 	}
 
 	opts := installOpts{dryRun: *dryRun, yes: *yes, copy: *forceCopy}
-	if flag.Arg(0) == "install" {
+	if fs.Arg(0) == "install" {
 		var err error
-		if opts, err = parseInstallArgs(opts, flag.Args()[1:]); err != nil {
+		if opts, err = parseInstallArgs(opts, sub); err != nil {
 			return err
 		}
 	}
 
 	// install resolves the repository itself: with none found it opens the
 	// welcome screen instead of failing here.
-	if legacyInstall || flag.Arg(0) == "install" {
+	if legacyInstall || fs.Arg(0) == "install" {
 		deps := realInstallDeps()
 		deps.ui = uiCfg
+		deps.out = c.stdout
 		deps.notify = func() {
 			if legacyInstall {
-				fmt.Fprintln(os.Stderr, "notice: running aval with only flags is deprecated; use 'aval install [--dry-run] [--yes] [--copy]'")
+				fmt.Fprintln(c.stderr, "notice: running aval with only flags is deprecated; use 'aval install [--dry-run] [--yes] [--copy]'")
 			}
-			notifyIfOutdated(uiCfg)
+			notifyIfOutdated(uiCfg, c.stderr)
 		}
-		return runInstallWith(func() (string, error) { return resolveRepo(*repoFlag) },
+		return runInstallWith(func() (string, error) { return resolveRepoWith(*repoFlag, c.env) },
 			home, opts.dryRun, opts.yes, opts.copy, deps)
 	}
 
-	repo, err := resolveRepo(*repoFlag)
+	repo, err := resolveRepoWith(*repoFlag, c.env)
 	if err != nil {
 		return err
 	}
 
 	// doctor and sync are offline and local, so they dispatch before the
 	// update notice: a health check must not wait on the network.
-	switch flag.Arg(0) {
+	switch fs.Arg(0) {
 	case "doctor":
-		return runDoctor(repo, home, flag.Args()[1:], os.Stdout, uiCfg)
+		return runDoctor(repo, home, sub, c.stdout, uiCfg)
 	case "budget":
-		return runBudget(home, flag.Args()[1:], os.Stdout)
+		return runBudget(home, sub, c.stdout)
 	case "sync":
-		return runSync(repo, home, flag.Args()[1:], *dryRun, os.Stdout)
+		return runSync(repo, home, sub, *dryRun, c.stdout)
 	case "rules":
-		return runRules(repo, flag.Args()[1:], os.Stdout)
+		return runRules(repo, sub, c.stdout)
 	case "restore":
-		return runRestore(repo, home, flag.Args()[1:], *dryRun, os.Stdout)
+		return runRestore(repo, home, sub, *dryRun, c.stdout)
 	case "uninstall":
-		return runUninstall(repo, home, flag.Args()[1:], *dryRun, *yes, os.Stdin, os.Stdout)
+		return runUninstall(repo, home, sub, *dryRun, *yes, c.stdin, c.stdout)
 	}
 
-	if flag.Arg(0) == "update" {
-		return runUpdate(repo, home, *dryRun, *forceCopy, os.Stdout)
+	if fs.Arg(0) == "update" {
+		return runUpdate(repo, home, *dryRun, *forceCopy, c.stdout, c.stderr)
 	}
 
 	// Every command in the list dispatches above; install left earlier.
-	return fmt.Errorf("unknown command %q; run 'aval help'", flag.Arg(0))
+	return fmt.Errorf("unknown command %q; run 'aval help'", fs.Arg(0))
 }
 
 // installFlagsGiven reports whether an install flag was set without a
 // subcommand, the form scripts used before install was a subcommand.
-func installFlagsGiven() bool {
+func installFlagsGiven(fs *flag.FlagSet) bool {
 	given := false
-	flag.Visit(func(f *flag.Flag) {
+	fs.Visit(func(f *flag.Flag) {
 		switch f.Name {
 		case "dry-run", "yes", "copy":
 			given = true
@@ -274,7 +337,7 @@ func installFlagsGiven() bool {
 // is that prompt. It is rate-limited to once a day, opt-out-able via
 // AVAL_NO_UPDATE_CHECK or update_check = off, and silent on every failure — being offline must
 // not stop anyone installing their dotfiles.
-func notifyIfOutdated(s uiSettings) {
+func notifyIfOutdated(s uiSettings, stderr io.Writer) {
 	v := currentBuild().Version
 	if release.Channel(v) == release.ChannelDev || !update.ShouldCheckWith(time.Now(), s.UpdateCheck) {
 		return
@@ -286,17 +349,21 @@ func notifyIfOutdated(s uiSettings) {
 	// Printed to stderr so it never contaminates the output of --dry-run when
 	// that is piped somewhere.
 	if notice := update.CheckLatest(ctx, v).String(); notice != "" {
-		fmt.Fprintf(os.Stderr, "\n%s\n\n", notice)
+		fmt.Fprintf(stderr, "\n%s\n\n", notice)
 	}
 }
 
 // resolveRepo finds the repository: --repo, $AVAL_REPO, the location that
 // install recorded, then the working directory and the binary's own checkout.
 // See internal/core/repoloc for the order and why explicit sources fail loudly.
-func resolveRepo(flagValue string) (string, error) {
-	s := repoloc.Sources{Flag: flagValue, Env: os.Getenv(repoloc.EnvVar)}
-	if home, err := os.UserHomeDir(); err == nil {
-		s.ConfigFile = repoloc.ConfigPath(os.Getenv, home, runtime.GOOS)
+func resolveRepo(flagValue string) (string, error) { return resolveRepoWith(flagValue, os.Getenv) }
+
+// resolveRepoWith is resolveRepo over an injected environment. The working
+// directory and the executable still come from the process.
+func resolveRepoWith(flagValue string, getenv func(string) string) (string, error) {
+	s := repoloc.Sources{Flag: flagValue, Env: getenv(repoloc.EnvVar)}
+	if home, err := userHomeDir(getenv); err == nil {
+		s.ConfigFile = repoloc.ConfigPath(getenv, home, runtime.GOOS)
 	}
 	if wd, err := os.Getwd(); err == nil {
 		s.Wd = wd
@@ -368,6 +435,8 @@ type installDeps struct {
 	// notify runs once the repository question is settled: the deprecation
 	// notice and the update check. Nil does nothing.
 	notify func()
+	// out takes the headless install's report. Nil means os.Stdout.
+	out io.Writer
 }
 
 func realInstallDeps() installDeps {
@@ -439,7 +508,11 @@ func runInstallWith(resolve func() (string, error), home string, dryRun, yes, fo
 		}
 		symlinks := symlinkMode(pf, home, forceCopy)
 		runner := install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: dryRun})
-		err = runHeadless(p, pf, runner, symlinks, dryRun, deps.ui)
+		out := deps.out
+		if out == nil {
+			out = os.Stdout
+		}
+		err = runHeadlessTo(out, newPrinterFor(out, deps.ui), p, pf, runner, symlinks, dryRun)
 		if err == nil {
 			err = finishInstall(repo, home, dryRun)
 		}
@@ -586,7 +659,7 @@ func runHeadlessTo(w io.Writer, pr *cli.Printer, p *plan.Plan, pf platform.Platf
 // they change the instant the working tree does. What pulling misses is new
 // manifest entries and newly added skills, which have no link yet — hence the
 // re-apply, which is a no-op for everything already in place.
-func runUpdate(repo, home string, dryRun, forceCopy bool, out io.Writer) error {
+func runUpdate(repo, home string, dryRun, forceCopy bool, out, errOut io.Writer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), update.DefaultTimeout)
 	defer cancel()
 
@@ -619,7 +692,7 @@ func runUpdate(repo, home string, dryRun, forceCopy bool, out io.Writer) error {
 	for _, a := range p.SelectedActions() {
 		res, err := runner.Apply(a)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "  %-44s FAILED: %v\n", a.Label, err)
+			fmt.Fprintf(errOut, "  %-44s FAILED: %v\n", a.Label, err)
 			failed++
 			continue
 		}

@@ -40,6 +40,10 @@ type hubEnv struct {
 	lookPath func(string) (string, error)
 	exe      func() (string, error)
 	stderr   io.Writer
+	// stdin and stdout are probed for a terminal; anything but an *os.File
+	// (a test's buffer) is not one. Nil means the process's own.
+	stdin  io.Reader
+	stdout io.Writer
 }
 
 func realHubEnv() hubEnv {
@@ -55,9 +59,28 @@ func realHubEnv() hubEnv {
 	}
 }
 
+// with points the hub at a command's streams and environment.
+func (e hubEnv) with(c cmdIO) hubEnv {
+	e.getenv, e.stderr, e.stdin, e.stdout = c.env, c.stderr, c.stdin, c.stdout
+	return e
+}
+
 // hubWanted: a terminal on stdin and stdout and a TERM that is not dumb.
 func (e hubEnv) hubWanted() bool {
-	return e.isTTY(os.Stdin.Fd()) && e.isTTY(os.Stdout.Fd()) && e.getenv("TERM") != "dumb"
+	in, out := any(os.Stdin), any(os.Stdout)
+	if e.stdin != nil {
+		in = e.stdin
+	}
+	if e.stdout != nil {
+		out = e.stdout
+	}
+	return e.onTTY(in) && e.onTTY(out) && e.getenv("TERM") != "dumb"
+}
+
+// onTTY reports whether stream is a file on a terminal.
+func (e hubEnv) onTTY(stream any) bool {
+	f, ok := stream.(*os.File)
+	return ok && e.isTTY(f.Fd())
 }
 
 // runBare is a bare `aval`: the hub on a terminal, the usage everywhere else
@@ -65,10 +88,10 @@ func (e hubEnv) hubWanted() bool {
 // network call: the update line comes from the cache.
 func runBare(out io.Writer, repoFlag string, flags uiFlags, e hubEnv) error {
 	if !e.hubWanted() {
-		printUsage(out)
+		printUsage(out, e.getenv)
 		return nil
 	}
-	home, err := os.UserHomeDir()
+	home, err := userHomeDir(e.getenv)
 	if err != nil {
 		return fmt.Errorf("cannot determine home directory: %w", err)
 	}
@@ -106,7 +129,7 @@ func hubCaps(e hubEnv, us uiSettings) caps.Caps {
 // as unavailable instead of failing; backups, settings and install need none.
 func newHubServices(e hubEnv, home, repoFlag string, us uiSettings) (ui.Services, func() error) {
 	b := currentBuild()
-	repo, repoErr := resolveRepo(repoFlag)
+	repo, repoErr := resolveRepoWith(repoFlag, e.getenv)
 	if repoErr != nil {
 		repo = ""
 	}

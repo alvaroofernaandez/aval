@@ -60,17 +60,17 @@ func knownCommand(name string) bool {
 }
 
 // printUsage renders the usage for this build, noting a missing config.
-func printUsage(w io.Writer) {
-	renderUsage(w, currentBuild().Version, configExists())
+func printUsage(w io.Writer, getenv func(string) string) {
+	renderUsage(w, currentBuild().Version, configExists(getenv))
 }
 
 // configExists reports whether aval's config file is on disk.
-func configExists() bool {
-	home, err := os.UserHomeDir()
+func configExists(getenv func(string) string) bool {
+	home, err := userHomeDir(getenv)
 	if err != nil {
 		return true // cannot tell, so do not nag
 	}
-	_, err = os.Stat(config.Path(os.Getenv, home, runtime.GOOS))
+	_, err = os.Stat(config.Path(getenv, home, runtime.GOOS))
 	return err == nil
 }
 
