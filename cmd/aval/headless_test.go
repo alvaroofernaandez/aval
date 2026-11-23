@@ -75,14 +75,14 @@ func TestRunHeadlessPlainOutputIsByteStable(t *testing.T) {
 		want   string
 	}{
 		{"apply", false, "aval " + version + " — macOS (arm64)\n" +
-			"symlinked — edits in the repo apply immediately\n\n" +
+			"symlinked: edits in the repo apply immediately\n\n" +
 			"  ~/a                                          linked\n" +
 			"  ~/b                                          already installed\n" +
 			"  ~/c                                          linked  (backed up)\n" +
 			"  ~/gone                                       FAILED: install: source missing: ROOT/repo/gone\n" +
 			"\n1 existing file(s) moved to ROOT/bk\n"},
 		{"dry run", true, "aval " + version + " — macOS (arm64)\n" +
-			"symlinked — edits in the repo apply immediately\n\n" +
+			"symlinked: edits in the repo apply immediately\n\n" +
 			"  ~/a                                          would install\n" +
 			"  ~/b                                          already installed\n" +
 			"  ~/c                                          would install\n" +

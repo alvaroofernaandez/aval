@@ -304,15 +304,17 @@ func symlinkMode(pf platform.Platform, home string, forceCopy bool) bool {
 }
 
 // unavailableGroups lists what this machine cannot take, so the TUI can show
-// it greyed out instead of silently omitting it.
-func unavailableGroups(m *manifest.Manifest) []ui.UnavailableGroup {
+// it greyed out instead of silently omitting it. The reason names the machine
+// it runs on: only native Windows lacks a group today, and WSL is the way in.
+func unavailableGroups(m *manifest.Manifest, goos string) []ui.UnavailableGroup {
+	reason := "needs WSL on Windows"
+	if goos != "windows" {
+		reason = "not supported on " + ui.PlatformLabel(goos, runtime.GOARCH)
+	}
 	var out []ui.UnavailableGroup
 	for _, g := range m.Groups {
-		if !g.AppliesTo(runtime.GOOS) {
-			out = append(out, ui.UnavailableGroup{
-				Label:  g.Label,
-				Reason: "not available on Windows natively — use WSL",
-			})
+		if !g.AppliesTo(goos) {
+			out = append(out, ui.UnavailableGroup{Label: g.Label, Reason: reason})
 		}
 	}
 	return out
@@ -406,7 +408,7 @@ func runInstallWith(repo, home string, dryRun, yes, forceCopy bool, deps install
 		Symlinks: symlinks,
 		DryRun:   dryRun,
 	})
-	model.Unavailable = unavailableGroups(m)
+	model.Unavailable = unavailableGroups(m, runtime.GOOS)
 
 	return driveInstall(model, deps.run, runner.Finish,
 		func() error { return deps.finish(repo, home, dryRun) })

@@ -183,9 +183,19 @@ func TestEveryHintComesFromTheKeyMap(t *testing.T) {
 		if len(hints) == 0 {
 			t.Fatalf("screen %v: the key map has no hints", s)
 		}
+		// The hint line may wrap: collect every line under the bottom rule,
+		// less the status line, and read them as one.
 		lines := strings.Split(renderAt(m, 120), "\n")
-		last := lines[len(lines)-1]
-		parts := strings.Split(strings.TrimSpace(last), " "+m.theme.Glyphs.Sep+" ")
+		rule := strings.Repeat(m.theme.Glyphs.BarEmpty, 8)
+		var hintRows []string
+		for i := len(lines) - 1; i >= 0 && !strings.Contains(lines[i], rule); i-- {
+			hintRows = append([]string{strings.TrimSpace(lines[i])}, hintRows...)
+		}
+		if s == ScreenSelect && len(hintRows) > 0 {
+			hintRows = hintRows[1:]
+		}
+		last := strings.Join(hintRows, " "+m.theme.Glyphs.Sep+" ")
+		parts := strings.Split(last, " "+m.theme.Glyphs.Sep+" ")
 		if len(parts) != len(hints) {
 			t.Fatalf("screen %v: hint line %q has %d hints, key map has %d", s, last, len(parts), len(hints))
 		}

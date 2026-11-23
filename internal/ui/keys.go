@@ -94,6 +94,8 @@ var selectKeys = keyMap{
 	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "move"},
 	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "move"},
 	{keys: []string{" ", "x"}, action: actToggle, label: "space", desc: "toggle", core: true},
+	{keys: []string{"right", "l"}, action: actExpand, label: labelLeftRight, desc: "details"},
+	{keys: []string{"left", "h"}, action: actCollapse, label: labelLeftRight, desc: "details"},
 	{keys: []string{"a"}, action: actAll, label: "a", desc: "all"},
 	{keys: []string{"n"}, action: actClear, label: "n", desc: "none"},
 	{keys: []string{"enter"}, action: actInstall, label: "enter", desc: "install", core: true},

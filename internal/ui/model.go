@@ -72,6 +72,8 @@ type Model struct {
 
 	screen Screen
 	cursor int
+	// sel is the select screen's own state; see screen_select.go.
+	sel selectState
 
 	queue   []plan.Action
 	index   int
@@ -115,6 +117,7 @@ func NewModel(p *plan.Plan, r *install.Runner, o Options) Model {
 		screen:   ScreenSelect,
 		width:    defaultWidth,
 		height:   defaultHeight,
+		sel:      newSelectState(p, r),
 	}
 	if o.Caps.Width > 0 {
 		m.width = o.Caps.Width

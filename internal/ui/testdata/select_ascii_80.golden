@@ -4,12 +4,12 @@
 
   Choose what to install                   symlinked: repo edits apply at once
 
-  > [x] Terminal and shell en... 2 items
+  > [x] Terminal and shell en... 2 items  2 new
         tmux, zsh and the prompt, wired for this machine
-    [ ] Editor                   1 item 
-        LazyVim with the aval colour scheme
+    [ ] Editor                   1 item   1 new
     [-] Windows Terminal profile only offered on Windows, this machine runs...
 
   ----------------------------------------------------------------------------
-  2 of 3 items selected
-  up/down move  space toggle  a all  n none  enter install  q quit
+  2 of 3 items selected  2 new  0 linked  0 files moved to backup
+  up/down move  space toggle  left/right details  a all  n none  enter install
+  q quit
