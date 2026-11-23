@@ -13,13 +13,11 @@
 package repoloc
 
 import (
-	"bufio"
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+
+	cfgfile "github.com/alvaroofernaandez/aval/internal/core/config"
 )
 
 // Manifest is the file that marks the root of an aval checkout.
@@ -96,77 +94,22 @@ func walkUp(start string) string {
 // ConfigPath is where install records the repository:
 // ${XDG_CONFIG_HOME:-~/.config}/aval/config, or %APPDATA%\aval\config on Windows.
 func ConfigPath(getenv func(string) string, home, goos string) string {
-	if x := getenv("XDG_CONFIG_HOME"); x != "" {
-		return filepath.Join(x, "aval", "config")
-	}
-	if goos == "windows" {
-		if a := getenv("APPDATA"); a != "" {
-			return filepath.Join(a, "aval", "config")
-		}
-	}
-	return filepath.Join(home, ".config", "aval", "config")
+	return cfgfile.Path(getenv, home, goos)
 }
 
 // Load returns the repo value from a config file. A missing file is not an
-// error: it only means install has not recorded anything yet.
+// error: it only means install has not recorded anything yet. Other keys and
+// their validation belong to the config package.
 func Load(path string) (string, error) {
-	f, err := os.Open(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		return "", nil
-	}
+	f, _, err := cfgfile.Load(path)
 	if err != nil {
-		return "", fmt.Errorf("reading %s: %w", path, err)
+		return "", err
 	}
-	defer f.Close()
-
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		if k, v, ok := keyValue(sc.Text()); ok && k == "repo" {
-			return v, nil
-		}
-	}
-	if err := sc.Err(); err != nil {
-		return "", fmt.Errorf("reading %s: %w", path, err)
-	}
-	return "", nil
+	repo, _ := f.Get("repo")
+	return repo, nil
 }
 
 // Save records repo in the config file, keeping any other lines it holds.
 func Save(path, repo string) error {
-	var kept []string
-	if b, err := os.ReadFile(path); err == nil {
-		for line := range strings.SplitSeq(strings.TrimRight(string(b), "\n"), "\n") {
-			if k, _, ok := keyValue(line); ok && k == "repo" {
-				continue
-			}
-			kept = append(kept, line)
-		}
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("reading %s: %w", path, err)
-	}
-	if len(kept) == 0 {
-		kept = []string{"# Written by aval install. Override with --repo or $" + EnvVar + "."}
-	}
-	text := strings.Join(append(kept, "repo = "+repo), "\n") + "\n"
-
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, []byte(text), 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
-}
-
-func keyValue(line string) (key, value string, ok bool) {
-	line = strings.TrimSpace(line)
-	if line == "" || strings.HasPrefix(line, "#") {
-		return "", "", false
-	}
-	k, v, found := strings.Cut(line, "=")
-	if !found {
-		return "", "", false
-	}
-	return strings.TrimSpace(k), strings.TrimSpace(v), true
+	return cfgfile.Set(path, "repo", repo)
 }
