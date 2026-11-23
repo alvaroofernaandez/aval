@@ -37,3 +37,19 @@ ADR first, then the allowlist.
 
 - A forbidden import fails `go test ./tests/`, reported as `file -> import`.
 - Moving a package between layers is an ADR amendment, not a refactor detail.
+
+## Amendments
+
+### 2026-11-23
+
+The decision above lists `design/*` among the leaves and does not name every
+package. The allowlist that runs, `archRules` in `tests/architecture_test.go`,
+is the precise rule:
+
+- `design/hook` may import `design/ack`: the PreToolUse gate reads the ack it
+  checks. `design/ack` and `design/gate` stay leaves.
+- `ui` may import `design/gate` from test files only.
+- `herdr/*` and `tools/*` are leaves.
+- `ui/caps` is a leaf.
+
+`docs/architecture/model.md` is generated from that table.

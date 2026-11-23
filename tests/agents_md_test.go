@@ -42,14 +42,10 @@ func TestAgentsMDHasItsSections(t *testing.T) {
 }
 
 // pendingProjectSkills are named in the AGENTS.md table but not yet created.
-// Task S3 of odd/tasks/engineering-standards.md creates them under
-// .claude/skills/; this list MUST be empty once S3 lands.
-var pendingProjectSkills = map[string]bool{
-	"aval-architecture": true,
-	"aval-testing":      true,
-	"aval-docs":         true,
-	"aval-release":      true,
-}
+// S3 of odd/tasks/engineering-standards.md created all four it listed, and
+// TestAgentsMDNoProjectSkillIsPending keeps it empty: create a skill in the
+// same change that names it in the table.
+var pendingProjectSkills = map[string]bool{}
 
 // tableSkills returns the backticked skill names in the task-to-skill table.
 func tableSkills(t *testing.T) map[string]bool {
@@ -105,4 +101,26 @@ func TestAgentsMDPendingSkillsAreStillPending(t *testing.T) {
 	for s := range pendingProjectSkills {
 		isTrue(t, s+" now exists: remove it from pendingProjectSkills", !isDir(p(".claude/skills", s)))
 	}
+}
+
+// S3 created every project skill the table names, so nothing may stay pending.
+func TestAgentsMDNoProjectSkillIsPending(t *testing.T) {
+	for s := range pendingProjectSkills {
+		t.Errorf("%s is still in pendingProjectSkills", s)
+	}
+}
+
+// The layering summary must match archRules in tests/architecture_test.go,
+// which is what actually runs.
+func TestAgentsMDLayeringLineMatchesArchRules(t *testing.T) {
+	md := read(t, "AGENTS.md")
+	start := strings.Index(md, "## Where things live")
+	if start < 0 {
+		t.Fatal("AGENTS.md: no Where things live section")
+	}
+	section := md[start:]
+	for _, re := range []string{"`herdr/\\*`", "`tools/\\*`", "`ui/caps`", "`design/hook`[^\\n]*`design/ack`", "`ui` sits on `core/\\*`"} {
+		mustHave(t, re, section, "AGENTS.md Where things live")
+	}
+	mustNotHave(t, "`design/\\*`", section, "AGENTS.md Where things live calls all of design/* a leaf")
 }
