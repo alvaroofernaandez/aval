@@ -52,35 +52,38 @@ Three ways to get the binary; everything else is the same.
 | Route | Command |
 | :--- | :--- |
 | Go | `go install github.com/alvaroofernaandez/aval/cmd/aval@latest` |
-| npm | `npx @alvaroofernaandez/aval install` (or `npm i -g @alvaroofernaandez/aval`) |
+| npm | `npx @alvaroofernaandez/aval install` (or `npm i -g @alvaroofernaandez/aval`); no clone needed |
 | Binary | The Releases page, with `SHA256SUMS` |
 
 > [!NOTE]
 > The npm package named `aval` and the prebuilt binaries are published by CI and are not yet
 > available under the new name.
 
-Then, from a clone of the repo. The repository is found from, in order: `--repo <path>`, `$AVAL_REPO`,
-the location the first `aval install` recorded in `~/.config/aval/config`, then the current directory.
-`aval` on its own prints the usage and changes nothing.
+Then run `aval install`. `aval` on its own prints the usage and changes nothing. The first run goes through four screens:
+
+1. **Welcome.** If aval cannot find its repository (looked up from `--repo <path>`, `$AVAL_REPO`, the location recorded in `~/.config/aval/config`, then the current directory), it offers to clone it to `~/.aval` or to use a folder you already have. Cloning is always an explicit choice. The location is recorded only after an install completes.
+2. **Select.** Each group shows what will happen to its files before anything is written: new, linked, or replaces a file. `→` opens the details, `?` shows every key.
+3. **Install.** A progress bar and one line per step. A failure appears inline with its reason, and `ctrl+c` stops after the current step; what was already moved to backup is kept and can be undone.
+4. **Done.** Counts, the backup path, the undo command and three next steps.
 
 ```sh
-git clone https://github.com/alvaroofernaandez/aval.git ~/aval && cd ~/aval
-
-aval install                   # TUI: detects your system and lets you choose what to install
+aval install                   # TUI: welcome, select, install, done
 aval install --yes --dry-run   # no TUI: shows what it would do, touches nothing
 aval install --yes             # no TUI: actually links everything
 aval install --yes --copy      # copy instead of linking
 ```
 
+Without a terminal and without `--yes`, `aval install` stops with a clear error instead of opening a TUI.
+
 <div align="center">
-<img src="assets/installer.gif" alt="The installer TUI: group selection, installation and summary" width="100%">
+<img src="assets/installer.gif" alt="The installer TUI: select with previews, install with inline progress, and the done screen with next steps" width="100%">
 </div>
 
 <br/>
 
 | | |
 | :--- | :--- |
-| **Theme** | Tokyo Night, the same palette as the rest of the environment |
+| **Theme** | The `aval` brand theme by default: ink on your own terminal background, colour only on the state glyphs. Ten community themes are opt-in, see [Configuration](#️-configuration) |
 | **Tailored to your OS** | On native Windows it offers the AI agents and git; the terminal environment is greyed out with the reason, and installs in full if it detects WSL |
 | **Link or copy** | Symlinks wherever possible; on Windows without Developer Mode it **copies**, because it checks instead of assuming |
 | **A single list** | The TUI and `--yes` read **the same `install.manifest`** |
@@ -364,6 +367,58 @@ are only docs/tests or a small change with tests. It returns the level, the reas
 
 ---
 
+## ⚙️ Configuration
+
+Settings live in `${XDG_CONFIG_HOME:-~/.config}/aval/config` (`%APPDATA%\aval\config` on Windows), one `key = value` per line. Writes are atomic and keep comments and unknown lines. `aval config path` prints the file.
+
+| Key | Values | Default | Env | Flag |
+| :--- | :--- | :--- | :--- | :--- |
+| `repo` | path | none | `AVAL_REPO` | `--repo` |
+| `theme` | `aval`, `terminal`, `mono`, or a community theme | `aval` | `AVAL_THEME` | `--theme` |
+| `background` | `auto`, `dark`, `light` | `auto` | `AVAL_BACKGROUND` | |
+| `glyphs` | `auto`, `unicode`, `ascii` | `auto` | `AVAL_GLYPHS` | |
+| `motion` | `auto`, `off` | `auto` | `AVAL_MOTION` | |
+| `update_check` | `on`, `off` | `on` | `AVAL_NO_UPDATE_CHECK` | |
+
+**Precedence:** flag, then environment variable, then file, then default. `NO_COLOR` is honoured and wins over all of it. `--plain` means `mono`, ASCII glyphs and motion off, in one flag. Hooks, `statusline` and `tmux` never read the UI keys.
+
+**Validation:** a bad UI value warns once on stderr with the file, the line and a suggestion, then falls back to the default. `aval config set` refuses an invalid value with exit 1. A bad `repo` stays a hard error.
+
+### Commands
+
+```sh
+aval config                 # settings view on a terminal, list otherwise
+aval config list            # every value and where it comes from (default, file, env, flag)
+aval config get theme
+aval config set theme catppuccin
+aval config path
+```
+
+The **settings view** (bare `aval config` on a terminal, or `s` in the installer) shows each key with its choices and a live preview of the theme: `↑↓` move, `←→` change, enter saves, `esc` discards. When an environment variable overrides a key in your shell, the view says so.
+
+### Themes
+
+`aval` is the default: ink on your own terminal background, with colour only on the state glyphs (`√` `!` `×`), never on text. The same glyph-only rule holds in every theme. `terminal` uses your terminal's 16 colours, so it inherits your own theme, and `mono` uses none. `background = auto` asks the terminal and falls back to dark.
+
+The community themes are opt-in. A theme name follows `background`, and a variant can be pinned, for example `theme = catppuccin-frappe`.
+
+| Theme | Variants |
+| :--- | :--- |
+| `catppuccin` | `catppuccin-mocha`, `catppuccin-latte`, `catppuccin-frappe`, `catppuccin-macchiato` |
+| `tokyo-night` | `tokyo-night-storm`, `tokyo-night-day` |
+| `gruvbox` | `gruvbox-dark`, `gruvbox-light` |
+| `dracula` | `dracula-alucard` |
+| `nord` | none |
+| `kanagawa` | `kanagawa-wave`, `kanagawa-dragon`, `kanagawa-lotus` |
+| `rose-pine` | `rose-pine-moon`, `rose-pine-dawn` |
+| `solarized` | `solarized-dark`, `solarized-light` |
+| `one-dark` | `one-light` |
+| `everforest` | `everforest-dark`, `everforest-light` |
+
+Palette values come from each theme's upstream repository. Sources and licences are in [`internal/ui/themes/SOURCES.md`](../internal/ui/themes/SOURCES.md).
+
+---
+
 ## 🗺️ Repository map
 
 ```
@@ -377,7 +432,7 @@ aval/
 │   ├── devops/          dockerclean · kiri · reaper
 │   ├── docs/            pdfreport
 │   ├── herdr/           mods                       (diff-review)
-│   └── ui/              Tokyo Night theme and the TUI screens
+│   └── ui/              themes and the TUI screens
 │
 ├── skills/              Skills shared by all agents
 ├── config/              claude · opencode · ghostty · yazi · yazi-sidebar · herdr-core · herdr-app · atuin · gh · git

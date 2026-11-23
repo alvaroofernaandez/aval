@@ -275,39 +275,39 @@ Rules for every task:
   - No teatest.
 
 ### Phase 0: contract and foundations
-- [ ] **T1 (opus): DESIGN.md amendment.** Add the installer and CLI surfaces, the tokens, glyph tiers, breakpoints, lockup and motion rule, and a decision-log entry. Fix the stale pointers at `:125-126`.
-- [ ] **T2 (sonnet): `internal/ui/caps`.** Pure `Detect(Inputs) Caps` with table tests over injected env and GOOS. Run `go mod tidy`.
-- [ ] **T3 (sonnet): `internal/core/config`.** Schema, validation, precedence and round-trip preservation. `repoloc` delegates to it, and `repoloc_test.go` passes untouched.
-- [ ] **T4 (opus, after T1 and T2): theme engine, `aval`, `terminal` and `mono`, plus glyph sets.**
+- [x] **T1 (opus): DESIGN.md amendment.** Add the installer and CLI surfaces, the tokens, glyph tiers, breakpoints, lockup and motion rule, and a decision-log entry. Fix the stale pointers at `:125-126`.
+- [x] **T2 (sonnet): `internal/ui/caps`.** Pure `Detect(Inputs) Caps` with table tests over injected env and GOOS. Run `go mod tidy`.
+- [x] **T3 (sonnet): `internal/core/config`.** Schema, validation, precedence and round-trip preservation. `repoloc` delegates to it, and `repoloc_test.go` passes untouched.
+- [x] **T4 (opus, after T1 and T2): theme engine, `aval`, `terminal` and `mono`, plus glyph sets.**
   - Contrast tests use `internal/design/gate` Ratio.
   - `aval` matches the DESIGN.md section 9 brand hexes for dark and light.
   - `terminal` sets no hex colours.
   - The ASCII glyph set is pure ASCII.
   - The theme registry and variant resolution (name plus background, or a pinned variant) live here.
-- [ ] **T4b (sonnet, after T4): community themes.**
+- [x] **T4b (sonnet, after T4): community themes.**
   - The ten themes from section 3, each with a table test that pins its upstream hexes and checks 4.5:1 for every token.
   - `internal/ui/themes/SOURCES.md` with each upstream URL and licence.
   - An unknown theme name suggests the closest match.
-- [ ] **T5 (sonnet, after T4): golden harness and width/height invariants.** RED: the width invariant fails today at width 30.
+- [x] **T5 (sonnet, after T4): golden harness and width/height invariants.** RED: the width invariant fails today at width 30.
 
 ### Phase 1: views
-- [ ] **T6 (opus, after T5): frame, lockup, breakpoints and key map.** Split `model.go` into one file per screen.
-- [ ] **T7 (sonnet, independent): `install.Preview`.** Classify each destination as new, linked or replaces, without touching the filesystem.
-- [ ] **T8 (opus, after T6 and T7): select screen.** State counts, `→` details, the empty-selection message, and a caller-provided unavailable reason.
-- [ ] **T9 (opus, after T6): install screen.** Inline failures and a graceful stop that still commits the backup run (prove it with a restore test).
-- [ ] **T10 (sonnet, after T6): done screen.** Counts headline, undo line, next steps, and dry-run and stopped wording.
-- [ ] **T11 (sonnet, after T6): `?` help overlay** generated from the key map.
+- [x] **T6 (opus, after T5): frame, lockup, breakpoints and key map.** Split `model.go` into one file per screen.
+- [x] **T7 (sonnet, independent): `install.Preview`.** Classify each destination as new, linked or replaces, without touching the filesystem.
+- [x] **T8 (opus, after T6 and T7): select screen.** State counts, `→` details, the empty-selection message, and a caller-provided unavailable reason.
+- [x] **T9 (opus, after T6): install screen.** Inline failures and a graceful stop that still commits the backup run (prove it with a restore test).
+- [x] **T10 (sonnet, after T6): done screen.** Counts headline, undo line, next steps, and dry-run and stopped wording.
+- [x] **T11 (sonnet, after T6): `?` help overlay** generated from the key map.
 
 ### Phase 2: first run
-- [ ] **T12 (sonnet, after T6): quit safety and TTY guard.** Gate `finishInstall` on `Completed()`. Without a terminal and without `--yes`, print a clear error.
-- [ ] **T13 (opus, after T6 and T12): welcome and repository step.** An injected `Cloner`, inline errors, and the repo recorded only after a completed install.
-- [ ] **T14 (sonnet, after T4): branded, grouped usage** with the first-run hint.
-- [ ] **T15 (sonnet, after T4): styled CLI printer** for `doctor` and `--yes`, byte-identical when not on a TTY.
+- [x] **T12 (sonnet, after T6): quit safety and TTY guard.** Gate `finishInstall` on `Completed()`. Without a terminal and without `--yes`, print a clear error.
+- [x] **T13 (opus, after T6 and T12): welcome and repository step.** An injected `Cloner`, inline errors, and the repo recorded only after a completed install.
+- [x] **T14 (sonnet, after T4): branded, grouped usage** with the first-run hint.
+- [x] **T15 (sonnet, after T4): styled CLI printer** for `doctor` and `--yes`, byte-identical when not on a TTY.
 
 ### Phase 3: config
-- [ ] **T16 (sonnet, after T3): `aval config list|get|set|path`.**
-- [ ] **T17 (opus, after T3, T4 and T6): settings view** with live preview. Enter saves, `esc` discards, and env overrides are noted.
-- [ ] **T18 (sonnet, after T3, T4 and T12): wire the settings into every surface.** Add a `doctor` config check.
+- [x] **T16 (sonnet, after T3): `aval config list|get|set|path`.**
+- [x] **T17 (opus, after T3, T4 and T6): settings view** with live preview. Enter saves, `esc` discards, and env overrides are noted.
+- [x] **T18 (sonnet, after T3, T4 and T12): wire the settings into every surface.** Add a `doctor` config check.
 
 ### Phase 4: ship
 - [ ] **T19 (sonnet): docs and demo.** README, guide, npm README, and re-recording the GIF with vhs.

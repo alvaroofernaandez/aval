@@ -149,20 +149,33 @@ plan lives in the [pinned roadmap issue](https://github.com/alvaroofernaandez/av
 
 ## Install
 
-```sh
-npx @alvaroofernaandez/aval@next install   # prerelease from npm, or a binary from Releases
-go install github.com/alvaroofernaandez/aval/cmd/aval@latest
-git clone https://github.com/alvaroofernaandez/aval.git ~/aval && cd ~/aval
+**1. Get the binary.** Any of these; the rest is the same.
 
-aval install                  # TUI: choose what to install
+```sh
+npx @alvaroofernaandez/aval@next install   # no clone needed; prerelease from npm
+go install github.com/alvaroofernaandez/aval/cmd/aval@latest
+```
+
+Or download an archive from [Releases](https://github.com/alvaroofernaandez/aval/releases) (checksums in `SHA256SUMS`).
+
+**2. Run `aval install`.** `aval` on its own prints the usage and changes nothing.
+
+1. **Welcome.** If aval cannot find its repository, it offers to clone it to `~/.aval`, or to use a folder you already have. Cloning is always your choice.
+2. **Select.** Each group shows what will happen to its files before anything is written: new, linked, or replaces a file.
+3. **Install.** Failures appear inline, and `ctrl+c` stops after the current step.
+4. **Done.** Counts, the backup path, the undo command (`aval restore latest`) and the next steps.
+
+```sh
+aval install                  # TUI: welcome, select, install, done
 aval install --yes --dry-run  # no TUI: shows what it would do, touches nothing
 aval install --yes            # no TUI: installs everything that applies (--copy copies instead of linking)
 ```
 
-`aval` on its own prints the usage and changes nothing. The first `aval install` runs inside the clone (or
-with `--repo <path>`) and records where the repo is in `~/.config/aval/config`, so later commands work from
-any directory. `$AVAL_REPO` overrides it.
-Subcommands that do not depend on the repo (`hook`, `design`, `tmux`, `pdf`…) work with the binary alone.
+Nothing is deleted: anything in the way moves to `~/.aval-backup` first. Without a terminal and without `--yes`, `aval install` stops with a clear error instead of opening a TUI.
+
+The repository is found from, in order: `--repo <path>`, `$AVAL_REPO`, the location recorded in
+`~/.config/aval/config` after the first completed install, then the current directory. Subcommands that do
+not depend on the repo (`hook`, `design`, `tmux`, `pdf`...) work with the binary alone.
 Everything installed on purpose with Homebrew is in the `Brewfile` (`brew bundle --file=Brewfile`).
 
 Private material (company names, client skills) lives outside the repo, in `~/.config/aval/private`
@@ -170,6 +183,50 @@ Private material (company names, client skills) lives outside the repo, in `~/.c
 
 > [!NOTE]
 > Until v0.1.0 is final, npm packages and binaries are prereleases: npm serves them under the `next` tag.
+
+<br/>
+
+## Configuration
+
+Settings live in `${XDG_CONFIG_HOME:-~/.config}/aval/config` (`%APPDATA%\aval\config` on Windows), one `key = value` per line. Comments and unknown lines are preserved. `aval config path` prints the file.
+
+| Key | Values | Default | Env | Flag |
+| :--- | :--- | :--- | :--- | :--- |
+| `repo` | path | none | `AVAL_REPO` | `--repo` |
+| `theme` | `aval`, `terminal`, `mono`, or a community theme | `aval` | `AVAL_THEME` | `--theme` |
+| `background` | `auto`, `dark`, `light` | `auto` | `AVAL_BACKGROUND` | |
+| `glyphs` | `auto`, `unicode`, `ascii` | `auto` | `AVAL_GLYPHS` | |
+| `motion` | `auto`, `off` | `auto` | `AVAL_MOTION` | |
+| `update_check` | `on`, `off` | `on` | `AVAL_NO_UPDATE_CHECK` | |
+
+Precedence: flag, then environment variable, then file, then default. `NO_COLOR` is honoured and wins over all of it. `--plain` means `mono`, ASCII glyphs and motion off, in one flag.
+
+```sh
+aval config                 # settings view on a terminal, list otherwise
+aval config list            # every value and where it comes from
+aval config get theme
+aval config set theme catppuccin
+aval config path
+```
+
+The settings view previews the theme live: enter saves, `esc` discards. Inside the installer, press `s`. An invalid value warns once on stderr and falls back to the default; `aval config set` refuses it with exit 1.
+
+**Themes.** `aval` is the default: ink on your own terminal background, with colour only on the state glyphs (`√` `!` `×`), never on text, and the same rule holds in every theme. `terminal` uses your terminal's 16 colours and `mono` uses none. Community themes are opt-in, and a variant can be pinned, for example `theme = catppuccin-frappe`.
+
+| Theme | Variants |
+| :--- | :--- |
+| `catppuccin` | `catppuccin-mocha`, `catppuccin-latte`, `catppuccin-frappe`, `catppuccin-macchiato` |
+| `tokyo-night` | `tokyo-night-storm`, `tokyo-night-day` |
+| `gruvbox` | `gruvbox-dark`, `gruvbox-light` |
+| `dracula` | `dracula-alucard` |
+| `nord` | none |
+| `kanagawa` | `kanagawa-wave`, `kanagawa-dragon`, `kanagawa-lotus` |
+| `rose-pine` | `rose-pine-moon`, `rose-pine-dawn` |
+| `solarized` | `solarized-dark`, `solarized-light` |
+| `one-dark` | `one-light` |
+| `everforest` | `everforest-dark`, `everforest-light` |
+
+Palettes come from each theme's upstream repository; sources and licences are in [`internal/ui/themes/SOURCES.md`](internal/ui/themes/SOURCES.md).
 
 <br/>
 
