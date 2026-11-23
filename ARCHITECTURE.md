@@ -87,5 +87,6 @@ flowchart LR
 | Add a shared skill | `skills/`, fanned out by the manifest | `tests/distributed_skills_test.go` |
 | Add a package or an import | The layers above; a new edge needs an ADR | `tests/architecture_test.go` |
 | Add a dependency | A row in [docs/dependencies.md](docs/dependencies.md) | `tests/dependencies_test.go` |
+| Grow a file or a function | Limits: 500 lines per file, 60 per function, complexity 15; the exceptions in `tests/testdata/quality-allowlist.txt` only shrink | `tests/quality_test.go` |
 | Change CI | `.github/workflows/ci.yml` | `tests/workflows_test.go` |
 | Cut a release | `aval release`, see [docs/releasing.md](docs/releasing.md) | `internal/release` tests |

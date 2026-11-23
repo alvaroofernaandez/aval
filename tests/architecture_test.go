@@ -21,7 +21,7 @@ import (
 //
 // docs/architecture/model.md is generated from the same rules and graph.
 
-var archUpdate = flag.Bool("update", false, "rewrite docs/architecture/model.md from the import graph")
+var archUpdate = flag.Bool("update", false, "rewrite generated files: docs/architecture/model.md and tests/testdata/quality-allowlist.txt")
 
 // archGOOS are the platforms CI tests on (.github/workflows/ci.yml matrix).
 var archGOOS = []string{"linux", "darwin", "windows"}
