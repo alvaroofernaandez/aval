@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // StopOptions configures one Stop-hook run.
@@ -50,15 +51,8 @@ func ShotStop(in io.Reader, out io.Writer, o StopOptions) {
 	if root == "" {
 		return
 	}
-	entries, _ := os.ReadDir(filepath.Join(root, ".design", "shots"))
-	for _, e := range entries {
-		if strings.HasPrefix(e.Name(), ".") {
-			continue
-		}
-		if st, err := os.Stat(filepath.Join(root, ".design", "shots", e.Name())); err == nil &&
-			st.Mode().IsRegular() && st.ModTime().After(stamp.ModTime()) {
-			return
-		}
+	if hasShotAfter(root, stamp.ModTime()) {
+		return
 	}
 	// The marker carries the stamp's own mtime, not the clock's: a file's mtime
 	// can read earlier than the stamp's, and then the block would repeat.
@@ -66,4 +60,19 @@ func ShotStop(in io.Reader, out io.Writer, o StopOptions) {
 		_ = os.Chtimes(blockedPath, stamp.ModTime(), stamp.ModTime())
 	}
 	_, _ = io.WriteString(out, stopMessage)
+}
+
+// hasShotAfter reports whether root/.design/shots holds a render newer than t.
+func hasShotAfter(root string, t time.Time) bool {
+	dir := filepath.Join(root, ".design", "shots")
+	entries, _ := os.ReadDir(dir)
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+		if st, err := os.Stat(filepath.Join(dir, e.Name())); err == nil && st.Mode().IsRegular() && st.ModTime().After(t) {
+			return true
+		}
+	}
+	return false
 }
