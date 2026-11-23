@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/testenv"
@@ -306,4 +307,53 @@ func TestDoctorReportsConfigProblemsWithLines(t *testing.T) {
 		}
 	}
 	t.Errorf("doctor has no config check: %s", out.String())
+}
+
+// TestRestoreOutputIsPinned guards that `restore --list` and `restore` keep
+// printing byte for byte what they printed before runs recorded an origin.
+func TestRestoreOutputIsPinned(t *testing.T) {
+	repo, home := fakeMachine(t)
+	p := filepath.Join(home, "f")
+	writeFile(t, p, "before")
+	st := backup.NewStore(home)
+	st.Now = func() time.Time { return time.Date(2026, 1, 2, 3, 4, 5, 0, time.Local) }
+	rec := st.Begin()
+	if _, err := rec.Snapshot(p); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, p, "after")
+	if err := rec.Wrote(p); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := rec.Commit(); err != nil {
+		t.Fatal(err)
+	}
+
+	var list bytes.Buffer
+	if err := runRestore(repo, home, []string{"--list"}, false, &list); err != nil {
+		t.Fatal(err)
+	}
+	wantList := "ID                  DATE              ENTRIES  PINNED  STATE\n" +
+		"20260102-030405     2026-01-02 03:04  1        no      ok\n"
+	if list.String() != wantList {
+		t.Errorf("--list output changed:\n got %q\nwant %q", list.String(), wantList)
+	}
+
+	var dry bytes.Buffer
+	if err := runRestore(repo, home, []string{"latest"}, true, &dry); err != nil {
+		t.Fatal(err)
+	}
+	wantDry := "would restore          ~/f\n\nDry run: nothing was written.\n"
+	if dry.String() != wantDry {
+		t.Errorf("dry restore output changed:\n got %q\nwant %q", dry.String(), wantDry)
+	}
+
+	var real bytes.Buffer
+	if err := runRestore(repo, home, []string{"latest"}, false, &real); err != nil {
+		t.Fatal(err)
+	}
+	wantReal := "restored               ~/f\n\nrestored backup 20260102-030405\n"
+	if real.String() != wantReal {
+		t.Errorf("restore output changed:\n got %q\nwant %q", real.String(), wantReal)
+	}
 }

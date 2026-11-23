@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
@@ -414,5 +415,20 @@ func TestPrivateDir(t *testing.T) {
 	t.Setenv("AVAL_PRIVATE_DIR", "/elsewhere")
 	if got := PrivateDir("/h"); got != "/elsewhere" {
 		t.Errorf("override = %q", got)
+	}
+}
+
+func TestRunRecordsItsOriginInTheBackupRun(t *testing.T) {
+	opt := fakeEnv(t)
+	write(t, filepath.Join(opt.Home, ".claude/settings.json"), `{"model":"sonnet"}`)
+	if _, err := Run(opt); err != nil {
+		t.Fatal(err)
+	}
+	runs, err := backup.NewStore(opt.Home).List()
+	if err != nil || len(runs) != 1 {
+		t.Fatalf("runs = %v, %v", runs, err)
+	}
+	if runs[0].Origin != "sync" {
+		t.Errorf("Origin = %q, want sync", runs[0].Origin)
 	}
 }

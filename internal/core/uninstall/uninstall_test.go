@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/manifest"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
@@ -214,5 +215,23 @@ func TestUninstallRemovesOnlyTheRulesBlock(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(foreign); string(b) != "keep" {
 		t.Error("an unrelated file was touched")
+	}
+}
+
+func TestUninstallRunRecordsItsOrigin(t *testing.T) {
+	opt := machine(t)
+	installAll(t, opt)
+	if _, err := Run(opt); err != nil {
+		t.Fatal(err)
+	}
+	runs, err := backup.NewStore(opt.Home).List()
+	if err != nil || len(runs) == 0 {
+		t.Fatalf("runs = %v, %v", runs, err)
+	}
+	if runs[0].Origin != "uninstall" {
+		t.Errorf("newest run Origin = %q, want uninstall (all: %+v)", runs[0].Origin, runs)
+	}
+	if last := runs[len(runs)-1]; last.Origin != "install" {
+		t.Errorf("oldest run Origin = %q, want install", last.Origin)
 	}
 }

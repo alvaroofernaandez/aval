@@ -411,3 +411,25 @@ func TestShortReasonDropsThePaths(t *testing.T) {
 		t.Errorf("shortReason = %q", got)
 	}
 }
+
+func TestInstallRunRecordsItsOrigin(t *testing.T) {
+	testenv.NeedSymlinks(t)
+	_, home, act := fixture(t)
+	if err := os.WriteFile(act.Dest, []byte("PRECIOUS"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r := New(Options{Home: home, Symlinks: true})
+	if _, err := r.Apply(act); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Finish(); err != nil {
+		t.Fatal(err)
+	}
+	runs, err := backup.NewStore(home).List()
+	if err != nil || len(runs) != 1 {
+		t.Fatalf("runs = %v, %v", runs, err)
+	}
+	if runs[0].Origin != "install" {
+		t.Errorf("Origin = %q, want install", runs[0].Origin)
+	}
+}

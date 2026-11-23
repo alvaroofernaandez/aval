@@ -32,6 +32,7 @@ const (
 	manifestName  = "manifest.json"
 	pinnedMarker  = "PINNED"
 	pendingMarker = "PENDING"
+	originMarker  = "ORIGIN"
 	failedMarker  = "FAILED"
 	displacedDir  = ".displaced"
 	idLayout      = "20060102-150405"
@@ -68,12 +69,28 @@ type Run struct {
 	Pending bool
 	Legacy  bool
 	Reason  string
+	// Origin names the command that made the run (install, sync, uninstall,
+	// ...). Empty for runs made before origins were recorded.
+	Origin string
 }
+
+// ActionKind is the typed outcome of a restore step, next to the free text in
+// Action.Action.
+type ActionKind string
+
+const (
+	ActRestore   ActionKind = "restore"   // the saved state is put back
+	ActRemove    ActionKind = "remove"    // aval's own output is removed
+	ActUnchanged ActionKind = "unchanged" // already as saved
+	ActKept      ActionKind = "kept"      // left alone: not aval's, or not empty
+	ActGone      ActionKind = "gone"      // nothing there to undo
+)
 
 // Action is what a restore did to one path.
 type Action struct {
 	Path   string
 	Action string
+	Kind   ActionKind
 }
 
 // RestoreOptions tunes a restore.
@@ -136,6 +153,9 @@ func loadRun(dir string) Run {
 		r.Legacy = true
 	}
 	r.Pinned = exists(filepath.Join(dir, pinnedMarker))
+	if b, err := os.ReadFile(filepath.Join(dir, originMarker)); err == nil {
+		r.Origin = strings.TrimSpace(string(b))
+	}
 	r.Pending = exists(filepath.Join(dir, pendingMarker))
 	if b, err := os.ReadFile(filepath.Join(dir, failedMarker)); err == nil {
 		r.Failed = true
@@ -293,6 +313,7 @@ type Recorder struct {
 	opened  bool
 	entries []Entry
 	idx     map[string]int
+	origin  string
 }
 
 // Begin starts a run. Nothing touches the disk until the first path is
@@ -352,7 +373,27 @@ func (r *Recorder) Open() error {
 		}
 	}
 	r.opened = true
+	if err := r.writeOrigin(); err != nil {
+		return err
+	}
 	return r.flush()
+}
+
+// SetOrigin names the command making this run. It is written beside the
+// manifest once the run directory exists, so a run that records nothing still
+// leaves no trace.
+func (r *Recorder) SetOrigin(origin string) {
+	r.origin = origin
+	if r.opened {
+		_ = r.writeOrigin()
+	}
+}
+
+func (r *Recorder) writeOrigin() error {
+	if r.origin == "" {
+		return nil
+	}
+	return os.WriteFile(filepath.Join(r.dir, originMarker), []byte(r.origin+"\n"), 0o644)
 }
 
 func (r *Recorder) flush() error {
@@ -779,19 +820,26 @@ func (s *Store) Restore(run Run, opt RestoreOptions) ([]Action, error) {
 		act := Action{Path: e.Path}
 		switch {
 		case !exists(e.Path):
-			act.Action = "already gone"
+			act.Action, act.Kind = "already gone", ActGone
 		case opt.DryRun:
-			act.Action = "would remove if empty"
+			act.Action, act.Kind = "would remove if empty", ActRemove
 		default:
 			if err := os.Remove(e.Path); err != nil {
-				act.Action = "kept (not empty)"
+				act.Action, act.Kind = "kept (not empty)", ActKept
 			} else {
-				act.Action = "removed (empty dir)"
+				act.Action, act.Kind = "removed (empty dir)", ActRemove
 			}
 		}
 		out = append(out, act)
 	}
 	return out, nil
+}
+
+// Preview is the named dry run of Restore: it changes nothing on disk and
+// returns the typed actions a restore would take.
+func (s *Store) Preview(run Run, opt RestoreOptions) ([]Action, error) {
+	opt.DryRun = true
+	return s.Restore(run, opt)
 }
 
 // RestorePath restores one path of a run.
@@ -875,11 +923,11 @@ func (s *Store) restoreEntry(run Run, e Entry, opt RestoreOptions) (Action, erro
 	}
 
 	if present && matchesSaved(e, cur) {
-		act.Action = "unchanged"
+		act.Action, act.Kind = "unchanged", ActUnchanged
 		return act, nil
 	}
 	if opt.DryRun {
-		act.Action = "would restore"
+		act.Action, act.Kind = "would restore", ActRestore
 		return act, nil
 	}
 	if err := os.MkdirAll(filepath.Dir(e.Path), 0o755); err != nil {
@@ -906,7 +954,7 @@ func (s *Store) restoreEntry(run Run, e Entry, opt RestoreOptions) (Action, erro
 	if err != nil {
 		return act, err
 	}
-	act.Action = "restored"
+	act.Action, act.Kind = "restored", ActRestore
 	return act, nil
 }
 
@@ -969,7 +1017,7 @@ func (s *Store) clearForRestore(run Run, e Entry, cur os.FileInfo) error {
 
 func (s *Store) undoCreation(e Entry, cur os.FileInfo, present bool, opt RestoreOptions, act Action) (Action, error) {
 	if !present {
-		act.Action = "already gone"
+		act.Action, act.Kind = "already gone", ActGone
 		return act, nil
 	}
 	remove, why := false, "kept (not created by aval)"
@@ -993,17 +1041,17 @@ func (s *Store) undoCreation(e Entry, cur os.FileInfo, present bool, opt Restore
 		}
 	}
 	if !remove {
-		act.Action = why
+		act.Action, act.Kind = why, ActKept
 		return act, nil
 	}
 	if opt.DryRun {
-		act.Action = "would remove"
+		act.Action, act.Kind = "would remove", ActRemove
 		return act, nil
 	}
 	if err := os.RemoveAll(e.Path); err != nil {
 		return act, err
 	}
-	act.Action = "removed"
+	act.Action, act.Kind = "removed", ActRemove
 	return act, nil
 }
 

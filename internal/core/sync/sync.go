@@ -614,6 +614,7 @@ func Run(opt Options) (*Report, error) {
 		st := backup.NewStore(opt.Home)
 		st.Now = opt.Now
 		rec = st.Begin()
+		rec.SetOrigin("sync")
 		defer func() { _, _, _ = rec.Commit() }()
 	}
 	if rec == nil { // dry run: nothing is written, nothing is recorded

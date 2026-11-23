@@ -52,6 +52,7 @@ func Run(opt Options) ([]Item, error) {
 	store := backup.NewStore(opt.Home)
 	store.Now = opt.Now
 	rec := store.Begin()
+	rec.SetOrigin("uninstall")
 	ropt := backup.RestoreOptions{Repo: opt.Repo}
 
 	var items []Item

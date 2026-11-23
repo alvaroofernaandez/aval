@@ -86,6 +86,7 @@ func New(opt Options) *Runner {
 			st.Now = opt.Now
 			r.rec = st.Begin()
 		}
+		r.rec.SetOrigin("install")
 	}
 	return r
 }
