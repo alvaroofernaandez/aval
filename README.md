@@ -281,6 +281,8 @@ The settings view previews the theme live: enter saves, `esc` discards. Inside t
 
 Palettes come from each theme's upstream repository; sources and licences are in [`internal/ui/themes/SOURCES.md`](internal/ui/themes/SOURCES.md).
 
+The deck fonts (Space Grotesk, IBM Plex Sans, SIL Open Font License 1.1) are embedded in the binary; sources and licences are in [`internal/deck/assets/fonts/SOURCES.md`](internal/deck/assets/fonts/SOURCES.md).
+
 <br/>
 
 ## Commands

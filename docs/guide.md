@@ -763,7 +763,10 @@ runs it through `config/opencode/plugin/plan-gate.ts`, which hands the same payl
 and one deck marker. Without the binary the plugin fails open.
 
 **Browser.** `AVAL_CHROME` overrides the lookup (Chrome, Chromium, Brave, Edge). The brand
-fonts load from Google Fonts; offline, the deck falls back to system fonts.
+fonts are embedded; a deck needs no network. They are Space Grotesk and IBM Plex Sans, unmodified
+from `google/fonts` under the SIL Open Font License 1.1; sources, versions and licences are in
+[`internal/deck/assets/fonts/SOURCES.md`](../internal/deck/assets/fonts/SOURCES.md), and the
+licences ship in every release archive.
 
 ## 🤖 Agents
 
