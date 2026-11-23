@@ -9,6 +9,14 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.2.1 (2026-11-23)
+
+[Release notes](docs/releases/v0.2.1.md) · [Notas en español](docs/releases/v0.2.1.es.md)
+
+### Fixes
+
+- **release:** `aval release promote` tags the rc commit after `main` has moved on, refuses an rc that is not on `origin/main`, and lists the commits after the rc with a warning when one changes shipped code (#79)
+
 ## v0.2.0 (2026-11-23)
 
 [Release notes](docs/releases/v0.2.0.md) · [Notas en español](docs/releases/v0.2.0.es.md)
