@@ -16,7 +16,9 @@ import (
 //   - read-only token by default, write only where a job needs it;
 //   - nothing that runs untrusted PR code with secrets (pull_request_target);
 //   - publishing never runs on a plain push: tags or manual dispatch, behind the
-//     "release" environment, which requires the owner's approval.
+//     "release" environment, which requires the owner's approval. A stable patch
+//     over a released minor publishes from "release-patch", which does not: the
+//     rule is release.Environment, and preflight runs it.
 
 func workflows(t *testing.T) map[string]string {
 	t.Helper()
@@ -103,6 +105,10 @@ func publishes(job string) bool {
 	return false
 }
 
+// chosenEnv is how a publishing job names its environment when the patch rule
+// picks it; the rule itself is release.Environment, run by preflight.
+const chosenEnv = "environment: ${{ needs.preflight.outputs.environment }}"
+
 func TestPublishingNeedsATagOrApproval(t *testing.T) {
 	for name, wf := range workflows(t) {
 		var publishing []string
@@ -111,8 +117,13 @@ func TestPublishingNeedsATagOrApproval(t *testing.T) {
 				continue
 			}
 			publishing = append(publishing, jobName)
-			if !strings.Contains(body, "environment: release") {
-				t.Errorf("%s: job %q publishes, so it must run in the approval-gated \"release\" environment", name, jobName)
+			switch {
+			case strings.Contains(body, chosenEnv):
+				if !strings.Contains(jobs(wf)["preflight"], `go run ./cmd/aval release environment "$TAG"`) {
+					t.Errorf("%s: job %q takes its environment from preflight, so preflight must compute it with `aval release environment`", name, jobName)
+				}
+			case !strings.Contains(body, "environment: release"):
+				t.Errorf("%s: job %q publishes, so it must run in the approval-gated \"release\" environment, or the one `aval release environment` picks", name, jobName)
 			}
 		}
 		if len(publishing) > 0 && regexp.MustCompile(`(?m)^\s+branches:`).MatchString(wf) {
@@ -834,4 +845,18 @@ func TestWorkflowCIGapsAreDetected(t *testing.T) {
 		}
 		wantGap(t, ciGaps(fakeCIRepo(t, nil, files), ex), "stale ciExemptTools")
 	})
+}
+
+// Patch releases publish on their own: both publishing jobs of release.yml take
+// the environment preflight picks, never a hard-coded one.
+func TestReleasePublishingJobsTakeTheChosenEnvironment(t *testing.T) {
+	js := jobs(workflows(t)["release.yml"])
+	for _, job := range []string{"publish", "npm"} {
+		if !strings.Contains(js[job], chosenEnv) {
+			t.Errorf("release.yml: job %q must use %q", job, chosenEnv)
+		}
+	}
+	if !strings.Contains(js["preflight"], "environment: ${{ steps.env.outputs.environment }}") {
+		t.Error("release.yml: preflight must output the environment its env step computes")
+	}
 }

@@ -366,15 +366,28 @@ func Cut(g Git, o CutOptions) error {
 	}
 	fmt.Fprintf(w, "Pushed %s to %s.\n", tag, o.Remote)
 
+	reportWorkflow(g, w, o.Remote, Environment(p.Version, st.Tags))
+	return nil
+}
+
+// reportWorkflow says what the release workflow does next: publish on its own
+// for a patch, or wait for the owner's approval.
+func reportWorkflow(g Git, w io.Writer, remote, env string) {
 	url := ""
-	if remote, err := g.Run("remote", "get-url", o.Remote); err == nil {
-		url = WorkflowURL(remote)
+	if r, err := g.Run("remote", "get-url", remote); err == nil {
+		url = WorkflowURL(r)
 	}
-	fmt.Fprintln(w, "\nThe release workflow is now waiting for approval of the \"release\" environment.")
+	if env == EnvPatch {
+		fmt.Fprintf(w, "\nThe release workflow publishes on its own: the %q environment needs no approval.\n", EnvPatch)
+		if url != "" {
+			fmt.Fprintf(w, "Follow it here: %s\n", url)
+		}
+		return
+	}
+	fmt.Fprintf(w, "\nThe release workflow is now waiting for approval of the %q environment.\n", EnvRelease)
 	if url != "" {
 		fmt.Fprintf(w, "Approve it here: %s\n", url)
 	}
-	return nil
 }
 
 var remoteRe = regexp.MustCompile(`github\.com[:/]([^/\s]+)/([^/\s]+?)(?:\.git)?/?$`)

@@ -48,7 +48,24 @@ Each cutting command (`rc`, `beta`, `patch`, `minor`, `major`, `promote`):
    `docs`, `test`, `ci` and `chore` do not appear);
 3. asks `y/N` (`--yes` skips it; `--dry-run` only shows and touches nothing);
 4. creates the annotated tag and pushes it with `git push origin <tag>`;
-5. prints the workflow URL: **the `release` environment still needs approval** (only the owner can do it).
+5. prints the workflow URL and what happens next: a stable patch over a released minor publishes on its
+   own; anything else waits for **approval of the `release` environment** (only the owner can do it).
+
+### Which releases need approval
+
+| Tag | Environment | Approval |
+| :-- | :-- | :-- |
+| `vX.Y.Z`, Z > 0, with `vX.Y.0` already tagged | `release-patch` | none: it publishes on its own |
+| `vX.Y.0` (minor or major) | `release` | the owner |
+| `-rc.N`, `-beta.N` | `release` | the owner |
+| `vX.Y.Z`, Z > 0, without `vX.Y.0` | `release` | the owner (a patch tag cannot skip a minor) |
+
+The rule is `release.Environment` (`internal/release/env.go`); the preflight job runs it with
+`aval release environment <tag>` and both publishing jobs use its answer. Every other check still
+applies: an annotated tag, on `main`, with `ci.yml` green on that commit.
+
+> **Amendment, 2026-11-23.** Until this date every release waited for the owner's approval. The owner
+> decided that stable patches publish without it, and only minor, major and prerelease tags wait.
 
 Shortcuts: `aval release patch|minor|major` publishes a stable release without going through an rc.
 
@@ -110,6 +127,7 @@ tar -xzf aval_0.2.0_linux_amd64.tar.gz && ./aval version
 
 ## One-time requirements
 
-A `release` environment with owner approval and the `NPM_TOKEN` secret (an automation token with
-publish permission on `@alvaroofernaandez`). The moving `latest` tag and its "Latest build"
+A `release` environment with owner approval and a `release-patch` environment without it, both
+limited to `v*` tags and both holding the `NPM_TOKEN` secret (an automation token with publish
+permission on `@alvaroofernaandez`). The moving `latest` tag and its "Latest build"
 release from before this system were deleted when v0.1.0 shipped.

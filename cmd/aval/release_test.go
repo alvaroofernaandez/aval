@@ -201,3 +201,24 @@ func TestCIVerdict(t *testing.T) {
 		}
 	}
 }
+
+func TestReleaseEnvironment(t *testing.T) {
+	work, _ := releaseRepo(t)
+	commitIn(t, work, "feat: a")
+	relGit(t, work, "tag", "-a", "v0.2.0", "-m", "x")
+	cases := map[string]string{"v0.2.1": release.EnvPatch, "v0.3.0": release.EnvRelease, "v0.2.1-rc.1": release.EnvRelease}
+	for tag, want := range cases {
+		out, err := release1(t, work, "", "environment", tag)
+		if err != nil {
+			t.Fatalf("%s: %v", tag, err)
+		}
+		if strings.TrimSpace(out) != want {
+			t.Errorf("environment %s printed %q, want %q", tag, out, want)
+		}
+	}
+	for _, args := range [][]string{{"environment"}, {"environment", "not-a-tag"}} {
+		if _, err := release1(t, work, "", args...); !isUsage(err) {
+			t.Errorf("%v: err = %v, want usage", args, err)
+		}
+	}
+}
