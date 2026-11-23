@@ -112,6 +112,10 @@ type Model struct {
 	// Quitting records a deliberate exit, so main can tell "the user pressed q"
 	// apart from "the install finished".
 	Quitting bool
+
+	// hosted is set by the flow screen: the Model runs inside the router, so
+	// leaving it returns to the hub instead of ending the program.
+	hosted bool
 }
 
 // Fallback size until the terminal reports its own.
@@ -230,7 +234,7 @@ func (m Model) perform(act action) (tea.Model, tea.Cmd) {
 		return m, nil
 	case actQuit:
 		m.Quitting = true
-		return m, tea.Quit
+		return m, m.exit()
 	case actStop:
 		if m.screen == ScreenInstall {
 			m.stopping = true
@@ -250,6 +254,15 @@ func (m Model) perform(act action) (tea.Model, tea.Cmd) {
 		return m.welcomeAction(act)
 	}
 	return m, nil
+}
+
+// exit is the one way out of the Model: standalone it ends the program, as
+// it always has; hosted by the router (see flow.go) it pops back to the hub.
+func (m Model) exit() tea.Cmd {
+	if m.hosted {
+		return pop()
+	}
+	return tea.Quit
 }
 
 // View renders the current screen inside the shared frame.

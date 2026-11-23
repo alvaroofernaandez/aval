@@ -16,16 +16,33 @@ import (
 // git hooks on. The merge is best-effort (the install already worked); the
 // seed is not. It also records where the repository is, so later commands
 // find it from any directory; failing to record it only warns.
+//
+// This is the CLI entry: it runs after the program has left the alt screen,
+// so it prints completeInstall's warnings to stderr, as it always has.
 func finishInstall(repo, home string, dryRun bool) error {
+	warnings, err := completeInstall(repo, home, dryRun)
+	for _, w := range warnings {
+		fmt.Fprintf(os.Stderr, "warning: %s\n", w)
+	}
+	return err
+}
+
+// completeInstall runs the post-install steps and returns its warnings
+// instead of writing them: the hub calls it inside the alt screen, where a
+// stderr write would corrupt the frame. It backs Services.FinishInstall.
+func completeInstall(repo, home string, dryRun bool) ([]string, error) {
 	if err := seedClaudeSettings(repo, home, dryRun); err != nil {
-		return err
+		return nil, err
 	}
 	if dryRun {
-		return nil
+		return nil, nil
 	}
 	_ = runSync(repo, home, nil, false, io.Discard)
-	recordRepo(repo, home)
-	return configureHooksPath(repo, dryRun)
+	var warnings []string
+	if w := recordRepo(repo, home); w != "" {
+		warnings = append(warnings, w)
+	}
+	return warnings, configureHooksPath(repo, dryRun)
 }
 
 // configureHooksPath points a git checkout at its versioned hooks:
@@ -68,13 +85,15 @@ func seedClaudeSettings(repo, home string, dryRun bool) error {
 	return os.WriteFile(dst, b, 0o644)
 }
 
-// recordRepo writes the repository location to aval's config file.
-func recordRepo(repo, home string) {
+// recordRepo writes the repository location to aval's config file. Failing
+// only warns: it returns the warning, empty when the location was recorded.
+func recordRepo(repo, home string) string {
 	abs, err := filepath.Abs(repo)
 	if err == nil {
 		err = repoloc.Save(repoloc.ConfigPath(os.Getenv, home, runtime.GOOS), abs)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "warning: could not record the repository location: %v\n", err)
+		return fmt.Sprintf("could not record the repository location: %v", err)
 	}
+	return ""
 }

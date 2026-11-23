@@ -22,7 +22,9 @@ import (
 //
 // It is reached two ways: bare `aval config` on a terminal (NewSettings, where
 // enter and esc end the program) and `s` on the installer's select and done
-// screens, where enter and esc go back to the screen it came from.
+// screens, where enter and esc go back to the screen it came from. Hosted by
+// the hub (flow.go), enter and esc return to the hub and a save hands the
+// router the new theme.
 
 // SettingsEnv is what the settings screen reads and writes. An empty Path
 // leaves the screen out of the installer.
@@ -286,14 +288,25 @@ func (m Model) settingsAction(act action) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
-		if s.standalone {
-			return m, tea.Quit
+		if s.standalone && !m.hosted {
+			return m, m.exit()
 		}
 		m.theme = m.effectiveTheme()
+		// Hosted, the router adopts the saved theme, so the hub and every
+		// later view repaint in it at once.
+		var adopt tea.Cmd
+		if m.hosted {
+			c := m.chrome
+			adopt = func() tea.Msg { return chromeMsg{c} }
+		}
+		if s.standalone {
+			return m, tea.Batch(adopt, m.exit())
+		}
 		m.screen = s.back
+		return m, adopt
 	case actDiscard:
 		if s.standalone {
-			return m, tea.Quit
+			return m, m.exit()
 		}
 		m.screen = s.back
 	}

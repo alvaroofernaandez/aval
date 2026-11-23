@@ -42,6 +42,11 @@ type screen interface {
 // and esc closes the field.
 type textField interface{ typing() bool }
 
+// selfFramed is a screen that draws its whole frame and routes its own keys:
+// the hosted installer and settings Model (flow.go). The router hands it
+// every key untouched and shows frame as is; its keys() is nil.
+type selfFramed interface{ frame() string }
+
 type (
 	// pushMsg puts a screen on top of the stack.
 	pushMsg struct{ s screen }
@@ -53,8 +58,14 @@ type (
 	// step, or cancel the network wait.
 	stopMsg struct{}
 	// chromeMsg hands a screen the current frame (theme, labels and size).
-	// The router sends it on push and broadcasts it on every resize.
+	// The router sends it on push and broadcasts it on every resize. A
+	// screen sends it to the router to change the theme (a settings save):
+	// the router adopts c's theme, keeps its own size and labels, and
+	// broadcasts the result.
 	chromeMsg struct{ c chrome }
+	// resumeMsg tells a screen it is on top again after the one above it
+	// popped, so it can refresh what the popped view may have changed.
+	resumeMsg struct{}
 )
 
 func push(s screen) tea.Cmd { return func() tea.Msg { return pushMsg{s} } }
@@ -134,11 +145,15 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if len(a.stack) > 1 {
 			a.stack = a.stack[:len(a.stack)-1]
 			a.help = false
+			return a, a.deliver(len(a.stack)-1, resumeMsg{})
 		}
 		return a, nil
 	case quitMsg:
 		a.quitting = true
 		return a, tea.Quit
+	case chromeMsg:
+		a.theme = msg.c.theme
+		return a, a.broadcast(chromeMsg{a.chrome})
 	}
 	return a, a.broadcast(msg)
 }
@@ -154,6 +169,9 @@ func (a App) key(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return a, nil
 		}
 		return a.helpAction(act)
+	}
+	if _, ok := a.top().(selfFramed); ok {
+		return a, a.deliver(len(a.stack)-1, msg)
 	}
 	if a.typing() && k != "ctrl+c" {
 		return a, a.deliver(len(a.stack)-1, msg)
@@ -174,6 +192,7 @@ func (a App) global(act action) (tea.Model, tea.Cmd) {
 	case actPop:
 		if len(a.stack) > 1 {
 			a.stack = a.stack[:len(a.stack)-1]
+			return a, a.deliver(len(a.stack)-1, resumeMsg{})
 		}
 	case actHelp:
 		a.help, a.helpTop = true, 0
@@ -253,6 +272,9 @@ func (a App) helpKeys() keyMap {
 
 // View renders the top screen, or the help overlay, inside the frame.
 func (a App) View() string {
+	if f, ok := a.top().(selfFramed); ok && !a.help {
+		return f.frame()
+	}
 	if a.help {
 		rows := a.keyRows(a.keys())
 		top := a.helpTop

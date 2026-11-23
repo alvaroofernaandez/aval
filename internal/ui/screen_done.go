@@ -20,7 +20,7 @@ import (
 func (m Model) doneAction(act action) (tea.Model, tea.Cmd) {
 	if act == actClose {
 		m.Quitting = true
-		return m, tea.Quit
+		return m, m.exit()
 	}
 	return m, nil
 }
