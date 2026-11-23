@@ -87,9 +87,9 @@ func hubEntryFor(name string) hubEntry {
 
 // Menu and pane columns.
 const (
-	// hubGroupW is the group gutter, shown from gutterFrom columns up; the
-	// cursor sits right after it.
-	hubGroupW  = 6
+	// hubGroupW is the group gutter, shown from gutterFrom columns up: the
+	// longest label plus two spaces, so the cursor never touches a label.
+	hubGroupW  = 8
 	gutterFrom = 60
 	// hubFieldW is the name plus its right-aligned badge.
 	hubFieldW = 14

@@ -8,15 +8,15 @@
   Nothing passes without evidence.                               macOS (arm64)
   ────────────────────────────────────────────────────────────────────────────
 
-  Set up› ⇣ Install          │ ⇣ Install                                     i
-          ⟳ Update     ↑ 3   │ Link the repo configs into this home.
-          ⇄ Sync             │
-  Health  ⊞ Doctor     ! 1   │ Repo      ~/.aval
-  Undo    ◷ Backups      4   │ Last run  today 12:54
-          ⌫ Uninstall        │
-  Tools   ⎈ Settings         │ enter  pick what to link
-          ⧉ Dev sandbox  2   │
-          ◉ About            │
+  Set up  › ⇣ Install        │ ⇣ Install                                     i
+            ⟳ Update     ↑ 3 │ Link the repo configs into this home.
+            ⇄ Sync           │
+  Health    ⊞ Doctor     ! 1 │ Repo      ~/.aval
+  Undo      ◷ Backups      4 │ Last run  today 12:54
+            ⌫ Uninstall      │
+  Tools     ⎈ Settings       │ enter  pick what to link
+            ⧉ Dev sandbox  2 │
+            ◉ About          │
 
   ────────────────────────────────────────────────────────────────────────────
   1 warning · open Doctor to see it

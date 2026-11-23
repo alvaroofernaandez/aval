@@ -294,15 +294,15 @@ func TestHubTargetStructureAt80x24(t *testing.T) {
 		}
 	}
 	rows := []string{
-		"  Set up› ⇣ Install          │ ⇣ Install",
-		"          ⟳ Update     ↑ 3   │ Link the repo configs into this home.",
-		"          ⇄ Sync             │",
-		"  Health  ⊞ Doctor     ! 1   │ Repo      ~/.aval",
-		"  Undo    ◷ Backups      4   │ Last run  today 12:54",
-		"          ⌫ Uninstall        │",
-		"  Tools   ⎈ Settings         │ enter  pick what to link",
-		"          ⧉ Dev sandbox  2   │",
-		"          ◉ About            │",
+		"  Set up  › ⇣ Install        │ ⇣ Install",
+		"            ⟳ Update     ↑ 3 │ Link the repo configs into this home.",
+		"            ⇄ Sync           │",
+		"  Health    ⊞ Doctor     ! 1 │ Repo      ~/.aval",
+		"  Undo      ◷ Backups      4 │ Last run  today 12:54",
+		"            ⌫ Uninstall      │",
+		"  Tools     ⎈ Settings       │ enter  pick what to link",
+		"            ⧉ Dev sandbox  2 │",
+		"            ◉ About          │",
 	}
 	start := -1
 	for i, l := range ls {
@@ -427,6 +427,31 @@ func TestHubInvariantsAcrossSizes(t *testing.T) {
 						t.Errorf("unicode=%v %dx%d: line %d is %d wide: %q", unicode, w, h, i, lw, l)
 						break
 					}
+				}
+			}
+		}
+	}
+}
+
+func TestHubGutterKeepsASpaceBeforeTheCursor(t *testing.T) {
+	withHubViews(t)
+	for _, unicode := range []bool{true, false} {
+		for _, w := range []int{80, 120} {
+			ls := lines(renderModelAt(startedHub(t, unicode, hubServices()), w, 24))
+			for _, group := range []string{"Set up", "Health", "Undo", "Tools"} {
+				found := false
+				for _, l := range ls {
+					rest, ok := strings.CutPrefix(l, "  "+group)
+					if !ok {
+						continue
+					}
+					found = true
+					if !strings.HasPrefix(rest, " ") {
+						t.Errorf("unicode=%v width=%d: no space after group %q: %q", unicode, w, group, l)
+					}
+				}
+				if !found {
+					t.Errorf("unicode=%v width=%d: no row for group %q", unicode, w, group)
 				}
 			}
 		}
