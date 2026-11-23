@@ -773,7 +773,7 @@ each tool reinstalls them on its own. Those that ship with a licence carry their
 
 | Family | Skills |
 | :--- | :--- |
-| Discipline | `plan-deck` · `strict-tdd` · `cognitive-doc-design` · `skill-creator` |
+| Discipline | `plan-deck` · `strict-tdd` · `architecture-evidence` · `cognitive-doc-design` · `skill-creator` |
 | Design and UI | `design-pipeline` · `design-refactor` · `laws-of-ux` · `accessibility` · `react-19` · `tailwind-4` · `typescript` · `zod-4` · `ai-sdk-5` |
 | Git and delivery | `ship` · `branch-pr` · `chained-pr` · `prs-pro` · `work-unit-commits` · `issue-creation-pro` · `repo-prep` |
 | Documents | `pdf-report` · `readme-portal` · `readme-guardian` |
