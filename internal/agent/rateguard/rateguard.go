@@ -10,7 +10,9 @@
 package rateguard
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 	"io/fs"
 	"path/filepath"
 	"strings"
@@ -258,4 +260,42 @@ func normalize(h string) string {
 	}
 	h = strings.TrimPrefix(h, "*")
 	return strings.Trim(h, ".")
+}
+
+// Run reads a PreToolUse payload on in and writes a deny to out when the Bash
+// command is a guarded batch. Anything unexpected, a panic included, writes
+// nothing.
+func Run(in io.Reader, out io.Writer, hosts func() ([]string, error)) {
+	defer func() { _ = recover() }()
+	raw, err := io.ReadAll(in)
+	if err != nil {
+		return
+	}
+	var p struct {
+		ToolName  string `json:"tool_name"`
+		ToolInput struct {
+			Command string `json:"command"`
+		} `json:"tool_input"`
+	}
+	if json.Unmarshal(raw, &p) != nil || p.ToolName != "Bash" || p.ToolInput.Command == "" {
+		return
+	}
+	hs, err := hosts()
+	if err != nil {
+		return
+	}
+	deny, reason := Decide(p.ToolInput.Command, hs)
+	if !deny {
+		return
+	}
+	type specific struct {
+		HookEventName            string `json:"hookEventName"`
+		PermissionDecision       string `json:"permissionDecision"`
+		PermissionDecisionReason string `json:"permissionDecisionReason"`
+	}
+	enc := json.NewEncoder(out)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(struct {
+		HookSpecificOutput specific `json:"hookSpecificOutput"`
+	}{specific{"PreToolUse", "deny", reason}})
 }

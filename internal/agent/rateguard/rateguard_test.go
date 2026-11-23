@@ -180,3 +180,12 @@ func TestRateGuardImportsOnlySafeStdlib(t *testing.T) {
 		}
 	}
 }
+
+func TestRunRecoversFromAPanic(t *testing.T) {
+	var out strings.Builder
+	in := strings.NewReader(`{"tool_name":"Bash","tool_input":{"command":"for i in 1 2; do curl https://innohelp.es/$i; done"}}`)
+	Run(in, &out, func() ([]string, error) { panic("boom") })
+	if out.String() != "" {
+		t.Errorf("a panic must produce no output, got %q", out.String())
+	}
+}

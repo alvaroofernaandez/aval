@@ -129,3 +129,75 @@ func TestRunHookRtkRewriteWithoutRtkIsASilentNoOp(t *testing.T) {
 		t.Errorf("no rtk on PATH must pass through, got %q err=%v", out.String(), err)
 	}
 }
+
+func rateGuardEnv(t *testing.T) string {
+	t.Helper()
+	cfg := t.TempDir()
+	testenv.SetHome(t, t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	t.Setenv("AVAL_RATE_GUARD_HOSTS", "")
+	return cfg
+}
+
+func rateGuard(t *testing.T, in string) string {
+	t.Helper()
+	var out bytes.Buffer
+	if err := runHook([]string{"rate-guard"}, strings.NewReader(in), &out); err != nil {
+		t.Fatalf("rate-guard must exit 0, got %v", err)
+	}
+	return out.String()
+}
+
+func bashPayload(cmd string) string {
+	return `{"session_id":"s","tool_name":"Bash","tool_input":{"command":` + q(cmd) + `}}`
+}
+
+func TestRunHookRateGuardDeniesABatchWithTheExactJSON(t *testing.T) {
+	rateGuardEnv(t)
+	got := rateGuard(t, bashPayload(`for p in a b c; do curl -s "https://www.innohelp.es/$p"; done`))
+	want := `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Helice (innohelp.es / helice.app) bans the IP after rapid requests. Do not crawl it: use the Helice panel via Claude in Chrome, or make 1-2 spaced requests."}}` + "\n"
+	if got != want {
+		t.Errorf("output:\n  got  %q\n  want %q", got, want)
+	}
+}
+
+func TestRunHookRateGuardAllowsWithNoOutput(t *testing.T) {
+	rateGuardEnv(t)
+	for _, cmd := range []string{`curl -sL https://www.innohelp.es/`, `for p in a b; do curl https://example.com/$p; done`, `echo innohelp.es`} {
+		if got := rateGuard(t, bashPayload(cmd)); got != "" {
+			t.Errorf("%s: output = %q, want none", cmd, got)
+		}
+	}
+}
+
+func TestRunHookRateGuardReadsTheHostsFileAndEnv(t *testing.T) {
+	cfg := rateGuardEnv(t)
+	writeFile(t, filepath.Join(cfg, "aval", "rate-guard-hosts"), "# mine\nshop.test\n")
+	if got := rateGuard(t, bashPayload(`for i in 1 2; do curl https://api.shop.test/$i; done`)); !strings.Contains(got, `"shop.test bans the IP`) {
+		t.Errorf("a host from the file must be guarded and named, got %q", got)
+	}
+	t.Setenv("AVAL_RATE_GUARD_HOSTS", "env.test")
+	if got := rateGuard(t, bashPayload(`for i in 1 2; do wget https://env.test/$i; done`)); !strings.Contains(got, `"deny"`) {
+		t.Errorf("a host from AVAL_RATE_GUARD_HOSTS must be guarded, got %q", got)
+	}
+}
+
+func TestRunHookRateGuardFailsOpen(t *testing.T) {
+	cfg := rateGuardEnv(t)
+	batch := `for p in a b c; do curl -s "https://www.innohelp.es/$p"; done`
+	for name, in := range map[string]string{
+		"bad JSON":      `{"tool_name":"Bash","tool_input":`,
+		"non-Bash tool": `{"tool_name":"Write","tool_input":{"command":` + q(batch) + `}}`,
+	} {
+		if got := rateGuard(t, in); got != "" {
+			t.Errorf("%s: output = %q, want none", name, got)
+		}
+	}
+	// A directory where the file should be: readable as nothing.
+	if err := os.MkdirAll(filepath.Join(cfg, "aval", "rate-guard-hosts"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := rateGuard(t, bashPayload(batch)); got != "" {
+		t.Errorf("unreadable hosts file: output = %q, want none", got)
+	}
+}
