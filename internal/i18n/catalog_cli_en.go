@@ -69,6 +69,30 @@ var englishCLI = catalog{
 	// shared
 	"cli.dry_run": {other: "Dry run: nothing was written."},
 
+	"cli.failed": {other: "FAILED: {error}"},
+
+	// install (headless) and update
+	"cli.install.header":         {other: "aval {version} on {platform}"},
+	"cli.install.style.symlinks": {other: "symlinked: edits in the repo apply immediately"},
+	"cli.install.style.copy":     {other: "copied: re-run the installer after changing the repo"},
+	"cli.install.status.linked":  {other: "linked"},
+	"cli.install.status.copied":  {other: "copied"},
+	"cli.install.status.already": {other: "already installed"},
+	"cli.install.status.would":   {other: "would install"},
+	"cli.install.backed_up":      {other: "(backed up)"},
+	"cli.install.moved":          {one: "{count} existing file(s) moved to {path}", other: "{count} existing file(s) moved to {path}"},
+	"cli.install.failed_count":   {one: "{count} action(s) failed", other: "{count} action(s) failed"},
+	"cli.install.needs_terminal": {other: "aval install needs a terminal. For scripts use: aval install --yes"},
+	"cli.install.deprecated":     {other: "notice: running aval with only flags is deprecated; use 'aval install [--dry-run] [--yes] [--copy]'"},
+	"cli.update.updated":         {one: "Updated {current} → {latest} ({count} commit(s))", other: "Updated {current} → {latest} ({count} commit(s))"},
+	"cli.update.uptodate":        {other: "Already up to date ({current})"},
+	"cli.update.all_linked":      {other: "Everything already linked."},
+	"cli.update.would":           {one: "Would update {current} → {latest} ({count} commit(s))", other: "Would update {current} → {latest} ({count} commit(s))"},
+	"cli.update.paths":           {other: "Managed paths that change:"},
+	"cli.update.no_paths":        {other: "No managed path changes."},
+	"cli.update.entry":           {other: "manifest entry {entry}"},
+	"cli.update.dry_run":         {other: "Dry run: nothing was changed."},
+
 	// sync
 	"cli.sync.label.settings":     {other: "settings"},
 	"cli.sync.label.rules":        {other: "rules"},

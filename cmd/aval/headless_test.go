@@ -15,6 +15,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
 	"github.com/alvaroofernaandez/aval/internal/core/platform"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 	"github.com/alvaroofernaandez/aval/internal/ui/cli"
@@ -141,5 +142,57 @@ func TestRunHeadlessOutputHasNoEmDash(t *testing.T) {
 		if strings.Contains(b.String(), "—") {
 			t.Errorf("dryRun=%v: em dash in output:\n%s", dry, b.String())
 		}
+	}
+}
+
+// The same report in Spanish. The failure line keeps the error's own text: it
+// comes from the install package.
+func TestRunHeadlessPlainSpanishOutput(t *testing.T) {
+	pf := platform.Platform{OS: "darwin", Arch: "arm64"}
+	cases := []struct {
+		name   string
+		dryRun bool
+		want   string
+	}{
+		{"apply", false, "aval " + version + " en macOS (arm64)\n" +
+			"enlazado: los cambios en el repositorio se aplican al instante\n\n" +
+			"  ~/a                                          enlazado\n" +
+			"  ~/b                                          ya instalado\n" +
+			"  ~/c                                          enlazado  (con copia de seguridad)\n" +
+			"  ~/gone                                       FALLO: install: source missing: ROOT/repo/gone\n" +
+			"\n1 archivo existente movido a ROOT/bk\n"},
+		{"dry run", true, "aval " + version + " en macOS (arm64)\n" +
+			"enlazado: los cambios en el repositorio se aplican al instante\n\n" +
+			"  ~/a                                          se instalaría\n" +
+			"  ~/b                                          ya instalado\n" +
+			"  ~/c                                          se instalaría\n" +
+			"  ~/gone                                       FALLO: install: source missing: ROOT/repo/gone\n"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p, r, root := headlessFixture(t, c.dryRun)
+			var b strings.Builder
+			err := runHeadlessTo(&b, cli.Plain().WithLang(i18n.Spanish), p, pf, r, true, c.dryRun)
+			var n actionsFailed
+			if !errors.As(err, &n) || n != 1 {
+				t.Fatalf("err = %v, want one failed action", err)
+			}
+			if got := strings.ReplaceAll(b.String(), root, "ROOT"); got != c.want {
+				t.Errorf("output changed.\n got: %q\nwant: %q", got, c.want)
+			}
+		})
+	}
+}
+
+// A clean dry run ends on the Spanish dry-run line.
+func TestRunHeadlessSpanishDryRunLine(t *testing.T) {
+	pf := platform.Platform{OS: "darwin", Arch: "arm64"}
+	_, r, _ := headlessFixture(t, true)
+	var b strings.Builder
+	if err := runHeadlessTo(&b, cli.Plain().WithLang(i18n.Spanish), &plan.Plan{}, pf, r, true, true); err != nil {
+		t.Fatal(err)
+	}
+	if want := "\nSimulación: no se escribió nada.\n"; !strings.HasSuffix(b.String(), want) {
+		t.Errorf("output does not end with %q:\n%s", want, b.String())
 	}
 }

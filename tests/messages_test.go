@@ -166,6 +166,9 @@ func TestMessagesInstall(t *testing.T) {
 	runMessages(t, []msgCase{
 		{name: "install without a terminal", setup: missingSource, args: []string{"install", "--repo", "DIR/repo"}, code: 1, stderr: "error: aval install needs a terminal. For scripts use: aval install --yes\n"},
 		{name: "an action fails", setup: missingSource, args: []string{"install", "--yes", "--repo", "DIR/repo"}, code: 1, stderr: "error: 1 action(s) failed\n"},
+		{name: "install without a terminal, Spanish", setup: missingSource, args: []string{"install", "--repo", "DIR/repo"}, env: []string{"AVAL_LANG=es"}, code: 1,
+			stderr: "error: aval install necesita una terminal. Para scripts use: aval install --yes\n"},
+		{name: "an action fails, Spanish", setup: missingSource, args: []string{"install", "--yes", "--repo", "DIR/repo"}, env: []string{"AVAL_LANG=es"}, code: 1, stderr: "error: falló 1 acción\n"},
 	})
 }
 

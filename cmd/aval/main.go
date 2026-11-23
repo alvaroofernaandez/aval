@@ -281,12 +281,12 @@ func dispatch(argv []string, c cmdIO) error {
 		deps.out = c.stdout
 		deps.notify = func() {
 			if legacyInstall {
-				fmt.Fprintln(c.stderr, "notice: running aval with only flags is deprecated; use 'aval install [--dry-run] [--yes] [--copy]'")
+				fmt.Fprintln(c.stderr, i18n.New(uiCfg.Lang).T("cli.install.deprecated", nil))
 			}
 			notifyIfOutdated(uiCfg, c.stderr)
 		}
-		return runInstallWith(func() (string, error) { return resolveRepoWith(*repoFlag, c.env) },
-			home, opts.dryRun, opts.yes, opts.copy, deps)
+		return localizeErr(i18n.New(uiCfg.Lang), runInstallWith(func() (string, error) { return resolveRepoWith(*repoFlag, c.env) },
+			home, opts.dryRun, opts.yes, opts.copy, deps))
 	}
 
 	repo, err := resolveRepoWith(*repoFlag, c.env)
@@ -312,7 +312,7 @@ func dispatch(argv []string, c cmdIO) error {
 	}
 
 	if fs.Arg(0) == "update" {
-		return runUpdate(repo, home, *dryRun, *forceCopy, c.stdout, c.stderr)
+		return runUpdate(repo, home, *dryRun, *forceCopy, c.stdout, c.stderr, i18n.New(uiCfg.Lang))
 	}
 
 	// Every command in the list dispatches above; install left earlier.
@@ -620,38 +620,43 @@ func runHeadless(p *plan.Plan, pf platform.Platform, runner *install.Runner, sym
 }
 
 func runHeadlessTo(w io.Writer, pr *cli.Printer, p *plan.Plan, pf platform.Platform, runner *install.Runner, symlinks, dryRun bool) error {
-	fmt.Fprintf(w, "aval %s on %s\n", version, pf.Display())
-	fmt.Fprintf(w, "%s\n\n", pf.InstallStyle(symlinks))
+	tr := i18n.New(pr.Lang())
+	fmt.Fprintln(w, tr.T("cli.install.header", i18n.Args{"version": version, "platform": pf.Display()}))
+	if symlinks {
+		fmt.Fprintf(w, "%s\n\n", tr.T("cli.install.style.symlinks", nil))
+	} else {
+		fmt.Fprintf(w, "%s\n\n", tr.T("cli.install.style.copy", nil))
+	}
 
 	var failures int
 	backups := 0
 	for _, a := range p.SelectedActions() {
 		res, err := runner.Apply(a)
 		if err != nil {
-			fmt.Fprintf(w, "  %-44s %s\n", a.Label, pr.Fail("FAILED: "+err.Error()))
+			fmt.Fprintf(w, "  %-44s %s\n", a.Label, pr.Fail(tr.T("cli.failed", i18n.Args{"error": err.Error()})))
 			failures++
 			continue
 		}
-		status := pr.OK(res.Status.String())
+		status := pr.OK(statusWord(tr, res.Status))
 		if res.Status == install.StatusWould {
-			status = pr.Muted(res.Status.String())
+			status = pr.Muted(statusWord(tr, res.Status))
 		}
 		note := ""
 		if res.Backup != "" {
-			note = "  " + pr.Muted("(backed up)")
+			note = "  " + pr.Muted(tr.T("cli.install.backed_up", nil))
 			backups++
 		}
 		fmt.Fprintf(w, "  %-44s %s%s\n", a.Label, status, note)
 	}
 
 	if backups > 0 {
-		fmt.Fprintf(w, "\n%d existing file(s) moved to %s\n", backups, runner.BackupRoot())
+		fmt.Fprintf(w, "\n%s\n", tr.N("cli.install.moved", backups, i18n.Args{"path": runner.BackupRoot()}))
 	}
 	if failures > 0 {
 		return actionsFailed(failures)
 	}
 	if dryRun {
-		fmt.Fprintln(w, "\nDry run: nothing was written.")
+		fmt.Fprintf(w, "\n%s\n", tr.T("cli.dry_run", nil))
 	}
 	return nil
 }
@@ -662,13 +667,13 @@ func runHeadlessTo(w io.Writer, pr *cli.Printer, p *plan.Plan, pf platform.Platf
 // they change the instant the working tree does. What pulling misses is new
 // manifest entries and newly added skills, which have no link yet — hence the
 // re-apply, which is a no-op for everything already in place.
-func runUpdate(repo, home string, dryRun, forceCopy bool, out, errOut io.Writer) error {
+func runUpdate(repo, home string, dryRun, forceCopy bool, out, errOut io.Writer, tr i18n.Translator) error {
 	ctx, cancel := context.WithTimeout(context.Background(), update.DefaultTimeout)
 	defer cancel()
 
 	git := update.NewGit(repo)
 	if dryRun {
-		return previewUpdate(ctx, git, repo, out)
+		return previewUpdate(ctx, git, repo, out, tr)
 	}
 	status, err := update.Pull(ctx, git)
 	if err != nil {
@@ -677,9 +682,9 @@ func runUpdate(repo, home string, dryRun, forceCopy bool, out, errOut io.Writer)
 
 	switch {
 	case status.Updated:
-		fmt.Fprintf(out, "Updated %s → %s (%d commit(s))\n", status.Current, status.Latest, status.Behind)
+		fmt.Fprintln(out, tr.N("cli.update.updated", status.Behind, i18n.Args{"current": status.Current, "latest": status.Latest}))
 	default:
-		fmt.Fprintf(out, "Already up to date (%s)\n", status.Current)
+		fmt.Fprintln(out, tr.T("cli.update.uptodate", i18n.Args{"current": status.Current}))
 	}
 
 	// Re-apply regardless of whether anything was pulled: a previous run may
@@ -695,12 +700,12 @@ func runUpdate(repo, home string, dryRun, forceCopy bool, out, errOut io.Writer)
 	for _, a := range p.SelectedActions() {
 		res, err := runner.Apply(a)
 		if err != nil {
-			fmt.Fprintf(errOut, "  %-44s FAILED: %v\n", a.Label, err)
+			fmt.Fprintf(errOut, "  %-44s %s\n", a.Label, tr.T("cli.failed", i18n.Args{"error": err.Error()}))
 			failed++
 			continue
 		}
 		if res.Status != install.StatusAlready {
-			fmt.Fprintf(out, "  %-44s %s\n", a.Label, res.Status)
+			fmt.Fprintf(out, "  %-44s %s\n", a.Label, statusWord(tr, res.Status))
 			changed++
 		}
 	}
@@ -709,10 +714,10 @@ func runUpdate(repo, home string, dryRun, forceCopy bool, out, errOut io.Writer)
 		return ferr
 	}
 	if changed == 0 && failed == 0 {
-		fmt.Fprintln(out, "Everything already linked.")
+		fmt.Fprintln(out, tr.T("cli.update.all_linked", nil))
 	}
 	if failed > 0 {
-		return actionsFailed(failed)
+		return localizeErr(tr, actionsFailed(failed))
 	}
 	return nil
 }
@@ -720,7 +725,7 @@ func runUpdate(repo, home string, dryRun, forceCopy bool, out, errOut io.Writer)
 // previewUpdate is `aval update --dry-run`: what the pull would bring in, and
 // which manifest entries it would add or remove, with nothing changed. Like
 // the real update it refuses a dirty tree.
-func previewUpdate(ctx context.Context, g update.Git, repo string, out io.Writer) error {
+func previewUpdate(ctx context.Context, g update.Git, repo string, out io.Writer, tr i18n.Translator) error {
 	var m *manifest.Manifest
 	if loaded, err := manifest.Load(filepath.Join(repo, "install.manifest")); err == nil {
 		m = loaded
@@ -732,22 +737,22 @@ func previewUpdate(ctx context.Context, g update.Git, repo string, out io.Writer
 		return err
 	}
 	if p.Behind == 0 {
-		fmt.Fprintf(out, "Already up to date (%s)\n\nDry run: nothing was changed.\n", p.Current)
+		fmt.Fprintf(out, "%s\n\n%s\n", tr.T("cli.update.uptodate", i18n.Args{"current": p.Current}), tr.T("cli.update.dry_run", nil))
 		return nil
 	}
-	fmt.Fprintf(out, "Would update %s → %s (%d commit(s))\n", p.Current, p.Latest, p.Behind)
+	fmt.Fprintln(out, tr.N("cli.update.would", p.Behind, i18n.Args{"current": p.Current, "latest": p.Latest}))
 	if p.Stat != "" {
-		fmt.Fprintf(out, "\nManaged paths that change:\n%s\n", p.Stat)
+		fmt.Fprintf(out, "\n%s\n%s\n", tr.T("cli.update.paths", nil), p.Stat)
 	} else {
-		fmt.Fprintln(out, "\nNo managed path changes.")
+		fmt.Fprintf(out, "\n%s\n", tr.T("cli.update.no_paths", nil))
 	}
 	for _, a := range p.Added {
-		fmt.Fprintf(out, "  + manifest entry %s\n", a)
+		fmt.Fprintf(out, "  + %s\n", tr.T("cli.update.entry", i18n.Args{"entry": a}))
 	}
 	for _, r := range p.Removed {
-		fmt.Fprintf(out, "  - manifest entry %s\n", r)
+		fmt.Fprintf(out, "  - %s\n", tr.T("cli.update.entry", i18n.Args{"entry": r}))
 	}
-	fmt.Fprintln(out, "\nDry run: nothing was changed.")
+	fmt.Fprintf(out, "\n%s\n", tr.T("cli.update.dry_run", nil))
 	return nil
 }
 

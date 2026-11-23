@@ -69,6 +69,30 @@ var spanishCLI = catalog{
 	// shared
 	"cli.dry_run": {other: "Simulación: no se escribió nada."},
 
+	"cli.failed": {other: "FALLO: {error}"},
+
+	// install (headless) and update
+	"cli.install.header":         {other: "aval {version} en {platform}"},
+	"cli.install.style.symlinks": {other: "enlazado: los cambios en el repositorio se aplican al instante"},
+	"cli.install.style.copy":     {other: "copiado: vuelva a ejecutar el instalador tras cambiar el repositorio"},
+	"cli.install.status.linked":  {other: "enlazado"},
+	"cli.install.status.copied":  {other: "copiado"},
+	"cli.install.status.already": {other: "ya instalado"},
+	"cli.install.status.would":   {other: "se instalaría"},
+	"cli.install.backed_up":      {other: "(con copia de seguridad)"},
+	"cli.install.moved":          {one: "{count} archivo existente movido a {path}", other: "{count} archivos existentes movidos a {path}"},
+	"cli.install.failed_count":   {one: "falló {count} acción", other: "fallaron {count} acciones"},
+	"cli.install.needs_terminal": {other: "aval install necesita una terminal. Para scripts use: aval install --yes"},
+	"cli.install.deprecated":     {other: "aviso: ejecutar aval solo con opciones está obsoleto; use 'aval install [--dry-run] [--yes] [--copy]'"},
+	"cli.update.updated":         {one: "Actualizado {current} → {latest} ({count} commit)", other: "Actualizado {current} → {latest} ({count} commits)"},
+	"cli.update.uptodate":        {other: "Ya está al día ({current})"},
+	"cli.update.all_linked":      {other: "Todo ya está enlazado."},
+	"cli.update.would":           {one: "Se actualizaría {current} → {latest} ({count} commit)", other: "Se actualizaría {current} → {latest} ({count} commits)"},
+	"cli.update.paths":           {other: "Rutas gestionadas que cambian:"},
+	"cli.update.no_paths":        {other: "Sin cambios en las rutas gestionadas."},
+	"cli.update.entry":           {other: "entrada del manifiesto {entry}"},
+	"cli.update.dry_run":         {other: "Simulación: no se cambió nada."},
+
 	// sync
 	"cli.sync.label.settings":     {other: "ajustes"},
 	"cli.sync.label.rules":        {other: "reglas"},
