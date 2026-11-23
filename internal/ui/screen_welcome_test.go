@@ -196,7 +196,9 @@ func TestWelcomeInvalidPathShowsTheErrorInline(t *testing.T) {
 	f.typeText(f.home)
 	f.key("enter")
 	v = f.view()
-	if !strings.Contains(v, "not an aval repository") || !strings.Contains(v, "install.manifest") {
+	// The message wraps at the pane width, and a long temp path moves the break
+	// inside "not an aval repository"; compare the words, not the line breaks.
+	if flat := strings.Join(strings.Fields(v), " "); !strings.Contains(flat, "not an aval repository") || !strings.Contains(flat, "install.manifest") {
 		t.Errorf("the no-manifest error is not inline:\n%s", v)
 	}
 }
