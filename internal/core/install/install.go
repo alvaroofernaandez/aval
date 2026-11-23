@@ -113,14 +113,7 @@ func (r *Runner) Apply(a plan.Action) (Result, error) {
 	}
 
 	// Already correct? Nothing to do — this is what makes re-running safe.
-	if r.opt.Symlinks {
-		if target, err := os.Readlink(a.Dest); err == nil && target == a.Source {
-			res.Status = StatusAlready
-			return res, nil
-		}
-	} else if backup.SameContent(a.Source, a.Dest) {
-		// Copy mode: a destination that still equals the repo needs no new
-		// copy (and no new backup of the previous, identical, copy).
+	if r.alreadyCorrect(a) {
 		res.Status = StatusAlready
 		return res, nil
 	}
@@ -163,3 +156,48 @@ func (r *Runner) Apply(a plan.Action) (Result, error) {
 // Most manifest entries are directories, and the tmux scripts among them are
 // only useful if the executable bit survives.
 func copyPath(src, dst string) error { return backup.CopyPath(src, dst) }
+
+// alreadyCorrect is the one definition of "nothing to do": a link to the
+// source, or in copy mode a destination whose content equals the repo (so no
+// new copy and no backup of the identical previous one). Apply and Preview
+// both rely on it.
+func (r *Runner) alreadyCorrect(a plan.Action) bool {
+	if r.opt.Symlinks {
+		target, err := os.Readlink(a.Dest)
+		return err == nil && target == a.Source
+	}
+	return backup.SameContent(a.Source, a.Dest)
+}
+
+// State is what Apply would find at a destination.
+type State int
+
+const (
+	StateNew      State = iota // nothing there yet
+	StateLinked                // already in place (link to the source, or identical copy)
+	StateReplaces              // something else is there; Apply moves it to backup
+)
+
+func (s State) String() string {
+	switch s {
+	case StateNew:
+		return "new"
+	case StateLinked:
+		return "linked"
+	case StateReplaces:
+		return "replaces a file"
+	}
+	return "unknown"
+}
+
+// Preview reports what Apply would do at a destination, writing nothing.
+func (r *Runner) Preview(a plan.Action) State {
+	if r.alreadyCorrect(a) {
+		return StateLinked
+	}
+	// Lstat so a broken link counts as something Apply would displace.
+	if _, err := os.Lstat(a.Dest); err != nil {
+		return StateNew
+	}
+	return StateReplaces
+}
