@@ -5,11 +5,11 @@
   Desinstalar
 
   2 enlaces quitados · 1 archivo anterior restaurado · 1 bloque de reglas
-  cortado
+  quitado
 
   ! quitar enlace  ~/.zshrc            restaura el archivo anterior
   ! quitar enlace  ~/.config/tmux
-  ! cortar bloque  ~/.codex/AGENTS.md
+  ! quitar bloque  ~/.codex/AGENTS.md
 
   ────────────────────────────────────────────────────────────────────────────
   Todavía no ha cambiado nada

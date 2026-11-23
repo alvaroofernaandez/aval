@@ -3,11 +3,11 @@
 
  2 enlaces quitados 1 archivo
  anterior restaurado 1 bloque de
- reglas cortado
+ reglas quitado
 
  ! quitar enlace  ~/.zshrc
  ! quitar enlace  ~/.config/tmux
- ! cortar bloque  ~/.cod...NTS.md
+ ! quitar bloque  ~/.cod...NTS.md
  Todavía no ha cambiado nada
  enter continuar  esc volver
  ? ayuda

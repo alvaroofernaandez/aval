@@ -347,7 +347,7 @@ Preparación
                             [--dry-run]
   aval sync               fusiona los ajustes del repositorio en la configuración activa
                             [--dry-run]
-  aval config             muestra o cambia los ajustes de aval (tema, glifos, movimiento)
+  aval config             muestra o cambia los ajustes de aval (tema, glifos, animación)
                             [list | get <key> | set <key> <value> | path]
   aval dev                HOME aislado para desarrollar aval
                             [run | diff | reset | ls | rm | project]
@@ -399,7 +399,7 @@ Piezas internas
 Opciones globales:
   --repo <path>   el repositorio de aval que se usa
   --theme <name>  tema de color para esta ejecución (aval, terminal, mono, catppuccin, ...)
-  --plain         monocromo, glifos ASCII y sin movimiento
+  --plain         monocromo, glifos ASCII y sin animación
   --lang <code>   idioma de la salida para personas: auto, en o es
 
 Ajustes: theme, background, glyphs, motion, update_check, language. La precedencia

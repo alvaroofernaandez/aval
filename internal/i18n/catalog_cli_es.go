@@ -22,7 +22,7 @@ var spanishCLI = catalog{
 	"cli.usage.cmd.budget":     {other: "contexto fijo por agente y latencia de los hooks"},
 	"cli.usage.cmd.review":     {other: "nivel de riesgo según git y lentes de revisión"},
 	"cli.usage.cmd.design":     {other: "controles de diseño para el proyecto del directorio actual"},
-	"cli.usage.cmd.config":     {other: "muestra o cambia los ajustes de aval (tema, glifos, movimiento)"},
+	"cli.usage.cmd.config":     {other: "muestra o cambia los ajustes de aval (tema, glifos, animación)"},
 	"cli.usage.cmd.restore":    {other: "lista o restaura copias de seguridad"},
 	"cli.usage.cmd.uninstall":  {other: "quita los enlaces de aval y restaura lo que desplazaron"},
 	"cli.usage.cmd.dev":        {other: "HOME aislado para desarrollar aval"},
@@ -42,7 +42,7 @@ var spanishCLI = catalog{
 	"cli.usage.flags":      {other: "Opciones globales:"},
 	"cli.usage.flag.repo":  {other: "el repositorio de aval que se usa"},
 	"cli.usage.flag.theme": {other: "tema de color para esta ejecución (aval, terminal, mono, catppuccin, ...)"},
-	"cli.usage.flag.plain": {other: "monocromo, glifos ASCII y sin movimiento"},
+	"cli.usage.flag.plain": {other: "monocromo, glifos ASCII y sin animación"},
 	"cli.usage.flag.lang":  {other: "idioma de la salida para personas: auto, en o es"},
 	"cli.usage.settings": {other: "Ajustes: theme, background, glyphs, motion, update_check, language. La precedencia\n" +
 		"es opción, luego variable AVAL_*, luego ~/.config/aval/config; language sigue\n" +
@@ -117,7 +117,7 @@ var spanishCLI = catalog{
 	"cli.sync.overlay.already":    {other: "ya enlazado"},
 	"cli.sync.overlay.would":      {other: "enlazaría"},
 	"cli.sync.recovered":          {other: "copia {id} recuperada: una sincronización anterior se interrumpió y se restauró"},
-	"cli.sync.rolled_back":        {other: "sync revertido; la copia {id} está marcada como fallida (aval restore --list)"},
+	"cli.sync.rolled_back":        {other: "sincronización revertida; la copia {id} está marcada como fallida (aval restore --list)"},
 	"cli.sync.drift.settings":     {other: "~/.claude/settings.json cambiaría: {keys}"},
 	"cli.sync.drift.file_missing": {other: "archivo ausente; {keys}"},
 	"cli.sync.drift.rules":        {other: "{path} está desactualizado"},
@@ -127,13 +127,13 @@ var spanishCLI = catalog{
 
 	// restore
 	"cli.restore.none":                {other: "aún no hay copias de seguridad"},
-	"cli.restore.pinned":              {other: "copia {id} protegida"},
-	"cli.restore.unpinned":            {other: "protección retirada de la copia {id}"},
+	"cli.restore.pinned":              {other: "copia {id} fijada"},
+	"cli.restore.unpinned":            {other: "copia {id} sin fijar"},
 	"cli.restore.done":                {other: "copia {id} restaurada"},
 	"cli.restore.col.id":              {other: "ID"},
 	"cli.restore.col.date":            {other: "FECHA"},
 	"cli.restore.col.entries":         {other: "ENTRADAS"},
-	"cli.restore.col.pinned":          {other: "PROTEGIDA"},
+	"cli.restore.col.pinned":          {other: "FIJADA"},
 	"cli.restore.col.state":           {other: "ESTADO"},
 	"cli.restore.yes":                 {other: "sí"},
 	"cli.restore.no":                  {other: "no"},
