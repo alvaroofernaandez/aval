@@ -93,8 +93,6 @@ type operationSpec[P any] struct {
 	Loading, Running string
 	// Result overrides the default result rendering.
 	Result func(c chrome, l layout, r opResult, err error) []string
-	// Motion turns the network spinner on; off shows static text.
-	Motion bool
 }
 
 type operation[P any] struct {
@@ -164,7 +162,6 @@ func newOperation[P any](spec operationSpec[P]) (operation[P], error) {
 			p, err := load(ctx)
 			return opPreviewMsg[P]{p, err}
 		}),
-		o.tick(),
 	)
 	return o, nil
 }
@@ -172,9 +169,9 @@ func newOperation[P any](spec operationSpec[P]) (operation[P], error) {
 func (o operation[P]) init() tea.Cmd { return o.start }
 
 // spinning reports whether the current wait shows the spinner: network
-// waits only, and only with motion on.
+// waits only, and only with the chrome's motion on.
 func (o operation[P]) spinning() bool {
-	return o.spec.Motion && o.spec.Kind == opNetwork && (o.phase == phaseLoading || o.phase == phaseRun)
+	return o.c.Motion && o.spec.Kind == opNetwork && (o.phase == phaseLoading || o.phase == phaseRun)
 }
 
 // tick issues the next spinner frame when the wait spins.
@@ -211,7 +208,12 @@ func (o operation[P]) newConfirmFor() confirm {
 func (o operation[P]) update(msg tea.Msg) (screen, tea.Cmd) {
 	switch msg := msg.(type) {
 	case chromeMsg:
+		motionOn := msg.c.Motion && !o.c.Motion
 		o.c = msg.c
+		if motionOn {
+			// The first tick waits for the chrome: only it knows motion is on.
+			return o, o.tick()
+		}
 		return o, nil
 	case tea.KeyMsg:
 		return o.key(msg)

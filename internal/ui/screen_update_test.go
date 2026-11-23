@@ -298,3 +298,93 @@ func init() {
 		}},
 	)
 }
+
+// motionChrome is the test chrome with the resolved motion setting.
+func motionChrome(t *testing.T, motion bool) chrome {
+	c := testChrome(t, true)
+	c.Motion = motion
+	return c
+}
+
+func hasSpinner(text, label string) bool {
+	for _, f := range spinFrames {
+		if strings.Contains(text, f+" "+label) {
+			return true
+		}
+	}
+	return false
+}
+
+// openUpdateWith is openUpdate with the chrome's motion setting; it returns
+// the command the chrome message produced and the held fetch result.
+func openUpdateWith(t *testing.T, svc Services, motion bool) (screen, tea.Cmd, []tea.Msg) {
+	t.Helper()
+	var s screen = newUpdateView(svc)
+	s, cmd := s.update(chromeMsg{motionChrome(t, motion)})
+	return s, cmd, drainOp(s.init())
+}
+
+func TestUpdateFetchWithMotionOffShowsStaticText(t *testing.T) {
+	s, cmd, _ := openUpdateWith(t, updateServices(t, &updateProbe{}, behindPreview(), nil), false)
+	text := viewText(s)
+	if !strings.Contains(text, "Fetching origin") || hasSpinner(text, "Fetching origin") {
+		t.Errorf("motion off: want static Fetching origin, got:\n%s", text)
+	}
+	if cmd != nil {
+		t.Error("motion off: the chrome message scheduled a tick")
+	}
+	if next, tick := s.update(opTickMsg{}); tick != nil || viewText(next) != text {
+		t.Error("motion off: a tick still animates the fetch")
+	}
+}
+
+func TestUpdateFetchWithMotionOnSpins(t *testing.T) {
+	s, cmd, _ := openUpdateWith(t, updateServices(t, &updateProbe{}, behindPreview(), nil), true)
+	if !hasSpinner(viewText(s), "Fetching origin") {
+		t.Errorf("motion on: no spinner beside the fetch:\n%s", viewText(s))
+	}
+	if cmd == nil {
+		t.Error("motion on: the chrome message scheduled no tick")
+	}
+}
+
+func TestUpdatePullWithMotionOffShowsStaticText(t *testing.T) {
+	s := loaded(t, newUpdateView(updateServices(t, &updateProbe{}, behindPreview(), nil))) // motion off
+	s, _ = s.update(key("enter"))
+	text := viewText(s)
+	if !strings.Contains(text, "Pulling") || hasSpinner(text, "Pulling") {
+		t.Errorf("motion off: want static Pulling, got:\n%s", text)
+	}
+	if next, tick := s.update(opTickMsg{}); tick != nil || viewText(next) != text {
+		t.Error("motion off: a tick still animates the pull")
+	}
+}
+
+func TestUpdatePullWithMotionOnSpins(t *testing.T) {
+	var s screen = newUpdateView(updateServices(t, &updateProbe{}, behindPreview(), nil))
+	s, _ = opStep(s, chromeMsg{motionChrome(t, true)})
+	for _, m := range drainOp(s.init()) {
+		s, _ = opStep(s, m)
+	}
+	s, _ = s.update(key("enter"))
+	if !hasSpinner(viewText(s), "Pulling") {
+		t.Errorf("motion on: no spinner beside the pull:\n%s", viewText(s))
+	}
+}
+
+func TestNetworkWaitFollowsTheChromeMotion(t *testing.T) {
+	s := loaded(t, testOperation(t, opNetwork, confirmInline, &opProbe{})) // chrome: motion off
+	s, _ = s.update(key("enter"))
+	if hasSpinner(viewText(s), "Removing links") {
+		t.Errorf("chrome motion off but the operation spins:\n%s", viewText(s))
+	}
+}
+
+func TestNewHubCarriesTheMotionSetting(t *testing.T) {
+	for _, motion := range []bool{true, false} {
+		a := NewHub(goldenTheme(t, true), "macOS (arm64)", Services{}, motion).(App)
+		if a.chrome.Motion != motion {
+			t.Errorf("NewHub(motion=%v): chrome.Motion = %v", motion, a.chrome.Motion)
+		}
+	}
+}

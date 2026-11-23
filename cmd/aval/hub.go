@@ -84,7 +84,7 @@ func runBare(out io.Writer, repoFlag string, flags uiFlags, e hubEnv) error {
 		return err
 	}
 	svc, closeFn := newHubServices(e, home, repoFlag, us)
-	_, err = e.run(ui.NewHub(theme, ui.PlatformLabel(runtime.GOOS, runtime.GOARCH), svc))
+	_, err = e.run(ui.NewHub(theme, ui.PlatformLabel(runtime.GOOS, runtime.GOARCH), svc, c.Motion))
 	if cerr := closeFn(); err == nil {
 		err = cerr
 	}

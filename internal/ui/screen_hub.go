@@ -104,8 +104,8 @@ type hub struct {
 
 // NewHub builds the hub as the program runs it: a router with the hub at the
 // root. Every service it reads at start is read-only.
-func NewHub(theme Theme, platform string, svc Services) tea.Model {
-	c := chrome{theme: theme, version: svc.Build.Version, platform: platform}
+func NewHub(theme Theme, platform string, svc Services, motion bool) tea.Model {
+	c := chrome{theme: theme, version: svc.Build.Version, platform: platform, Motion: motion}
 	return newApp(c, svc, newHub(svc))
 }
 

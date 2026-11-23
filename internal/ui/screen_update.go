@@ -79,7 +79,6 @@ func newUpdateView(svc Services) screen {
 		},
 		Loading: "Fetching origin",
 		Running: "Pulling",
-		Motion:  true,
 	})
 	if err != nil {
 		panic(err)

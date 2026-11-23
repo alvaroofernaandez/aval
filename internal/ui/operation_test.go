@@ -19,7 +19,7 @@ type opProbe struct {
 	ctx  context.Context
 }
 
-func testOperation(t *testing.T, kind opKind, mode confirmMode, motion bool, p *opProbe) operation[fakePreview] {
+func testOperation(t *testing.T, kind opKind, mode confirmMode, p *opProbe) operation[fakePreview] {
 	t.Helper()
 	o, err := newOperation(operationSpec[fakePreview]{
 		Kind:    kind,
@@ -48,7 +48,6 @@ func testOperation(t *testing.T, kind opKind, mode confirmMode, motion bool, p *
 		PreviewStatus: "Nothing has changed yet",
 		Loading:       "Reading the links",
 		Running:       "Removing links",
-		Motion:        motion,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -89,9 +88,13 @@ func drainOp(cmd tea.Cmd) []tea.Msg {
 }
 
 // loaded runs the operation's init and delivers the preview.
-func loaded(t *testing.T, o screen) screen {
+func loaded(t *testing.T, o screen) screen { return loadedWith(t, o, false) }
+
+// loadedWith is loaded with the chrome's motion setting.
+func loadedWith(t *testing.T, o screen, motion bool) screen {
 	t.Helper()
 	ch := testChrome(t, true)
+	ch.Motion = motion
 	o, _ = opStep(o, chromeMsg{ch})
 	for _, m := range drainOp(o.init()) {
 		o, _ = opStep(o, m)
@@ -121,7 +124,7 @@ func TestOperationRequiresASafetyLine(t *testing.T) {
 
 func TestDestructiveOperationConfirmsOnItsOwnStepOnCancel(t *testing.T) {
 	p := &opProbe{}
-	s := loaded(t, testOperation(t, opAtomic, confirmDestructive, false, p))
+	s := loaded(t, testOperation(t, opAtomic, confirmDestructive, p))
 	if got := phaseOf(t, s); got != phasePreview {
 		t.Fatalf("after load phase = %v, want preview", got)
 	}
@@ -142,7 +145,7 @@ func TestDestructiveOperationConfirmsOnItsOwnStepOnCancel(t *testing.T) {
 
 func TestEnterOnCancelRunsNothing(t *testing.T) {
 	p := &opProbe{}
-	s := loaded(t, testOperation(t, opAtomic, confirmDestructive, false, p))
+	s := loaded(t, testOperation(t, opAtomic, confirmDestructive, p))
 	s, _ = opStep(s, key("enter"))
 	s, _ = opStep(s, key("enter"))
 	if p.runs != 0 {
@@ -155,7 +158,7 @@ func TestEnterOnCancelRunsNothing(t *testing.T) {
 
 func TestEnterOnTheActionRunsOnce(t *testing.T) {
 	p := &opProbe{}
-	s := loaded(t, testOperation(t, opAtomic, confirmDestructive, false, p))
+	s := loaded(t, testOperation(t, opAtomic, confirmDestructive, p))
 	s, _ = opStep(s, key("enter"))
 	s, _ = opStep(s, key("up"))
 	s, _ = opStep(s, key("enter"))
@@ -169,7 +172,7 @@ func TestEnterOnTheActionRunsOnce(t *testing.T) {
 
 func TestInlineOperationRunsFromThePreview(t *testing.T) {
 	p := &opProbe{}
-	s := loaded(t, testOperation(t, opAtomic, confirmInline, false, p))
+	s := loaded(t, testOperation(t, opAtomic, confirmInline, p))
 	if !strings.Contains(viewText(s), "› Remove 2 links") {
 		t.Errorf("inline rows want the cursor on the action under the preview:\n%s", viewText(s))
 	}
@@ -181,7 +184,7 @@ func TestInlineOperationRunsFromThePreview(t *testing.T) {
 
 func TestInlineBackPopsTheView(t *testing.T) {
 	p := &opProbe{}
-	s := loaded(t, testOperation(t, opAtomic, confirmInline, false, p))
+	s := loaded(t, testOperation(t, opAtomic, confirmInline, p))
 	s, _ = opStep(s, key("down"))
 	_, out := opStep(s, key("enter"))
 	if p.runs != 0 || len(out) != 1 || out[0] != (popMsg{}) {
@@ -191,7 +194,7 @@ func TestInlineBackPopsTheView(t *testing.T) {
 
 func TestResultCarriesCountsBackupAndUndo(t *testing.T) {
 	p := &opProbe{}
-	s := loaded(t, testOperation(t, opAtomic, confirmInline, false, p))
+	s := loaded(t, testOperation(t, opAtomic, confirmInline, p))
 	s, _ = opStep(s, key("enter"))
 	got := viewText(s)
 	for _, want := range []string{"Removed 2 links.", "2 removed", "55 already in place", "20261123-101402", "aval restore latest"} {
@@ -205,7 +208,7 @@ func TestResultCarriesCountsBackupAndUndo(t *testing.T) {
 }
 
 func TestRunErrorShowsAFailure(t *testing.T) {
-	o := testOperation(t, opAtomic, confirmInline, false, &opProbe{})
+	o := testOperation(t, opAtomic, confirmInline, &opProbe{})
 	o.spec.Run = func(context.Context, fakePreview) (opResult, error) {
 		return opResult{BackupID: "20261123-101402", Undo: "aval restore latest"}, errors.New("rolled back: doctor failed")
 	}
@@ -221,7 +224,7 @@ func TestRunErrorShowsAFailure(t *testing.T) {
 // command unrun, with the probe holding the run's context once it runs.
 func startRun(t *testing.T, kind opKind, motion bool, p *opProbe) (screen, []tea.Msg) {
 	t.Helper()
-	s := loaded(t, testOperation(t, kind, confirmInline, motion, p))
+	s := loadedWith(t, testOperation(t, kind, confirmInline, p), motion)
 	next, cmd := s.update(key("enter"))
 	if got := phaseOf(t, next); got != phaseRun {
 		t.Fatalf("enter: phase = %v, want run", got)

@@ -53,6 +53,9 @@ type chrome struct {
 	theme    Theme
 	version  string
 	platform string
+	// Motion is the resolved motion setting (caps.Caps.Motion): false with
+	// motion off or without a TTY, and every spinner then shows static text.
+	Motion bool
 
 	width, height int
 }
