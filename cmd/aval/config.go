@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -54,6 +55,7 @@ const configUsage = "usage: aval config [list | get <key> | set <key> <value> | 
 // home directory are injected so tests never touch the real HOME.
 func runConfig(args []string, stdout, stderr io.Writer, getenv func(string) string, home string) error {
 	path := config.Path(getenv, home, runtime.GOOS)
+	tr := i18n.New(langAt(path, getenv))
 	sub := "list"
 	if len(args) > 0 {
 		sub, args = args[0], args[1:]
@@ -64,17 +66,17 @@ func runConfig(args []string, stdout, stderr io.Writer, getenv func(string) stri
 	switch sub {
 	case "list":
 		if len(args) > 0 {
-			return newUsage(configUsage)
+			return newUsage(tr.T("cli.config.usage", nil))
 		}
-		return configList(path, stdout, stderr, getenv)
+		return configList(path, stdout, stderr, getenv, tr)
 	case "get":
 		if len(args) != 1 {
-			return newUsage(configUsage)
+			return newUsage(tr.T("cli.config.usage", nil))
 		}
-		return configGet(path, args[0], stdout, stderr, getenv)
+		return configGet(path, args[0], stdout, stderr, getenv, tr)
 	case "set":
 		if len(args) != 2 {
-			return newUsage(configUsage)
+			return newUsage(tr.T("cli.config.usage", nil))
 		}
 		if err := config.Set(path, args[0], args[1]); err != nil {
 			return err
@@ -83,12 +85,23 @@ func runConfig(args []string, stdout, stderr io.Writer, getenv func(string) stri
 		return nil
 	case "path":
 		if len(args) > 0 {
-			return newUsage(configUsage)
+			return newUsage(tr.T("cli.config.usage", nil))
 		}
 		fmt.Fprintln(stdout, path)
 		return nil
 	}
-	return newUsage(fmt.Sprintf("unknown config command %q; %s", sub, configUsage))
+	return newUsage(tr.T("cli.config.unknown_command", i18n.Args{"command": strconv.Quote(sub)}))
+}
+
+// langAt resolves the language for a config command from the file at path:
+// --lang reaches here as AVAL_LANG (see dispatch), so the usual precedence
+// holds. A file that cannot be read is skipped; loadConfig reports it.
+func langAt(path string, getenv func(string) string) i18n.Lang {
+	f, _, err := config.Load(path)
+	if err != nil {
+		f, _, _ = config.Load("")
+	}
+	return resolveLang(f, "", getenv)
 }
 
 func loadConfig(path string, stderr io.Writer, getenv func(string) string) (*config.File, error) {
@@ -103,7 +116,7 @@ func loadConfig(path string, stderr io.Writer, getenv func(string) string) (*con
 	return f, nil
 }
 
-func configList(path string, stdout, stderr io.Writer, getenv func(string) string) error {
+func configList(path string, stdout, stderr io.Writer, getenv func(string) string, tr i18n.Translator) error {
 	f, err := loadConfig(path, stderr, getenv)
 	if err != nil {
 		return err
@@ -119,7 +132,7 @@ func configList(path string, stdout, stderr io.Writer, getenv func(string) strin
 	if unknown := f.Unknown(); len(unknown) > 0 {
 		fmt.Fprintln(stdout)
 		for _, k := range unknown {
-			fmt.Fprintf(stdout, "unknown key %q (%s)\n", k, unknownSource(path, k))
+			fmt.Fprintln(stdout, tr.T("cli.config.unknown_in_file", i18n.Args{"key": strconv.Quote(k), "source": unknownSource(path, k)}))
 		}
 	}
 	return nil
@@ -145,13 +158,14 @@ func unknownSource(path, key string) string {
 	return "file"
 }
 
-func configGet(path, key string, stdout, stderr io.Writer, getenv func(string) string) error {
+func configGet(path, key string, stdout, stderr io.Writer, getenv func(string) string, tr i18n.Translator) error {
 	valid := false
 	for _, k := range config.Keys() {
 		valid = valid || k == key
 	}
 	if !valid {
-		return fmt.Errorf("%w %q. Valid: %s", errUnknownKey, key, strings.Join(config.Keys(), ", "))
+		err := fmt.Errorf("%w %q. Valid: %s", errUnknownKey, key, strings.Join(config.Keys(), ", "))
+		return localizedError{err: err, text: tr.T("cli.config.unknown_key", i18n.Args{"key": strconv.Quote(key), "valid": strings.Join(config.Keys(), ", ")})}
 	}
 	f, err := loadConfig(path, stderr, getenv)
 	if err != nil {

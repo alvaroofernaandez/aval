@@ -93,6 +93,12 @@ var englishCLI = catalog{
 	"cli.update.entry":           {other: "manifest entry {entry}"},
 	"cli.update.dry_run":         {other: "Dry run: nothing was changed."},
 
+	// config
+	"cli.config.usage":           {other: "usage: aval config [list | get <key> | set <key> <value> | path]"},
+	"cli.config.unknown_command": {other: "unknown config command {command}; usage: aval config [list | get <key> | set <key> <value> | path]"},
+	"cli.config.unknown_key":     {other: "unknown config key {key}. Valid: {valid}"},
+	"cli.config.unknown_in_file": {other: "unknown key {key} ({source})"},
+
 	// sync
 	"cli.sync.label.settings":     {other: "settings"},
 	"cli.sync.label.rules":        {other: "rules"},

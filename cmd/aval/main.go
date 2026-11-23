@@ -214,7 +214,11 @@ func dispatch(argv []string, c cmdIO) error {
 		if err != nil {
 			return fmt.Errorf("cannot determine home directory: %w", err)
 		}
-		return runConfig(sub, c.stdout, c.stderr, c.env, home)
+		env, err := envWithLang(c.env, *langFlag)
+		if err != nil {
+			return err
+		}
+		return runConfig(sub, c.stdout, c.stderr, env, home)
 	}
 
 	// Unix-only commands say so instead of failing somewhere inside.

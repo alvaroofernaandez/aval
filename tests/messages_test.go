@@ -115,7 +115,19 @@ func TestMessagesPlatform(t *testing.T) {
 }
 
 func TestMessagesConfig(t *testing.T) {
+	unknownKey := func(t *testing.T, _, home string) { write(t, configFile(home), "bogus = 1\n") }
+	const valid = "repo, theme, background, glyphs, motion, update_check, language"
 	runMessages(t, []msgCase{
+		{name: "get an unknown key, Spanish", args: []string{"config", "get", "bogus"}, env: []string{"AVAL_LANG=es"}, code: 1,
+			stderr: "error: clave de configuración desconocida \"bogus\". Válidas: " + valid + "\n"},
+		{name: "config with an unknown subcommand, Spanish", args: []string{"config", "bogus"}, env: []string{"AVAL_LANG=es"}, code: 1,
+			stderr: "error: comando de config desconocido \"bogus\"; uso: aval config [list | get <key> | set <key> <value> | path]\n"},
+		{name: "config with --lang es", args: []string{"--lang", "es", "config", "bogus"}, code: 1,
+			stderr: "error: comando de config desconocido \"bogus\"; uso: aval config [list | get <key> | set <key> <value> | path]\n"},
+		{name: "list with an unknown key in the file", setup: unknownKey, args: []string{"config", "list"},
+			stdout: "repo                  default\ntheme          aval   default\nbackground     auto   default\nglyphs         auto   default\nmotion         auto   default\nupdate_check   off    env\nlanguage       en     env\n\nunknown key \"bogus\" (file:1)\n"},
+		{name: "list with an unknown key in the file, Spanish", setup: unknownKey, args: []string{"config", "list"}, env: []string{"AVAL_LANG=es"},
+			stdout: "repo                  default\ntheme          aval   default\nbackground     auto   default\nglyphs         auto   default\nmotion         auto   default\nupdate_check   off    env\nlanguage       es     env\n\nclave desconocida \"bogus\" (file:1)\n"},
 		{name: "get an unknown key", args: []string{"config", "get", "bogus"}, code: 1, stderr: "error: unknown config key \"bogus\". Valid: repo, theme, background, glyphs, motion, update_check, language\n"},
 		{name: "set a misspelt theme", args: []string{"config", "set", "theme", "catpuccin"}, code: 1, stderr: "error: config: CONFIG: theme = \"catpuccin\" is not a theme. Valid: aval, aval-dark, aval-light, terminal, mono, catppuccin, catppuccin-mocha, catppuccin-latte, catppuccin-frappe, catppuccin-macchiato, tokyo-night, tokyo-night-storm, tokyo-night-day, gruvbox, gruvbox-dark, gruvbox-light, dracula, dracula-alucard, nord, kanagawa, kanagawa-wave, kanagawa-dragon, kanagawa-lotus, rose-pine, rose-pine-moon, rose-pine-dawn, solarized, solarized-dark, solarized-light, one-dark, one-light, everforest, everforest-dark, everforest-light. Did you mean catppuccin?\n"},
 		{name: "set a theme by its prefix", args: []string{"config", "set", "theme", "tokio"}, code: 1, stderr: "error: config: CONFIG: theme = \"tokio\" is not a theme. Valid: aval, aval-dark, aval-light, terminal, mono, catppuccin, catppuccin-mocha, catppuccin-latte, catppuccin-frappe, catppuccin-macchiato, tokyo-night, tokyo-night-storm, tokyo-night-day, gruvbox, gruvbox-dark, gruvbox-light, dracula, dracula-alucard, nord, kanagawa, kanagawa-wave, kanagawa-dragon, kanagawa-lotus, rose-pine, rose-pine-moon, rose-pine-dawn, solarized, solarized-dark, solarized-light, one-dark, one-light, everforest, everforest-dark, everforest-light. Did you mean tokyo-night?\n"},
@@ -138,6 +150,10 @@ func TestMessagesLanguage(t *testing.T) {
 		{name: "set a misspelt language", args: []string{"config", "set", "language", "esp"}, code: 1,
 			stderr: "error: config: CONFIG: language = \"esp\" is not a valid language. Valid: auto, en, es. Did you mean es?\n"},
 		{name: "a bad --lang", args: []string{"--lang", "esp", "doctor"}, code: 1,
+			stderr: "error: invalid --lang: language = \"esp\" is not a valid language. Valid: auto, en, es. Did you mean es?\n"},
+		{name: "a bad --lang on config", args: []string{"--lang", "esp", "config", "list"}, code: 1,
+			stderr: "error: invalid --lang: language = \"esp\" is not a valid language. Valid: auto, en, es. Did you mean es?\n"},
+		{name: "a bad --lang on sync", args: []string{"--lang", "esp", "sync"}, code: 1,
 			stderr: "error: invalid --lang: language = \"esp\" is not a valid language. Valid: auto, en, es. Did you mean es?\n"},
 	})
 }

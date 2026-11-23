@@ -93,6 +93,12 @@ var spanishCLI = catalog{
 	"cli.update.entry":           {other: "entrada del manifiesto {entry}"},
 	"cli.update.dry_run":         {other: "Simulación: no se cambió nada."},
 
+	// config
+	"cli.config.usage":           {other: "uso: aval config [list | get <key> | set <key> <value> | path]"},
+	"cli.config.unknown_command": {other: "comando de config desconocido {command}; uso: aval config [list | get <key> | set <key> <value> | path]"},
+	"cli.config.unknown_key":     {other: "clave de configuración desconocida {key}. Válidas: {valid}"},
+	"cli.config.unknown_in_file": {other: "clave desconocida {key} ({source})"},
+
 	// sync
 	"cli.sync.label.settings":     {other: "ajustes"},
 	"cli.sync.label.rules":        {other: "reglas"},
