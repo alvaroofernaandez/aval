@@ -88,7 +88,7 @@ func (n Notice) String() string {
 // has to handle: being offline, behind a proxy, or on a machine with no DNS
 // must never stop someone installing their dotfiles.
 func CheckLatest(ctx context.Context, current string) Notice {
-	return checkFor(ctx, PackageURL, current)
+	return checkForAndStore(ctx, PackageURL, current)
 }
 
 // checkAt is CheckLatest with the endpoint injected, so the failure paths can

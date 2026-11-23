@@ -640,22 +640,11 @@ func runUpdate(repo, home string, dryRun, forceCopy bool, out io.Writer) error {
 // which manifest entries it would add or remove, with nothing changed. Like
 // the real update it refuses a dirty tree.
 func previewUpdate(ctx context.Context, g update.Git, repo string, out io.Writer) error {
-	paths := []string{"install.manifest"}
-	if m, err := manifest.Load(filepath.Join(repo, "install.manifest")); err == nil {
-		seen := map[string]bool{"install.manifest": true}
-		for _, grp := range m.Groups {
-			srcs := []string{grp.FanoutSource}
-			for _, e := range grp.Entries {
-				srcs = append(srcs, e.Source)
-			}
-			for _, s := range srcs {
-				if s != "" && !seen[s] {
-					seen[s] = true
-					paths = append(paths, s)
-				}
-			}
-		}
+	var m *manifest.Manifest
+	if loaded, err := manifest.Load(filepath.Join(repo, "install.manifest")); err == nil {
+		m = loaded
 	}
+	paths := update.ManagedPaths(m)
 
 	p, err := update.DryRun(ctx, g, paths)
 	if err != nil {
