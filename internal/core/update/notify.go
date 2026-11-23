@@ -172,3 +172,9 @@ func ShouldCheck(now time.Time) bool {
 	_ = os.WriteFile(stamp, []byte(now.Format(time.RFC3339)), 0o644)
 	return true
 }
+
+// ShouldCheckWith is ShouldCheck with the update_check setting applied:
+// enabled=false (update_check = off) silences the notice like the env opt-out.
+func ShouldCheckWith(now time.Time, enabled bool) bool {
+	return enabled && ShouldCheck(now)
+}

@@ -76,9 +76,11 @@ func run() error {
 		repoFlag  = flag.String("repo", "", "path to the aval repository (default: $AVAL_REPO, then the one aval install recorded)")
 		showVer   = flag.Bool("version", false, "print the version and exit")
 		forceCopy = flag.Bool("copy", false, "copy files instead of symlinking them")
+		themeFlag = flag.String("theme", "", "colour theme for this run (default: $AVAL_THEME, then the config file, then aval)")
+		plainFlag = flag.Bool("plain", false, "monochrome, ASCII glyphs and no motion")
 	)
 	flag.Usage = func() { printUsage(flag.CommandLine.Output()) }
-	_ = flag.CommandLine.Parse(hoistRepo(os.Args[1:])) // ExitOnError: never returns an error
+	_ = flag.CommandLine.Parse(hoistGlobals(os.Args[1:])) // ExitOnError: never returns an error
 
 	if *showVer {
 		fmt.Print(currentBuild().text(runtime.GOOS, runtime.GOARCH))
@@ -178,6 +180,21 @@ func run() error {
 		return runDev(*repoFlag, flag.Args()[1:])
 	}
 
+	// Only commands that draw read the UI settings; everything above this line
+	// is a hot path or standalone and never touches the config file.
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	cmdName := flag.Arg(0)
+	if legacyInstall {
+		cmdName = "install"
+	}
+	uiCfg, err := settingsForCommand(cmdName, uiFlags{Theme: *themeFlag, Plain: *plainFlag}, os.Getenv, home, os.Stderr)
+	if err != nil {
+		return err
+	}
+
 	opts := installOpts{dryRun: *dryRun, yes: *yes, copy: *forceCopy}
 	if flag.Arg(0) == "install" {
 		var err error
@@ -190,16 +207,12 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("cannot determine home directory: %w", err)
-	}
 
 	// doctor and sync are offline and local, so they dispatch before the
 	// update notice: a health check must not wait on the network.
 	switch flag.Arg(0) {
 	case "doctor":
-		return runDoctor(repo, home, flag.Args()[1:], os.Stdout)
+		return runDoctor(repo, home, flag.Args()[1:], os.Stdout, uiCfg)
 	case "budget":
 		return runBudget(home, flag.Args()[1:], os.Stdout)
 	case "sync":
@@ -219,9 +232,9 @@ func run() error {
 	if legacyInstall {
 		fmt.Fprintln(os.Stderr, "notice: running aval with only flags is deprecated; use 'aval install [--dry-run] [--yes] [--copy]'")
 	}
-	notifyIfOutdated()
+	notifyIfOutdated(uiCfg)
 
-	return runInstall(repo, home, opts.dryRun, opts.yes, opts.copy)
+	return runInstall(repo, home, opts.dryRun, opts.yes, opts.copy, uiCfg)
 }
 
 // installFlagsGiven reports whether an install flag was set without a
@@ -242,11 +255,11 @@ func installFlagsGiven() bool {
 // npm never pushes an update to an installed package, so a globally installed
 // copy stays on whatever version it was installed at until someone acts. This
 // is that prompt. It is rate-limited to once a day, opt-out-able via
-// AVAL_NO_UPDATE_CHECK, and silent on every failure — being offline must
+// AVAL_NO_UPDATE_CHECK or update_check = off, and silent on every failure — being offline must
 // not stop anyone installing their dotfiles.
-func notifyIfOutdated() {
+func notifyIfOutdated(s uiSettings) {
 	v := currentBuild().Version
-	if release.Channel(v) == release.ChannelDev || !update.ShouldCheck(time.Now()) {
+	if release.Channel(v) == release.ChannelDev || !update.ShouldCheckWith(time.Now(), s.UpdateCheck) {
 		return
 	}
 
@@ -320,8 +333,10 @@ func unavailableGroups(m *manifest.Manifest, goos string) []ui.UnavailableGroup 
 	return out
 }
 
-func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
-	return runInstallWith(repo, home, dryRun, yes, forceCopy, realInstallDeps())
+func runInstall(repo, home string, dryRun, yes, forceCopy bool, s uiSettings) error {
+	deps := realInstallDeps()
+	deps.ui = s
+	return runInstallWith(repo, home, dryRun, yes, forceCopy, deps)
 }
 
 // installDeps are the seams runInstall needs from the outside world.
@@ -329,6 +344,8 @@ type installDeps struct {
 	isTTY  func(fd uintptr) bool
 	run    func(tea.Model) (tea.Model, error)
 	finish func(repo, home string, dryRun bool) error
+	// ui is the resolved look-and-feel; the zero value means defaults.
+	ui uiSettings
 }
 
 func realInstallDeps() installDeps {
@@ -389,7 +406,7 @@ func runInstallWith(repo, home string, dryRun, yes, forceCopy bool, deps install
 	runner := install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: dryRun})
 
 	if yes {
-		err := runHeadless(p, pf, runner, symlinks, dryRun)
+		err := runHeadless(p, pf, runner, symlinks, dryRun, deps.ui)
 		if err == nil {
 			err = finishInstall(repo, home, dryRun)
 		}
@@ -401,10 +418,8 @@ func runInstallWith(repo, home string, dryRun, yes, forceCopy bool, deps install
 	model := ui.NewModel(p, runner, ui.Options{
 		Version:  version,
 		Platform: ui.PlatformLabel(runtime.GOOS, runtime.GOARCH),
-		Caps: caps.Detect(caps.Inputs{
-			Getenv: os.Getenv, GOOS: runtime.GOOS, IsTTY: term.IsTerminal(fd),
-			Width: width, Height: height, Glyphs: "auto", Motion: "auto", Background: "auto",
-		}),
+		Caps:     caps.Detect(deps.ui.capsInputs(os.Getenv, runtime.GOOS, term.IsTerminal(fd), width, height)),
+		Theme:    deps.ui.Theme,
 		Symlinks: symlinks,
 		DryRun:   dryRun,
 	})
@@ -425,12 +440,12 @@ func finish(r *install.Runner, err error) error {
 // runHeadless is the provisioning path: no TUI, one line per action, and a
 // non-zero exit if anything failed. Status cells are styled only when stdout is
 // a terminal; otherwise the output is plain and byte-stable.
-func runHeadless(p *plan.Plan, pf platform.Platform, runner *install.Runner, symlinks, dryRun bool) error {
-	return runHeadlessTo(os.Stdout, newPrinter(os.Stdout), p, pf, runner, symlinks, dryRun)
+func runHeadless(p *plan.Plan, pf platform.Platform, runner *install.Runner, symlinks, dryRun bool, s uiSettings) error {
+	return runHeadlessTo(os.Stdout, newPrinterFor(os.Stdout, s), p, pf, runner, symlinks, dryRun)
 }
 
 func runHeadlessTo(w io.Writer, pr *cli.Printer, p *plan.Plan, pf platform.Platform, runner *install.Runner, symlinks, dryRun bool) error {
-	fmt.Fprintf(w, "aval %s — %s\n", version, pf.Display())
+	fmt.Fprintf(w, "aval %s on %s\n", version, pf.Display())
 	fmt.Fprintf(w, "%s\n\n", pf.InstallStyle(symlinks))
 
 	var failures int
@@ -461,7 +476,7 @@ func runHeadlessTo(w io.Writer, pr *cli.Printer, p *plan.Plan, pf platform.Platf
 		return fmt.Errorf("%d action(s) failed", failures)
 	}
 	if dryRun {
-		fmt.Fprintln(w, "\nDry run — nothing was written.")
+		fmt.Fprintln(w, "\nDry run: nothing was written.")
 	}
 	return nil
 }

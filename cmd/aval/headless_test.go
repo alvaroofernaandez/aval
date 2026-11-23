@@ -74,14 +74,14 @@ func TestRunHeadlessPlainOutputIsByteStable(t *testing.T) {
 		dryRun bool
 		want   string
 	}{
-		{"apply", false, "aval " + version + " — macOS (arm64)\n" +
+		{"apply", false, "aval " + version + " on macOS (arm64)\n" +
 			"symlinked: edits in the repo apply immediately\n\n" +
 			"  ~/a                                          linked\n" +
 			"  ~/b                                          already installed\n" +
 			"  ~/c                                          linked  (backed up)\n" +
 			"  ~/gone                                       FAILED: install: source missing: ROOT/repo/gone\n" +
 			"\n1 existing file(s) moved to ROOT/bk\n"},
-		{"dry run", true, "aval " + version + " — macOS (arm64)\n" +
+		{"dry run", true, "aval " + version + " on macOS (arm64)\n" +
 			"symlinked: edits in the repo apply immediately\n\n" +
 			"  ~/a                                          would install\n" +
 			"  ~/b                                          already installed\n" +
@@ -92,7 +92,7 @@ func TestRunHeadlessPlainOutputIsByteStable(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			p, r, root := headlessFixture(t, c.dryRun)
 			var err error
-			out := captureStdout(t, func() { err = runHeadless(p, pf, r, true, c.dryRun) })
+			out := captureStdout(t, func() { err = runHeadless(p, pf, r, true, c.dryRun, uiSettings{}) })
 			if err == nil || err.Error() != "1 action(s) failed" {
 				t.Fatalf("err = %v", err)
 			}
@@ -124,6 +124,20 @@ func TestRunHeadlessToStyledKeepsTheWords(t *testing.T) {
 	for _, want := range []string{"√ linked", "√ already installed", "× FAILED: install: source missing: " + root + "/repo/gone", "(backed up)"} {
 		if !strings.Contains(stripped, want) {
 			t.Errorf("missing %q in:\n%s", want, stripped)
+		}
+	}
+}
+
+func TestRunHeadlessOutputHasNoEmDash(t *testing.T) {
+	pf := platform.Platform{OS: "darwin", Arch: "arm64"}
+	for _, dry := range []bool{false, true} {
+		_, r, _ := headlessFixture(t, dry)
+		var b strings.Builder
+		if err := runHeadlessTo(&b, cli.Plain(), &plan.Plan{}, pf, r, true, dry); err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(b.String(), "—") {
+			t.Errorf("dryRun=%v: em dash in output:\n%s", dry, b.String())
 		}
 	}
 }

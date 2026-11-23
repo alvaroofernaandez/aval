@@ -51,12 +51,12 @@ func TestRunSyncCheckFlagsRulesDrift(t *testing.T) {
 func TestRunDoctorSecurityFlagAddsChecksToJSON(t *testing.T) {
 	repo, home := fakeMachine(t)
 	var out bytes.Buffer
-	_ = runDoctor(repo, home, []string{"--security", "--json"}, &out)
+	_ = runDoctor(repo, home, []string{"--security", "--json"}, &out, uiSettings{})
 	if !strings.Contains(out.String(), "sec-permissions-broad") {
 		t.Errorf("--security --json should include the sec- checks:\n%s", out.String())
 	}
 	out.Reset()
-	_ = runDoctor(repo, home, []string{"--json"}, &out)
+	_ = runDoctor(repo, home, []string{"--json"}, &out, uiSettings{})
 	if strings.Contains(out.String(), "sec-") {
 		t.Errorf("sec- checks must be off by default:\n%s", out.String())
 	}
@@ -66,12 +66,12 @@ func TestRunDoctorSecurityAllowFlag(t *testing.T) {
 	repo, home := fakeMachine(t)
 	writeFile(t, filepath.Join(home, ".claude/settings.json"), `{"permissions":{"allow":["Bash(*)"]}}`)
 	var out bytes.Buffer
-	_ = runDoctor(repo, home, []string{"--security", "--json"}, &out)
+	_ = runDoctor(repo, home, []string{"--security", "--json"}, &out, uiSettings{})
 	if !strings.Contains(out.String(), "wildcard-broad") {
 		t.Fatalf("precondition: broad entry should be flagged:\n%s", out.String())
 	}
 	out.Reset()
-	_ = runDoctor(repo, home, []string{"--security", "--allow", "sec-permissions-broad", "--json"}, &out)
+	_ = runDoctor(repo, home, []string{"--security", "--allow", "sec-permissions-broad", "--json"}, &out, uiSettings{})
 	if strings.Contains(out.String(), "wildcard-broad") {
 		t.Errorf("--allow did not suppress:\n%s", out.String())
 	}

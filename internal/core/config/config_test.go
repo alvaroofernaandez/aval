@@ -242,3 +242,24 @@ func TestPath(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateIsExportedForFlags(t *testing.T) {
+	if msg := Validate("theme", "nord"); msg != "" {
+		t.Errorf("nord is valid, got %q", msg)
+	}
+	msg := Validate("theme", "tokio-night")
+	if !strings.Contains(msg, "Did you mean tokyo-night?") {
+		t.Errorf("no suggestion in %q", msg)
+	}
+	if Validate("motion", "sometimes") == "" {
+		t.Error("motion=sometimes must be invalid")
+	}
+}
+
+func TestUnknownKeysCarryTheirLine(t *testing.T) {
+	f, _, _ := Load(write(t, "# c\ntheme = nord\nfoo = 1\n\ncolour = red\n"))
+	got := f.UnknownKeys()
+	if len(got) != 2 || got[0].Key != "foo" || got[0].Line != 3 || got[1].Key != "colour" || got[1].Line != 5 {
+		t.Errorf("UnknownKeys() = %+v", got)
+	}
+}

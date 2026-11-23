@@ -6,11 +6,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
+	"github.com/alvaroofernaandez/aval/internal/core/config"
 	"github.com/alvaroofernaandez/aval/internal/core/doctor"
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
 	"github.com/alvaroofernaandez/aval/internal/core/txsync"
@@ -41,7 +43,7 @@ func short(home, p string) string {
 }
 
 // runDoctor is `aval doctor [--fix] [--json]`: offline, read-only unless --fix.
-func runDoctor(repo, home string, args []string, out io.Writer) error {
+func runDoctor(repo, home string, args []string, out io.Writer, ui uiSettings) error {
 	fs := newFlagSet("doctor", out)
 	fix := fs.Bool("fix", false, "remove broken links and run sync")
 	asJSON := fs.Bool("json", false, "print the results as a JSON array")
@@ -55,6 +57,7 @@ func runDoctor(repo, home string, args []string, out io.Writer) error {
 	opt := doctor.Options{
 		Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS,
 		Security: *security, Allow: allow,
+		ConfigPath: config.Path(os.Getenv, home, runtime.GOOS),
 	}
 
 	if *fix {
@@ -77,7 +80,7 @@ func runDoctor(repo, home string, args []string, out io.Writer) error {
 			return err
 		}
 	} else {
-		doctor.RenderStyled(out, results, newPrinter(out))
+		doctor.RenderStyled(out, results, newPrinterFor(out, ui))
 	}
 	if doctor.HasFail(results) {
 		return errChecksFailed

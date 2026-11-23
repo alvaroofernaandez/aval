@@ -38,6 +38,9 @@ type Options struct {
 	// Caps is the detected terminal. It picks the theme variant and glyph tier,
 	// and its size is the starting size until the first WindowSizeMsg.
 	Caps caps.Caps
+	// Theme names the palette; empty means DefaultThemeName. An unknown name
+	// falls back to the default.
+	Theme string
 
 	Symlinks bool
 	DryRun   bool
@@ -106,9 +109,15 @@ const (
 
 // NewModel builds the initial state.
 func NewModel(p *plan.Plan, r *install.Runner, o Options) Model {
-	th, err := NewTheme(DefaultThemeName, o.Caps, nil)
+	name := o.Theme
+	if name == "" {
+		name = DefaultThemeName
+	}
+	th, err := NewTheme(name, o.Caps, nil)
 	if err != nil {
-		th = DefaultTheme()
+		if th, err = NewTheme(DefaultThemeName, o.Caps, nil); err != nil {
+			th = DefaultTheme()
+		}
 	}
 	m := Model{
 		theme:    th,

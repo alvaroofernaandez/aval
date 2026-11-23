@@ -156,3 +156,18 @@ func TestUpdateCommandMatchesTheInstallMethod(t *testing.T) {
 		t.Errorf("a repo path should not suggest npm, got %q", got)
 	}
 }
+
+func TestShouldCheckWithDisabledSettingSilencesTheNotice(t *testing.T) {
+	// update_check = off in the config file means the same as the env opt-out.
+	dir := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", dir)
+	testenv.SetHome(t, dir)
+	t.Setenv("AVAL_NO_UPDATE_CHECK", "")
+
+	if ShouldCheckWith(time.Now(), false) {
+		t.Error("update_check = off was ignored")
+	}
+	if !ShouldCheckWith(time.Now(), true) {
+		t.Error("update_check = on must still check")
+	}
+}

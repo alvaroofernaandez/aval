@@ -189,7 +189,7 @@ func fakeMachine(t *testing.T) (repo, home string) {
 func TestRunDoctorJSONAndExitCode(t *testing.T) {
 	repo, home := fakeMachine(t)
 	var out bytes.Buffer
-	err := runDoctor(repo, home, []string{"--json"}, &out)
+	err := runDoctor(repo, home, []string{"--json"}, &out, uiSettings{})
 	if !errors.Is(err, errChecksFailed) {
 		t.Errorf("err = %v, want errChecksFailed (agents link is missing)", err)
 	}
@@ -202,7 +202,7 @@ func TestRunDoctorJSONAndExitCode(t *testing.T) {
 func TestRunDoctorTable(t *testing.T) {
 	repo, home := fakeMachine(t)
 	var out bytes.Buffer
-	_ = runDoctor(repo, home, nil, &out)
+	_ = runDoctor(repo, home, nil, &out, uiSettings{})
 	if !strings.Contains(out.String(), "STATUS") || !strings.Contains(out.String(), "fail") && !strings.Contains(out.String(), "FAIL") {
 		t.Errorf("unexpected table:\n%s", out.String())
 	}
@@ -210,7 +210,7 @@ func TestRunDoctorTable(t *testing.T) {
 
 func TestRunDoctorRejectsUnknownFlags(t *testing.T) {
 	repo, home := fakeMachine(t)
-	err := runDoctor(repo, home, []string{"--bogus"}, &bytes.Buffer{})
+	err := runDoctor(repo, home, []string{"--bogus"}, &bytes.Buffer{}, uiSettings{})
 	if err == nil || errors.Is(err, errChecksFailed) {
 		t.Errorf("err = %v, want a usage error", err)
 	}
@@ -226,7 +226,7 @@ func TestRunDoctorFix(t *testing.T) {
 		t.Skip("symlinks unavailable")
 	}
 	var out bytes.Buffer
-	_ = runDoctor(repo, home, []string{"--fix"}, &out)
+	_ = runDoctor(repo, home, []string{"--fix"}, &out, uiSettings{})
 	if _, err := os.Lstat(dead); err == nil {
 		t.Error("--fix left the dangling link")
 	}
@@ -278,4 +278,32 @@ func TestRunSyncHonoursTheGlobalDryRunFlag(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(home, ".claude/settings.json")); err == nil {
 		t.Error("global --dry-run was ignored")
 	}
+}
+
+func TestDoctorReportsConfigProblemsWithLines(t *testing.T) {
+	repo, home := t.TempDir(), t.TempDir()
+	xdg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", xdg)
+	cfg := filepath.Join(xdg, "aval", "config")
+	if err := os.MkdirAll(filepath.Dir(cfg), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cfg, []byte("theme = tokio-night\ncolour = red\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	_ = runDoctor(repo, home, []string{"--json"}, &out, uiSettings{})
+	var rs []struct{ ID, Status, Message string }
+	if err := json.Unmarshal(out.Bytes(), &rs); err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range rs {
+		if r.ID == "config" {
+			if r.Status != "warn" || !strings.Contains(r.Message, cfg+":1") || !strings.Contains(r.Message, cfg+":2") {
+				t.Errorf("config check = %+v", r)
+			}
+			return
+		}
+	}
+	t.Errorf("doctor has no config check: %s", out.String())
 }

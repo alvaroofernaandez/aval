@@ -51,6 +51,8 @@ type Options struct {
 	Allow []string
 	// LookPath resolves a bare command name; nil means exec.LookPath.
 	LookPath func(string) (string, error)
+	// ConfigPath is aval's config file; empty skips the config check.
+	ConfigPath string
 }
 
 // brokenLinkDirs are scanned one level deep for dangling symlinks.
@@ -74,6 +76,9 @@ func Run(opt Options) []Result {
 		checkSettingsDrift(opt),
 	)
 	rs = append(rs, checkOverlay(opt)...)
+	if opt.ConfigPath != "" {
+		rs = append(rs, checkConfig(opt))
+	}
 	if opt.Security {
 		rs = append(rs, checkSecurity(opt)...)
 	}

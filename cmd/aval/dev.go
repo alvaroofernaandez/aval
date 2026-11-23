@@ -148,7 +148,7 @@ func devDiff(repoFlag, home string, out io.Writer) error {
 	symlinks := pf.SupportsSymlinks(probe)
 
 	fmt.Fprintf(out, "aval dev diff (read-only, nothing is written): what would change in %s\n\n== aval install --yes ==\n", home)
-	if err := runHeadless(p, pf, install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: true}), symlinks, true); err != nil {
+	if err := runHeadless(p, pf, install.New(install.Options{Home: home, Symlinks: symlinks, DryRun: true}), symlinks, true, uiSettings{}); err != nil {
 		return err
 	}
 	fmt.Fprintln(out, "\n== aval sync ==")

@@ -138,3 +138,13 @@ func TestUsageCopyRules(t *testing.T) {
 		t.Errorf("usage breaks the copy rules:\n%s", text)
 	}
 }
+
+func TestUsageDocumentsThemeAndPlain(t *testing.T) {
+	var b strings.Builder
+	printUsage(&b)
+	for _, want := range []string{"--theme <name>", "--plain", "NO_COLOR"} {
+		if !strings.Contains(b.String(), want) {
+			t.Errorf("usage lacks %q", want)
+		}
+	}
+}

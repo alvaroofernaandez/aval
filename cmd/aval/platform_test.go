@@ -40,7 +40,7 @@ func TestCopyModeInstallDoctorUninstallRoundTrip(t *testing.T) {
 	repo, home := fakeMachine(t)
 	dest := filepath.Join(home, ".claude", "agents")
 
-	if err := runInstall(repo, home, false, true, true); err != nil {
+	if err := runInstall(repo, home, false, true, true, uiSettings{}); err != nil {
 		t.Fatal(err)
 	}
 	if fi, err := os.Lstat(dest); err != nil || fi.Mode()&os.ModeSymlink != 0 || !fi.IsDir() {
@@ -52,11 +52,11 @@ func TestCopyModeInstallDoctorUninstallRoundTrip(t *testing.T) {
 
 	// An identical copy is healthy, and a second install does not displace it.
 	var out bytes.Buffer
-	_ = runDoctor(repo, home, nil, &out)
+	_ = runDoctor(repo, home, nil, &out, uiSettings{})
 	if strings.Contains(out.String(), "manifest links") && strings.Contains(out.String(), "need attention") {
 		t.Errorf("doctor flags a healthy copy:\n%s", out.String())
 	}
-	if err := runInstall(repo, home, false, true, true); err != nil {
+	if err := runInstall(repo, home, false, true, true, uiSettings{}); err != nil {
 		t.Fatal(err)
 	}
 

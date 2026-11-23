@@ -101,7 +101,12 @@ func renderUsage(w io.Writer, version string, configured bool) {
 	}
 	fmt.Fprint(w, `
 Global flags:
-  --repo <path>  the aval repository to use
+  --repo <path>   the aval repository to use
+  --theme <name>  colour theme for this run (aval, terminal, mono, catppuccin, ...)
+  --plain         monochrome, ASCII glyphs and no motion
+
+Settings: theme, background, glyphs, motion, update_check. Precedence is flag,
+then AVAL_* environment, then ~/.config/aval/config. NO_COLOR turns colour off.
 
 The repository is found from, in order: --repo, $AVAL_REPO, the location
 'aval install' recorded in ~/.config/aval/config, then the current directory.

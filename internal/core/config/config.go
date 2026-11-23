@@ -97,9 +97,10 @@ type entry struct {
 
 // File is a parsed config file.
 type File struct {
-	path    string
-	vals    map[string]entry
-	unknown []string
+	path      string
+	vals      map[string]entry
+	unknown   []string
+	unknownAt []UnknownKey
 }
 
 // Path is where the config lives: ${XDG_CONFIG_HOME:-~/.config}/aval/config,
@@ -135,6 +136,7 @@ func Load(path string) (*File, []Warning, error) {
 		}
 		if !slices.Contains(keys, k) {
 			f.unknown = append(f.unknown, k)
+			f.unknownAt = append(f.unknownAt, UnknownKey{Key: k, Line: i + 1})
 			continue
 		}
 		if _, dup := f.vals[k]; dup {
@@ -317,3 +319,15 @@ func lev(a, b string) int {
 	}
 	return prev[len(b)]
 }
+
+// Validate returns an error message for an invalid value, or "" when valid.
+func Validate(key, value string) string { return validate(key, value) }
+
+// UnknownKey is a key aval does not know, with its 1-based line.
+type UnknownKey struct {
+	Key  string
+	Line int
+}
+
+// UnknownKeys returns the unknown keys with their lines.
+func (f *File) UnknownKeys() []UnknownKey { return slices.Clone(f.unknownAt) }
