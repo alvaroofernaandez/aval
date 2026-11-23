@@ -1,0 +1,14 @@
+ aval 0.2.0
+ Keys
+ ↑, k       move
+ ↓, j       move
+ space, x   toggle
+ →, l       details
+ ←, h       details
+ a          all
+ n          none
+ enter      install
+ ?          help
+ q, ctrl+c  quit
+ help
+ esc close

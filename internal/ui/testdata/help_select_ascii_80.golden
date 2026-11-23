@@ -1,0 +1,19 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
+
+  Keys
+  up, k      move
+  down, j    move
+  space, x   toggle
+  right, l   details
+  left, h    details
+  a          all
+  n          none
+  enter      install
+  ?          help
+  q, ctrl+c  quit
+
+  ----------------------------------------------------------------------------
+  help
+  up/down scroll  esc close

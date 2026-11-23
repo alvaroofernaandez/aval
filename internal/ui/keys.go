@@ -2,7 +2,7 @@ package ui
 
 // The key map is the single source for both Update and the hint line: Update
 // only acts on keys a screen's map lists, and the hint line is generated from
-// the same map. A later `?` overlay renders the full map, hidden rows included.
+// the same map. A `?` overlay (help.go) renders the full map, hidden rows included.
 
 // action is what a key does, independent of which key triggers it.
 type action int
@@ -20,6 +20,8 @@ const (
 	// actStop ends an install after the step in flight: quitting there would
 	// leave a half-applied run with no summary.
 	actStop
+	// actHelp toggles the help overlay.
+	actHelp
 )
 
 // Label tokens resolved through the glyph tier, so ASCII terminals see
@@ -88,6 +90,9 @@ func (g Glyphs) keyLabel(label string) string {
 	return label
 }
 
+// helpBinding is on every screen, so `?` is always the way to see every key.
+var helpBinding = binding{keys: []string{"?"}, action: actHelp, label: "?", desc: "help", core: true}
+
 var quitBinding = binding{keys: []string{"q", "ctrl+c"}, action: actQuit, label: "q", desc: "quit"}
 
 var selectKeys = keyMap{
@@ -99,26 +104,38 @@ var selectKeys = keyMap{
 	{keys: []string{"a"}, action: actAll, label: "a", desc: "all"},
 	{keys: []string{"n"}, action: actClear, label: "n", desc: "none"},
 	{keys: []string{"enter"}, action: actInstall, label: "enter", desc: "install", core: true},
+	helpBinding,
 	quitBinding,
 }
 
 var installKeys = keyMap{
 	{keys: []string{"q", "ctrl+c"}, action: actStop, label: "ctrl+c", desc: "stops after the current step", core: true},
+	helpBinding,
 }
 
 // stoppingKeys keeps q and ctrl+c bound once a stop is pending, so a second
 // press is swallowed, but drops the hint: the status line says it instead.
 var stoppingKeys = keyMap{
-	{keys: []string{"q", "ctrl+c"}, action: actStop},
+	{keys: []string{"q", "ctrl+c"}, action: actStop, desc: "stops after the current step"},
+	{keys: []string{"?"}, action: actHelp, desc: "help"},
 }
 
 var doneKeys = keyMap{
 	{keys: []string{"enter", "esc"}, action: actClose, label: "enter", desc: "close", core: true},
+	helpBinding,
 	quitBinding,
 }
 
-// keyMap is the map for the current screen.
+// keyMap is the map Update acts on and the hint line shows.
 func (m Model) keyMap() keyMap {
+	if m.help {
+		return helpKeysFor(m.screen)
+	}
+	return m.screenKeys()
+}
+
+// screenKeys is the map for the current screen.
+func (m Model) screenKeys() keyMap {
 	switch m.screen {
 	case ScreenInstall:
 		if m.stopping {

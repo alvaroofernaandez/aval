@@ -88,6 +88,10 @@ type Model struct {
 	// done screen only when actions were actually left.
 	stopping, stopped bool
 
+	// help is the `?` overlay; helpTop is its scroll cursor (see help.go).
+	help    bool
+	helpTop int
+
 	width, height int
 	// Quitting records a deliberate exit, so main can tell "the user pressed q"
 	// apart from "the install finished".
@@ -176,7 +180,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // perform routes one bound action to the screen that owns it.
 func (m Model) perform(act action) (tea.Model, tea.Cmd) {
+	if m.help && act != actStop {
+		return m.helpAction(act)
+	}
 	switch act {
+	case actHelp:
+		m.help, m.helpTop = true, 0
+		return m, nil
 	case actQuit:
 		m.Quitting = true
 		return m, tea.Quit
@@ -197,6 +207,9 @@ func (m Model) perform(act action) (tea.Model, tea.Cmd) {
 
 // View renders the current screen inside the shared frame.
 func (m Model) View() string {
+	if m.help {
+		return m.render(m.helpView())
+	}
 	switch m.screen {
 	case ScreenInstall:
 		return m.render(m.installView())
