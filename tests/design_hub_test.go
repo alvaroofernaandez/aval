@@ -29,7 +29,7 @@ func TestDesignCoversTheHub(t *testing.T) {
 	mustHave(t, `[Bb]are `+"`aval`", s, "section 10 says bare `aval` opens the hub")
 	mustContain(t, s, "writes nothing", "section 10 says opening the hub writes nothing")
 	mustHave(t, `^### Wordmark`, s, "section 10 has a Wordmark subsection")
-	mustContain(t, s, "7 rows by 41 columns", "section 10 states the wordmark size")
+	mustContain(t, s, "7 rows by 40 columns", "section 10 states the wordmark size")
 	mustContain(t, s, "80 columns or more", "section 10 states the wordmark size rule")
 	mustContain(t, s, "▜█▙▖  ▄██▌    ▝███▛     ▝██▄  ▗▟██   ██", "section 10 carries the approved wordmark art")
 	mustHave(t, `^### Navigation`, s, "section 10 has a Navigation subsection")

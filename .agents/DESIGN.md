@@ -253,9 +253,9 @@ each `a` is a ring plus a stem, the `v` is the check, the `l` is the ascender.
 It is generated, never hand-drawn: a generator in `tools/brand` emits
 `internal/ui/wordmark_gen.go`, and a test fails when the file is stale.
 
-- **Unicode tier:** quadrant block elements, 7 rows by 41 columns, sampled 4x4
+- **Unicode tier:** quadrant block elements, 7 rows by 40 columns, sampled 4x4
   per subpixel at a 0.42 coverage threshold.
-- **ASCII tier:** the same raster in `#`, at half resolution.
+- **ASCII tier:** derived cell by cell from the same quadrant raster, so the shape never drifts. Cells with 3 or 4 quarters filled become `#`. A top pair becomes `"` and a bottom pair `,`; other pairs become `#`. A single top quarter becomes `'`, a single bottom quarter `.`. Pure ASCII, 7 rows by 40 columns.
 - **Colour:** ink only, bold `strong`. No state colour, no gradient.
 
 ```
@@ -356,7 +356,7 @@ and `tmux` helpers never read the visual settings.
 
 ### 2026-11-23: TUI hub: gentle-ai structure, aval aesthetic
 Every command except install and config was text you had to know by name. The owner chose gentle-ai's structure (a home screen with a large logo, a status panel and a menu, one view per action) with aval's aesthetic: ink only, colour on state glyphs, the existing frame. Decided questions:
-- **Wordmark:** a 7-row by 41-column quadrant raster generated from the real brand geometry in `tools/brand`, with a `#` ASCII tier. Braille and a hand-drawn box-letter `a` were rejected.
+- **Wordmark:** a 7-row by 40-column quadrant raster generated from the real brand geometry in `tools/brand`, with an ASCII tier derived from the same raster. Braille and a hand-drawn box-letter `a` were rejected.
 - **Update line:** read from the cache, so opening the hub stays offline and writes nothing.
 - **Dev sandbox without a checkout:** shown dimmed as unavailable with the reason "needs a checkout and Go", not hidden.
 

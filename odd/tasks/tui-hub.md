@@ -55,8 +55,8 @@ Out of scope: the v0.7.0 multiplexer, and any change to non-interactive output.
 
 ### Large wordmark (owner-approved 2026-11-23)
 The wordmark is rasterised from the real brand geometry in `tools/brand/logo.go`: each `a` is a ring plus a stem, the `v` is the check, and the `l` is the ascender. It is never hand-drawn.
-- **Unicode tier:** quadrant block elements (`▗▟█▛▜▙▀▄▌▐`), 7 rows by 41 columns, sampled 4x4 per subpixel at a 0.42 coverage threshold.
-- **ASCII tier:** the same raster in `#`, at half resolution.
+- **Unicode tier:** quadrant block elements (`▗▟█▛▜▙▀▄▌▐`), 7 rows by 40 columns, sampled 4x4 per subpixel at a 0.42 coverage threshold.
+- **ASCII tier:** derived cell by cell from the same quadrant raster, so the shape never drifts. Cells with 3 or 4 quarters filled become `#`. A top pair becomes `"` and a bottom pair `,`; other pairs become `#`. A single top quarter becomes `'`, a single bottom quarter `.`. Pure ASCII, 7 rows by 40 columns.
 - **Generation:** a generator in `tools/brand` emits `internal/ui/wordmark_gen.go`, and a test checks that the generated file is current. When the brand changes, the terminal logo changes with it.
 - **Rejected:** braille (it reads dotted and grainy in screenshots) and a hand-drawn box-letter `a`.
 ```
