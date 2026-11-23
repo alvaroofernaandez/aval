@@ -757,7 +757,10 @@ kept), `warn` (threshold, problem), `muted` (the old way, an alternative).
 changed in the last 72 hours. Its identity is its headings, so ticking boxes keeps the deck
 valid and a new or renamed section asks for a new deck. Edits under `odd/` and to
 `*.deck.json` are always allowed; the gate fails open on anything it cannot read. Bypass
-deliberately with `AVAL_PLAN_DECK_OFF=1`.
+deliberately with `AVAL_PLAN_DECK_OFF=1`. Claude Code runs it as a PreToolUse hook; OpenCode
+runs it through `config/opencode/plugin/plan-gate.ts`, which hands the same payload to the same
+`aval hook plan-gate` binary before every edit, write and patch, so both agents share one rule
+and one deck marker. Without the binary the plugin fails open.
 
 **Browser.** `AVAL_CHROME` overrides the lookup (Chrome, Chromium, Brave, Edge). The brand
 fonts load from Google Fonts; offline, the deck falls back to system fonts.
