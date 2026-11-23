@@ -206,7 +206,7 @@ func TestReleaseEnvironment(t *testing.T) {
 	work, _ := releaseRepo(t)
 	commitIn(t, work, "feat: a")
 	relGit(t, work, "tag", "-a", "v0.2.0", "-m", "x")
-	cases := map[string]string{"v0.2.1": release.EnvPatch, "v0.3.0": release.EnvRelease, "v0.2.1-rc.1": release.EnvRelease}
+	cases := map[string]string{"v0.2.1": release.EnvAuto, "v0.3.0": release.EnvRelease, "v0.2.1-rc.1": release.EnvAuto}
 	for tag, want := range cases {
 		out, err := release1(t, work, "", "environment", tag)
 		if err != nil {

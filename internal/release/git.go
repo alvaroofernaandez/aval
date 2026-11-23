@@ -371,14 +371,14 @@ func Cut(g Git, o CutOptions) error {
 }
 
 // reportWorkflow says what the release workflow does next: publish on its own
-// for a patch, or wait for the owner's approval.
+// for a tag that needs no approval, or wait for the owner's approval.
 func reportWorkflow(g Git, w io.Writer, remote, env string) {
 	url := ""
 	if r, err := g.Run("remote", "get-url", remote); err == nil {
 		url = WorkflowURL(r)
 	}
-	if env == EnvPatch {
-		fmt.Fprintf(w, "\nThe release workflow publishes on its own: the %q environment needs no approval.\n", EnvPatch)
+	if env == EnvAuto {
+		fmt.Fprintf(w, "\nThe release workflow publishes on its own: the %q environment needs no approval.\n", EnvAuto)
 		if url != "" {
 			fmt.Fprintf(w, "Follow it here: %s\n", url)
 		}
