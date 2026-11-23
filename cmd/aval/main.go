@@ -88,12 +88,16 @@ func run() error {
 		return nil
 	}
 
-	// A bare `aval` prints the usage: installing writes to HOME, so it is never
-	// the default. Unknown commands fail here, before any repository lookup.
+	// A bare `aval` prints the usage (or opens the hub on a terminal, which
+	// writes nothing): installing writes to HOME, so it is never the default. Unknown commands fail here, before any repository lookup.
 	legacyInstall := flag.NArg() == 0 && installFlagsGiven()
-	if flag.Arg(0) == "help" || (flag.NArg() == 0 && !legacyInstall) {
+	if flag.Arg(0) == "help" {
 		printUsage(os.Stdout)
 		return nil
+	}
+	if flag.NArg() == 0 && !legacyInstall {
+		// On a terminal this opens the hub; everywhere else, the usage.
+		return runBare(os.Stdout, *repoFlag, uiFlags{Theme: *themeFlag, Plain: *plainFlag}, realHubEnv())
 	}
 	if !legacyInstall && !knownCommand(flag.Arg(0)) {
 		return fmt.Errorf("unknown command %q; run 'aval help'", flag.Arg(0))
