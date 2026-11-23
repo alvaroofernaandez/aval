@@ -12,30 +12,44 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/core/doctor"
 	coreupdate "github.com/alvaroofernaandez/aval/internal/core/update"
+	"github.com/alvaroofernaandez/aval/internal/devmode"
 )
 
-// hubServices is a set of fake Services: a repository, nine ok checks and a
-// warning, one backup run and a cached notice for 0.3.1. Nothing here reaches
-// the network, HOME or git.
+// hubNow is the clock every hub test reads relative times against.
+var hubNow = time.Date(2026, 11, 23, 13, 30, 0, 0, time.UTC)
+
+// hubServices is a set of fake Services mirroring the hub v2 target: a
+// repository three commits behind its upstream, ten ok checks and a warning,
+// four backup runs, two sandboxes and a cached notice for 0.3.1. Nothing here
+// reaches the network, HOME or git.
 func hubServices() Services {
 	return Services{
 		Home:  "/home/u",
 		Repo:  "/home/u/.aval",
-		Build: BuildInfo{Version: "0.3.0"},
+		Build: BuildInfo{Version: "0.3.0", Channel: "stable"},
 		Doctor: func(bool) []doctor.Result {
-			rs := make([]doctor.Result, 0, 10)
-			for range 9 {
+			rs := make([]doctor.Result, 0, 11)
+			for range 10 {
 				rs = append(rs, doctor.Result{ID: "link", Status: doctor.OK})
 			}
-			return append(rs, doctor.Result{ID: "drift", Status: doctor.Warn})
+			return append(rs, doctor.Result{ID: "plugins", Status: doctor.Warn, Message: "1 missing"})
 		},
 		Backups: func() ([]backup.Run, error) {
-			return []backup.Run{{ID: "r1", Time: time.Date(2026, 11, 23, 10, 14, 0, 0, time.UTC), Origin: "sync", Entries: 3}}, nil
+			return []backup.Run{
+				{ID: "r4", Time: time.Date(2026, 11, 23, 12, 54, 0, 0, time.UTC), Origin: "install", Entries: 3},
+				{ID: "r3", Time: time.Date(2026, 11, 22, 18, 40, 0, 0, time.UTC), Origin: "sync", Entries: 1},
+				{ID: "r2", Time: time.Date(2026, 11, 20, 9, 0, 0, 0, time.UTC), Origin: "sync", Entries: 2},
+				{ID: "r1", Time: time.Date(2026, 11, 19, 8, 30, 0, 0, time.UTC), Origin: "install", Entries: 5},
+			}, nil
 		},
 		CachedNotice: func() coreupdate.Notice {
 			return coreupdate.Notice{Current: "0.3.0", Latest: "0.3.1", Command: "npm i -g aval"}
 		},
 		DevCommand: func(sub, name string) *exec.Cmd { return nil },
+		Sandboxes: func() ([]devmode.Info, error) {
+			return []devmode.Info{{Name: "default", Ready: true}, {Name: "scratch", Ready: true}}, nil
+		},
+		RepoStatus: func() (int, bool, bool) { return 3, true, false },
 	}
 }
 
@@ -56,7 +70,7 @@ func withHubViews(t *testing.T) {
 func hubApp(t *testing.T, unicode bool, svc Services) App {
 	t.Helper()
 	c := chrome{theme: goldenTheme(t, unicode), version: svc.Build.Version, platform: "macOS (arm64)", width: 80, height: 24}
-	return newApp(c, svc, newHub(svc))
+	return newApp(c, svc, newHubAt(svc, func() time.Time { return hubNow }))
 }
 
 // startedHub runs Init and feeds back what it produces, so the doctor result
@@ -91,7 +105,7 @@ func TestHubShowsCheckingBeforeDoctorArrives(t *testing.T) {
 		a, _ = routerStep(a, m)
 	}
 	out := renderModelAt(a, 80, 24)
-	if !strings.Contains(out, "Doctor   ! 9 ok, 1 warn, 0 fail") {
+	if !strings.Contains(out, "Doctor   ! 1 warn") {
 		t.Errorf("the worst state is not shown after doctor:\n%s", out)
 	}
 	if !strings.Contains(out, "1 warning") {
@@ -116,10 +130,19 @@ func TestHubWithoutRepoDisablesEntriesWithReason(t *testing.T) {
 		}
 	}
 	out := renderModelAt(a, 120, 40)
-	for _, want := range []string{"Repo     x not found", "Not set up yet. Start with Install.", "Update       " + reasonNoRepo} {
+	for _, want := range []string{"Repo     x not found", "Not set up yet. Start with Install."} {
 		if !strings.Contains(out, want) {
 			t.Errorf("no repo: missing %q:\n%s", want, out)
 		}
+	}
+	// Dimmed is invisible in monochrome, so the badge slot says it too.
+	if row := menuRow(t, out, "@", "Update"); !strings.HasSuffix(row, "Update     off") {
+		t.Errorf("no repo: the update row does not read off: %q", row)
+	}
+	a, _ = routerStep(a, key("down"))
+	out = renderModelAt(a, 120, 40)
+	if !strings.Contains(out, "| "+reasonNoRepo) {
+		t.Errorf("no repo: the pane does not give the reason for Update:\n%s", out)
 	}
 	if strings.Contains(out, "checking") {
 		t.Errorf("doctor runs without a repo:\n%s", out)
@@ -190,7 +213,11 @@ func TestHubDevSandboxNeedsCheckoutAndGo(t *testing.T) {
 	if got := a.stack[0].(hub).unavailable(hubEntryFor(viewDev)); got != "needs a checkout and Go" {
 		t.Errorf("dev sandbox without Go: reason %q", got)
 	}
-	if out := renderModelAt(a, 120, 40); !strings.Contains(out, "Dev sandbox  needs a checkout and Go") {
+	a, _ = routerStep(a, key("v"))
+	if a.depth() != 1 {
+		t.Fatalf("v opened the dev sandbox without Go (depth %d)", a.depth())
+	}
+	if out := renderModelAt(a, 120, 40); !strings.Contains(out, "| needs a checkout and Go") {
 		t.Errorf("the reason is not shown:\n%s", out)
 	}
 }
@@ -234,7 +261,7 @@ func TestHubDropsAStaleDoctorResult(t *testing.T) {
 	for _, m := range freshMsgs {
 		a, _ = routerStep(a, m)
 	}
-	if out := renderModelAt(a, 80, 24); !strings.Contains(out, "ok 1 ok, 0 warn, 0 fail") {
+	if out := renderModelAt(a, 80, 24); !strings.Contains(out, "Doctor   ok 1 ok") {
 		t.Errorf("the fresh doctor result was dropped:\n%s", out)
 	}
 }
@@ -248,7 +275,7 @@ func TestHubReturnReloadsBackupsAndDoctor(t *testing.T) {
 		if runs == 1 {
 			return nil, nil
 		}
-		return []backup.Run{{ID: "r2", Time: time.Date(2026, 11, 24, 9, 0, 0, 0, time.UTC), Origin: "install", Entries: 1}}, nil
+		return []backup.Run{{ID: "r2", Time: time.Date(2026, 11, 23, 9, 0, 0, 0, time.UTC), Origin: "install", Entries: 1}}, nil
 	}
 	a := startedHub(t, false, svc)
 	if out := renderModelAt(a, 80, 24); !strings.Contains(out, "none yet") {
@@ -258,10 +285,10 @@ func TestHubReturnReloadsBackupsAndDoctor(t *testing.T) {
 	a, _ = routerStep(a, escKey())
 	// 80x20 has no room for the wordmark, so the panel spans the full width.
 	out := renderModelAt(a, 80, 20)
-	if !strings.Contains(out, "2026-11-24 09:00  install  1 entry") {
+	if !strings.Contains(out, "Backup   today 09:00  install") {
 		t.Errorf("returning did not reload the backup row:\n%s", out)
 	}
-	if !strings.Contains(out, "! 9 ok, 1 warn, 0 fail") {
+	if !strings.Contains(out, "Doctor   ! 1 warn") {
 		t.Errorf("returning did not re-run doctor:\n%s", out)
 	}
 }

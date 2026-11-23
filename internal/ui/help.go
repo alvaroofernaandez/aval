@@ -84,7 +84,11 @@ func (c chrome) keyRows(km keyMap) [][2]string {
 		for i, k := range b.keys {
 			names[i] = c.theme.Glyphs.keyName(k)
 		}
-		rows = append(rows, [2]string{strings.Join(names, ", "), b.desc})
+		desc := b.desc
+		if b.help != "" {
+			desc = b.help
+		}
+		rows = append(rows, [2]string{strings.Join(names, ", "), desc})
 	}
 	return rows
 }

@@ -42,6 +42,9 @@ type binding struct {
 	// core hints survive when the hint line has no room to wrap, and are the
 	// only ones shown when compact.
 	core bool
+	// help, when set, replaces desc in the `?` overlay, so bindings that
+	// collapse into one hint (the hub letters: "jump") still read apart there.
+	help string
 }
 
 // hint is one rendered "key desc" pair.

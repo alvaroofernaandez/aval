@@ -191,13 +191,20 @@ const (
 // word in the text token. Colour sits on the glyph only (DESIGN.md section 10).
 // Under an Ascii profile it is plain "glyph word", with no escapes at all.
 func (t Theme) State(k StateKind, word string) string {
-	glyph, style := t.Glyphs.OK, t.stateGlyph[StateOK]
+	glyph := t.Glyphs.OK
 	switch k {
 	case StateWarn:
-		glyph, style = t.Glyphs.Warn, t.stateGlyph[StateWarn]
+		glyph = t.Glyphs.Warn
 	case StateFail:
-		glyph, style = t.Glyphs.Fail, t.stateGlyph[StateFail]
+		glyph = t.Glyphs.Fail
 	}
+	return t.StateWith(k, glyph, word)
+}
+
+// StateWith is State with another glyph in the state's token: the hub's
+// `↑ 3` behind-upstream badge is a warn state drawn with an arrow.
+func (t Theme) StateWith(k StateKind, glyph, word string) string {
+	style := t.stateGlyph[k]
 	if t.plain {
 		return glyph + " " + word
 	}
