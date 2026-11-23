@@ -1,4 +1,3 @@
-<!-- gentle-ai:engram-protocol -->
 ## Engram Persistent Memory
 
 Engram persistent memory is ACTIVE. The full protocol (save format, lifecycle,
@@ -26,10 +25,8 @@ MCP server instructions and the SessionStart hook. Always-on rules:
   from `available_projects`, then retry the write tool with `project`,
   `project_choice_reason=user_selected_after_ambiguous_project`, and the
   returned `recovery_token`.
-<!-- /gentle-ai:engram-protocol -->
 
 @RTK.md
-<!-- gentle-ai:persona -->
 ## Rules
 
 - Never add "Co-Authored-By" or AI attribution to commits. Use conventional commits only.
@@ -54,7 +51,6 @@ Clean/Hexagonal/Screaming Architecture, testing, atomic design, container-presen
 Your conversational tone, language rules, and teaching philosophy are defined by
 the active output style (**Gentleman**/**Neutral**), which loads every session.
 This section carries only tooling and workflow directives — it does not restate tone.
-<!-- /gentle-ai:persona -->
 
 <!-- shared:agent-rules -->
 <!-- Kept byte-identical in config/opencode/AGENTS.md by
@@ -121,7 +117,6 @@ Herdr and commit attribution live in `~/.claude/lessons/*.md`;
 - **Engram conflicts:** resolve with one `mem_judge_many`, never a `mem_judge` loop.
 <!-- /shared:agent-rules -->
 
-<!-- gentle-ai:orchestrator-pointer -->
 ## Orchestration — essentials
 
 Always-on rules:
@@ -134,10 +129,9 @@ Always-on rules:
   mirror `odd/<feature>/tasks` before the first source write. Commit per task, never push.
 - Every Agent call needs a `model`: `sonnet` unless the task clearly needs another
   (fall back to `sonnet` if unavailable).
-- Receipt-driven development (`gentle-ai review ...`) is user-owned and off by default;
-  never enable it unasked and never fabricate a review approval.
+- Code review is user-owned: run `aval review assess` only when asked, and never
+  fabricate a review approval.
 - Remote operations (SSH, scp, remote hosts) need explicit user authorization for the
   destination, operation and credential. Never probe or reuse ambient SSH agents or
   sockets. Delegation cannot widen this scope.
 - Technical artifacts (code, docs, commits) stay in English regardless of persona.
-<!-- /gentle-ai:orchestrator-pointer -->

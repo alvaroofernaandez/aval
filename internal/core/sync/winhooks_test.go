@@ -70,7 +70,7 @@ func TestForOSWindowsHooksUseExecForm(t *testing.T) {
 			t.Errorf("%s: POSIX shell syntax survived: %s", r.event, cmd)
 		}
 		if !hasArgs {
-			continue // a non-aval hook (gentle-ai, code-review-graph): untouched
+			continue // a non-aval hook (code-review-graph): untouched
 		}
 		adapted++
 		if cmd != "C:/Users/dev/.local/bin/aval.exe" {
@@ -150,7 +150,7 @@ func TestAvalArgs(t *testing.T) {
 	}{
 		{`a="$HOME/.local/bin/aval"; [ -x "$a" ] || a="$(command -v aval)"; [ -x "$a" ] && "$a" hook lessons || true`, []string{"hook", "lessons"}, true},
 		{`a="$HOME/.local/bin/aval"; [ -x "$a" ] || a="$(command -v aval)"; [ -x "$a" ] && "$a" statusline || echo claude`, []string{"statusline"}, true},
-		{`gentle-ai review stop-hook --agent claude-code`, nil, false},
+		{`code-review-graph status`, nil, false},
 		{`rm -f /tmp/dk_* 2>/dev/null`, nil, false},
 	}
 	for _, c := range cases {

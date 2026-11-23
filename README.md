@@ -111,7 +111,7 @@ through or drives: Go, npm and Homebrew; Git, gitleaks and a headless browser.
 | Sessions, panes and agents | tmux, Herdr | **aval core**: persistent PTYs, spaces, tabs and panes, a socket API, worktree per task | [v0.6.0](https://github.com/alvaroofernaandez/aval/milestone/3) |
 | Multiplexer UI, file panel, status bar | tmux, yazi | **aval TUI**: panes, agent list with status, diff review with line comments, file panel | [v0.7.0](https://github.com/alvaroofernaandez/aval/milestone/4) |
 | Memory and context | Engram, RTK, code-review-graph | **aval memory** and **aval context**: native ports; today's tools become adapters | [v0.3.0](https://github.com/alvaroofernaandez/aval/milestone/1) |
-| Harness glue | gentle-ai, agnix, Node screenshot script | **native aval commands**: `aval lint`, `aval shot` (CDP from Go), hook guard and done gate | [v0.3.0](https://github.com/alvaroofernaandez/aval/milestone/1) |
+| Harness glue | agnix, Node screenshot script | **native aval commands**: `aval lint`, `aval shot` (CDP from Go), hook guard and done gate | [v0.3.0](https://github.com/alvaroofernaandez/aval/milestone/1) |
 | Agent configuration | One config file per agent | **aval agents**: one config model with an adapter each for Claude Code, OpenCode, Codex and Gemini | [v0.4.0](https://github.com/alvaroofernaandez/aval/milestone/2) |
 | Agent runtime | Claude Code, OpenCode | Stays. An own runtime on the provider's SDK is only **evaluated** for v1.0 | [v1.0.0](https://github.com/alvaroofernaandez/aval/milestone/6) |
 

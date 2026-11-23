@@ -44,6 +44,30 @@ func TestAgentHooksSettingsDeclareNoSDDAndSyncGraphAsync(t *testing.T) {
 	isTrue(t, "a code-review-graph update hook exists", found)
 }
 
+// hookProgram is the program a settings hook command runs: aval for the
+// resolver form, the body of an `if ...; then <program>` guard, else the first
+// word.
+func hookProgram(cmd string) string {
+	if strings.HasPrefix(cmd, `a="$HOME/.local/bin/aval"`) {
+		return "aval"
+	}
+	if _, body, ok := strings.Cut(cmd, "; then "); ok {
+		cmd = body
+	}
+	return strings.Fields(cmd)[0]
+}
+
+// Every hook runs aval or one of two tools the harness depends on on purpose.
+func TestAgentHooksRunOnlyKnownPrograms(t *testing.T) {
+	allowed := map[string]bool{"aval": true, "code-review-graph": true, "rm": true}
+	events, commands := repoSettings(t).allHooks()
+	for i, c := range commands {
+		if p := hookProgram(c); !allowed[p] {
+			t.Errorf("%s hook runs %q: %s", events[i], p, c)
+		}
+	}
+}
+
 // 21 commits in 60 days carried Co-Authored-By despite the rule: Claude Code
 // itself injects the trailer unless the setting hides it. A rule the harness
 // contradicts on every commit is a coin flip; the setting is not.
