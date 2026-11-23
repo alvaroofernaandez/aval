@@ -9,9 +9,11 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
-## v0.2.0-rc.1 (2026-11-23)
+## v0.2.0 (2026-11-23)
 
 [Release notes](docs/releases/v0.2.0.md) · [Notas en español](docs/releases/v0.2.0.es.md)
+
+First published as `v0.2.0-rc.1` the same day and checked by hand; the stable release ships the same code.
 
 ### Breaking changes
 

@@ -55,9 +55,9 @@ func TestDocsDescribeTheHub(t *testing.T) {
 
 func TestChangelogHasHubInItsRelease(t *testing.T) {
 	text := read(t, "CHANGELOG.md")
-	i := strings.Index(text, "## v0.2.0-rc.1 (")
+	i := strings.Index(text, "## v0.2.0 (")
 	if i < 0 {
-		t.Fatal("CHANGELOG has no v0.2.0-rc.1 section")
+		t.Fatal("CHANGELOG has no v0.2.0 section")
 	}
 	end := strings.Index(text[i+3:], "\n## ")
 	section := text[i:]
@@ -65,6 +65,6 @@ func TestChangelogHasHubInItsRelease(t *testing.T) {
 		section = text[i : i+3+end]
 	}
 	for _, w := range []string{"hub", "rate-guard", "theme", "quit"} {
-		mustContain(t, strings.ToLower(section), w, "v0.2.0-rc.1 mentions "+w)
+		mustContain(t, strings.ToLower(section), w, "v0.2.0 mentions "+w)
 	}
 }
