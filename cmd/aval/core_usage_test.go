@@ -6,13 +6,15 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // A bare `aval` prints this instead of installing, so it must point at the
 // install command, the repo override and every subcommand.
 func TestUsage(t *testing.T) {
 	var out bytes.Buffer
-	printUsage(&out, os.Getenv)
+	printUsage(&out, englishEnv)
 	text := out.String()
 	for _, want := range []string{"Usage:", "aval install", "--dry-run", "--yes", "--copy", "--repo", "AVAL_REPO"} {
 		if !strings.Contains(text, want) {
@@ -75,7 +77,7 @@ func TestParseInstallArgs(t *testing.T) {
 
 func renderForTest(version string, configured bool) string {
 	var out bytes.Buffer
-	renderUsage(&out, version, configured)
+	renderUsage(&out, i18n.New(i18n.English), version, configured)
 	return out.String()
 }
 
@@ -143,7 +145,7 @@ func TestUsageCopyRules(t *testing.T) {
 
 func TestUsageDocumentsThemeAndPlain(t *testing.T) {
 	var b strings.Builder
-	printUsage(&b, os.Getenv)
+	printUsage(&b, englishEnv)
 	for _, want := range []string{"--theme <name>", "--plain", "NO_COLOR"} {
 		if !strings.Contains(b.String(), want) {
 			t.Errorf("usage lacks %q", want)
@@ -156,4 +158,17 @@ func TestUsageDocumentsThemeAndPlain(t *testing.T) {
 func isUsage(err error) bool {
 	var u *usageError
 	return errors.As(err, &u)
+}
+
+// englishTr is the English translator the logic tests run the commands with;
+// the wording itself is pinned in tests/messages_test.go.
+var englishTr = i18n.New(i18n.English)
+
+// englishEnv is the process environment with the language pinned, so a usage
+// assertion does not depend on the machine's locale.
+func englishEnv(k string) string {
+	if k == "AVAL_LANG" {
+		return "en"
+	}
+	return os.Getenv(k)
 }

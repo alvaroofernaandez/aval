@@ -17,7 +17,7 @@ func TestPreviewUpdateOutputIsPinned(t *testing.T) {
 	repo, _ := upstreamPair(t)
 
 	var out bytes.Buffer
-	if err := previewUpdate(context.Background(), update.NewGit(repo), repo, &out); err != nil {
+	if err := previewUpdate(context.Background(), update.NewGit(repo), repo, &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	const want = "Would update c62bccb → 33554b2 (1 commit(s))\n\nManaged paths that change:\nconfig/claude/agents/a.md | 2 +-\n install.manifest          | 1 +\n 2 files changed, 2 insertions(+), 1 deletion(-)\n  + manifest entry config/claude/hooks -> .claude/hooks\n\nDry run: nothing was changed.\n"

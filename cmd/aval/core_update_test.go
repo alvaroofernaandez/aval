@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/alvaroofernaandez/aval/internal/core/update"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 func git(t *testing.T, dir string, args ...string) string {
@@ -66,7 +67,7 @@ func TestUpdateDryRunPreviewsWithoutChangingAnything(t *testing.T) {
 	before := git(t, repo, "rev-parse", "HEAD")
 
 	var out bytes.Buffer
-	if err := runUpdate(repo, home, true, false, &out, io.Discard); err != nil {
+	if err := runUpdate(repo, home, true, false, &out, io.Discard, englishTr); err != nil {
 		t.Fatalf("dry run failed: %v\n%s", err, out.String())
 	}
 	if after := git(t, repo, "rev-parse", "HEAD"); after != before {
@@ -90,8 +91,27 @@ func TestUpdateDryRunRefusesADirtyTree(t *testing.T) {
 	repo, home := upstreamPair(t)
 	writeFile(t, filepath.Join(repo, "config/claude/agents/a.md"), "local edit\n")
 	var out bytes.Buffer
-	err := runUpdate(repo, home, true, false, &out, io.Discard)
+	err := runUpdate(repo, home, true, false, &out, io.Discard, englishTr)
 	if !errors.Is(err, update.ErrDirtyTree) {
 		t.Errorf("err = %v, want update.ErrDirtyTree", err)
+	}
+}
+
+// The preview speaks the resolved language; the data in it (paths, entries,
+// versions) is the same.
+func TestUpdateDryRunSpeaksSpanish(t *testing.T) {
+	repo, home := upstreamPair(t)
+	es := i18n.New(i18n.Spanish)
+	var out bytes.Buffer
+	if err := runUpdate(repo, home, true, false, &out, io.Discard, es); err != nil {
+		t.Fatalf("dry run failed: %v\n%s", err, out.String())
+	}
+	for _, want := range []string{es.T("cli.update.paths", nil), es.T("cli.update.entry", i18n.Args{"entry": "config/claude/hooks"}), es.T("cli.update.dry_run", nil)} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("missing %q in:\n%s", want, out.String())
+		}
+	}
+	if strings.Contains(out.String(), "Dry run") {
+		t.Errorf("English left in the Spanish preview:\n%s", out.String())
 	}
 }

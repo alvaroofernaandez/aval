@@ -60,7 +60,7 @@ func TestCopyModeInstallDoctorUninstallRoundTrip(t *testing.T) {
 	if err := os.WriteFile(edited, []byte("mine"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := runUninstall(repo, home, []string{"--yes"}, false, false, strings.NewReader(""), &bytes.Buffer{}); err != nil {
+	if err := runUninstall(repo, home, []string{"--yes"}, false, false, strings.NewReader(""), &bytes.Buffer{}, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(edited); string(b) != "mine" {
@@ -72,7 +72,7 @@ func TestCopyModeInstallDoctorUninstallRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	out.Reset()
-	if err := runUninstall(repo, home, []string{"--yes"}, false, false, strings.NewReader(""), &out); err != nil {
+	if err := runUninstall(repo, home, []string{"--yes"}, false, false, strings.NewReader(""), &out, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Lstat(dest); err == nil {

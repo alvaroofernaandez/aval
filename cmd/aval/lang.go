@@ -19,6 +19,25 @@ func resolveLang(f *config.File, flag string, getenv func(string) string) i18n.L
 	return i18n.Select(v, getenv)
 }
 
+// envWithLang makes --lang the language of a command that reads the language
+// from its environment: the flag stands in for AVAL_LANG, which is the next
+// layer down, so the precedence is the same. A --lang that names no language
+// is an error, like on the commands that draw.
+func envWithLang(getenv func(string) string, flag string) (func(string) string, error) {
+	if flag == "" {
+		return getenv, nil
+	}
+	if msg := config.Validate("language", flag); msg != "" {
+		return nil, fmt.Errorf("%w: %s", errBadLangFlag, msg)
+	}
+	return func(k string) string {
+		if k == "AVAL_LANG" {
+			return flag
+		}
+		return getenv(k)
+	}, nil
+}
+
 // configWarnings renders config load warnings for a person, in tr's language.
 // The config package reports the bad language as data because it cannot know
 // the language yet: that value is the one being read. The other keys keep the

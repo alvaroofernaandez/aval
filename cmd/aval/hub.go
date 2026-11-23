@@ -88,7 +88,7 @@ func (e hubEnv) onTTY(stream any) bool {
 // network call: the update line comes from the cache.
 func runBare(out io.Writer, repoFlag string, flags uiFlags, e hubEnv) error {
 	if !e.hubWanted() {
-		printUsage(out, e.getenv)
+		printUsageFor(out, e.getenv, flags.Lang)
 		return nil
 	}
 	home, err := userHomeDir(e.getenv)

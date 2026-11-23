@@ -12,7 +12,7 @@ import (
 func TestRunSyncCheckReportsDriftAndWritesNothing(t *testing.T) {
 	repo, home := fakeMachine(t)
 	var out bytes.Buffer
-	err := runSync(repo, home, []string{"--check"}, false, &out)
+	err := runSync(repo, home, []string{"--check"}, false, &out, englishTr)
 	if !errors.Is(err, errChecksFailed) {
 		t.Fatalf("err = %v, want errChecksFailed on drift", err)
 	}
@@ -26,23 +26,23 @@ func TestRunSyncCheckReportsDriftAndWritesNothing(t *testing.T) {
 
 func TestRunSyncCheckPassesWhenInSync(t *testing.T) {
 	repo, home := fakeMachine(t)
-	if err := runSync(repo, home, nil, false, &bytes.Buffer{}); err != nil {
+	if err := runSync(repo, home, nil, false, &bytes.Buffer{}, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	if err := runSync(repo, home, []string{"--check"}, false, &out); err != nil {
+	if err := runSync(repo, home, []string{"--check"}, false, &out, englishTr); err != nil {
 		t.Fatalf("in-sync machine must pass --check: %v\n%s", err, out.String())
 	}
 }
 
 func TestRunSyncCheckFlagsRulesDrift(t *testing.T) {
 	repo, home := fakeMachine(t)
-	if err := runSync(repo, home, nil, false, &bytes.Buffer{}); err != nil {
+	if err := runSync(repo, home, nil, false, &bytes.Buffer{}, englishTr); err != nil {
 		t.Fatal(err)
 	}
 	writeFile(t, filepath.Join(home, ".codex/AGENTS.md"), "stale\n")
 	var out bytes.Buffer
-	err := runSync(repo, home, []string{"--check"}, false, &out)
+	err := runSync(repo, home, []string{"--check"}, false, &out, englishTr)
 	if !errors.Is(err, errChecksFailed) || !strings.Contains(out.String(), "AGENTS.md") {
 		t.Errorf("rules drift not reported: err=%v\n%s", err, out.String())
 	}

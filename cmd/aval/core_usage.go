@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/alvaroofernaandez/aval/internal/core/config"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // installOpts are the flags install understands. They are accepted after the
@@ -16,7 +17,7 @@ import (
 // was a subcommand, as global flags (`aval --yes`).
 type installOpts struct{ dryRun, yes, copy bool }
 
-type command struct{ name, args, summary, group string }
+type command struct{ name, args, group string }
 
 // usageGroups is the order of the headings in the usage text.
 var usageGroups = []string{"Setup", "Health", "Undo", "Agent tooling", "Plumbing"}
@@ -24,30 +25,30 @@ var usageGroups = []string{"Setup", "Health", "Undo", "Agent tooling", "Plumbing
 // commands is the single list of subcommands: the usage text is rendered from
 // it and anything not in it is rejected before the repository is looked up.
 var commands = []command{
-	{"install", "[--dry-run] [--yes] [--copy]", "link the repo's configs into HOME (TUI; --yes for none)", "Setup"},
-	{"update", "[--dry-run]", "pull the repo, then re-apply", "Setup"},
-	{"doctor", "[--fix] [--json]", "check this machine against the repo", "Health"},
-	{"sync", "[--dry-run]", "merge repo-managed settings into the live config", "Setup"},
-	{"rules", "sync [--check]", "mirror CLAUDE.md's shared rules into OpenCode's AGENTS.md", "Agent tooling"},
-	{"budget", "[--json]", "always-on context per agent and hook latency", "Health"},
-	{"review", "assess [--base] [--json]", "git-only risk tier and reviewer lenses", "Agent tooling"},
-	{"design", "<gate|ack> ...", "design gates for the project in the current directory", "Agent tooling"},
-	{"config", "[list | get <key> | set <key> <value> | path]", "show or change aval settings (theme, glyphs, motion)", "Setup"},
-	{"restore", "[--list | latest | <id> | --pin <id>]", "list or restore backup runs", "Undo"},
-	{"uninstall", "[--dry-run] [--yes]", "remove aval's links and restore what they displaced", "Undo"},
-	{"dev", "[run | diff | reset | ls | rm | project]", "sandboxed HOME for developing aval", "Setup"},
-	{"hook", "<lessons|design-gate|pre-push|...>", "agent hooks and the git pre-push gate", "Plumbing"},
-	{"statusline", "", "Claude Code status line", "Plumbing"},
-	{"tmux", "<helper>", "tmux, Ghostty and zsh helpers", "Plumbing"},
-	{"macos", "<helper>", "macOS defaults and LaunchAgents", "Plumbing"},
-	{"reap-orphan-tests", "[--min-age] [--dry-run]", "end orphaned test processes", "Plumbing"},
-	{"kiri", "up", "make Docker ready on Kiri", "Plumbing"},
-	{"docker", "cleanup [--dry-run]", "safe Docker prunes on the kiri context", "Plumbing"},
-	{"deck", "<build|check|example> ...", "turn a plan into a PDF slide deck, rendered locally", "Agent tooling"},
-	{"pdf", "<init|assets> ...", "scaffold PDF report projects and their brand assets", "Agent tooling"},
-	{"release", "<status|next|patch|minor|major|rc|beta|promote>", "cut a release", "Agent tooling"},
-	{"version", "", "version, commit, build date and channel", "Health"},
-	{"help", "", "show this help", "Health"},
+	{"install", "[--dry-run] [--yes] [--copy]", "Setup"},
+	{"update", "[--dry-run]", "Setup"},
+	{"doctor", "[--fix] [--json]", "Health"},
+	{"sync", "[--dry-run]", "Setup"},
+	{"rules", "sync [--check]", "Agent tooling"},
+	{"budget", "[--json]", "Health"},
+	{"review", "assess [--base] [--json]", "Agent tooling"},
+	{"design", "<gate|ack> ...", "Agent tooling"},
+	{"config", "[list | get <key> | set <key> <value> | path]", "Setup"},
+	{"restore", "[--list | latest | <id> | --pin <id>]", "Undo"},
+	{"uninstall", "[--dry-run] [--yes]", "Undo"},
+	{"dev", "[run | diff | reset | ls | rm | project]", "Setup"},
+	{"hook", "<lessons|design-gate|pre-push|...>", "Plumbing"},
+	{"statusline", "", "Plumbing"},
+	{"tmux", "<helper>", "Plumbing"},
+	{"macos", "<helper>", "Plumbing"},
+	{"reap-orphan-tests", "[--min-age] [--dry-run]", "Plumbing"},
+	{"kiri", "up", "Plumbing"},
+	{"docker", "cleanup [--dry-run]", "Plumbing"},
+	{"deck", "<build|check|example> ...", "Agent tooling"},
+	{"pdf", "<init|assets> ...", "Agent tooling"},
+	{"release", "<status|next|patch|minor|major|rc|beta|promote>", "Agent tooling"},
+	{"version", "", "Health"},
+	{"help", "", "Health"},
 }
 
 func knownCommand(name string) bool {
@@ -59,9 +60,29 @@ func knownCommand(name string) bool {
 	return false
 }
 
-// printUsage renders the usage for this build, noting a missing config.
-func printUsage(w io.Writer, getenv func(string) string) {
-	renderUsage(w, currentBuild().Version, configExists(getenv))
+// printUsage renders the usage for this build in the language the environment
+// and the config file select, noting a missing config.
+func printUsage(w io.Writer, getenv func(string) string) { printUsageFor(w, getenv, "") }
+
+// printUsageFor is printUsage with the --lang value: a flag that names no
+// language is skipped, since the usage is also what a bad flag prints.
+func printUsageFor(w io.Writer, getenv func(string) string, langFlag string) {
+	renderUsage(w, i18n.New(usageLang(getenv, langFlag)), currentBuild().Version, configExists(getenv))
+}
+
+// usageLang resolves the language without a warning for a bad config value:
+// the usage must print wherever the person is stuck.
+func usageLang(getenv func(string) string, langFlag string) i18n.Lang {
+	if config.Validate("language", langFlag) != "" {
+		langFlag = ""
+	}
+	f, _, _ := config.Load("")
+	if home, err := userHomeDir(getenv); err == nil {
+		if loaded, _, err := config.Load(config.Path(getenv, home, runtime.GOOS)); err == nil {
+			f = loaded
+		}
+	}
+	return resolveLang(f, langFlag, getenv)
 }
 
 // configExists reports whether aval's config file is on disk.
@@ -74,48 +95,116 @@ func configExists(getenv func(string) string) bool {
 	return err == nil
 }
 
+// groupLabel is the heading of a usage group in tr's language. The group ids
+// in usageGroups stay English: they are keys, not text.
+func groupLabel(tr i18n.Translator, group string) string {
+	switch group {
+	case "Setup":
+		return tr.T("cli.usage.group.setup", nil)
+	case "Health":
+		return tr.T("cli.usage.group.health", nil)
+	case "Undo":
+		return tr.T("cli.usage.group.undo", nil)
+	case "Agent tooling":
+		return tr.T("cli.usage.group.agent", nil)
+	case "Plumbing":
+		return tr.T("cli.usage.group.plumb", nil)
+	}
+	return group
+}
+
+// commandSummary is the one-line description of a command in tr's language.
+func commandSummary(tr i18n.Translator, name string) string {
+	switch name {
+	case "install":
+		return tr.T("cli.usage.cmd.install", nil)
+	case "update":
+		return tr.T("cli.usage.cmd.update", nil)
+	case "doctor":
+		return tr.T("cli.usage.cmd.doctor", nil)
+	case "sync":
+		return tr.T("cli.usage.cmd.sync", nil)
+	case "rules":
+		return tr.T("cli.usage.cmd.rules", nil)
+	case "budget":
+		return tr.T("cli.usage.cmd.budget", nil)
+	case "review":
+		return tr.T("cli.usage.cmd.review", nil)
+	case "design":
+		return tr.T("cli.usage.cmd.design", nil)
+	case "config":
+		return tr.T("cli.usage.cmd.config", nil)
+	case "restore":
+		return tr.T("cli.usage.cmd.restore", nil)
+	case "uninstall":
+		return tr.T("cli.usage.cmd.uninstall", nil)
+	case "dev":
+		return tr.T("cli.usage.cmd.dev", nil)
+	case "hook":
+		return tr.T("cli.usage.cmd.hook", nil)
+	case "statusline":
+		return tr.T("cli.usage.cmd.statusline", nil)
+	case "tmux":
+		return tr.T("cli.usage.cmd.tmux", nil)
+	case "macos":
+		return tr.T("cli.usage.cmd.macos", nil)
+	case "reap-orphan-tests":
+		return tr.T("cli.usage.cmd.reap", nil)
+	case "kiri":
+		return tr.T("cli.usage.cmd.kiri", nil)
+	case "docker":
+		return tr.T("cli.usage.cmd.docker", nil)
+	case "deck":
+		return tr.T("cli.usage.cmd.deck", nil)
+	case "pdf":
+		return tr.T("cli.usage.cmd.pdf", nil)
+	case "release":
+		return tr.T("cli.usage.cmd.release", nil)
+	case "version":
+		return tr.T("cli.usage.cmd.version", nil)
+	case "help":
+		return tr.T("cli.usage.cmd.help", nil)
+	}
+	return ""
+}
+
 // renderUsage writes the plain-text usage. configured is false on a first
 // run, which adds the install hint at the end.
-func renderUsage(w io.Writer, version string, configured bool) {
-	fmt.Fprintf(w, "aval %s\nNothing passes without evidence.\n\n", version)
-	fmt.Fprint(w, "aval installs and maintains this machine's dotfiles and agent configs.\n\n")
-	fmt.Fprint(w, "Usage:\n  aval <command> [flags]\n")
+func renderUsage(w io.Writer, tr i18n.Translator, version string, configured bool) {
+	fmt.Fprintf(w, "aval %s\n%s\n\n", version, tr.T("cli.usage.tagline", nil))
+	fmt.Fprintf(w, "%s\n\n", tr.T("cli.usage.about", nil))
+	fmt.Fprintf(w, "%s\n  %s\n", tr.T("cli.usage.heading", nil), tr.T("cli.usage.invocation", nil))
 	width := 0
 	for _, c := range commands {
 		width = max(width, len(c.name))
 	}
 	for _, g := range usageGroups {
-		fmt.Fprintf(w, "\n%s\n", g)
+		fmt.Fprintf(w, "\n%s\n", groupLabel(tr, g))
 		if g == "Plumbing" {
-			fmt.Fprint(w, "  Called by hooks and scripts, rarely by hand.\n")
+			fmt.Fprintf(w, "  %s\n", tr.T("cli.usage.plumbing", nil))
 		}
 		for _, c := range commands {
 			if c.group != g {
 				continue
 			}
-			fmt.Fprintf(w, "  aval %-*s  %s\n", width, c.name, c.summary)
+			fmt.Fprintf(w, "  aval %-*s  %s\n", width, c.name, commandSummary(tr, c.name))
 			if c.args != "" {
 				fmt.Fprintf(w, "       %-*s    %s\n", width, "", c.args)
 			}
 		}
 	}
-	fmt.Fprint(w, `
-Global flags:
-  --repo <path>   the aval repository to use
-  --theme <name>  colour theme for this run (aval, terminal, mono, catppuccin, ...)
-  --plain         monochrome, ASCII glyphs and no motion
-  --lang <code>   language for human output: auto, en or es
-
-Settings: theme, background, glyphs, motion, update_check, language. Precedence
-is flag, then AVAL_* environment, then ~/.config/aval/config; language then
-follows the locale (LC_ALL, LC_MESSAGES, LANG). NO_COLOR turns colour off.
-
-The repository is found from, in order: --repo, $AVAL_REPO, the location
-'aval install' recorded in ~/.config/aval/config, then the current directory.
-First time: clone the repo, cd into it and run 'aval install'.
-`)
+	fmt.Fprintf(w, "\n%s\n", tr.T("cli.usage.flags", nil))
+	for _, f := range []struct{ flag, desc string }{
+		{"--repo <path>", tr.T("cli.usage.flag.repo", nil)},
+		{"--theme <name>", tr.T("cli.usage.flag.theme", nil)},
+		{"--plain", tr.T("cli.usage.flag.plain", nil)},
+		{"--lang <code>", tr.T("cli.usage.flag.lang", nil)},
+	} {
+		fmt.Fprintf(w, "  %-15s %s\n", f.flag, f.desc)
+	}
+	fmt.Fprintf(w, "\n%s\n\n%s\n", tr.T("cli.usage.settings", nil), tr.T("cli.usage.repo", nil))
 	if !configured {
-		fmt.Fprint(w, "\nNot set up yet. Run: aval install\n")
+		fmt.Fprintf(w, "\n%s\n", tr.T("cli.usage.first_run", nil))
 	}
 }
 

@@ -14,7 +14,7 @@ func TestDryRunOutputHasNoEmDashes(t *testing.T) {
 		repo, home := fakeMachine(t)
 		seedBackup(t, home)
 		var out bytes.Buffer
-		if err := runRestore(repo, home, []string{"latest"}, true, &out); err != nil {
+		if err := runRestore(repo, home, []string{"latest"}, true, &out, englishTr); err != nil {
 			t.Fatal(err)
 		}
 		assertDryRunCopy(t, out.String(), "Dry run: nothing was written.")
@@ -22,7 +22,7 @@ func TestDryRunOutputHasNoEmDashes(t *testing.T) {
 	t.Run("uninstall", func(t *testing.T) {
 		repo, home, _ := installedMachine(t)
 		var out bytes.Buffer
-		if err := runUninstall(repo, home, []string{"--dry-run"}, false, false, strings.NewReader(""), &out); err != nil {
+		if err := runUninstall(repo, home, []string{"--dry-run"}, false, false, strings.NewReader(""), &out, englishTr); err != nil {
 			t.Fatal(err)
 		}
 		assertDryRunCopy(t, out.String(), "Dry run: nothing was written.")
@@ -30,7 +30,7 @@ func TestDryRunOutputHasNoEmDashes(t *testing.T) {
 	t.Run("sync", func(t *testing.T) {
 		repo, home := fakeMachine(t)
 		var out bytes.Buffer
-		if err := runSync(repo, home, []string{"--dry-run"}, false, &out); err != nil {
+		if err := runSync(repo, home, []string{"--dry-run"}, false, &out, englishTr); err != nil {
 			t.Fatal(err)
 		}
 		assertDryRunCopy(t, out.String(), "Dry run: nothing was written.")
@@ -38,7 +38,7 @@ func TestDryRunOutputHasNoEmDashes(t *testing.T) {
 	t.Run("update", func(t *testing.T) {
 		repo, home := upstreamPair(t)
 		var out bytes.Buffer
-		if err := runUpdate(repo, home, true, false, &out, io.Discard); err != nil {
+		if err := runUpdate(repo, home, true, false, &out, io.Discard, englishTr); err != nil {
 			t.Fatal(err)
 		}
 		assertDryRunCopy(t, out.String(), "Dry run: nothing was changed.")
