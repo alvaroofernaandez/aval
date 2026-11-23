@@ -1,0 +1,17 @@
+ aval 0.2.0
+ Instalado. 2 enlazados, 1 con f...
+
+   enlazados         2
+   ya en su sitio    1
+   con fallo         1
+   link ~/.config/some/very/long...
+
+   1 archivo existente movido a
+   /home/u/.aval-...20260101-000000
+   aval restore latest
+
+   Siguiente
+     aval doctor   comprobar est...
+     aval config   tema, glifos...
+     exec zsh      recargue el s...
+ enter cerrar  ? ayuda

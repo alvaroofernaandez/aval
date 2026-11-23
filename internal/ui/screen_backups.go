@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The backups view (plan section 3, Backups and restore): the runs under
@@ -30,14 +31,24 @@ const (
 	backupsCompactTimeLayout = "01-02 15:04"
 	backupsGap               = 3
 	backupsCursorW           = 2
-
-	// restoreSafety is the safety net in full, in the confirm's prompt; the
-	// status line has 76 columns, so it carries restoreSafetyShort.
-	restoreSafety      = "Anything aval did not write moves to the run's .displaced folder, not deleted."
-	restoreSafetyShort = "Anything aval did not write moves to .displaced, not deleted"
 )
 
-var errRestoreNoRepo = errors.New("Restoring needs the aval repository, to tell aval's links from yours, and none was found. Set it up with: aval install")
+// The restore's safety net is in full in the confirm's prompt (backups.safety)
+// and short in the status line (backups.safety_short), which has 76 columns.
+
+// errRestoreNoRepo is a restore with no repository to tell aval's links from
+// the user's. The view shows it as a localizedError in its language.
+var errRestoreNoRepo = errors.New("restore needs the aval repository")
+
+// localizedError is a sentinel with the text for the person reading it:
+// errors.Is still finds the sentinel.
+type localizedError struct {
+	sentinel error
+	text     string
+}
+
+func (e localizedError) Error() string { return e.text }
+func (e localizedError) Unwrap() error { return e.sentinel }
 
 // runEntries is what one run holds, read once per run.
 type runEntries struct {
@@ -151,11 +162,11 @@ func (b backups) pin() backups {
 	r, _ := b.current()
 	b.note = ""
 	if err := b.svc.Pin(r.ID, !r.Pinned); err != nil {
-		verb := "pin"
+		key := i18n.Key("backups.pin_failed")
 		if r.Pinned {
-			verb = "unpin"
+			key = i18n.Key("backups.unpin_failed")
 		}
-		b.note = fmt.Sprintf("Could not %s %s: %v. Try: aval restore --%s %s", verb, r.ID, err, verb, r.ID)
+		b.note = b.c.tr.T(key, i18n.Args{"id": r.ID, "error": err})
 		return b
 	}
 	b.load(r.ID)
@@ -166,15 +177,15 @@ func (b backups) keys() keyMap {
 	var km keyMap
 	if len(b.runs) > 1 {
 		km = append(km,
-			binding{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "move"},
-			binding{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "move"},
+			binding{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.move")},
+			binding{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.move")},
 		)
 	}
 	if b.restorable() {
-		km = append(km, binding{keys: []string{"enter"}, action: actBackupsRestore, label: "enter", desc: "preview restore", core: true})
+		km = append(km, binding{keys: []string{"enter"}, action: actBackupsRestore, label: "enter", desc: i18n.Key("key.preview_restore"), core: true})
 	}
 	if len(b.runs) > 0 && b.svc.Pin != nil {
-		km = append(km, binding{keys: []string{"p"}, action: actBackupsPin, label: "p", desc: "pin"})
+		km = append(km, binding{keys: []string{"p"}, action: actBackupsPin, label: "p", desc: i18n.Key("key.pin")})
 	}
 	return km
 }
@@ -182,7 +193,7 @@ func (b backups) keys() keyMap {
 func (b backups) busy() busyKind { return busyIdle }
 
 func (b backups) view() view {
-	status := fmt.Sprintf("The newest %d unpinned runs are kept", backup.Retain)
+	status := b.c.tr.T("backups.status", i18n.Args{"count": backup.Retain})
 	if b.note != "" {
 		status = b.note
 	}
@@ -203,18 +214,15 @@ func (b backups) tilde(p string) string { return tildeUnder(b.svc.Home, p) }
 // lower pane gives way first, then the list scrolls with the cursor visible.
 func (b backups) body(l layout, h int) []string {
 	c, t := b.c, b.c.theme
-	count := fmt.Sprintf("%d runs", len(b.runs))
-	if len(b.runs) == 1 {
-		count = "1 run"
-	}
-	out := c.headingRow(l, "Backups", t.Strong, b.storePath()+c.sep()+count, t.Muted)
+	count := c.tr.N("backups.runs", len(b.runs), nil)
+	out := c.headingRow(l, c.tr.T("backups.title", nil), t.Strong, b.storePath()+c.sep()+count, t.Muted)
 	out = append(out, "")
 
 	switch {
 	case b.listErr != nil:
-		return append(out, failureLines(b.c, l, "could not read "+b.storePath(), b.listErr.Error(), "aval restore --list")...)
+		return append(out, failureLines(b.c, l, c.tr.T("backups.read_error", i18n.Args{"what": b.storePath()}), b.listErr.Error(), "aval restore --list")...)
 	case len(b.runs) == 0:
-		for _, s := range c.wrap("No backup runs yet. Install, sync and uninstall make one before they write.", l.width) {
+		for _, s := range c.wrap(c.tr.T("backups.empty", nil), l.width) {
 			out = append(out, t.Text.Render(s))
 		}
 		return out
@@ -230,7 +238,7 @@ func (b backups) body(l layout, h int) []string {
 		pane = nil
 	case paneRoom < len(pane):
 		hidden := len(pane) - (paneRoom - 1)
-		more := fmt.Sprintf("%s %d more", t.Glyphs.Ellipsis, hidden)
+		more := t.Glyphs.Ellipsis + " " + c.tr.T("select.more", i18n.Args{"count": hidden})
 		pane = append(pane[:paneRoom-1], "  "+t.Muted.Render(c.fit(more, max(l.width-2, 1))))
 	}
 	start, end := scrollWindow(len(b.runs), b.cursor, rows)
@@ -261,7 +269,7 @@ type runCols struct {
 func (b backups) columns(l layout) runCols {
 	base := runCols{timeLayout: backupsTimeLayout, gap: backupsGap}
 	for _, r := range b.runs {
-		base.origin = max(base.origin, lipgloss.Width(originOf(r)))
+		base.origin = max(base.origin, lipgloss.Width(originOf(b.c.tr, r)))
 		base.digits = max(base.digits, len(fmt.Sprint(r.Entries)))
 	}
 	tiers := []func(runCols) runCols{
@@ -292,14 +300,14 @@ func (b backups) columns(l layout) runCols {
 	return cols
 }
 
-func originOf(r backup.Run) string {
+func originOf(tr i18n.Translator, r backup.Run) string {
 	switch {
 	case r.Origin != "":
 		return r.Origin
 	case r.Legacy:
-		return "legacy"
+		return tr.T("backups.origin.legacy", nil)
 	}
-	return "unknown"
+	return tr.T("backups.origin.unknown", nil)
 }
 
 func (b backups) countCell(cols runCols, r backup.Run) string {
@@ -308,10 +316,8 @@ func (b backups) countCell(cols runCols, r backup.Run) string {
 		return ""
 	case cols.short:
 		return fmt.Sprintf("%*d", cols.digits, r.Entries)
-	case r.Entries == 1:
-		return fmt.Sprintf("%*d entry", cols.digits, r.Entries)
 	}
-	return fmt.Sprintf("%*d entries", cols.digits, r.Entries)
+	return b.c.tr.N("backups.entries", r.Entries, i18n.Args{"num": fmt.Sprintf("%*d", cols.digits, r.Entries)})
 }
 
 // cells is the row's plain columns, then its flags (pinned, interrupted,
@@ -319,13 +325,14 @@ func (b backups) countCell(cols runCols, r backup.Run) string {
 func (b backups) cells(cols runCols, r backup.Run) (cells string, plain, styled []string) {
 	c, t, g := b.c, b.c.theme, b.c.theme.Glyphs
 	gap := strings.Repeat(" ", cols.gap)
-	cells = r.Time.Format(cols.timeLayout) + gap + c.pad(originOf(r), cols.origin) + gap + c.pad(b.countCell(cols, r), cols.countW)
-	pending, failed := "interrupted", "failed, rolled back"
+	cells = r.Time.Format(cols.timeLayout) + gap + c.pad(originOf(c.tr, r), cols.origin) + gap + c.pad(b.countCell(cols, r), cols.countW)
+	pending, failed := c.tr.T("backups.flag.interrupted", nil), c.tr.T("backups.flag.rolled_back", nil)
 	if cols.short {
-		failed = "failed"
+		failed = c.tr.T("backups.flag.failed", nil)
 	}
 	if r.Pinned {
-		plain, styled = append(plain, "pinned"), append(styled, t.Text.Render("pinned"))
+		pinned := c.tr.T("backups.flag.pinned", nil)
+		plain, styled = append(plain, pinned), append(styled, t.Text.Render(pinned))
 	}
 	if r.Pending {
 		plain, styled = append(plain, g.Warn+" "+pending), append(styled, t.State(StateWarn, pending))
@@ -388,26 +395,26 @@ func (b backups) pane(l layout) []string {
 	}
 	switch {
 	case r.Legacy:
-		return append([]string{t.Text.Render(c.fit(r.ID+" has no manifest", l.width))},
-			note(StateWarn, "restore by hand from "+b.tilde(r.Dir))...)
+		return append([]string{t.Text.Render(c.fit(c.tr.T("backups.no_manifest", i18n.Args{"id": r.ID}), l.width))},
+			note(StateWarn, c.tr.T("backups.by_hand", i18n.Args{"path": b.tilde(r.Dir)}))...)
 	case r.Pending:
-		return append([]string{t.Text.Render(c.fit(r.ID+" did not finish", l.width))},
-			note(StateWarn, "interrupted, the next sync restores it")...)
+		return append([]string{t.Text.Render(c.fit(c.tr.T("backups.pending", i18n.Args{"id": r.ID}), l.width))},
+			note(StateWarn, c.tr.T("backups.pending_note", nil))...)
 	}
-	out := []string{t.Text.Render(c.fit(r.ID+" holds", l.width))}
+	out := []string{t.Text.Render(c.fit(c.tr.T("backups.holds", i18n.Args{"id": r.ID}), l.width))}
 	e, read := b.entries[r.ID]
 	switch {
 	case !read:
-		return append(out, "  "+t.Muted.Render(c.fit("entries unavailable here", w)))
+		return append(out, "  "+t.Muted.Render(c.fit(c.tr.T("backups.entries_unavailable", nil), w)))
 	case e.err != nil:
-		return append(out, failureLines(b.c, l, "could not read "+r.ID, e.err.Error(), "aval restore --list")...)
+		return append(out, failureLines(b.c, l, c.tr.T("backups.read_error", i18n.Args{"what": r.ID}), e.err.Error(), "aval restore --list")...)
 	case len(e.list) == 0:
-		return append(out, "  "+t.Muted.Render(c.fit("no entries", w)))
+		return append(out, "  "+t.Muted.Render(c.fit(c.tr.T("backups.no_entries", nil), w)))
 	}
 	kindW := 0
 	pathW := 0
 	for _, en := range e.list {
-		kindW = max(kindW, lipgloss.Width(entryKind(en)))
+		kindW = max(kindW, lipgloss.Width(entryKind(c.tr, en)))
 		pathW = max(pathW, lipgloss.Width(b.tilde(en.Path)))
 	}
 	pathW = min(pathW, w-2-kindW)
@@ -416,25 +423,25 @@ func (b backups) pane(l layout) []string {
 			out = append(out, "  "+t.Text.Render(c.fitMiddle(b.tilde(en.Path), w)))
 			continue
 		}
-		out = append(out, "  "+t.Text.Render(c.pad(c.fitMiddle(b.tilde(en.Path), pathW), pathW))+"  "+t.Muted.Render(entryKind(en)))
+		out = append(out, "  "+t.Text.Render(c.pad(c.fitMiddle(b.tilde(en.Path), pathW), pathW))+"  "+t.Muted.Render(entryKind(c.tr, en)))
 	}
 	return out
 }
 
 // entryKind is what a run saved for a path: the kind it had, or that aval
 // made it.
-func entryKind(e backup.Entry) string {
+func entryKind(tr i18n.Translator, e backup.Entry) string {
 	switch {
 	case e.CreatedDir:
-		return "folder created by aval"
+		return tr.T("backups.kind.created_dir", nil)
 	case !e.Existed:
-		return "created by aval"
+		return tr.T("backups.kind.created", nil)
 	case e.Kind == backup.KindSymlink:
-		return "link"
+		return tr.T("backups.kind.link", nil)
 	case e.Kind == backup.KindDir:
-		return "folder"
+		return tr.T("backups.kind.folder", nil)
 	}
-	return "file"
+	return tr.T("backups.kind.file", nil)
 }
 
 // failureLines is an error as the design asks: what and where on the state
@@ -453,7 +460,7 @@ func failureLines(c chrome, l layout, what, cause, command string) []string {
 		out = append(out, "  "+t.Text.Render(s))
 	}
 	if command != "" {
-		for _, s := range c.wrap("Try: "+command, max(l.width-2, 1)) {
+		for _, s := range c.wrap(c.tr.T("backups.try", i18n.Args{"command": command}), max(l.width-2, 1)) {
 			out = append(out, "  "+t.Muted.Render(s))
 		}
 	}
@@ -471,26 +478,24 @@ func (f restoreFailure) Error() string { return f.err.Error() }
 // newRestore is the restore operation for run: preview with RestorePreview,
 // confirm on Cancel, then Restore once, atomically.
 func newRestore(svc Services, run backup.Run) screen {
+	tr := svc.tr
 	home := svc.Home
 	tilde := func(p string) string { return tildeUnder(home, p) }
 	o, err := newOperation(operationSpec[[]backup.Action]{
 		Kind: opAtomic,
 		Mode: confirmDestructive,
 		Confirm: confirmSpec{
-			ActionNote: "put the saved state back",
-			Prompt:     fmt.Sprintf("This puts back what run %s saved. %s", run.ID, restoreSafety),
-			Safety:     restoreSafetyShort,
+			ActionNote: tr.T("backups.restore.note", nil),
+			Prompt:     tr.T("backups.restore.prompt", i18n.Args{"id": run.ID, "safety": tr.T("backups.safety", nil)}),
+			Safety:     tr.T("backups.safety_short", nil),
 		},
 		ActionFor: func(p []backup.Action) string {
-			if n := restoreWrites(p); n != 1 {
-				return fmt.Sprintf("Restore %d paths", n)
-			}
-			return "Restore 1 path"
+			return tr.N("backups.restore.action", restoreWrites(p), nil)
 		},
 		Ready: func(p []backup.Action) bool { return restoreWrites(p) > 0 },
 		Preview: func(context.Context) ([]backup.Action, error) {
 			if svc.Repo == "" {
-				return nil, errRestoreNoRepo
+				return nil, localizedError{errRestoreNoRepo, tr.T("backups.no_repo", nil)}
 			}
 			return svc.RestorePreview(run)
 		},
@@ -504,24 +509,24 @@ func newRestore(svc Services, run backup.Run) screen {
 				return opResult{}, f
 			}
 			return opResult{
-				Summary: fmt.Sprintf("Restored backup %s. Anything aval did not write is in %s.", run.ID, tilde(filepath.Join(run.Dir, ".displaced"))),
-				Counts:  restoreCounts(acts, true),
+				Summary: tr.T("backups.restore.summary", i18n.Args{"id": run.ID, "path": tilde(filepath.Join(run.Dir, ".displaced"))}),
+				Counts:  restoreCounts(tr, acts, true),
 			}, nil
 		},
 		PreviewBody: func(c chrome, l layout, p []backup.Action) []string {
 			return restorePreviewLines(c, l, run, p, tilde)
 		},
-		PreviewStatus: "Nothing has changed yet",
-		Loading:       "Reading run " + run.ID,
-		Running:       "Restoring " + run.ID,
+		PreviewStatus: tr.T("uninstall.preview_status", nil),
+		Loading:       tr.T("backups.restore.loading", i18n.Args{"id": run.ID}),
+		Running:       tr.T("backups.restore.running", i18n.Args{"id": run.ID}),
 		Result: func(c chrome, l layout, r opResult, err error) []string {
 			if err == nil {
 				return defaultResultLines(c, l, r)
 			}
-			what := "could not restore backup " + run.ID
+			what := c.tr.T("backups.restore.failed", i18n.Args{"id": run.ID})
 			var f restoreFailure
 			if errors.As(err, &f) && f.path != "" {
-				what = "could not restore " + tilde(f.path)
+				what = c.tr.T("backups.restore.failed_path", i18n.Args{"path": tilde(f.path)})
 			}
 			cause := strings.ReplaceAll(err.Error(), home+string(filepath.Separator), "~"+string(filepath.Separator))
 			if home == "" {
@@ -560,16 +565,16 @@ func restoreWrites(p []backup.Action) int {
 var restoreKinds = []struct {
 	kind                backup.ActionKind
 	state               StateKind
-	preview, toDo, done string
+	preview, toDo, done string // message keys
 }{
-	{backup.ActRestore, StateWarn, "would restore", "to restore", "restored"},
-	{backup.ActRemove, StateWarn, "would remove", "to remove", "removed"},
-	{backup.ActKept, StateWarn, "kept", "kept", "kept"},
-	{backup.ActUnchanged, StateOK, "unchanged", "unchanged", "unchanged"},
-	{backup.ActGone, StateOK, "already gone", "already gone", "already gone"},
+	{backup.ActRestore, StateWarn, i18n.Key("backups.act.would_restore"), i18n.Key("backups.act.to_restore"), i18n.Key("backups.act.restored")},
+	{backup.ActRemove, StateWarn, i18n.Key("backups.act.would_remove"), i18n.Key("backups.act.to_remove"), i18n.Key("backups.act.removed")},
+	{backup.ActKept, StateWarn, i18n.Key("backups.act.kept"), i18n.Key("backups.act.kept"), i18n.Key("backups.act.kept")},
+	{backup.ActUnchanged, StateOK, i18n.Key("backups.act.unchanged"), i18n.Key("backups.act.unchanged"), i18n.Key("backups.act.unchanged")},
+	{backup.ActGone, StateOK, i18n.Key("backups.act.gone"), i18n.Key("backups.act.gone"), i18n.Key("backups.act.gone")},
 }
 
-func restoreCounts(p []backup.Action, done bool) []opCount {
+func restoreCounts(tr i18n.Translator, p []backup.Action, done bool) []opCount {
 	var out []opCount
 	for _, k := range restoreKinds {
 		n := 0
@@ -585,7 +590,7 @@ func restoreCounts(p []backup.Action, done bool) []opCount {
 		if done {
 			label = k.done
 		}
-		out = append(out, opCount{n, label})
+		out = append(out, opCount{n, tr.T(label, nil)})
 	}
 	return out
 }
@@ -594,11 +599,11 @@ func restoreCounts(p []backup.Action, done bool) []opCount {
 // would do to it, then the counts.
 func restorePreviewLines(c chrome, l layout, run backup.Run, p []backup.Action, tilde func(string) string) []string {
 	t := c.theme
-	right := originOf(run) + c.sep() + run.Time.Format(backupsTimeLayout)
-	out := c.headingRow(l, "Restore "+run.ID, t.Strong, right, t.Muted)
+	right := originOf(c.tr, run) + c.sep() + run.Time.Format(backupsTimeLayout)
+	out := c.headingRow(l, c.tr.T("backups.restore.title", i18n.Args{"id": run.ID}), t.Strong, right, t.Muted)
 	out = append(out, "")
 	if restoreWrites(p) == 0 {
-		for _, s := range c.wrap("nothing to restore: every path is as the run saved it", max(l.width-2, 1)) {
+		for _, s := range c.wrap(c.tr.T("backups.restore.nothing", nil), max(l.width-2, 1)) {
 			if len(out) == 2 {
 				out = append(out, t.State(StateOK, s))
 				continue
@@ -609,14 +614,14 @@ func restorePreviewLines(c chrome, l layout, run backup.Run, p []backup.Action, 
 	}
 	wordW := 0
 	for _, k := range restoreKinds {
-		wordW = max(wordW, lipgloss.Width(t.Glyphs.OK+" "+k.preview))
+		wordW = max(wordW, lipgloss.Width(t.Glyphs.OK+" "+c.tr.T(k.preview, nil)))
 	}
 	for _, k := range restoreKinds {
 		for _, a := range p {
 			if a.Kind != k.kind {
 				continue
 			}
-			cell := t.State(k.state, k.preview)
+			cell := t.State(k.state, c.tr.T(k.preview, nil))
 			pad := strings.Repeat(" ", max(wordW-lipgloss.Width(cell), 0)+2)
 			pathW := l.width - wordW - 2
 			if pathW < 8 {
@@ -627,7 +632,7 @@ func restorePreviewLines(c chrome, l layout, run backup.Run, p []backup.Action, 
 		}
 	}
 	parts := make([]string, 0, len(restoreKinds))
-	for _, n := range restoreCounts(p, false) {
+	for _, n := range restoreCounts(c.tr, p, false) {
 		parts = append(parts, fmt.Sprintf("%d %s", n.N, n.Label))
 	}
 	out = append(out, "")

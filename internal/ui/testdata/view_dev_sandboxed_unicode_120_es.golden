@@ -1,0 +1,14 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Sandbox dev                                                ~/.cache/aval/dev
+
+  Está dentro del sandbox alpha. Salga de él para gestionar sandboxes.
+
+  › default  √ listo       ~/.cache/aval/dev/default
+    release  ! incompleto  ~/.cache/aval/dev/release
+
+  ────────────────────────────────────────────────────────────────────────────
+  Solo lectura dentro de un sandbox
+  ↑↓ mover · ? ayuda · q salir

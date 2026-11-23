@@ -6,6 +6,7 @@
    Glyphs         auto
    Motion         auto
    Update check   on
+   Language       auto
    Repository     ~/.aval
 
  Preview  [x] Selected

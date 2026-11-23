@@ -150,6 +150,9 @@ func (s uiSettings) settingsEnv(path, home string, getenv func(string) string, i
 	if s.flags.Theme != "" {
 		env.Flags["theme"], env.FlagNames["theme"] = s.flags.Theme, "--theme"
 	}
+	if s.flags.Lang != "" {
+		env.Flags["language"], env.FlagNames["language"] = s.flags.Lang, "--lang"
+	}
 	if s.flags.Plain {
 		for k, v := range map[string]string{"theme": "mono", "glyphs": "ascii", "motion": "off"} {
 			env.Flags[k], env.FlagNames[k] = v, "--plain"

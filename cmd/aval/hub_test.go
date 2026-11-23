@@ -104,7 +104,8 @@ func TestBareAvalOpensTheHubOnATerminal(t *testing.T) {
 		got = m
 		return drive(t, m)
 	})
-	if err := runBare(&out, "", uiFlags{}, e); err != nil {
+	// The text asserted below is English: pin it, whatever the shell's locale.
+	if err := runBare(&out, "", uiFlags{Lang: "en"}, e); err != nil {
 		t.Fatal(err)
 	}
 	if got == nil {

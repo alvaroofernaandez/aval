@@ -9,6 +9,7 @@
     Glyphs         auto           auto  unicode  ascii
     Motion         auto           auto  off
     Update check   on             on  off
+    Language       auto           auto  en  es
     Repository     ~/.aval
 
   Preview  [x] Selected   [ ] Not selected   ok linked   ! backed up

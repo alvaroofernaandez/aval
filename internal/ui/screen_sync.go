@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/alvaroofernaandez/aval/internal/core/txsync"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The sync view is the operation pattern on txsync, inline: the dry run lists
@@ -17,7 +18,6 @@ import (
 // failure) and local, so nothing spins.
 
 const (
-	syncSafety = "The previous files are saved to ~/.aval-backup · undo: aval restore latest"
 	// syncStateW is the widest state cell ("! would change"); syncKindW the
 	// widest kind ("settings").
 	syncStateW = 14
@@ -34,7 +34,7 @@ type syncRow struct {
 
 // syncRows reads a report into rows. Agent-rules targets whose directory is
 // absent are skipped by sync and left out here.
-func syncRows(o *txsync.Outcome) []syncRow {
+func syncRows(tr i18n.Translator, o *txsync.Outcome) []syncRow {
 	if o == nil || o.Report == nil {
 		return nil
 	}
@@ -42,27 +42,27 @@ func syncRows(o *txsync.Outcome) []syncRow {
 	s := o.Report.Settings
 	switch {
 	case s.Created:
-		rows = append(rows, syncRow{StateWarn, "would create", "settings", "~/.claude/settings.json"})
+		rows = append(rows, syncRow{StateWarn, tr.T("sync.would_create", nil), tr.T("sync.kind.settings", nil), "~/.claude/settings.json"})
 	case len(s.Changed) > 0:
-		rows = append(rows, syncRow{StateWarn, "would change", "settings", strings.Join(s.Changed, ", ")})
+		rows = append(rows, syncRow{StateWarn, tr.T("sync.would_change", nil), tr.T("sync.kind.settings", nil), strings.Join(s.Changed, ", ")})
 	default:
-		rows = append(rows, syncRow{StateOK, "up to date", "settings", "~/.claude/settings.json"})
+		rows = append(rows, syncRow{StateOK, tr.T("sync.up_to_date", nil), tr.T("sync.kind.settings", nil), "~/.claude/settings.json"})
 	}
 	for _, r := range o.Report.Rules {
 		switch {
 		case r.Skipped:
 		case r.Changed:
-			rows = append(rows, syncRow{StateWarn, "would update", "rules", r.Path})
+			rows = append(rows, syncRow{StateWarn, tr.T("sync.would_update", nil), tr.T("sync.kind.rules", nil), r.Path})
 		default:
-			rows = append(rows, syncRow{StateOK, "up to date", "rules", r.Path})
+			rows = append(rows, syncRow{StateOK, tr.T("sync.up_to_date", nil), tr.T("sync.kind.rules", nil), r.Path})
 		}
 	}
 	for _, l := range o.Report.Links {
 		if l.Status == "would link" {
-			rows = append(rows, syncRow{StateWarn, "would link", "overlay", l.Dest})
+			rows = append(rows, syncRow{StateWarn, tr.T("sync.would_link", nil), tr.T("sync.kind.overlay", nil), l.Dest})
 			continue
 		}
-		rows = append(rows, syncRow{StateOK, "linked", "overlay", l.Dest})
+		rows = append(rows, syncRow{StateOK, tr.T("sync.linked", nil), tr.T("sync.kind.overlay", nil), l.Dest})
 	}
 	return rows
 }
@@ -78,30 +78,31 @@ func syncDrift(rows []syncRow) int {
 }
 
 func newSyncView(svc Services) screen {
+	tr := svc.tr
 	o, err := newOperation(operationSpec[*txsync.Outcome]{
 		Kind: opAtomic,
 		Mode: confirmInline,
 		Confirm: confirmSpec{
-			Action:     "Apply sync",
-			ActionNote: "back up, write, verify with doctor, roll back on failure",
-			Safety:     syncSafety,
+			Action:     tr.T("sync.action", nil),
+			ActionNote: tr.T("sync.action_note", nil),
+			Safety:     tr.T("sync.safety", nil),
 		},
-		Ready: func(o *txsync.Outcome) bool { return syncDrift(syncRows(o)) > 0 },
+		Ready: func(o *txsync.Outcome) bool { return syncDrift(syncRows(tr, o)) > 0 },
 		Preview: func(context.Context) (*txsync.Outcome, error) {
 			if svc.SyncPreview == nil {
-				return nil, errors.New("sync is not available here")
+				return nil, errors.New(tr.T("sync.unavailable", nil))
 			}
 			return svc.SyncPreview()
 		},
 		Run: func(_ context.Context, _ *txsync.Outcome) (opResult, error) {
-			return runSync(svc)
+			return runSync(svc, tr)
 		},
 		PreviewBody: func(c chrome, l layout, o *txsync.Outcome) []string {
 			return syncBody(c, l, svc.Home, o)
 		},
 		Result:  syncResult,
-		Loading: "Comparing the repo with this home",
-		Running: "Syncing",
+		Loading: tr.T("sync.loading", nil),
+		Running: tr.T("sync.running", nil),
 	})
 	if err != nil {
 		panic(err)
@@ -119,25 +120,25 @@ type syncRolledBack struct {
 func (e syncRolledBack) Error() string { return e.err.Error() }
 func (e syncRolledBack) Unwrap() error { return e.err }
 
-func runSync(svc Services) (opResult, error) {
+func runSync(svc Services, tr i18n.Translator) (opResult, error) {
 	if svc.Sync == nil {
-		return opResult{}, errors.New("sync is not available here")
+		return opResult{}, errors.New(tr.T("sync.unavailable", nil))
 	}
 	out, err := svc.Sync()
 	if out != nil && out.RolledBack {
 		if err == nil {
-			err = errors.New("sync rolled back")
+			err = errors.New(tr.T("sync.rolled_back_error", nil))
 		}
 		return opResult{BackupID: out.RunID}, syncRolledBack{out: out, err: err}
 	}
 	if err != nil {
 		return opResult{}, err
 	}
-	rows := syncRows(out)
+	rows := syncRows(tr, out)
 	changed := syncDrift(rows)
 	r := opResult{
-		Summary:  "Synced.",
-		Counts:   []opCount{{changed, "changed"}, {len(rows) - changed, "already in place"}},
+		Summary:  tr.T("sync.synced", nil),
+		Counts:   []opCount{{changed, tr.T("sync.count.changed", nil)}, {len(rows) - changed, tr.T("sync.count.already", nil)}},
 		BackupID: "",
 		Undo:     undoLatest,
 	}
@@ -149,11 +150,11 @@ func runSync(svc Services) (opResult, error) {
 
 // syncBody is the heading, the rows and, with nothing to do, why.
 func syncBody(c chrome, l layout, home string, o *txsync.Outcome) []string {
-	out := c.headingRow(l, "Sync", c.theme.Strong, "~/.claude/settings.json", c.theme.Muted)
+	out := c.headingRow(l, c.tr.T("sync.title", nil), c.theme.Strong, "~/.claude/settings.json", c.theme.Muted)
 	out = append(out, "")
-	rows := syncRows(o)
+	rows := syncRows(c.tr, o)
 	if syncDrift(rows) == 0 {
-		return append(out, c.theme.State(StateOK, "nothing to sync"))
+		return append(out, c.theme.State(StateOK, c.fit(c.tr.T("sync.nothing", nil), max(l.width-lipgloss.Width(c.theme.Glyphs.OK)-1, 1))))
 	}
 	lead := syncStateW + 2 + syncKindW + 2
 	room := l.width - lead
@@ -185,8 +186,8 @@ func syncResult(c chrome, l layout, r opResult, err error) []string {
 	var rb syncRolledBack
 	switch {
 	case errors.As(err, &rb):
-		out = append(out, c.theme.State(StateFail, "rolled back"))
-		for _, s := range c.wrap("The previous files are back in place.", max(l.width-2, 1)) {
+		out = append(out, c.theme.State(StateFail, c.tr.T("sync.rolled_back", nil)))
+		for _, s := range c.wrap(c.tr.T("sync.restored", nil), max(l.width-2, 1)) {
 			out = append(out, "  "+c.theme.Text.Render(s))
 		}
 		if len(rb.out.Failed) == 0 {
@@ -223,7 +224,7 @@ func syncResult(c chrome, l layout, r opResult, err error) []string {
 		}
 	}
 	if r.BackupID != "" {
-		out = append(out, c.theme.Muted.Render(c.fit("backup "+r.BackupID, l.width)))
+		out = append(out, c.theme.Muted.Render(c.fit(c.tr.T("op.backup", i18n.Args{"id": r.BackupID}), l.width)))
 	}
 	return out
 }

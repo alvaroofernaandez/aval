@@ -1,0 +1,15 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ----------------------------------------------------------------------------
+
+  Desinstalar
+
+  2 enlaces quitados 1 archivo anterior restaurado 1 bloque de reglas cortado
+
+  ! quitar enlace  ~/.zshrc            restaura el archivo anterior
+  ! quitar enlace  ~/.config/tmux
+  ! cortar bloque  ~/.codex/AGENTS.md
+
+  ----------------------------------------------------------------------------
+  Todavía no ha cambiado nada
+  enter continuar  esc volver  ? ayuda  q salir

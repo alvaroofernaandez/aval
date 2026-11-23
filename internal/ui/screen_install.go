@@ -2,13 +2,13 @@ package ui
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/alvaroofernaandez/aval/internal/core/install"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The install screen: one action per update cycle, so the bar moves. Each
@@ -33,23 +33,23 @@ func (m Model) applyNext() tea.Cmd {
 }
 
 func (m Model) installView() view {
-	status := "nothing failed so far"
+	status := m.tr.T("install.status.none_failed", nil)
 	if n := len(m.errs); n > 0 {
-		status = fmt.Sprintf("%d failed so far", n)
+		status = m.tr.T("install.status.failed", i18n.Args{"count": n})
 	}
 	if m.stopping {
-		status += " · stopping after the current step"
+		status += " · " + m.tr.T("install.status.stopping", nil)
 	}
 	return view{body: m.installBody, status: status}
 }
 
 func (m Model) installBody(l layout, h int) []string {
 	done, total := m.index, len(m.queue)
-	title := "Installing"
+	title := m.tr.T("install.title", nil)
 	if m.runTitle != "" {
 		title = m.runTitle
 	}
-	out := m.headingRow(l, title, m.theme.Heading, fmt.Sprintf("%d of %d", done, total), m.theme.Muted)
+	out := m.headingRow(l, title, m.theme.Heading, m.tr.T("install.progress", i18n.Args{"done": done, "total": total}), m.theme.Muted)
 	out = append(out, m.theme.ProgressBar(done, total, l.width))
 
 	rows := m.installRows(l)
@@ -88,24 +88,24 @@ func (m Model) installRows(l layout) []string {
 	var cells []cell
 	for _, s := range m.log {
 		r := s.result
-		c := cell{kind: StateOK, word: r.Status.String(), label: r.Action.Label}
+		c := cell{kind: StateOK, word: m.statusWord(r.Status), label: r.Action.Label}
 		switch {
 		case s.err != nil:
-			c.kind, c.word, c.reason = StateFail, "failed", failReason(s.err)
+			c.kind, c.word, c.reason = StateFail, m.tr.T("install.word.failed", nil), failReason(s.err)
 		case r.Backup != "":
-			c.kind, c.word = StateWarn, "backed up"
+			c.kind, c.word = StateWarn, m.tr.T("install.word.backed_up", nil)
 		case r.Status == install.StatusWould:
 			c.kind = StateWarn
 		}
 		cells = append(cells, c)
 	}
 	if m.index < len(m.queue) {
-		verb := "copying"
+		verb := m.tr.T("install.word.copying", nil)
 		switch {
 		case m.DryRun:
-			verb = "checking"
+			verb = m.tr.T("install.word.checking", nil)
 		case m.Symlinks:
-			verb = "linking"
+			verb = m.tr.T("install.word.linking", nil)
 		}
 		cells = append(cells, cell{running: true, word: verb, label: m.queue[m.index].Label})
 	}
@@ -127,6 +127,21 @@ func (m Model) installRows(l layout) []string {
 		rows = append(rows, "  "+state+strings.Repeat(" ", stateW-lipgloss.Width(state))+"  "+m.pathAndReason(c.label, c.reason, pathW))
 	}
 	return rows
+}
+
+// statusWord is the word for a completed step, in the language.
+func (m Model) statusWord(s install.Status) string {
+	switch s {
+	case install.StatusLinked:
+		return m.tr.T("install.status.linked", nil)
+	case install.StatusCopied:
+		return m.tr.T("install.status.copied", nil)
+	case install.StatusAlready:
+		return m.tr.T("install.status.already", nil)
+	case install.StatusWould:
+		return m.tr.T("install.status.would", nil)
+	}
+	return m.tr.T("install.status.unknown", nil)
 }
 
 // pathAndReason fits "path  reason" into w columns. The path keeps at least

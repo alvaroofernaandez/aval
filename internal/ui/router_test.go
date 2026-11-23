@@ -69,7 +69,7 @@ func (f fakeScreen) received(want tea.Msg) bool {
 
 func testApp(t *testing.T, root screen) App {
 	t.Helper()
-	return newApp(chrome{theme: goldenTheme(t, true), version: "0.2.0", platform: "macOS (arm64)", width: 80, height: 24}, Services{}, root)
+	return newApp(chrome{tr: testTr, theme: goldenTheme(t, true), version: "0.2.0", platform: "macOS (arm64)", width: 80, height: 24}, Services{}, root)
 }
 
 // step sends msg and feeds back every message its command produces, the way
@@ -252,7 +252,7 @@ func TestRouterHintsMergeGlobalKeys(t *testing.T) {
 	root := newFake("root")
 	root.next = newFake("child")
 	a, _ := routerStep(testApp(t, root), key("enter"))
-	hints := a.keys().hints(a.theme.Glyphs)
+	hints := a.keys().hints(a.chrome)
 	var got []string
 	for _, h := range hints {
 		got = append(got, h.key+" "+h.desc)

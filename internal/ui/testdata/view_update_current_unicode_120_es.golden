@@ -1,0 +1,16 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Actualizar                                                           ~/.aval
+
+  √ al día (a1b2c3d)
+
+  › Volver a aplicar los enlaces igualmente
+    enlaza lo que falta, sin actualizar
+    Volver                                   no cambia nada
+
+  ────────────────────────────────────────────────────────────────────────────
+  Los archivos en el camino pasan antes a ~/.aval-backup · deshacer: aval
+  restore latest
+  ↑↓ mover · enter elegir · esc volver · ? ayuda · q salir

@@ -40,8 +40,8 @@ func TestHelpListsEveryBindingOfTheScreen(t *testing.T) {
 			km := m.screenKeys()
 			view := renderAtSize(send(m, "?"), 120, 60)
 			for _, b := range km {
-				if !strings.Contains(view, b.desc) {
-					t.Errorf("%s unicode=%v: help misses the description %q:\n%s", s.name, unicode, b.desc, view)
+				if !strings.Contains(view, m.tr.T(b.desc, nil)) {
+					t.Errorf("%s unicode=%v: help misses the description %q:\n%s", s.name, unicode, m.tr.T(b.desc, nil), view)
 				}
 				for _, k := range b.keys {
 					want := k
@@ -75,7 +75,7 @@ func TestHelpHasAHintOnEveryScreen(t *testing.T) {
 	for _, s := range goldenScreens {
 		m := screenFixture(t, s.screen, true)
 		found := false
-		for _, h := range m.screenKeys().hints(m.theme.Glyphs) {
+		for _, h := range m.screenKeys().hints(m.chrome) {
 			if h.key == "?" && h.desc == "help" {
 				found = true
 			}
@@ -115,27 +115,29 @@ func TestCtrlCStillStopsAnInstallWhileHelpIsOpen(t *testing.T) {
 }
 
 func TestHelpStaysInsideTheTerminal(t *testing.T) {
-	for _, unicode := range []bool{true, false} {
-		for _, s := range goldenScreens {
-			m := helpOpen(t, s.screen, unicode)
-			for _, w := range []int{20, 36, 80, 120} {
-				for h := 8; h <= 40; h++ {
-					lines := strings.Split(renderAtSize(m, w, h), "\n")
-					if len(lines) > h {
-						t.Errorf("%s unicode=%v %dx%d: help frame is %d lines", s.name, unicode, w, h, len(lines))
-					}
-					for i, line := range lines {
-						if lw := lipgloss.Width(line); lw > w {
-							t.Errorf("%s unicode=%v %dx%d: help line %d is %d wide", s.name, unicode, w, h, i, lw)
+	forEachLang(t, func(t *testing.T) {
+		for _, unicode := range []bool{true, false} {
+			for _, s := range goldenScreens {
+				m := helpOpen(t, s.screen, unicode)
+				for _, w := range []int{20, 36, 80, 120} {
+					for h := 8; h <= 40; h++ {
+						lines := strings.Split(renderAtSize(m, w, h), "\n")
+						if len(lines) > h {
+							t.Errorf("%s unicode=%v %dx%d: help frame is %d lines", s.name, unicode, w, h, len(lines))
 						}
-					}
-					if strings.Contains(strings.Join(lines, "\n"), "\u2014") {
-						t.Errorf("%s: em dash in help", s.name)
+						for i, line := range lines {
+							if lw := lipgloss.Width(line); lw > w {
+								t.Errorf("%s unicode=%v %dx%d: help line %d is %d wide", s.name, unicode, w, h, i, lw)
+							}
+						}
+						if strings.Contains(strings.Join(lines, "\n"), "\u2014") {
+							t.Errorf("%s: em dash in help", s.name)
+						}
 					}
 				}
 			}
 		}
-	}
+	})
 }
 
 func TestHelpScrollsWhenTallerThanTheTerminal(t *testing.T) {
@@ -160,15 +162,17 @@ func TestHelpScrollsWhenTallerThanTheTerminal(t *testing.T) {
 }
 
 func TestGoldenHelp(t *testing.T) {
-	for _, tier := range []struct {
-		name    string
-		unicode bool
-	}{{"unicode", true}, {"ascii", false}} {
-		for _, w := range []int{36, 80} {
-			name := fmt.Sprintf("help_select_%s_%d", tier.name, w)
-			t.Run(name, func(t *testing.T) {
-				assertGolden(t, name, renderAt(helpOpen(t, ScreenSelect, tier.unicode), w))
-			})
+	forEachLang(t, func(t *testing.T) {
+		for _, tier := range []struct {
+			name    string
+			unicode bool
+		}{{"unicode", true}, {"ascii", false}} {
+			for _, w := range []int{36, 80} {
+				name := goldenName(fmt.Sprintf("help_select_%s_%d", tier.name, w))
+				t.Run(name, func(t *testing.T) {
+					assertGolden(t, name, renderAt(helpOpen(t, ScreenSelect, tier.unicode), w))
+				})
+			}
 		}
-	}
+	})
 }

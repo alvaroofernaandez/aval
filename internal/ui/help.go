@@ -5,6 +5,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The help overlay replaces the body of the current screen inside the same
@@ -15,9 +17,9 @@ import (
 // nothing else acts. ctrl+c keeps its stop meaning on the install screen.
 func helpKeysFor(s Screen) keyMap {
 	km := keyMap{
-		{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "scroll"},
-		{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "scroll"},
-		{keys: []string{"esc", "?"}, action: actHelp, label: "esc", desc: "close", core: true},
+		{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.scroll")},
+		{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.scroll")},
+		{keys: []string{"esc", "?"}, action: actHelp, label: "esc", desc: i18n.Key("key.close"), core: true},
 	}
 	if s == ScreenInstall {
 		km = append(km, binding{keys: []string{"ctrl+c"}, action: actStop})
@@ -39,7 +41,7 @@ func (m Model) helpAction(act action) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) helpView() view {
-	return view{body: m.helpBody, status: "help"}
+	return view{body: m.helpBody, status: m.tr.T("key.help", nil)}
 }
 
 // keyName is how one tea key string reads in the overlay. Arrows come from
@@ -84,9 +86,13 @@ func (c chrome) keyRows(km keyMap) [][2]string {
 		for i, k := range b.keys {
 			names[i] = c.theme.Glyphs.keyName(k)
 		}
-		desc := b.desc
+		desc := c.tr.T(b.desc, nil)
 		if b.help != "" {
-			desc = b.help
+			var name string
+			if b.helpName != "" {
+				name = c.tr.T(b.helpName, nil)
+			}
+			desc = c.tr.T(b.help, i18n.Args{"name": name})
 		}
 		rows = append(rows, [2]string{strings.Join(names, ", "), desc})
 	}
@@ -105,7 +111,7 @@ func (c chrome) keysBody(rows [][2]string, top int, l layout, h int) []string {
 	// Keep room for at least a few columns of description.
 	keyW = min(keyW, max(l.width/2, 1))
 
-	lines := []string{c.theme.Strong.Render("Keys")}
+	lines := []string{c.theme.Strong.Render(c.tr.T("help.keys", nil))}
 	room := max(h-len(lines), 0)
 	start, end := scrollWindow(len(rows), top, room)
 	for _, r := range rows[start:end] {

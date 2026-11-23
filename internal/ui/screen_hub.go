@@ -37,10 +37,10 @@ const (
 )
 
 // Reasons an entry is unavailable, shown dimmed in place of its description.
-const (
-	reasonNoRepo = "needs a repository: run Install first"
-	reasonNoView = "not in this build yet"
-	reasonNoDev  = "needs a checkout and Go"
+var (
+	reasonNoRepo = i18n.Key("hub.reason.no_repo")
+	reasonNoView = i18n.Key("hub.reason.no_view")
+	reasonNoDev  = i18n.Key("hub.reason.no_dev")
 )
 
 // hubEntry is one menu row. group is set on the first entry of a group only.
@@ -54,24 +54,24 @@ type hubEntry struct {
 
 // hubMenu is nine entries in four groups of at most three (Hick).
 var hubMenu = []hubEntry{
-	{group: "Set up", name: "Install", view: viewInstall, icon: "⇣", ascii: "v", key: "i",
-		desc: "Link the repo configs into this home.", keys: [][2]string{{"enter", "pick what to link"}}},
-	{name: "Update", view: viewUpdate, icon: "⟳", ascii: "@", key: "u",
-		desc: "Pull the repo, then re-apply.", keys: [][2]string{{"enter", "fetch and preview the pull"}}},
-	{name: "Sync", view: viewSync, icon: "⇄", ascii: "=", key: "s",
-		desc: "Merge repo settings into the live config.", keys: [][2]string{{"enter", "preview the merge"}}},
-	{group: "Health", name: "Doctor", view: viewDoctor, icon: "⊞", ascii: "+", key: "d",
-		desc: "Check this machine against the repo.", keys: [][2]string{{"enter", "open the full report"}, {"f", "fix what is safe to fix here"}}},
-	{group: "Undo", name: "Backups", view: viewBackups, icon: "◷", ascii: "o", key: "b",
-		desc: "List backup runs and restore one.", keys: [][2]string{{"enter", "preview a restore"}, {"p", "pin a run"}}},
-	{name: "Uninstall", view: viewUninstall, icon: "⌫", ascii: "x", key: "x",
-		desc: "Remove aval's links, put back what was there.", keys: [][2]string{{"enter", "preview what goes"}}},
-	{group: "Tools", name: "Settings", view: viewSettings, icon: "⎈", ascii: "*", key: ",",
-		desc: "Theme, glyphs, motion and update checks.", keys: [][2]string{{"enter", "change them"}}},
-	{name: "Dev sandbox", view: viewDev, icon: "⧉", ascii: "#", key: "v",
-		desc: "A throwaway home for trying aval.", keys: [][2]string{{"enter", "list them"}, {"n", "new sandbox"}}},
-	{name: "About", view: viewAbout, icon: "◉", ascii: "i", key: "a",
-		desc: "Version, paths and links.", keys: [][2]string{{"enter", "paths and links"}}},
+	{group: i18n.Key("hub.group.setup"), name: i18n.Key("hub.install.name"), view: viewInstall, icon: "⇣", ascii: "v", key: "i",
+		desc: i18n.Key("hub.install.desc"), keys: [][2]string{{"enter", i18n.Key("hub.install.enter")}}},
+	{name: i18n.Key("hub.update.name"), view: viewUpdate, icon: "⟳", ascii: "@", key: "u",
+		desc: i18n.Key("hub.update.desc"), keys: [][2]string{{"enter", i18n.Key("hub.update.enter")}}},
+	{name: i18n.Key("hub.sync.name"), view: viewSync, icon: "⇄", ascii: "=", key: "s",
+		desc: i18n.Key("hub.sync.desc"), keys: [][2]string{{"enter", i18n.Key("hub.sync.enter")}}},
+	{group: i18n.Key("hub.group.health"), name: i18n.Key("hub.doctor.name"), view: viewDoctor, icon: "⊞", ascii: "+", key: "d",
+		desc: i18n.Key("hub.doctor.desc"), keys: [][2]string{{"enter", i18n.Key("hub.doctor.enter")}, {"f", i18n.Key("hub.doctor.fix")}}},
+	{group: i18n.Key("hub.group.undo"), name: i18n.Key("hub.backups.name"), view: viewBackups, icon: "◷", ascii: "o", key: "b",
+		desc: i18n.Key("hub.backups.desc"), keys: [][2]string{{"enter", i18n.Key("hub.backups.enter")}, {"p", i18n.Key("hub.backups.pin")}}},
+	{name: i18n.Key("hub.uninstall.name"), view: viewUninstall, icon: "⌫", ascii: "x", key: "x",
+		desc: i18n.Key("hub.uninstall.desc"), keys: [][2]string{{"enter", i18n.Key("hub.uninstall.enter")}}},
+	{group: i18n.Key("hub.group.tools"), name: i18n.Key("hub.settings.name"), view: viewSettings, icon: "⎈", ascii: "*", key: ",",
+		desc: i18n.Key("hub.settings.desc"), keys: [][2]string{{"enter", i18n.Key("hub.settings.enter")}}},
+	{name: i18n.Key("hub.dev.name"), view: viewDev, icon: "⧉", ascii: "#", key: "v",
+		desc: i18n.Key("hub.dev.desc"), keys: [][2]string{{"enter", i18n.Key("hub.dev.enter")}, {"n", i18n.Key("hub.dev.new")}}},
+	{name: i18n.Key("hub.about.name"), view: viewAbout, icon: "◉", ascii: "i", key: "a",
+		desc: i18n.Key("hub.about.desc"), keys: [][2]string{{"enter", i18n.Key("hub.about.enter")}}},
 }
 
 // liveWithoutRepo are the entries that work before anything is set up.
@@ -88,9 +88,7 @@ func hubEntryFor(name string) hubEntry {
 
 // Menu and pane columns.
 const (
-	// hubGroupW is the group gutter, shown from gutterFrom columns up: the
-	// longest label plus two spaces, so the cursor never touches a label.
-	hubGroupW  = 8
+	// gutterFrom is where the group gutter shows (hub.groupW is its width).
 	gutterFrom = 60
 	// hubFieldW is the name plus its right-aligned badge.
 	hubFieldW = 14
@@ -246,16 +244,18 @@ func (h hub) open() tea.Cmd {
 		return nil
 	}
 	ctor, _ := viewFor(e.view)
-	return push(ctor(h.svc))
+	svc := h.svc
+	svc.tr = h.c.tr // the view is built in the language the hub speaks
+	return push(ctor(svc))
 }
 
 // hubKeys is the hub's map. Every letter shares one hint ("i u s ... jump")
 // and keeps its own row in the `?` overlay.
 var hubKeys = func() keyMap {
 	km := keyMap{
-		{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "move"},
-		{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "move"},
-		{keys: []string{"enter"}, action: actInstall, label: "enter", desc: "open", core: true},
+		{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.move")},
+		{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.move")},
+		{keys: []string{"enter"}, action: actInstall, label: "enter", desc: i18n.Key("key.open"), core: true},
 	}
 	letters := make([]string, len(hubMenu))
 	for i, e := range hubMenu {
@@ -263,21 +263,34 @@ var hubKeys = func() keyMap {
 	}
 	label := strings.Join(letters, " ")
 	for _, e := range hubMenu {
-		km = append(km, binding{keys: []string{e.key}, action: actHubJump, label: label, desc: "jump", help: "open " + e.name})
+		km = append(km, binding{keys: []string{e.key}, action: actHubJump, label: label, desc: i18n.Key("key.jump"), help: i18n.Key("key.open_entry"), helpName: e.name})
 	}
 	return km
 }()
 
-func (h hub) keys() keyMap     { return hubKeys }
-func (h hub) busy() busyKind   { return busyIdle }
-func (h hub) hasRepo() bool    { return h.svc.Repo != "" }
-func (h hub) compact() bool    { return breakpointFor(h.c.width) == bpCompact }
-func (h hub) sep() string      { return h.c.sep() }
-func (h hub) theme() Theme     { return h.c.theme }
-func (h hub) glyphs() Glyphs   { return h.c.theme.Glyphs }
-func (h hub) unicode() bool    { return h.glyphs().Cursor == UnicodeGlyphs.Cursor }
-func (h hub) sandboxed() bool  { return h.svc.Sandbox != "" }
-func (h hub) marker() string   { return fmt.Sprintf("[aval dev:%s]", h.svc.Sandbox) }
+func (h hub) keys() keyMap        { return hubKeys }
+func (h hub) busy() busyKind      { return busyIdle }
+func (h hub) hasRepo() bool       { return h.svc.Repo != "" }
+func (h hub) compact() bool       { return breakpointFor(h.c.width) == bpCompact }
+func (h hub) sep() string         { return h.c.sep() }
+func (h hub) theme() Theme        { return h.c.theme }
+func (h hub) glyphs() Glyphs      { return h.c.theme.Glyphs }
+func (h hub) unicode() bool       { return h.glyphs().Cursor == UnicodeGlyphs.Cursor }
+func (h hub) sandboxed() bool     { return h.svc.Sandbox != "" }
+func (h hub) marker() string      { return fmt.Sprintf("[aval dev:%s]", h.svc.Sandbox) }
+func (h hub) tr() i18n.Translator { return h.c.tr }
+
+// groupW is the group gutter: the longest label plus two spaces, so the
+// cursor never touches a label.
+func (h hub) groupW() int {
+	w := 0
+	for _, e := range hubMenu {
+		if e.group != "" {
+			w = max(w, lipgloss.Width(h.tr().T(e.group, nil)))
+		}
+	}
+	return w + 2
+}
 func (h hub) devCapable() bool { return h.hasRepo() && h.svc.DevCommand != nil }
 
 // icon is e's glyph in the current tier.
@@ -309,13 +322,13 @@ func (h hub) arrow() string {
 // nil when `go` is not on PATH, per the nil-means-unavailable contract.
 func (h hub) unavailable(e hubEntry) string {
 	if e.view == viewDev && !h.devCapable() {
-		return reasonNoDev
+		return h.tr().T(reasonNoDev, nil)
 	}
 	if !h.hasRepo() && !liveWithoutRepo[e.view] {
-		return reasonNoRepo
+		return h.tr().T(reasonNoRepo, nil)
 	}
 	if _, ok := viewFor(e.view); !ok {
-		return reasonNoView
+		return h.tr().T(reasonNoView, nil)
 	}
 	return ""
 }
@@ -332,7 +345,7 @@ func (h hub) view() view {
 // says something the collapsed panel does not.
 func (h hub) status() string {
 	if !h.hasRepo() {
-		return "Not set up yet. Start with Install."
+		return h.tr().T("hub.status.not_set_up", nil)
 	}
 	if h.compact() {
 		return h.unavailable(hubMenu[h.cursor])
@@ -341,19 +354,13 @@ func (h hub) status() string {
 		return ""
 	}
 	_, warn, fail := h.counts()
-	plural := func(n int, one, many string) string {
-		if n == 1 {
-			return fmt.Sprintf("1 %s%sopen Doctor to see it", one, h.sep())
-		}
-		return fmt.Sprintf("%d %s%sopen Doctor to see them", n, many, h.sep())
-	}
 	switch {
 	case fail > 0:
-		return plural(fail, "failure", "failures")
+		return h.tr().N("hub.status.failures", fail, i18n.Args{"sep": h.sep()})
 	case warn > 0:
-		return plural(warn, "warning", "warnings")
+		return h.tr().N("hub.status.warnings", warn, i18n.Args{"sep": h.sep()})
 	}
-	return "Every check passes."
+	return h.tr().T("hub.status.all_pass", nil)
 }
 
 func (h hub) counts() (ok, warn, fail int) {
@@ -381,16 +388,17 @@ func (h hub) worst() StateKind {
 	return StateOK
 }
 
-// worstCount is the worst state's count and its word: 1, "warn".
+// worstCount is the worst state's count and the plural key of its word:
+// 1, "hub.count.warn".
 func (h hub) worstCount() (int, string) {
 	ok, warn, fail := h.counts()
 	switch h.worst() {
 	case StateFail:
-		return fail, "fail"
+		return fail, i18n.Key("hub.count.fail")
 	case StateWarn:
-		return warn, "warn"
+		return warn, i18n.Key("hub.count.warn")
 	}
-	return ok, "ok"
+	return ok, i18n.Key("hub.count.ok")
 }
 
 // doctorDone is true once a doctor result is on screen.
@@ -432,10 +440,7 @@ func (h hub) stateCell(k StateKind, word string, w int) string {
 
 // behindCell is the arrow and "N commits behind", fitted to w columns.
 func (h hub) behindCell(w int) string {
-	word := fmt.Sprintf("%d commits behind", h.behind)
-	if h.behind == 1 {
-		word = "1 commit behind"
-	}
+	word := h.tr().N("hub.behind", h.behind, nil)
 	return h.theme().StateWith(StateWarn, h.arrow(), h.c.fit(word, w-lipgloss.Width(h.arrow())-1))
 }
 
@@ -452,16 +457,16 @@ func (h hub) newer() string {
 
 // relDay is when t happened, read against now: "today 12:54",
 // "yesterday 18:40", otherwise the date.
-func relDay(now, t time.Time) string {
+func (c chrome) relDay(now, t time.Time) string {
 	t = t.In(now.Location())
 	clock := t.Format("15:04")
 	y, m, d := now.Date()
 	today := time.Date(y, m, d, 0, 0, 0, 0, now.Location())
 	switch {
 	case !t.Before(today) && t.Before(today.AddDate(0, 0, 1)):
-		return "today " + clock
+		return c.tr.T("hub.day.today", i18n.Args{"clock": clock})
 	case !t.Before(today.AddDate(0, 0, -1)) && t.Before(today):
-		return "yesterday " + clock
+		return c.tr.T("hub.day.yesterday", i18n.Args{"clock": clock})
 	}
 	return t.Format("2006-01-02 15:04")
 }
@@ -501,27 +506,27 @@ func (c chrome) shortenPath(home, p string, w int) string {
 // backupRow is a run as the panel and the pane show it: relative day and
 // origin.
 func (h hub) backupRow(r backup.Run) string {
-	row := relDay(h.clock(), r.Time)
+	row := h.c.relDay(h.clock(), r.Time)
 	if r.Origin != "" {
 		row += h.sep() + r.Origin
 	}
 	return row
 }
 
-// lastRun is the newest run made by origin, or "none yet".
+// lastRun is the newest run made by origin, or "none yet" in the language.
 func (h hub) lastRun(origin string) string {
 	for _, r := range h.runs {
 		if r.Origin == origin {
-			return relDay(h.clock(), r.Time)
+			return h.c.relDay(h.clock(), r.Time)
 		}
 	}
-	return "none yet"
+	return h.tr().T("hub.last_run.none", nil)
 }
 
 // repoCell is the repo path keeping its tail, or "not found".
 func (h hub) repoCell(w int) string {
 	if !h.hasRepo() {
-		return h.stateCell(StateFail, "not found", w)
+		return h.stateCell(StateFail, h.tr().T("hub.not_found", nil), w)
 	}
 	return h.theme().Text.Render(h.c.shortenPath(h.svc.Home, h.svc.Repo, w))
 }
@@ -529,7 +534,7 @@ func (h hub) repoCell(w int) string {
 // doctorCell is the worst state, its count and word: "! 1 warn".
 func (h hub) doctorCell(w int) string {
 	n, word := h.worstCount()
-	return h.stateCell(h.worst(), fmt.Sprintf("%d %s", n, word), w)
+	return h.stateCell(h.worst(), h.tr().N(word, n, nil), w)
 }
 
 // panel is the five status rows, each fitted to w columns.
@@ -540,22 +545,22 @@ func (h hub) panel(w int) []string {
 
 	version := h.svc.Build.Version
 	if version == "" {
-		version = "unknown"
+		version = h.tr().T("hub.unknown", nil)
 	}
 	versionCell := text(version)
 	if n := h.newer(); n != "" {
 		lead := version + h.sep()
 		if room := vw - lipgloss.Width(lead); room > lipgloss.Width(h.glyphs().Warn)+1 {
-			versionCell = t.Text.Render(lead) + h.stateCell(StateWarn, n+" available", room)
+			versionCell = t.Text.Render(lead) + h.stateCell(StateWarn, h.tr().T("hub.available", i18n.Args{"version": n}), room)
 		}
 	}
 
 	var doc string
 	switch {
 	case !h.hasRepo() || h.svc.Doctor == nil:
-		doc = t.Muted.Render(h.c.fit("not run", vw))
+		doc = t.Muted.Render(h.c.fit(h.tr().T("hub.not_run", nil), vw))
 	case h.checking:
-		doc = text("checking")
+		doc = text(h.tr().T("hub.checking", nil))
 	default:
 		doc = h.doctorCell(vw)
 	}
@@ -563,19 +568,19 @@ func (h hub) panel(w int) []string {
 	var bk string
 	switch {
 	case h.backupErr != nil:
-		bk = h.stateCell(StateFail, "could not read backups", vw)
+		bk = h.stateCell(StateFail, h.tr().T("hub.backups.read_error", nil), vw)
 	case len(h.runs) == 0:
-		bk = text("none yet")
+		bk = text(h.tr().T("hub.backup.none", nil))
 	default:
 		bk = text(h.backupRow(h.runs[0]))
 	}
 
 	rows := []struct{ label, value string }{
-		{"Version", versionCell},
-		{"Repo", h.repoCell(vw)},
-		{"Doctor", doc},
-		{"Backup", bk},
-		{"Theme", text(t.Name)},
+		{h.tr().T("hub.label.version", nil), versionCell},
+		{h.tr().T("hub.label.repo", nil), h.repoCell(vw)},
+		{h.tr().T("hub.label.doctor", nil), doc},
+		{h.tr().T("hub.label.backup", nil), bk},
+		{h.tr().T("hub.label.theme", nil), text(t.Name)},
 	}
 	out := make([]string, len(rows))
 	for i, r := range rows {
@@ -593,16 +598,16 @@ func (h hub) collapsed(w int) string {
 	var cell string
 	switch {
 	case !h.hasRepo():
-		cell = h.stateCell(StateFail, "repo not found", w)
+		cell = h.stateCell(StateFail, h.tr().T("hub.repo_not_found", nil), w)
 	case h.svc.Doctor == nil:
-		cell = t.Muted.Render(h.c.fit("doctor not run", w))
+		cell = t.Muted.Render(h.c.fit(h.tr().T("hub.doctor_not_run", nil), w))
 	case h.checking:
-		cell = t.Text.Render(h.c.fit("checking", w))
+		cell = t.Text.Render(h.c.fit(h.tr().T("hub.checking", nil), w))
 	default:
 		cell = h.doctorCell(w)
 	}
 	if n := h.newer(); n != "" {
-		extra := "  " + n + " available"
+		extra := "  " + h.tr().T("hub.available", i18n.Args{"version": n})
 		if lipgloss.Width(cell)+lipgloss.Width(extra) <= w {
 			cell += t.Text.Render(extra)
 		}
@@ -695,7 +700,8 @@ func (h hub) badge(e hubEntry) (string, string) {
 		return s, t.Muted.Render(s)
 	}
 	if h.unavailable(e) != "" {
-		return "off", t.Muted.Render("off")
+		off := h.tr().T("hub.badge.off", nil)
+		return off, t.Muted.Render(off)
 	}
 	switch e.view {
 	case viewUpdate:
@@ -730,7 +736,7 @@ func (h hub) menu(l layout) []string {
 		selected := i == h.cursor
 		var prefix string
 		if gutter {
-			prefix = t.Muted.Render(h.c.pad(e.group, hubGroupW))
+			prefix = t.Muted.Render(h.c.pad(h.tr().T(e.group, nil), h.groupW()))
 		}
 		cursor := " "
 		if selected {
@@ -751,7 +757,7 @@ func (h hub) menu(l layout) []string {
 			room = hubListW - used
 		}
 		if room < 3 {
-			lines[i] = prefix + nameStyle.Render(h.c.fit(e.name, max(l.width-used, 1)))
+			lines[i] = prefix + nameStyle.Render(h.c.fit(h.tr().T(e.name, nil), max(l.width-used, 1)))
 			continue
 		}
 		field := h.field(e, nameStyle, min(hubFieldW, room-2), room-2-1)
@@ -769,15 +775,16 @@ func (h hub) menu(l layout) []string {
 // columns; failing that it is dropped and the name keeps the room.
 func (h hub) field(e hubEntry, nameStyle lipgloss.Style, fw, stretch int) string {
 	plain, styled := h.badge(e)
-	nw, bw := lipgloss.Width(e.name), lipgloss.Width(plain)
+	name := h.tr().T(e.name, nil)
+	nw, bw := lipgloss.Width(name), lipgloss.Width(plain)
 	switch {
 	case bw == 0:
 	case nw+1+bw <= fw:
-		return nameStyle.Render(e.name) + strings.Repeat(" ", fw-nw-bw) + styled
+		return nameStyle.Render(name) + strings.Repeat(" ", fw-nw-bw) + styled
 	case nw+1+bw <= stretch:
-		return nameStyle.Render(e.name) + " " + styled
+		return nameStyle.Render(name) + " " + styled
 	}
-	return nameStyle.Render(h.c.fit(e.name, max(fw, 1)))
+	return nameStyle.Render(h.c.fit(name, max(fw, 1)))
 }
 
 // stateRow is one pane state line: a muted label and its value.
@@ -792,19 +799,19 @@ func (h hub) pane(w int) []string {
 	t := h.theme()
 	e := hubMenu[h.cursor]
 	icon := h.icon(e) + " "
-	name := h.c.fit(e.name, max(w-lipgloss.Width(icon)-2, 1))
+	name := h.c.fit(h.tr().T(e.name, nil), max(w-lipgloss.Width(icon)-2, 1))
 	gap := max(w-lipgloss.Width(icon)-lipgloss.Width(name)-lipgloss.Width(e.key), 1)
 	out := []string{t.Strong.Render(icon+name) + strings.Repeat(" ", gap) + t.Key.Render(e.key)}
 	if reason := h.unavailable(e); reason != "" {
 		return append(out, t.Unavailable.Render(h.c.fit(reason, w)))
 	}
-	out = append(out, t.Text.Render(h.c.fit(e.desc, w)))
+	out = append(out, t.Text.Render(h.c.fit(h.tr().T(e.desc, nil), w)))
 	if state := h.state(e, max(w-hubStateW, 1)); len(state) > 0 {
 		out = append(append(out, ""), state...)
 	}
 	var keys []string
 	for _, k := range e.keys {
-		keys = append(keys, t.Key.Render(h.c.pad(k[0], hubKeyW))+t.Muted.Render(h.c.fit(k[1], max(w-hubKeyW, 1))))
+		keys = append(keys, t.Key.Render(h.c.pad(k[0], hubKeyW))+t.Muted.Render(h.c.fit(h.tr().T(k[1], nil), max(w-hubKeyW, 1))))
 	}
 	if len(keys) > 0 {
 		out = append(append(out, ""), keys...)
@@ -823,66 +830,66 @@ func (h hub) state(e hubEntry, vw int) []string {
 	muted := func(s string) string { return t.Muted.Render(h.c.fit(s, vw)) }
 	switch e.view {
 	case viewInstall:
-		return []string{h.stateRow("Repo", h.repoCell(vw)), h.stateRow("Last run", text(h.lastRun("install")))}
+		return []string{h.stateRow(h.tr().T("hub.label.repo", nil), h.repoCell(vw)), h.stateRow(h.tr().T("hub.label.last_run", nil), text(h.lastRun("install")))}
 	case viewSync:
-		return []string{h.stateRow("Repo", h.repoCell(vw)), h.stateRow("Last run", text(h.lastRun("sync")))}
+		return []string{h.stateRow(h.tr().T("hub.label.repo", nil), h.repoCell(vw)), h.stateRow(h.tr().T("hub.label.last_run", nil), text(h.lastRun("sync")))}
 	case viewUpdate:
 		var up string
 		switch {
 		case !h.statusRead:
-			up = muted("not read")
+			up = muted(h.tr().T("hub.upstream.not_read", nil))
 		case !h.upstream:
-			up = muted("no upstream fetched")
+			up = muted(h.tr().T("hub.upstream.none", nil))
 		case h.behind > 0:
 			up = h.behindCell(vw)
 		default:
-			up = h.stateCell(StateOK, "up to date", vw)
+			up = h.stateCell(StateOK, h.tr().T("hub.upstream.up_to_date", nil), vw)
 		}
-		rows := []string{h.stateRow("Upstream", up)}
+		rows := []string{h.stateRow(h.tr().T("hub.label.upstream", nil), up)}
 		if h.dirty {
-			rows = append(rows, h.stateRow("Tree", h.stateCell(StateWarn, "uncommitted changes", vw)))
+			rows = append(rows, h.stateRow(h.tr().T("hub.label.tree", nil), h.stateCell(StateWarn, h.tr().T("hub.uncommitted", nil), vw)))
 		}
 		if n := h.newer(); n != "" {
-			rows = append(rows, h.stateRow("aval", h.stateCell(StateWarn, n+" available", vw)))
+			rows = append(rows, h.stateRow("aval", h.stateCell(StateWarn, h.tr().T("hub.available", i18n.Args{"version": n}), vw)))
 		}
 		return rows
 	case viewDoctor:
 		switch {
 		case h.svc.Doctor == nil:
-			return []string{h.stateRow("Last run", muted("not run"))}
+			return []string{h.stateRow(h.tr().T("hub.label.last_run", nil), muted(h.tr().T("hub.not_run", nil)))}
 		case h.checking:
-			return []string{h.stateRow("Last run", text("checking"))}
+			return []string{h.stateRow(h.tr().T("hub.label.last_run", nil), text(h.tr().T("hub.checking", nil)))}
 		}
 		ok, warn, fail := h.counts()
-		counts := t.State(StateOK, fmt.Sprintf("%d ok", ok)) + "  " +
-			t.State(StateWarn, fmt.Sprintf("%d warn", warn)) + "  " +
-			t.State(StateFail, fmt.Sprintf("%d fail", fail))
+		counts := t.State(StateOK, h.tr().N("hub.count.ok", ok, nil)) + "  " +
+			t.State(StateWarn, h.tr().N("hub.count.warn", warn, nil)) + "  " +
+			t.State(StateFail, h.tr().N("hub.count.fail", fail, nil))
 		if lipgloss.Width(counts) > vw {
 			counts = h.doctorCell(vw)
 		}
-		rows := []string{h.stateRow("Last run", text(relDay(h.clock(), h.doctorAt))), h.stateRow("", counts)}
+		rows := []string{h.stateRow(h.tr().T("hub.label.last_run", nil), text(h.c.relDay(h.clock(), h.doctorAt))), h.stateRow("", counts)}
 		if r, k, ok := h.topProblem(); ok {
-			rows = append(rows, h.stateRow("Needs you", h.stateCell(k, problemWord(r), vw)))
+			rows = append(rows, h.stateRow(h.tr().T("hub.label.needs_you", nil), h.stateCell(k, problemWord(r), vw)))
 		}
 		return rows
 	case viewBackups:
 		switch {
 		case h.backupErr != nil:
-			return []string{h.stateRow("Newest", h.stateCell(StateFail, "could not read backups", vw))}
+			return []string{h.stateRow(h.tr().T("hub.label.newest", nil), h.stateCell(StateFail, h.tr().T("hub.backups.read_error", nil), vw))}
 		case len(h.runs) == 0:
-			return []string{h.stateRow("Newest", text("none yet"))}
+			return []string{h.stateRow(h.tr().T("hub.label.newest", nil), text(h.tr().T("hub.backup.none", nil)))}
 		}
 		var rows []string
 		for i, r := range h.runs[:min(len(h.runs), 3)] {
 			label := ""
 			if i == 0 {
-				label = "Newest"
+				label = h.tr().T("hub.label.newest", nil)
 			}
 			rows = append(rows, h.stateRow(label, text(h.backupRow(r))))
 		}
 		return rows
 	case viewUninstall:
-		return []string{h.stateRow("Safety", text("backs up first"+h.sep()+"aval restore latest"))}
+		return []string{h.stateRow(h.tr().T("hub.label.safety", nil), text(h.tr().T("hub.uninstall.safety", i18n.Args{"sep": h.sep()})))}
 	case viewSettings:
 		tier, motion := "ascii", "off"
 		if h.unicode() {
@@ -891,11 +898,11 @@ func (h hub) state(e hubEntry, vw int) []string {
 		if h.c.Motion {
 			motion = "on"
 		}
-		return []string{h.stateRow("Theme", text(t.Name)), h.stateRow("Glyphs", text(tier)), h.stateRow("Motion", text(motion))}
+		return []string{h.stateRow(h.tr().T("hub.label.theme", nil), text(t.Name)), h.stateRow(h.tr().T("hub.label.glyphs", nil), text(tier)), h.stateRow(h.tr().T("hub.label.motion", nil), text(motion))}
 	case viewDev:
 		var rows []string
 		if h.sandboxed() {
-			rows = append(rows, h.stateRow("Inside", text(h.svc.Sandbox)))
+			rows = append(rows, h.stateRow(h.tr().T("hub.label.inside", nil), text(h.svc.Sandbox)))
 		}
 		names := make([]string, len(h.sandboxes))
 		for i, s := range h.sandboxes {
@@ -903,13 +910,13 @@ func (h hub) state(e hubEntry, vw int) []string {
 		}
 		list := strings.Join(names, h.sep())
 		if list == "" {
-			list = "none yet"
+			list = h.tr().T("hub.dev.none", nil)
 		}
-		return append(rows, h.stateRow("Sandboxes", text(list)))
+		return append(rows, h.stateRow(h.tr().T("hub.label.sandboxes", nil), text(list)))
 	case viewAbout:
-		rows := []string{h.stateRow("Version", text(h.svc.Build.Version))}
+		rows := []string{h.stateRow(h.tr().T("hub.label.version", nil), text(h.svc.Build.Version))}
 		if h.svc.Build.Channel != "" {
-			rows = append(rows, h.stateRow("Channel", text(h.svc.Build.Channel)))
+			rows = append(rows, h.stateRow(h.tr().T("hub.label.channel", nil), text(h.svc.Build.Channel)))
 		}
 		return rows
 	}
@@ -934,12 +941,12 @@ func (h hub) paneLine(w int) string {
 		case h.behindKnown():
 			return h.behindCell(w)
 		case h.dirty:
-			return h.stateCell(StateWarn, "uncommitted changes", w)
+			return h.stateCell(StateWarn, h.tr().T("hub.uncommitted", nil), w)
 		}
 	case viewBackups:
 		if h.backupErr != nil {
-			return h.stateCell(StateFail, "could not read backups", w)
+			return h.stateCell(StateFail, h.tr().T("hub.backups.read_error", nil), w)
 		}
 	}
-	return t.Text.Render(h.c.fit(e.desc, w))
+	return t.Text.Render(h.c.fit(h.tr().T(e.desc, nil), w))
 }

@@ -1,0 +1,16 @@
+  aval  0.3.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ----------------------------------------------------------------------------
+
+  Sandbox dev                                                ~/.cache/aval/dev
+
+  Un home desechable para probar aval. Nada de lo que hay en él toca su home
+  real.
+
+  > default  ok listo       ~/.cache/aval/dev/default
+    release  ! incompleto   ~/.cache/aval/dev/release
+
+  ----------------------------------------------------------------------------
+  Enter sale de esta pantalla hacia un shell en el sandbox; exit vuelve aquí
+  up/down mover  enter abrir shell  n nuevo  r restablecer  d quitar  ? ayuda
+  q salir

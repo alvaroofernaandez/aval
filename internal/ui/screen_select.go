@@ -9,6 +9,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The select screen: choose groups before anything is written. Every group
@@ -21,9 +22,6 @@ const (
 	actExpand   action = -1 // show the cursor group's destinations
 	actCollapse action = -2 // hide them again
 )
-
-// emptySelection is the status line after enter with nothing selected.
-const emptySelection = "Select at least one group."
 
 // selectState is what the select screen keeps beyond the cursor.
 type selectState struct {
@@ -110,7 +108,7 @@ func (m Model) selectAction(act action) (tea.Model, tea.Cmd) {
 		// Starting an empty run would end on an empty summary that reads
 		// like a failure. Stay put and say what is missing.
 		if len(m.queue) == 0 {
-			m.sel.notice = emptySelection
+			m.sel.notice = m.tr.T("select.empty", nil)
 			return m, nil
 		}
 		m.screen = ScreenInstall
@@ -123,9 +121,22 @@ func (m Model) selectAction(act action) (tea.Model, tea.Cmd) {
 // installStyle says how files land, in UI copy.
 func (m Model) installStyle() string {
 	if m.Symlinks {
-		return "symlinked: repo edits apply at once"
+		return m.tr.T("select.style.symlinked", nil)
 	}
-	return "copied: run aval install again after repo edits"
+	return m.tr.T("select.style.copied", nil)
+}
+
+// stateWord is the word for what an install would find at a destination.
+func (m Model) stateWord(s install.State) string {
+	switch s {
+	case install.StateNew:
+		return m.tr.T("select.state.new", nil)
+	case install.StateLinked:
+		return m.tr.T("select.state.linked", nil)
+	case install.StateReplaces:
+		return m.tr.T("select.state.replaces", nil)
+	}
+	return m.tr.T("select.state.unknown", nil)
 }
 
 func (m Model) selectView() view {
@@ -149,22 +160,19 @@ func (m Model) selectStatus(l layout) string {
 		}
 	}
 	sep := m.sep()
-	moved := "files"
-	if c[install.StateReplaces] == 1 {
-		moved = "file"
-	}
-	short := fmt.Sprintf("%d/%d selected", selected, total)
+	args := i18n.Args{"selected": selected, "total": total, "sep": sep,
+		"new": c[install.StateNew], "linked": c[install.StateLinked]}
+	short := m.tr.T("select.status.short", args)
 	if l.bp == bpCompact {
 		return short
 	}
-	for _, s := range []string{
-		fmt.Sprintf("%d of %d items selected%s%d new%s%d linked%s%d %s moved to backup",
-			selected, total, sep, c[install.StateNew], sep, c[install.StateLinked], sep, c[install.StateReplaces], moved),
-		fmt.Sprintf("%d of %d selected%s%d new%s%d linked%s%d to backup",
-			selected, total, sep, c[install.StateNew], sep, c[install.StateLinked], sep, c[install.StateReplaces]),
-		fmt.Sprintf("%d of %d selected%s%d to backup", selected, total, sep, c[install.StateReplaces]),
+	for i, s := range []string{
+		m.tr.N("select.status.full", c[install.StateReplaces], args),
+		m.tr.T("select.status.medium", withCount(args, c[install.StateReplaces])),
+		m.tr.T("select.status.backup", withCount(args, c[install.StateReplaces])),
 	} {
-		if l.bp == bpNarrow && strings.Contains(s, "items") {
+		// The spelled-out form is regular's: narrow starts at the next one.
+		if l.bp == bpNarrow && i == 0 {
 			continue
 		}
 		if lipgloss.Width(s) <= l.width {
@@ -174,12 +182,21 @@ func (m Model) selectStatus(l layout) string {
 	return short
 }
 
+// withCount is args plus {count}, for messages that are not plural.
+func withCount(args i18n.Args, n int) i18n.Args {
+	out := i18n.Args{"count": n}
+	for k, v := range args {
+		out[k] = v
+	}
+	return out
+}
+
 // stateSummary is "8 new · 3 linked · 1 replaces a file", zeros left out.
 func (m Model) stateSummary(c stateCounts) string {
 	var parts []string
 	for _, st := range []install.State{install.StateNew, install.StateLinked, install.StateReplaces} {
 		if c[st] > 0 {
-			parts = append(parts, fmt.Sprintf("%d %s", c[st], st))
+			parts = append(parts, fmt.Sprintf("%d %s", c[st], m.stateWord(st)))
 		}
 	}
 	return strings.Join(parts, m.sep())
@@ -191,9 +208,9 @@ func (m Model) selectBody(l layout, h int) []string {
 		right = ""
 	}
 	if m.DryRun {
-		right, rightStyle = "dry run: nothing will be written", m.theme.Warning
+		right, rightStyle = m.tr.T("select.dry_run", nil), m.theme.Warning
 	}
-	head := m.headingRow(l, "Choose what to install", m.theme.Heading, right, rightStyle)
+	head := m.headingRow(l, m.tr.T("select.title", nil), m.theme.Heading, right, rightStyle)
 	list, cur, curEnd := m.selectLines(l, true)
 	// The cursor's detail line is the first thing a short terminal gives up;
 	// destinations the user asked for with the right arrow stay.
@@ -225,7 +242,7 @@ func (m Model) selectBody(l layout, h int) []string {
 	end := min(start+listH, len(list))
 	win := append([]string{}, list[start:end]...)
 	if hidden := curEnd - end; hidden > 0 && len(win) > 1 {
-		win[len(win)-1] = "      " + m.theme.Muted.Render(m.fit(fmt.Sprintf("%d more", hidden+1), l.width-6))
+		win[len(win)-1] = "      " + m.theme.Muted.Render(m.fit(m.tr.T("select.more", i18n.Args{"count": hidden + 1}), l.width-6))
 	}
 	return append(out, win...)
 }
@@ -243,13 +260,13 @@ func (m Model) selectLines(l layout, withDetail bool) (lines []string, cur, curE
 	}
 	count := func(n int) string {
 		num := fmt.Sprintf("%*d", digits, n)
-		switch {
-		case compact:
+		if compact {
 			return num
-		case n == 1:
-			return num + " item "
 		}
-		return num + " items"
+		// The singular pads to the plural's width so the column holds.
+		word := m.tr.N("select.items", n, i18n.Args{"num": num})
+		wide := m.tr.N("select.items", 2, i18n.Args{"num": num})
+		return word + strings.Repeat(" ", max(lipgloss.Width(wide)-lipgloss.Width(word), 0))
 	}
 	countW := lipgloss.Width(count(0))
 	boxW := lipgloss.Width(g.Checked)
@@ -314,7 +331,7 @@ func (m Model) destinationLines(l layout, gi int) []string {
 	g := m.theme.Glyphs
 	glyphW := max(lipgloss.Width(g.OK), lipgloss.Width(g.Warn))
 	const indent = 6
-	wordW := glyphW + 1 + lipgloss.Width(install.StateReplaces.String())
+	wordW := glyphW + 1 + lipgloss.Width(m.stateWord(install.StateReplaces))
 	pathW := l.width - indent - 2 - wordW
 	longest := 1
 	for _, a := range m.plan.Groups[gi].Actions {
@@ -330,14 +347,14 @@ func (m Model) destinationLines(l layout, gi int) []string {
 		var cell string
 		switch st {
 		case install.StateLinked:
-			cell = m.theme.State(StateOK, st.String())
+			cell = m.theme.State(StateOK, m.stateWord(st))
 		case install.StateReplaces:
-			cell = m.theme.State(StateWarn, st.String())
+			cell = m.theme.State(StateWarn, m.stateWord(st))
 		default:
-			cell = strings.Repeat(" ", glyphW+1) + m.theme.Text.Render(st.String())
+			cell = strings.Repeat(" ", glyphW+1) + m.theme.Text.Render(m.stateWord(st))
 		}
 		if pathW < 4 {
-			out = append(out, strings.Repeat(" ", indent)+m.fit(a.Label+" "+st.String(), l.width-indent))
+			out = append(out, strings.Repeat(" ", indent)+m.fit(a.Label+" "+m.stateWord(st), l.width-indent))
 			continue
 		}
 		path := m.fitMiddle(a.Label, pathW)

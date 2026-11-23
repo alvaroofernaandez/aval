@@ -1,0 +1,21 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ────────────────────────────────────────────────────────────────────────────
+
+  Instalado. 2 enlazados, 1 con fallo.
+
+    enlazados         2
+    ya en su sitio    1
+    con fallo         1
+    link ~/.config/some/very/long/destination/path/that/keeps/going/config.to…
+
+    1 archivo existente movido a /home/u/.aval-backup/20260101-000000
+    Deshaga todo con: aval restore latest
+
+    Siguiente
+      aval doctor   comprobar este equipo contra el repositorio
+      aval config   tema, glifos y comprobación de actualizaciones
+      exec zsh      recargue el shell para aplicar la nueva configuración
+
+  ────────────────────────────────────────────────────────────────────────────
+  enter cerrar · s ajustes · ? ayuda · q salir

@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/alvaroofernaandez/aval/internal/devmode"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
 // The dev sandbox view (DESIGN.md section 10, plan H18) lists the throwaway
@@ -25,10 +25,6 @@ import (
 func init() {
 	registerView(viewDev, func(svc Services) screen { return newDev(svc) })
 }
-
-// devSafety is the confirm's safety line: a sandbox has no backup, and it
-// says why that is acceptable.
-const devSafety = "There is no backup: a sandbox is disposable. Your real home is not touched."
 
 const (
 	actDevOpen   action = -140 // enter: a shell in the selected sandbox
@@ -54,7 +50,14 @@ const (
 	devNameMax = 64
 	// devStderrLines is how many lines of the failed command's stderr show.
 	devStderrLines = 3
-	devStateWidth  = len("incomplete")
+)
+
+// devAct is the destructive action a confirm asks about.
+type devAct int
+
+const (
+	devReset devAct = iota
+	devRemove
 )
 
 type (
@@ -88,9 +91,10 @@ type dev struct {
 	mode devMode
 	// field is the name being typed, fieldErr the validator's message.
 	field, fieldErr string
-	// conf is the confirm for act ("reset" or "remove") on target.
-	conf        confirm
-	act, target string
+	// conf is the confirm for act (reset or remove) on target.
+	conf   confirm
+	act    devAct
+	target string
 
 	fail *devFail
 	// job is the generation of the shell or removal in flight.
@@ -143,16 +147,16 @@ func (s dev) busy() busyKind {
 
 var (
 	devMoveKeys = keyMap{
-		{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "move"},
-		{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "move"},
+		{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.move")},
+		{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.move")},
 	}
-	devOpenKey   = binding{keys: []string{"enter"}, action: actDevOpen, label: "enter", desc: "open shell", core: true}
-	devNewKey    = binding{keys: []string{"n"}, action: actDevNew, label: "n", desc: "new"}
-	devResetKey  = binding{keys: []string{"r"}, action: actDevReset, label: "r", desc: "reset"}
-	devRemoveKey = binding{keys: []string{"d"}, action: actDevRemove, label: "d", desc: "remove"}
+	devOpenKey   = binding{keys: []string{"enter"}, action: actDevOpen, label: "enter", desc: i18n.Key("key.open_shell"), core: true}
+	devNewKey    = binding{keys: []string{"n"}, action: actDevNew, label: "n", desc: i18n.Key("key.new")}
+	devResetKey  = binding{keys: []string{"r"}, action: actDevReset, label: "r", desc: i18n.Key("key.reset")}
+	devRemoveKey = binding{keys: []string{"d"}, action: actDevRemove, label: "d", desc: i18n.Key("key.remove")}
 	devFieldKeys = keyMap{
-		{keys: []string{"enter"}, action: actDevSubmit, label: "enter", desc: "create", core: true},
-		{keys: []string{"esc"}, action: actDevCancel, label: "esc", desc: "cancel", core: true},
+		{keys: []string{"enter"}, action: actDevSubmit, label: "enter", desc: i18n.Key("key.create"), core: true},
+		{keys: []string{"esc"}, action: actDevCancel, label: "esc", desc: i18n.Key("key.cancel"), core: true},
 	}
 )
 
@@ -211,7 +215,7 @@ func (s dev) update(msg tea.Msg) (screen, tea.Cmd) {
 		s.reload()
 		s.fail = nil
 		if r.err != nil {
-			s.fail = &devFail{title: "aval dev failed", lines: r.stderr}
+			s.fail = &devFail{title: s.c.tr.T("dev.failed", nil), lines: r.stderr}
 			if len(r.stderr) == 0 {
 				s.fail.lines = []string{r.err.Error()}
 			}
@@ -221,7 +225,7 @@ func (s dev) update(msg tea.Msg) (screen, tea.Cmd) {
 		s.reload()
 		s.fail = nil
 		if r.err != nil {
-			s.fail = &devFail{title: "could not remove " + r.name, lines: []string{r.err.Error()}}
+			s.fail = &devFail{title: s.c.tr.T("dev.remove_failed", i18n.Args{"name": r.name}), lines: []string{r.err.Error()}}
 		}
 	}
 	return s, nil
@@ -252,23 +256,26 @@ func (s dev) key(msg tea.KeyMsg) (screen, tea.Cmd) {
 	case actDevNew:
 		s.mode, s.field, s.fieldErr = devNew, "", ""
 	case actDevReset:
-		return s.ask("reset", info.Name)
+		return s.ask(devReset, info.Name)
 	case actDevRemove:
-		return s.ask("remove", info.Name)
+		return s.ask(devRemove, info.Name)
 	}
 	return s, nil
 }
 
 // ask opens the destructive confirm, on Cancel.
-func (s dev) ask(act, name string) (screen, tea.Cmd) {
-	spec := confirmSpec{Safety: devSafety}
+func (s dev) ask(act devAct, name string) (screen, tea.Cmd) {
+	tr := s.c.tr
+	// A sandbox has no backup, and the safety line says why that is fine.
+	spec := confirmSpec{Safety: tr.T("dev.safety", nil)}
+	args := i18n.Args{"name": name}
 	switch act {
-	case "reset":
-		spec.Action, spec.ActionNote = "Reset "+name, "recreate it from scratch"
-		spec.Prompt = fmt.Sprintf("Reset deletes sandbox %s and builds it again.", name)
+	case devReset:
+		spec.Action, spec.ActionNote = tr.T("dev.reset.action", args), tr.T("dev.reset.note", nil)
+		spec.Prompt = tr.T("dev.reset.prompt", args)
 	default:
-		spec.Action, spec.ActionNote = "Remove "+name, "delete its files"
-		spec.Prompt = fmt.Sprintf("Remove deletes sandbox %s and everything in it.", name)
+		spec.Action, spec.ActionNote = tr.T("dev.remove.action", args), tr.T("dev.remove.note", nil)
+		spec.Prompt = tr.T("dev.remove.prompt", args)
 	}
 	conf, err := newConfirm(confirmDestructive, spec)
 	if err != nil {
@@ -286,7 +293,7 @@ func (s dev) confirmKey(msg tea.KeyMsg) (screen, tea.Cmd) {
 		s.mode = devList
 	case choiceAction:
 		s.mode = devList
-		if s.act == "reset" {
+		if s.act == devReset {
 			return s.exec("reset", s.target)
 		}
 		s.mode = devRemoving
@@ -334,7 +341,7 @@ func (s dev) fieldKey(msg tea.KeyMsg) (screen, tea.Cmd) {
 func (s dev) exec(sub, name string) (screen, tea.Cmd) {
 	cmd := s.svc.DevCommand(sub, name)
 	if cmd == nil {
-		s.fail = &devFail{title: "aval dev failed", lines: []string{"aval dev is not available here"}}
+		s.fail = &devFail{title: s.c.tr.T("dev.failed", nil), lines: []string{s.c.tr.T("dev.unavailable", nil)}}
 		return s, nil
 	}
 	tail := &tailWriter{}
@@ -394,19 +401,19 @@ func (w *tailWriter) lines(n int) []string {
 func (s dev) status() string {
 	switch s.mode {
 	case devNew:
-		return "enter creates it and opens a shell in it"
+		return s.c.tr.T("dev.status.new", nil)
 	case devConfirm:
 		return s.conf.status()
 	case devRemoving:
-		return "Removing: this cannot be interrupted"
+		return s.c.tr.T("dev.status.removing", nil)
 	}
 	switch {
 	case s.sandboxed():
-		return "Read-only inside a sandbox"
+		return s.c.tr.T("dev.status.readonly", nil)
 	case len(s.infos) == 0:
-		return "n names a sandbox, creates it and opens a shell in it"
+		return s.c.tr.T("dev.status.empty", nil)
 	}
-	return "Enter leaves this screen for a shell in the sandbox; exit brings you back"
+	return s.c.tr.T("dev.status.list", nil)
 }
 
 func (s dev) view() view {
@@ -415,7 +422,7 @@ func (s dev) view() view {
 
 func (s dev) heading(l layout) []string {
 	t := s.c.theme
-	return s.c.headingRow(l, "Dev sandbox", t.Heading, tildeUnder(s.svc.Home, s.base), t.Muted)
+	return s.c.headingRow(l, s.c.tr.T("hub.dev.name", nil), t.Heading, tildeUnder(s.svc.Home, s.base), t.Muted)
 }
 
 func (s dev) clip(lines []string, h int) []string {
@@ -432,14 +439,14 @@ func (s dev) body(l layout, h int) []string {
 	case devConfirm:
 		return s.clip(append(append(head, ""), s.conf.lines(s.c, l)...), h)
 	case devRemoving:
-		return s.clip(append(head, "", t.Text.Render(s.c.fit("Removing "+s.target+t.Glyphs.Ellipsis, l.width))), h)
+		return s.clip(append(head, "", t.Text.Render(s.c.fit(s.c.tr.T("dev.removing", i18n.Args{"name": s.target})+t.Glyphs.Ellipsis, l.width))), h)
 	case devNew:
 		return s.clip(s.fieldLines(l, head), h)
 	}
 
-	intro := "A throwaway home for trying aval. Nothing in it touches your real home."
+	intro := s.c.tr.T("dev.intro", nil)
 	if s.sandboxed() {
-		intro = fmt.Sprintf("You are inside sandbox %s. Exit it to manage sandboxes.", s.svc.Sandbox)
+		intro = s.c.tr.T("dev.intro_inside", i18n.Args{"name": s.svc.Sandbox})
 	}
 	var top []string
 	for _, w := range s.c.wrap(intro, l.width) {
@@ -460,9 +467,9 @@ func (s dev) body(l layout, h int) []string {
 // fieldLines is the inline name field and, under it, the validator's message.
 func (s dev) fieldLines(l layout, head []string) []string {
 	t := s.c.theme
-	const label = "Name  "
+	label := s.c.tr.T("dev.name_label", nil)
 	value := s.c.fitMiddle(s.field, max(l.width-len(label)-1, 1))
-	out := append(append(head, ""), t.Text.Render("Name for the new sandbox."), "")
+	out := append(append(head, ""), t.Text.Render(s.c.tr.T("dev.name_prompt", nil)), "")
 	out = append(out, t.Muted.Render(label)+t.Strong.Render(value)+t.Marker.Render("_"))
 	if s.fieldErr == "" {
 		return out
@@ -495,18 +502,19 @@ func (s dev) failLines(l layout) []string {
 func (s dev) rows(l layout) []string {
 	t := s.c.theme
 	if s.listErr != nil {
-		return []string{t.State(StateFail, s.c.fit("could not list sandboxes: "+s.listErr.Error(), max(l.width-2, 1)))}
+		return []string{t.State(StateFail, s.c.fit(s.c.tr.T("dev.list_error", nil)+s.listErr.Error(), max(l.width-2, 1)))}
 	}
 	if len(s.infos) == 0 {
-		msg := "No sandboxes yet. Press n to create one."
+		msg := s.c.tr.T("dev.none", nil)
 		if s.sandboxed() {
-			msg = "No sandboxes found."
+			msg = s.c.tr.T("dev.none_inside", nil)
 		}
 		return []string{t.Muted.Render(s.c.fit(msg, l.width))}
 	}
 	g := t.Glyphs
 	const gap = 2
-	stateW := max(lipgloss.Width(g.OK), lipgloss.Width(g.Warn)) + 1 + devStateWidth
+	ready, incomplete := s.c.tr.T("dev.state.ready", nil), s.c.tr.T("dev.state.incomplete", nil)
+	stateW := max(lipgloss.Width(g.OK), lipgloss.Width(g.Warn)) + 1 + max(lipgloss.Width(ready), lipgloss.Width(incomplete))
 	room := max(l.width-hubCursorW, 1)
 	// Below ~22 columns the word gives way to the glyph alone.
 	glyphOnly := room < 4+gap+stateW
@@ -521,9 +529,9 @@ func (s dev) rows(l layout) []string {
 	pathW := room - nameW - gap - stateW - gap
 	out := make([]string, len(s.infos))
 	for n, i := range s.infos {
-		kind, glyph, word := StateOK, g.OK, "ready"
+		kind, glyph, word := StateOK, g.OK, ready
 		if !i.Ready {
-			kind, glyph, word = StateWarn, g.Warn, "incomplete"
+			kind, glyph, word = StateWarn, g.Warn, incomplete
 		}
 		if glyphOnly {
 			word = ""

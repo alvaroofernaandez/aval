@@ -1,0 +1,22 @@
+ aval 0.2.0
+ Actualizar                 ~/.aval
+
+ 3 commits por detrás de origin
+ a1b2c3d → d4e5f6a
+
+ Rutas gestionadas que cambian
+   config/zsh/.zshrc       12 +++--
+   skills/pla…ck/SKILL.md   4 +-
+ Entradas nuevas del manifiesto
+   + skills/new-sk…skills/new-skill
+
+ › Actualizar y volver a aplicar
+   actualiza con --ff-only y enlaza
+   lo nuevo
+   Volver
+   no cambia nada
+ Los archivos en el camino pasan
+ antes a ~/.aval-backup · deshacer:
+ aval restore latest
+ enter elegir · esc volver
+ ? ayuda

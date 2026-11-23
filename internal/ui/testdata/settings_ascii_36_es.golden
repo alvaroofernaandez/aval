@@ -1,0 +1,18 @@
+ aval 0.2.0
+ Ajustes      ~/.config/aval/config
+
+ > Tema             aval         
+   Fondo            auto
+   Glifos           auto
+   Animación        auto
+   Actualizaciones  on
+   Idioma           auto
+   Repositorio      ~/.aval
+
+ Vista previa  [x] Seleccionado
+               [ ] No seleccionado
+               ok enlazado
+               ! con copia
+               x fallo
+ enter guardar  esc descartar
+ ? ayuda

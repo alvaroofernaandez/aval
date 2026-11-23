@@ -26,8 +26,6 @@ const (
 	// compactBelow and regularFrom are the breakpoint edges in columns.
 	compactBelow = 40
 	regularFrom  = 80
-
-	tagline = "Nothing passes without evidence."
 )
 
 type breakpoint int
@@ -133,7 +131,7 @@ func (c chrome) renderWith(v view, km keyMap) string {
 	var lines []string
 	lines = append(lines, c.lockup(l))
 	if showTagline {
-		lines = append(lines, c.theme.Muted.Render(c.fit(tagline, l.width)))
+		lines = append(lines, c.theme.Muted.Render(c.fit(c.tr.T("ui.tagline", nil), l.width)))
 	}
 	if showRules {
 		lines = append(lines, c.rule(l))
@@ -279,7 +277,7 @@ func (c chrome) renderHero(v view, km keyMap, l layout) (string, bool) {
 		return "", false
 	}
 	lines := append([]string(nil), hero...)
-	lines = append(lines, c.headingRow(l, tagline, c.theme.Muted, c.platform, c.theme.Muted)[0])
+	lines = append(lines, c.headingRow(l, c.tr.T("ui.tagline", nil), c.theme.Muted, c.platform, c.theme.Muted)[0])
 	lines = append(lines, c.rule(l), "")
 	lines = append(lines, body...)
 	lines = append(lines, "", c.rule(l))
@@ -333,7 +331,7 @@ func (c chrome) sep() string {
 // every hint if they fit on one line and only the core ones otherwise, with
 // `? help` on a line of its own when it does not fit beside them.
 func (c chrome) hintLines(l layout, wrap bool, km keyMap) []string {
-	all := km.hints(c.theme.Glyphs)
+	all := km.hints(c)
 	if len(all) == 0 {
 		return nil
 	}
@@ -359,7 +357,7 @@ func (c chrome) hintLines(l layout, wrap bool, km keyMap) []string {
 		// core line when it fits, on its own line otherwise.
 		var line, help string
 		var core []hint
-		for _, h := range km.hintsWhere(c.theme.Glyphs, true) {
+		for _, h := range km.hintsWhere(c, true) {
 			if h.key == helpBinding.label {
 				help = part(h)
 			} else {

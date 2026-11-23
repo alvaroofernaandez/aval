@@ -56,3 +56,21 @@ golang.org/x/text`). ADR 0001 keeps the dependency budget small.
 - The English output stays byte-stable: `tests/messages_test.go` pins it.
 - A wrong `language` value warns, names the valid values with a suggestion, and
   falls back to detection; a wrong `--lang` is an error, like `--theme`.
+
+## Amendment of 2026-11-23: the TUI
+
+Task I2 moved every string of `internal/ui` into the catalog. Three rules came
+with it.
+
+- **A key stored now and looked up later is wrapped in `i18n.Key`.** A key
+  binding's description lives in a package-level table, before any language is
+  known, so it holds `i18n.Key("key.move")` and the frame calls `T` when it
+  draws. `Key` returns its argument; the catalog tests count it as a use.
+- **A literal in `internal/ui` that a person could read fails
+  `TestNoUserFacingLiteralsOutsideTheCatalog`.** Technical tokens (key caps,
+  commands, config values, view ids) are excused one by one in
+  `uiLiteralExceptions`, with a reason and a cap that only goes down.
+- **Text from the core packages stays as it is:** plan labels, doctor titles
+  and the causes inside errors. Translating them is a change to those packages,
+  not to the TUI.
+

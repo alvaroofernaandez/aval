@@ -27,31 +27,33 @@ func longListFixture(t *testing.T, unicode bool) Model {
 }
 
 func TestFrameNeverExceedsTheHeight(t *testing.T) {
-	for _, unicode := range []bool{true, false} {
-		fixtures := map[string]Model{"long select": longListFixture(t, unicode)}
-		for _, s := range goldenScreens {
-			fixtures[s.name] = screenFixture(t, s.screen, unicode)
-		}
-		dry := screenFixture(t, ScreenSelect, unicode)
-		dry.DryRun = true
-		fixtures["dry select"] = dry
+	forEachLang(t, func(t *testing.T) {
+		for _, unicode := range []bool{true, false} {
+			fixtures := map[string]Model{"long select": longListFixture(t, unicode)}
+			for _, s := range goldenScreens {
+				fixtures[s.name] = screenFixture(t, s.screen, unicode)
+			}
+			dry := screenFixture(t, ScreenSelect, unicode)
+			dry.DryRun = true
+			fixtures["dry select"] = dry
 
-		for name, m := range fixtures {
-			for _, w := range []int{36, 80} {
-				for h := 8; h <= 40; h++ {
-					lines := strings.Split(renderAtSize(m, w, h), "\n")
-					if len(lines) > h {
-						t.Errorf("%s unicode=%v %dx%d: frame is %d lines tall", name, unicode, w, h, len(lines))
-					}
-					for i, line := range lines {
-						if lw := lipgloss.Width(line); lw > w {
-							t.Errorf("%s unicode=%v %dx%d: line %d is %d wide", name, unicode, w, h, i, lw)
+			for name, m := range fixtures {
+				for _, w := range []int{36, 80} {
+					for h := 8; h <= 40; h++ {
+						lines := strings.Split(renderAtSize(m, w, h), "\n")
+						if len(lines) > h {
+							t.Errorf("%s unicode=%v %dx%d: frame is %d lines tall", name, unicode, w, h, len(lines))
+						}
+						for i, line := range lines {
+							if lw := lipgloss.Width(line); lw > w {
+								t.Errorf("%s unicode=%v %dx%d: line %d is %d wide", name, unicode, w, h, i, lw)
+							}
 						}
 					}
 				}
 			}
 		}
-	}
+	})
 }
 
 func TestScrolledListKeepsTheCursorVisible(t *testing.T) {
@@ -117,21 +119,23 @@ func TestPlatformLabel(t *testing.T) {
 }
 
 func TestNoEmDashInAnyView(t *testing.T) {
-	for _, unicode := range []bool{true, false} {
-		for _, s := range goldenScreens {
-			for _, dry := range []bool{false, true} {
-				for _, symlinks := range []bool{false, true} {
-					m := screenFixture(t, s.screen, unicode)
-					m.DryRun, m.Symlinks = dry, symlinks
-					for _, w := range []int{36, 80, 120} {
-						if v := renderAt(m, w); strings.Contains(v, "\u2014") {
-							t.Errorf("%s unicode=%v dry=%v symlinks=%v width %d has an em dash:\n%s", s.name, unicode, dry, symlinks, w, v)
+	forEachLang(t, func(t *testing.T) {
+		for _, unicode := range []bool{true, false} {
+			for _, s := range goldenScreens {
+				for _, dry := range []bool{false, true} {
+					for _, symlinks := range []bool{false, true} {
+						m := screenFixture(t, s.screen, unicode)
+						m.DryRun, m.Symlinks = dry, symlinks
+						for _, w := range []int{36, 80, 120} {
+							if v := renderAt(m, w); strings.Contains(v, "\u2014") {
+								t.Errorf("%s unicode=%v dry=%v symlinks=%v width %d has an em dash:\n%s", s.name, unicode, dry, symlinks, w, v)
+							}
 						}
 					}
 				}
 			}
 		}
-	}
+	})
 }
 
 // candidateKeys is every key a user could plausibly press.
@@ -160,63 +164,67 @@ func snap(m Model, cmdSet bool) snapshot {
 }
 
 func TestEveryHandledKeyIsInTheKeyMap(t *testing.T) {
-	for _, s := range goldenScreens {
-		for _, k := range candidateKeys() {
-			m := screenFixture(t, s.screen, true)
-			m.cursor = 1 // so both up and down can move
-			before := snap(m, false)
-			next, cmd := m.Update(key(k))
-			after := snap(next.(Model), cmd != nil)
-			_, mapped := m.keyMap().lookup(key(k).String())
-			if !mapped && !reflect.DeepEqual(before, after) {
-				t.Errorf("%s: key %q changes the model but is not in the key map", s.name, k)
+	forEachLang(t, func(t *testing.T) {
+		for _, s := range goldenScreens {
+			for _, k := range candidateKeys() {
+				m := screenFixture(t, s.screen, true)
+				m.cursor = 1 // so both up and down can move
+				before := snap(m, false)
+				next, cmd := m.Update(key(k))
+				after := snap(next.(Model), cmd != nil)
+				_, mapped := m.keyMap().lookup(key(k).String())
+				if !mapped && !reflect.DeepEqual(before, after) {
+					t.Errorf("%s: key %q changes the model but is not in the key map", s.name, k)
+				}
 			}
 		}
-	}
+	})
 }
 
 func TestEveryHintComesFromTheKeyMap(t *testing.T) {
-	for _, s := range []Screen{ScreenSelect, ScreenDone} {
-		m := screenFixture(t, s, true)
-		km := m.keyMap()
-		hints := km.hints(m.theme.Glyphs)
-		if len(hints) == 0 {
-			t.Fatalf("screen %v: the key map has no hints", s)
-		}
-		// The hint line may wrap: collect every line under the bottom rule,
-		// less the status line, and read them as one.
-		lines := strings.Split(renderAt(m, 120), "\n")
-		rule := strings.Repeat(m.theme.Glyphs.BarEmpty, 8)
-		var hintRows []string
-		for i := len(lines) - 1; i >= 0 && !strings.Contains(lines[i], rule); i-- {
-			hintRows = append([]string{strings.TrimSpace(lines[i])}, hintRows...)
-		}
-		if s == ScreenSelect && len(hintRows) > 0 {
-			hintRows = hintRows[1:]
-		}
-		last := strings.Join(hintRows, " "+m.theme.Glyphs.Sep+" ")
-		parts := strings.Split(last, " "+m.theme.Glyphs.Sep+" ")
-		if len(parts) != len(hints) {
-			t.Fatalf("screen %v: hint line %q has %d hints, key map has %d", s, last, len(parts), len(hints))
-		}
-		for i, part := range parts {
-			want := hints[i].key + " " + hints[i].desc
-			if part != want {
-				t.Errorf("screen %v: hint %d = %q, want %q from the key map", s, i, part, want)
+	forEachLang(t, func(t *testing.T) {
+		for _, s := range []Screen{ScreenSelect, ScreenDone} {
+			m := screenFixture(t, s, true)
+			km := m.keyMap()
+			hints := km.hints(m.chrome)
+			if len(hints) == 0 {
+				t.Fatalf("screen %v: the key map has no hints", s)
 			}
-		}
-		for _, h := range hints {
-			found := false
-			for _, b := range km {
-				if b.desc == h.desc {
-					found = true
+			// The hint line may wrap: collect every line under the bottom rule,
+			// less the status line, and read them as one.
+			lines := strings.Split(renderAt(m, 120), "\n")
+			rule := strings.Repeat(m.theme.Glyphs.BarEmpty, 8)
+			var hintRows []string
+			for i := len(lines) - 1; i >= 0 && !strings.Contains(lines[i], rule); i-- {
+				hintRows = append([]string{strings.TrimSpace(lines[i])}, hintRows...)
+			}
+			if s == ScreenSelect && len(hintRows) > 0 {
+				hintRows = hintRows[1:]
+			}
+			last := strings.Join(hintRows, " "+m.theme.Glyphs.Sep+" ")
+			parts := strings.Split(last, " "+m.theme.Glyphs.Sep+" ")
+			if len(parts) != len(hints) {
+				t.Fatalf("screen %v: hint line %q has %d hints, key map has %d", s, last, len(parts), len(hints))
+			}
+			for i, part := range parts {
+				want := hints[i].key + " " + hints[i].desc
+				if part != want {
+					t.Errorf("screen %v: hint %d = %q, want %q from the key map", s, i, part, want)
 				}
 			}
-			if !found {
-				t.Errorf("screen %v: hint %q has no binding", s, h.desc)
+			for _, h := range hints {
+				found := false
+				for _, b := range km {
+					if m.tr.T(b.desc, nil) == h.desc {
+						found = true
+					}
+				}
+				if !found {
+					t.Errorf("screen %v: hint %q has no binding", s, h.desc)
+				}
 			}
 		}
-	}
+	})
 }
 
 const wantTagline = "Nothing passes without evidence."

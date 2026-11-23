@@ -59,17 +59,17 @@ func TestHubIconsPassTheGateAndAreOneCell(t *testing.T) {
 	dir := t.TempDir()
 	for _, e := range hubMenu {
 		if e.icon == "" {
-			t.Errorf("%s has no icon", e.name)
+			t.Errorf("%s has no icon", hubName(e))
 			continue
 		}
 		if w := lipgloss.Width(e.icon); w != 1 {
-			t.Errorf("%s icon %q is %d cells wide, want 1", e.name, e.icon, w)
+			t.Errorf("%s icon %q is %d cells wide, want 1", hubName(e), e.icon, w)
 		}
 		cjk := runewidth.NewCondition()
 		cjk.EastAsianWidth = true
 		for _, r := range e.icon {
 			if runewidth.IsAmbiguousWidth(r) || cjk.RuneWidth(r) != 1 {
-				t.Errorf("%s icon %q (U+%04X) has an ambiguous East Asian width", e.name, e.icon, r)
+				t.Errorf("%s icon %q (U+%04X) has an ambiguous East Asian width", hubName(e), e.icon, r)
 			}
 		}
 		f := filepath.Join(dir, e.view+".md")
@@ -77,7 +77,7 @@ func TestHubIconsPassTheGateAndAreOneCell(t *testing.T) {
 			t.Fatal(err)
 		}
 		if code := gate.Emoji(io.Discard, []string{f}); code != 0 {
-			t.Errorf("%s icon %q fails aval design gate emoji", e.name, e.icon)
+			t.Errorf("%s icon %q fails aval design gate emoji", hubName(e), e.icon)
 		}
 	}
 }
@@ -86,12 +86,12 @@ func TestHubASCIIIconsArePureASCII(t *testing.T) {
 	seen := map[string]string{}
 	for _, e := range hubMenu {
 		if len(e.ascii) != 1 || e.ascii[0] < 0x21 || e.ascii[0] > 0x7e {
-			t.Errorf("%s ASCII icon %q is not one printable ASCII character", e.name, e.ascii)
+			t.Errorf("%s ASCII icon %q is not one printable ASCII character", hubName(e), e.ascii)
 		}
 		if other, dup := seen[e.ascii]; dup {
-			t.Errorf("%s and %s share the ASCII icon %q", e.name, other, e.ascii)
+			t.Errorf("%s and %s share the ASCII icon %q", hubName(e), other, e.ascii)
 		}
-		seen[e.ascii] = e.name
+		seen[e.ascii] = hubName(e)
 	}
 }
 
@@ -121,7 +121,7 @@ func TestHubLetterOpensItsView(t *testing.T) {
 	want := map[string]string{"i": viewInstall, "u": viewUpdate, "s": viewSync, "d": viewDoctor, "b": viewBackups, "x": viewUninstall, ",": viewSettings, "v": viewDev, "a": viewAbout}
 	for _, e := range hubMenu {
 		if want[e.key] != e.view {
-			t.Errorf("%s has key %q, want the one that maps to it", e.name, e.key)
+			t.Errorf("%s has key %q, want the one that maps to it", hubName(e), e.key)
 		}
 	}
 	for k, v := range want {
@@ -230,7 +230,7 @@ func TestHubSelectedRowHasNoReverseVideo(t *testing.T) {
 }
 
 func TestShortenPathKeepsTheTail(t *testing.T) {
-	c := chrome{theme: goldenTheme(t, true)}
+	c := chrome{tr: testTr, theme: goldenTheme(t, true)}
 	for _, tc := range []struct {
 		home, path string
 		w          int
@@ -262,7 +262,7 @@ func TestHubBackupRowIsRelative(t *testing.T) {
 		{time.Date(2026, 11, 20, 9, 0, 0, 0, time.UTC), "2026-11-20 09:00"},
 		{time.Date(2026, 11, 24, 9, 0, 0, 0, time.UTC), "2026-11-24 09:00"},
 	} {
-		if got := relDay(hubNow, tc.at); got != tc.want {
+		if got := (chrome{}).relDay(hubNow, tc.at); got != tc.want {
 			t.Errorf("relDay(%v) = %q, want %q", tc.at, got, tc.want)
 		}
 	}
@@ -389,12 +389,12 @@ func TestHubPaneStateBlockPerEntry(t *testing.T) {
 		}
 		p := pane(renderModelAt(a, 80, 24))
 		if len(p) > len(hubMenu) {
-			t.Errorf("%s pane is %d rows, taller than the menu", e.name, len(p))
+			t.Errorf("%s pane is %d rows, taller than the menu", hubName(e), len(p))
 		}
 		joined := strings.Join(p, "\n")
 		for _, w := range want[e.view] {
 			if !strings.Contains(joined, w) {
-				t.Errorf("%s pane: missing %q:\n%s", e.name, w, joined)
+				t.Errorf("%s pane: missing %q:\n%s", hubName(e), w, joined)
 			}
 		}
 	}
@@ -406,8 +406,8 @@ func TestHubHelpListsEveryShortcut(t *testing.T) {
 	a, _ = routerStep(a, key("?"))
 	out := renderModelAt(a, 80, 40)
 	for _, e := range hubMenu {
-		if !strings.Contains(out, "open "+e.name) {
-			t.Errorf("help does not list %q for %s:\n%s", e.key, e.name, out)
+		if !strings.Contains(out, "open "+hubName(e)) {
+			t.Errorf("help does not list %q for %s:\n%s", e.key, hubName(e), out)
 		}
 	}
 }

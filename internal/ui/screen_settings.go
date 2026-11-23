@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"maps"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/config"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
 
@@ -61,41 +61,36 @@ const (
 )
 
 var settingsKeys = keyMap{
-	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: "move"},
-	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: "move"},
-	{keys: []string{"left", "h"}, action: actPrev, label: labelLeftRight, desc: "change"},
-	{keys: []string{"right", "l"}, action: actNext, label: labelLeftRight, desc: "change"},
-	{keys: []string{"enter"}, action: actSave, label: "enter", desc: "save", core: true},
-	{keys: []string{"esc"}, action: actDiscard, label: "esc", desc: "discard", core: true},
+	{keys: []string{"up", "k"}, action: actUp, label: labelUpDown, desc: i18n.Key("key.move")},
+	{keys: []string{"down", "j"}, action: actDown, label: labelUpDown, desc: i18n.Key("key.move")},
+	{keys: []string{"left", "h"}, action: actPrev, label: labelLeftRight, desc: i18n.Key("key.change")},
+	{keys: []string{"right", "l"}, action: actNext, label: labelLeftRight, desc: i18n.Key("key.change")},
+	{keys: []string{"enter"}, action: actSave, label: "enter", desc: i18n.Key("key.save"), core: true},
+	{keys: []string{"esc"}, action: actDiscard, label: "esc", desc: i18n.Key("key.discard"), core: true},
 	helpBinding,
 	quitBinding,
 }
 
 // settingsBinding opens the screen from the installer.
-var settingsBinding = binding{keys: []string{"s"}, action: actSettings, label: "s", desc: "settings"}
+var settingsBinding = binding{keys: []string{"s"}, action: actSettings, label: "s", desc: i18n.Key("key.settings")}
 
-// themeCycle is what left and right step through: the families, not every
-// variant. A pinned variant already in the file is shown and stays valid.
-var themeCycle = []string{
-	"aval", "catppuccin", "tokyo-night", "gruvbox", "dracula", "nord", "kanagawa",
-	"rose-pine", "solarized", "one-dark", "everforest", "terminal", "mono",
-}
-
-// settingRow is one row; nil choices make it read-only.
+// settingRow is one row; nil choices make it read-only. label is a message
+// key, and the choices are the config file's own values, never translated.
 type settingRow struct {
 	key, label string
 	choices    []string
 }
 
-// settingRows is six rows at most (Hick, DESIGN.md section 10). The
+// settingRows is seven rows at most (Hick, DESIGN.md section 10). The
 // editable ones come first, so the cursor never lands on the read-only one.
 var settingRows = []settingRow{
-	{"theme", "Theme", themeCycle},
-	{"background", "Background", []string{"auto", "dark", "light"}},
-	{"glyphs", "Glyphs", []string{"auto", "unicode", "ascii"}},
-	{"motion", "Motion", []string{"auto", "off"}},
-	{"update_check", "Update check", []string{"on", "off"}},
-	{"repo", "Repository", nil},
+	{"theme", i18n.Key("settings.label.theme"), themeCycle},
+	{"background", i18n.Key("settings.label.background"), []string{"auto", "dark", "light"}},
+	{"glyphs", i18n.Key("settings.label.glyphs"), []string{"auto", "unicode", "ascii"}},
+	{"motion", i18n.Key("settings.label.motion"), []string{"auto", "off"}},
+	{"update_check", i18n.Key("settings.label.update_check"), []string{"on", "off"}},
+	{"language", i18n.Key("settings.label.language"), []string{"auto", "en", "es"}},
+	{"repo", i18n.Key("settings.label.repo"), nil},
 }
 
 func editableRows() int {
@@ -123,7 +118,10 @@ type settingsState struct {
 	repo string
 	// preview is the candidate theme the preview line renders in.
 	preview Theme
-	err     string
+	// baseTr is the language the screen opened in: esc restores it, and a
+	// language set by a flag or the environment keeps it.
+	baseTr i18n.Translator
+	err    string
 }
 
 // NewSettings builds a model that opens on the settings screen and ends the
@@ -157,6 +155,7 @@ func (m Model) openSettings() Model {
 		st.sources[r.key] = src.String()
 	}
 	st.repo, _ = f.Resolve("repo", env.Flags, env.getenv)
+	st.baseTr = m.tr
 	m.settings = st
 	m.screen = ScreenSettings
 	m.settings.preview = m.candidateTheme()
@@ -235,6 +234,17 @@ func (m Model) effectiveTheme() Theme {
 	return th
 }
 
+// candidateTr is the language the screen previews: the language row's value
+// while it is the file's to set, and the language the screen opened in while
+// a flag or $AVAL_LANG overrides it. "auto" is detected from the environment.
+func (m Model) candidateTr() i18n.Translator {
+	s := m.settings
+	if s.overridden("language") {
+		return s.baseTr
+	}
+	return i18n.New(i18n.Select(s.values["language"], m.settingsEnv.getenv))
+}
+
 // cycle steps through choices from cur. A value outside them (a pinned
 // theme variant) steps from its family's place.
 func cycle(choices []string, cur string, step int) string {
@@ -278,6 +288,8 @@ func (m Model) settingsAction(act action) (tea.Model, tea.Cmd) {
 		s.values = maps.Clone(s.values)
 		s.values[r.key] = cycle(r.choices, s.values[r.key], step)
 		s.preview = m.candidateTheme()
+		// The whole screen repaints in the chosen language at once.
+		m.tr = m.candidateTr()
 	case actSave:
 		for _, r := range settingRows {
 			if r.choices == nil || s.values[r.key] == s.initial[r.key] {
@@ -308,6 +320,7 @@ func (m Model) settingsAction(act action) (tea.Model, tea.Cmd) {
 		if s.standalone {
 			return m, m.exit()
 		}
+		m.tr = s.baseTr
 		m.screen = s.back
 	}
 	return m, nil
@@ -329,15 +342,15 @@ func (m Model) settingsStatus() string {
 		if !s.overridden(r.key) {
 			continue
 		}
-		name := strings.ToLower(r.label)
+		name := strings.ToLower(m.tr.T(r.label, nil))
 		if s.sources[r.key] == "flag" {
 			flag := m.settingsEnv.FlagNames[r.key]
 			if flag == "" {
-				flag = "a flag"
+				flag = m.tr.T("settings.a_flag", nil)
 			}
-			return fmt.Sprintf("%s is set by %s for this run; the file value applies elsewhere", name, flag)
+			return m.tr.T("settings.set_by_flag", i18n.Args{"name": name, "flag": flag})
 		}
-		return fmt.Sprintf("%s is set by $%s in this shell; the file value applies elsewhere", name, config.EnvName(r.key))
+		return m.tr.T("settings.set_by_env", i18n.Args{"name": name, "var": config.EnvName(r.key)})
 	}
 	return ""
 }
@@ -346,7 +359,7 @@ func (m Model) settingsStatus() string {
 func (m Model) tilde(p string) string { return tildeUnder(m.settingsEnv.Home, p) }
 
 func (m Model) settingsBody(l layout, h int) []string {
-	head := m.headingRow(l, "Settings", m.theme.Heading, m.tilde(m.settingsEnv.Path), m.theme.Muted)
+	head := m.headingRow(l, m.tr.T("settings.title", nil), m.theme.Heading, m.tilde(m.settingsEnv.Path), m.theme.Muted)
 	rows, cur := m.settingLines(l)
 	preview := m.previewLines(l, false)
 	short := m.previewLines(l, true)
@@ -387,7 +400,12 @@ func (m Model) settingsBody(l layout, h int) []string {
 func (m Model) settingLines(l layout) ([]string, int) {
 	s := m.settings
 	compact := l.bp == bpCompact
-	labelW := min(13, max((l.width-4)/2, 1))
+	// The label column is the widest label and a space, within half the row.
+	widestLabel := 0
+	for _, r := range settingRows {
+		widestLabel = max(widestLabel, lipgloss.Width(m.tr.T(r.label, nil)))
+	}
+	labelW := min(widestLabel+1, max((l.width-4)/2, 1))
 	widest := 13
 	for _, r := range settingRows {
 		if r.choices != nil {
@@ -403,12 +421,12 @@ func (m Model) settingLines(l layout) ([]string, int) {
 			marker = m.theme.Marker.Render(m.theme.Glyphs.Cursor + " ")
 			cur = len(lines)
 		}
-		label := m.pad(r.label, labelW)
+		label := m.pad(m.tr.T(r.label, nil), labelW)
 		if r.choices == nil {
 			v := m.tilde(s.repo)
 			style := m.theme.Text
 			if v == "" {
-				v, style = "not set", m.theme.Muted
+				v, style = m.tr.T("settings.not_set", nil), m.theme.Muted
 			}
 			lines = append(lines, marker+m.theme.Text.Render(label)+"  "+style.Render(m.fitMiddle(v, max(l.width-2-labelW-2, 1))))
 			continue
@@ -468,14 +486,14 @@ func (m Model) previewLines(l layout, oneLine bool) []string {
 	g := pt.Glyphs
 	type item struct{ styled, plain string }
 	items := []item{
-		{pt.Checked.Render(g.Checked) + " " + pt.Text.Render("Selected"), g.Checked + " Selected"},
-		{pt.Unchecked.Render(g.Unchecked) + " " + pt.Text.Render("Not selected"), g.Unchecked + " Not selected"},
-		{pt.State(StateOK, "linked"), g.OK + " linked"},
-		{pt.State(StateWarn, "backed up"), g.Warn + " backed up"},
-		{pt.State(StateFail, "failed"), g.Fail + " failed"},
+		{pt.Checked.Render(g.Checked) + " " + pt.Text.Render(m.tr.T("settings.preview.selected", nil)), g.Checked + " " + m.tr.T("settings.preview.selected", nil)},
+		{pt.Unchecked.Render(g.Unchecked) + " " + pt.Text.Render(m.tr.T("settings.preview.not_selected", nil)), g.Unchecked + " " + m.tr.T("settings.preview.not_selected", nil)},
+		{pt.State(StateOK, m.tr.T("install.status.linked", nil)), g.OK + " " + m.tr.T("install.status.linked", nil)},
+		{pt.State(StateWarn, m.tr.T("install.word.backed_up", nil)), g.Warn + " " + m.tr.T("install.word.backed_up", nil)},
+		{pt.State(StateFail, m.tr.T("install.word.failed", nil)), g.Fail + " " + m.tr.T("install.word.failed", nil)},
 	}
-	const label, gap = "Preview  ", "   "
-	indent := len(label)
+	label, gap := m.tr.T("settings.preview.label", nil), "   "
+	indent := lipgloss.Width(label)
 	var lines []string
 	line := m.theme.Text.Render(label)
 	if oneLine {

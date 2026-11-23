@@ -43,6 +43,7 @@ func dirtyPreview() (coreupdate.Preview, error) {
 
 func updateServices(t *testing.T, p *updateProbe, preview coreupdate.Preview, perr error) Services {
 	return Services{
+		tr:   testTr,
 		Home: "/home/u",
 		Repo: "/home/u/.aval",
 		UpdatePreview: func(ctx context.Context) (coreupdate.Preview, error) {

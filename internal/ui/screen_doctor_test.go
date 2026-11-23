@@ -51,6 +51,7 @@ func (f *doctorFake) results(security bool) []doctor.Result {
 
 func (f *doctorFake) services() Services {
 	return Services{
+		tr:     testTr,
 		Home:   "/home/u",
 		Repo:   "/home/u/.aval",
 		Build:  BuildInfo{Version: "0.3.0"},
@@ -71,7 +72,7 @@ func (f *doctorFake) services() Services {
 // produced, to feed back when the test wants them.
 func doctorApp(t *testing.T, unicode bool, svc Services) (App, []tea.Msg) {
 	t.Helper()
-	c := chrome{theme: goldenTheme(t, unicode), version: svc.Build.Version, platform: "macOS (arm64)", width: 80, height: 40}
+	c := chrome{tr: testTr, theme: goldenTheme(t, unicode), version: svc.Build.Version, platform: "macOS (arm64)", width: 80, height: 40}
 	a := newApp(c, svc, newFake("hub"))
 	ctor, ok := viewFor(viewDoctor)
 	if !ok {

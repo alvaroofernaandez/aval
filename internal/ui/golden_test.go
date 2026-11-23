@@ -89,7 +89,7 @@ func screenFixture(t *testing.T, screen Screen, unicode bool) Model {
 	}}
 	r := install.New(install.Options{Home: "/home/u", BackupRoot: "/home/u/.aval-backup/20260101-000000", Symlinks: true})
 	m := NewModel(p, r, Options{
-		Version: "0.2.0", Platform: "macOS (arm64)", Symlinks: true,
+		Version: "0.2.0", Platform: "macOS (arm64)", Symlinks: true, Lang: testTr.Lang(),
 		// The path does not exist: settings open on the defaults.
 		Settings: SettingsEnv{
 			Path: "/home/u/.config/aval/config", Home: "/home/u",
@@ -123,7 +123,7 @@ func screenFixture(t *testing.T, screen Screen, unicode bool) Model {
 	case ScreenSettings:
 		m = send(m, "s")
 	case ScreenWelcome:
-		w := NewWelcome(Options{Version: "0.2.0", Platform: "macOS (arm64)"}, WelcomeEnv{Home: "/home/u", CloneDest: "/home/u/.aval"})
+		w := NewWelcome(Options{Version: "0.2.0", Platform: "macOS (arm64)", Lang: testTr.Lang()}, WelcomeEnv{Home: "/home/u", CloneDest: "/home/u/.aval"})
 		m = w.WithTheme(goldenTheme(t, unicode))
 	}
 	return m
@@ -141,33 +141,37 @@ var goldenScreens = []struct {
 }
 
 func TestViewsNeverExceedTheWidth(t *testing.T) {
-	for _, unicode := range []bool{true, false} {
-		for _, s := range goldenScreens {
-			m := screenFixture(t, s.screen, unicode)
-			for w := 20; w <= 120; w++ {
-				for i, line := range strings.Split(renderAt(m, w), "\n") {
-					if got := lipgloss.Width(line); got > w {
-						t.Errorf("%s unicode=%v width %d: line %d is %d wide: %q", s.name, unicode, w, i, got, line)
-						break
+	forEachLang(t, func(t *testing.T) {
+		for _, unicode := range []bool{true, false} {
+			for _, s := range goldenScreens {
+				m := screenFixture(t, s.screen, unicode)
+				for w := 20; w <= 120; w++ {
+					for i, line := range strings.Split(renderAt(m, w), "\n") {
+						if got := lipgloss.Width(line); got > w {
+							t.Errorf("%s unicode=%v width %d: line %d is %d wide: %q", s.name, unicode, w, i, got, line)
+							break
+						}
 					}
 				}
 			}
 		}
-	}
+	})
 }
 
 func TestGoldenViews(t *testing.T) {
-	for _, tier := range []struct {
-		name    string
-		unicode bool
-	}{{"unicode", true}, {"ascii", false}} {
-		for _, s := range goldenScreens {
-			for _, w := range []int{36, 80, 120} {
-				name := fmt.Sprintf("%s_%s_%d", s.name, tier.name, w)
-				t.Run(name, func(t *testing.T) {
-					assertGolden(t, name, renderAt(screenFixture(t, s.screen, tier.unicode), w))
-				})
+	forEachLang(t, func(t *testing.T) {
+		for _, tier := range []struct {
+			name    string
+			unicode bool
+		}{{"unicode", true}, {"ascii", false}} {
+			for _, s := range goldenScreens {
+				for _, w := range []int{36, 80, 120} {
+					name := goldenName(fmt.Sprintf("%s_%s_%d", s.name, tier.name, w))
+					t.Run(name, func(t *testing.T) {
+						assertGolden(t, name, renderAt(screenFixture(t, s.screen, tier.unicode), w))
+					})
+				}
 			}
 		}
-	}
+	})
 }

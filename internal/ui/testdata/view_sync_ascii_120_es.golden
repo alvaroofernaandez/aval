@@ -1,0 +1,19 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ----------------------------------------------------------------------------
+
+  Sincronizar                                          ~/.claude/settings.json
+
+  ! cambiará      ajustes   hooks, statusLine, env
+  ok al día       reglas    ~/.codex/AGENTS.md
+  ! actualizará   reglas    ~/.gemini/GEMINI.md
+  ok enlazado     overlay   ~/.claude/skills/private-skill
+
+  > Aplicar la sincronización
+    copia, escribe, verifica con doctor y revierte si falla
+    Volver                     no cambia nada
+
+  ----------------------------------------------------------------------------
+  Los archivos anteriores se guardan en ~/.aval-backup  deshacer: aval restore
+  latest
+  up/down mover  enter elegir  esc volver  ? ayuda  q salir

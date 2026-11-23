@@ -1,0 +1,12 @@
+  aval  0.2.0                                                    macOS (arm64)
+  Nada pasa sin evidencia.
+  ----------------------------------------------------------------------------
+
+  This removes 2 links that point into ~/.aval.
+
+    Remove 2 links  back up, then unlink
+  > Cancelar        no cambia nada
+
+  ----------------------------------------------------------------------------
+  Files in the way move to ~/.aval-backup first, undo: aval restore latest
+  up/down mover  enter elegir  esc volver  ? ayuda  q salir

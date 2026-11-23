@@ -16,6 +16,14 @@ import (
 // DefaultThemeName is the theme used when none is configured.
 const DefaultThemeName = "aval"
 
+// themeCycle is what left and right step through in settings: the families,
+// not every variant. A pinned variant already in the file is shown and stays
+// valid.
+var themeCycle = []string{
+	"aval", "catppuccin", "tokyo-night", "gruvbox", "dracula", "nord", "kanagawa",
+	"rose-pine", "solarized", "one-dark", "everforest", "terminal", "mono",
+}
+
 // Theme carries every style the views use. It is a struct rather than a set of
 // package-level vars so tests can build one without a terminal attached.
 type Theme struct {

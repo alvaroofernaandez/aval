@@ -18,7 +18,7 @@ func testConfirm(t *testing.T, mode confirmMode) confirm {
 
 func testChrome(t *testing.T, unicode bool) chrome {
 	t.Helper()
-	return chrome{theme: goldenTheme(t, unicode), version: "0.2.0", platform: "macOS (arm64)", width: 80, height: 24}
+	return chrome{tr: testTr, theme: goldenTheme(t, unicode), version: "0.2.0", platform: "macOS (arm64)", width: 80, height: 24}
 }
 
 func TestDestructiveConfirmOpensOnCancel(t *testing.T) {
