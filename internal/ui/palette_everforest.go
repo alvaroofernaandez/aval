@@ -1,9 +1,10 @@
 package ui
 
 // Upstream: https://github.com/sainnhe/everforest (autoload/everforest.vim, medium contrast)
-// Hex values come from the upstream repository. A token that missed 4.5:1 on its
-// own background was replaced by the closest entry of the same palette that
-// passes; each swap is noted on its line and pinned in the test.
+// Hex values come from the upstream repository. Text tokens need 4.5:1 and are
+// swapped only to a neutral entry. State tokens need 3:1 (glyph only) and keep
+// their upstream hex or fall back to strong. Each swap is noted on its line and
+// pinned in the test.
 
 func init() {
 	register(Family{Name: "everforest", Dark: "everforest-dark", Light: "everforest-light"},
@@ -18,13 +19,12 @@ func init() {
 		Palette{
 			Name: "everforest-light",
 			// muted: upstream grey1 #939f91 is 2.56:1; fg used instead.
-			// ok: upstream green #8da101 is 2.69:1; fg used instead.
-			// warn: upstream yellow #dfa000 is 2.12:1; fg used instead.
-			// fail: upstream red #f85552 is 3.04:1; fg used instead.
+			// ok: upstream green #8da101 is 2.69:1; fallback: strong (glyph drawn in strong, bold).
+			// warn: upstream yellow #dfa000 is 2.12:1; fallback: strong (glyph drawn in strong, bold).
 			// key: upstream orange #f57d26 is 2.48:1; fg used instead.
 			Background: "#fdf6e3",
 			Text:       "#5c6a72", Strong: "#5c6a72", Muted: "#5c6a72", Rule: "#e6e2cc",
-			OK: "#5c6a72", Warn: "#5c6a72", Fail: "#5c6a72",
+			OK: "#5c6a72", Warn: "#5c6a72", Fail: "#f85552",
 			Key: "#5c6a72",
 		},
 	)

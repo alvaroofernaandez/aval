@@ -1,9 +1,10 @@
 package ui
 
 // Upstream: https://github.com/catppuccin/palette (palette.json)
-// Hex values come from the upstream repository. A token that missed 4.5:1 on its
-// own background was replaced by the closest entry of the same palette that
-// passes; each swap is noted on its line and pinned in the test.
+// Hex values come from the upstream repository. Text tokens need 4.5:1 and are
+// swapped only to a neutral entry. State tokens need 3:1 (glyph only) and keep
+// their upstream hex or fall back to strong. Each swap is noted on its line and
+// pinned in the test.
 
 func init() {
 	register(Family{Name: "catppuccin", Dark: "catppuccin-mocha", Light: "catppuccin-latte"},
@@ -17,12 +18,12 @@ func init() {
 		Palette{
 			Name: "catppuccin-latte",
 			// muted: upstream subtext0 #6c6f85 is 4.37:1; subtext1 used instead.
-			// ok: upstream green #40a02b is 2.96:1; text used instead.
-			// warn: upstream yellow #df8e1d is 2.31:1; red used instead.
+			// ok: upstream green #40a02b is 2.96:1; fallback: strong (glyph drawn in strong, bold).
+			// warn: upstream yellow #df8e1d is 2.31:1; fallback: strong (glyph drawn in strong, bold).
 			// key: upstream peach #fe640b is 2.64:1; subtext1 used instead.
 			Background: "#eff1f5",
 			Text:       "#4c4f69", Strong: "#4c4f69", Muted: "#5c5f77", Rule: "#bcc0cc",
-			OK: "#4c4f69", Warn: "#d20f39", Fail: "#d20f39",
+			OK: "#4c4f69", Warn: "#4c4f69", Fail: "#d20f39",
 			Key: "#5c5f77",
 		},
 	)

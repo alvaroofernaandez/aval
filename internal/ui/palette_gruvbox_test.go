@@ -7,23 +7,22 @@ import (
 )
 
 // Upstream: https://github.com/morhetz/gruvbox (colors/gruvbox.vim)
-// Hex values are pinned here. A token that missed 4.5:1 on its own background
-// was replaced by the closest entry of the same palette that passes; each
-// swap is listed in gruvboxSwaps.
+// Hex values are pinned here. Text tokens need 4.5:1 and swap only to a
+// neutral entry; state tokens need 3:1 and fall back to strong. Each swap is listed in gruvboxSwaps.
 func testGruvboxPalettes() []Palette {
 	return []Palette{
 		{
 			Name:       "gruvbox-dark",
 			Background: "#282828",
 			Text:       "#ebdbb2", Strong: "#ebdbb2", Muted: "#a89984", Rule: "#504945",
-			OK: "#b8bb26", Warn: "#fabd2f", Fail: "#fe8019",
+			OK: "#b8bb26", Warn: "#fabd2f", Fail: "#fb4934",
 			Key: "#83a598",
 		},
 		{
 			Name:       "gruvbox-light",
 			Background: "#fbf1c7",
 			Text:       "#3c3836", Strong: "#3c3836", Muted: "#665c54", Rule: "#d5c4a1",
-			OK: "#665c54", Warn: "#af3a03", Fail: "#9d0006",
+			OK: "#79740e", Warn: "#b57614", Fail: "#9d0006",
 			Key: "#af3a03",
 		},
 	}
@@ -34,11 +33,8 @@ func testGruvboxPalettes() []Palette {
 var gruvboxSwaps = []struct {
 	palette, token, from, fromName string
 }{
-	{"gruvbox-dark", "muted", "#928374", "gray_245"},     // 4.02:1 -> light4 #a89984 5.30:1
-	{"gruvbox-dark", "fail", "#fb4934", "bright_red"},    // 4.29:1 -> bright_orange #fe8019 5.84:1
-	{"gruvbox-light", "muted", "#7c6f64", "dark4"},       // 4.29:1 -> dark3 #665c54 5.74:1
-	{"gruvbox-light", "ok", "#79740e", "faded_green"},    // 4.29:1 -> dark3 #665c54 5.74:1
-	{"gruvbox-light", "warn", "#b57614", "faded_yellow"}, // 3.33:1 -> faded_orange #af3a03 5.40:1
+	{"gruvbox-dark", "muted", "#928374", "gray_245"}, // 4.02:1 -> light4 #a89984 5.30:1
+	{"gruvbox-light", "muted", "#7c6f64", "dark4"},   // 4.29:1 -> dark3 #665c54 5.74:1
 }
 
 func TestGruvboxPalettesMatchUpstream(t *testing.T) {
@@ -53,27 +49,8 @@ func TestGruvboxPalettesMatchUpstream(t *testing.T) {
 	}
 }
 
-func TestGruvboxTokensReachAAContrast(t *testing.T) {
-	// rule is decorative and exempt.
-	for _, want := range testGruvboxPalettes() {
-		p, err := LookupPalette(want.Name, true)
-		if err != nil {
-			t.Fatalf("LookupPalette(%q): %v", want.Name, err)
-		}
-		for token, fg := range p.meaningful() {
-			r, err := gate.Ratio(fg, p.Background)
-			if err != nil {
-				t.Fatalf("%s.%s: %v", p.Name, token, err)
-			}
-			if r < 4.5 {
-				t.Errorf("%s.%s %s on %s = %.2f:1, want >= 4.5", p.Name, token, fg, p.Background, r)
-			}
-		}
-	}
-}
-
 func TestGruvboxSwapsWereNeeded(t *testing.T) {
-	// A swap is justified only if the upstream entry really missed 4.5:1, and
+	// A swap is justified only if the upstream entry really missed its contrast floor, and
 	// the palette no longer carries it.
 	for _, sw := range gruvboxSwaps {
 		p, err := LookupPalette(sw.palette, true)
@@ -84,7 +61,7 @@ func TestGruvboxSwapsWereNeeded(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if r >= 4.5 {
+		if r >= contrastFloor(sw.token) {
 			t.Errorf("%s.%s swapped out %s (%s) at %.2f:1, but it already passes", sw.palette, sw.token, sw.fromName, sw.from, r)
 		}
 		if p.meaningful()[sw.token] == sw.from {
