@@ -230,8 +230,8 @@ Rules for both tiers:
 - **Keys follow convention (Jakob):** arrows move, space toggles, enter
   confirms, esc goes back, q quits, `?` shows every binding of the screen.
 - **Option counts stay small (Hick):** the welcome screen has 2 choices, the
-  select screen 5 groups, the settings screen 6 rows, the hub 4 groups of at
-  most 3 entries.
+  select screen 5 groups, the settings screen 7 rows (6 before the Language
+  row, see the 2026-11-23 i18n entry), the hub 4 groups of at most 3 entries.
 
 ### Hub
 
@@ -412,6 +412,13 @@ Without a TTY, output is plain and byte-stable for scripts. Hooks, `statusline`
 and `tmux` helpers never read the visual settings.
 
 ## 8. Decision Log
+
+### 2026-11-23: The TUI speaks English and Spanish
+The owner approved i18n for the TUI and the human CLI (`odd/tasks/i18n.md`, ADR 0006). Every string a person reads in the TUI comes from the message catalog; machine output (`--json`, hooks, `statusline`, logs, generated files) stays English. Decided questions:
+- **Copy rules hold in both languages:** sentence case, no exclamation marks, no em dashes, evidence over "Success", every error says what, where and the fix. Spanish is neutral and professional: infinitives and nouns for actions, usted only where an instruction needs a person.
+- **Layout:** Spanish runs longer, so the width and height invariants and the goldens run in both languages at 36, 80 and 120 columns, and columns that held a label (hub groups, About, settings, the done counts) size to the widest label of the language.
+- **Not translated:** key caps (`enter`, `esc`, `space`), commands (`aval restore latest`), config keys and values (`auto`, `unicode`), paths, and text that comes from the core packages (plan labels, doctor titles, error causes).
+- **Settings gains a Language row** (`auto`, `en`, `es`, the `language` key). Hick still holds: 7 rows, 6 of them editable. The screen repaints in the chosen language at once, esc restores the language it opened in, and a language set by `--lang` or `AVAL_LANG` is shown as an override like the theme.
 
 ### 2026-11-23: Hub v2: icons, badges and a detail pane
 The v1 hub was correct but flat: every entry looked the same, the panel cut
