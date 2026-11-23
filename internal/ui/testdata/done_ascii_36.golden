@@ -1,15 +1,11 @@
-aval
-macOS (arm64)
-symlinked — edits in the repo app...
+ aval 0.2.0
+ Finished with 1 error(s)
 
-Finished with 1 error(s)
+   linked             2
+   already installed  1
 
-  linked             2
-  already installed  1
+   1 existing file(s) moved to:
+   /home/u/.aval-...20260101-000000
 
-  1 existing file(s) moved to:
-  /home/u/.aval-b.../20260101-000000
-
-  link ~/.config/some/very/long/d...
-
-enter close
+   link ~/.config/some/very/long...
+ enter close

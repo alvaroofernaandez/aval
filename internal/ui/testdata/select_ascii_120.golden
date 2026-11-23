@@ -1,15 +1,15 @@
-aval
-macOS (arm64)
-symlinked — edits in the repo apply immediately
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ----------------------------------------------------------------------------
 
-What to install
+  Choose what to install                   symlinked: repo edits apply at once
 
-> [x] Terminal and shell...  2 items
-      tmux, zsh and the prompt, wired for this machine
-  [ ] Editor                 1 items
-      LazyVim with the aval colour scheme
-  [-] Windows Terminal profile only offered on Windows, this machine runs macOS
+  > [x] Terminal and shell en... 2 items
+        tmux, zsh and the prompt, wired for this machine
+    [ ] Editor                   1 item 
+        LazyVim with the aval colour scheme
+    [-] Windows Terminal profile only offered on Windows, this machine runs...
 
-2 items selected
-
-↑/↓ move      space toggle      a all      n none      enter install      q quit
+  ----------------------------------------------------------------------------
+  2 of 3 items selected
+  up/down move  space toggle  a all  n none  enter install  q quit

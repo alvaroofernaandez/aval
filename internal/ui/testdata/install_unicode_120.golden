@@ -1,11 +1,14 @@
-aval
-macOS (arm64)
-symlinked — edits in the repo apply immediately
+  aval  0.2.0                                                    macOS (arm64)
+  Nothing passes without evidence.
+  ────────────────────────────────────────────────────────────────────────────
 
-Installing
+  Installing                                                            3 of 5
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────  3/5
+    √ linked             ~/.tmux.conf
+    √ already installed  ~/.config/some/very/long/d…at/keeps/going/config.toml
+    ! backed up          ~/.zshrc
+    › linking            ~/.config/nvim
 
-  ~/.tmux.conf                             linked
-  ~/.config/some/very/long/destination/pa… already installed
-  ~/.zshrc                                 linked  (backed up)
+  ────────────────────────────────────────────────────────────────────────────
+  nothing failed so far

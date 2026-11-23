@@ -1,11 +1,9 @@
-aval
-macOS (arm64)
-symlinked — edits in the repo apply…
+ aval 0.2.0
+ Installing                  3 of 5
+ ━━━━━━━━━━━━━━━━━━━━──────────────
 
-Installing
-
-━━━━━━━━━───────  3/5
-
-  ~/.tmux.conf                linked
-  ~/.config/some/… already installed
-  ~/.zshrc                    linked
+   √ linked             ~/.tm….conf
+   √ already installed  ~/.co….toml
+   ! backed up          ~/.zshrc
+   › linking            ~/.co…/nvim
+ nothing failed so far

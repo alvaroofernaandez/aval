@@ -16,7 +16,6 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
-	"github.com/alvaroofernaandez/aval/internal/core/platform"
 	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 )
 
@@ -63,7 +62,12 @@ func assertGolden(t *testing.T, name, got string) {
 
 // renderAt drives m with a window size and returns its View.
 func renderAt(m Model, width int) string {
-	next, _ := m.Update(tea.WindowSizeMsg{Width: width, Height: 40})
+	return renderAtSize(m, width, 40)
+}
+
+// renderAtSize drives m with a full window size and returns its View.
+func renderAtSize(m Model, width, height int) string {
+	next, _ := m.Update(tea.WindowSizeMsg{Width: width, Height: height})
 	return next.(Model).View()
 }
 
@@ -84,7 +88,7 @@ func screenFixture(t *testing.T, screen Screen, unicode bool) Model {
 		{ID: "edit", Label: "Editor", Detail: "LazyVim with the aval colour scheme", Selected: false, Actions: acts("~/.config/nvim")},
 	}}
 	r := install.New(install.Options{Home: "/home/u", BackupRoot: "/home/u/.aval-backup/20260101-000000", Symlinks: true})
-	m := NewModel(p, platform.Platform{OS: "darwin", Arch: "arm64"}, r, true, false)
+	m := NewModel(p, r, Options{Version: "0.2.0", Platform: "macOS (arm64)", Symlinks: true})
 	m = m.WithTheme(goldenTheme(t, unicode))
 	m.Unavailable = []UnavailableGroup{{Label: "Windows Terminal profile", Reason: "only offered on Windows, this machine runs macOS"}}
 

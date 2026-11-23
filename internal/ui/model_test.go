@@ -10,7 +10,6 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
-	"github.com/alvaroofernaandez/aval/internal/core/platform"
 )
 
 func testModel(t *testing.T) Model {
@@ -30,7 +29,7 @@ func testModel(t *testing.T) Model {
 		}},
 	}}
 	r := install.New(install.Options{Home: home, Symlinks: true})
-	return NewModel(p, platform.Platform{OS: "darwin", Arch: "arm64"}, r, true, false)
+	return NewModel(p, r, Options{Version: "0.2.0", Platform: "macOS (arm64)", Symlinks: true})
 }
 
 func key(s string) tea.KeyMsg {
@@ -229,7 +228,7 @@ func TestDoneViewNamesTheBackupDirectory(t *testing.T) {
 		{Source: src, Dest: dest, Label: "~/.a"},
 	}}}}
 	r := install.New(install.Options{Home: home, Symlinks: true})
-	m := NewModel(p, platform.Platform{OS: "darwin"}, r, true, false)
+	m := NewModel(p, r, Options{Platform: "macOS (arm64)", Symlinks: true})
 
 	next, cmd := m.Update(key("enter"))
 	m = next.(Model)

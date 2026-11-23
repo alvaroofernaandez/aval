@@ -36,6 +36,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/term"
 
 	"github.com/alvaroofernaandez/aval/internal/agent/statusline"
 	"github.com/alvaroofernaandez/aval/internal/core/install"
@@ -46,6 +47,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/update"
 	"github.com/alvaroofernaandez/aval/internal/release"
 	"github.com/alvaroofernaandez/aval/internal/ui"
+	"github.com/alvaroofernaandez/aval/internal/ui/caps"
 	"github.com/alvaroofernaandez/aval/internal/ui/cli"
 )
 
@@ -336,7 +338,18 @@ func runInstall(repo, home string, dryRun, yes, forceCopy bool) error {
 		return finish(runner, err)
 	}
 
-	model := ui.NewModel(p, pf, runner, symlinks, dryRun)
+	fd := os.Stdout.Fd()
+	width, height, _ := term.GetSize(fd)
+	model := ui.NewModel(p, runner, ui.Options{
+		Version:  version,
+		Platform: ui.PlatformLabel(runtime.GOOS, runtime.GOARCH),
+		Caps: caps.Detect(caps.Inputs{
+			Getenv: os.Getenv, GOOS: runtime.GOOS, IsTTY: term.IsTerminal(fd),
+			Width: width, Height: height, Glyphs: "auto", Motion: "auto", Background: "auto",
+		}),
+		Symlinks: symlinks,
+		DryRun:   dryRun,
+	})
 	model.Unavailable = unavailableGroups(m)
 
 	final, err := tea.NewProgram(model, tea.WithAltScreen()).Run()

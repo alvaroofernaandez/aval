@@ -1,16 +1,8 @@
-aval
-macOS (arm64)
-symlinked — edits in the repo apply…
+ aval 0.2.0
+ Choose what to install
 
-What to install
-
-› [√] Terminal and shell en… 2 items
-      tmux, zsh and the prompt, wir…
-  [ ] Editor                 1 items
-      LazyVim with the aval colour…
-  [-] Windows Terminal profile only…
-
-2 items selected
-
-↑/↓ move  ·  space toggle  ·  a all
-n none  ·  enter install  ·  q quit
+ › [√] Terminal and shell enviro… 2
+   [ ] Editor                     1
+   [-] Windows Terminal profile…
+ 2/3 items selected
+ space toggle · enter install
