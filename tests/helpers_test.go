@@ -82,13 +82,16 @@ func findRepo() (string, error) {
 	return filepath.Dir(wd), nil
 }
 
+// errNoGo is a machine without the go toolchain: the suite skips, not fails.
+var errNoGo = errors.New("no go toolchain")
+
 // avalBin returns the path of the aval binary built from the repo under test.
 // It skips when there is no Go toolchain and fails when the build is broken.
 func avalBin(t testing.TB) string {
 	t.Helper()
 	buildOnce.Do(func() {
 		if _, err := exec.LookPath("go"); err != nil {
-			buildErr = errors.New("no go toolchain")
+			buildErr = errNoGo
 			return
 		}
 		buildErr = os.MkdirAll(binDir, 0o755)
@@ -103,7 +106,7 @@ func avalBin(t testing.TB) string {
 		}
 	})
 	if buildErr != nil {
-		if buildErr.Error() == "no go toolchain" {
+		if errors.Is(buildErr, errNoGo) {
 			t.Skip("go toolchain not installed")
 		}
 		t.Fatal(buildErr)

@@ -147,3 +147,198 @@ func TestA() {
 	}
 	eq(t, "TestMain may MkdirTemp; everything else is caught", "os.MkdirTemp,ioutil.TempDir,time.Sleep", strings.Join(got, ","))
 }
+
+// Errors are asserted as values: errors.Is for a sentinel, errors.As for a
+// typed error. Comparing err.Error() text is a change detector: it fails on a
+// reworded message and passes on the wrong error with the right words. The text
+// a person reads is pinned once, in tests/messages_test.go.
+//
+// An offence is an X.Error() call compared with == or !=, switched on, passed to
+// a text matcher (strings.Contains and kin, a regexp Match, eq, mustContain) or
+// stored on its own in a variable, which only happens to compare it later.
+// Building a diagnostic ("<" + err.Error() + ">", t.Errorf("%v", err)) is fine.
+
+// errTextPins is the one file allowed to pin user-facing text.
+const errTextPins = "tests/messages_test.go"
+
+// errTextExempt maps a repo-relative file to the reason it may still compare
+// error text. An entry that no longer offends fails the test: delete it.
+var errTextExempt = map[string]string{}
+
+// errTextMatchers are the calls whose arguments are compared as text.
+var errTextMatchers = map[string]bool{
+	"Contains": true, "ContainsAny": true, "HasPrefix": true, "HasSuffix": true, "EqualFold": true,
+	"Index": true, "Count": true, "Compare": true, "Match": true, "MatchString": true,
+	"eq": true, "mustContain": true, "mustHave": true, "mustNotHave": true,
+}
+
+// isErrorText reports whether n is an X.Error() call.
+func isErrorText(n ast.Node) bool {
+	call, ok := n.(*ast.CallExpr)
+	if !ok || len(call.Args) != 0 {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	return ok && sel.Sel.Name == "Error"
+}
+
+// errorTextIn returns the X.Error() calls anywhere inside n.
+func errorTextIn(n ast.Node) []ast.Node {
+	var out []ast.Node
+	ast.Inspect(n, func(c ast.Node) bool {
+		if isErrorText(c) {
+			out = append(out, c)
+		}
+		return true
+	})
+	return out
+}
+
+// errTextHits parses every _test.go under root and returns each comparison of
+// error text, one per X.Error() call.
+func errTextHits(t *testing.T, root string) []hygieneHit {
+	t.Helper()
+	var hits []hygieneHit
+	skip := map[string]bool{".git": true, "node_modules": true, "vendor": true, ".worktrees": true}
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if skip[d.Name()] && path != root {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		rel, _ := filepath.Rel(root, path)
+		rel = filepath.ToSlash(rel)
+		if rel == errTextPins {
+			return nil
+		}
+		fset := token.NewFileSet()
+		f, perr := parser.ParseFile(fset, path, nil, 0)
+		if perr != nil {
+			t.Errorf("%s: cannot parse: %v", path, perr)
+			return nil
+		}
+		seen := map[token.Pos]bool{}
+		flag := func(nodes []ast.Node, how string) {
+			for _, c := range nodes {
+				if !seen[c.Pos()] {
+					seen[c.Pos()] = true
+					hits = append(hits, hygieneHit{rel, fset.Position(c.Pos()).Line, how, "assert with errors.Is or errors.As; pin user-facing text in " + errTextPins})
+				}
+			}
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			switch x := n.(type) {
+			case *ast.BinaryExpr:
+				if x.Op == token.EQL || x.Op == token.NEQ {
+					flag(errorTextIn(x), "err.Error() "+x.Op.String())
+				}
+			case *ast.SwitchStmt:
+				if x.Tag != nil {
+					flag(errorTextIn(x.Tag), "switch err.Error()")
+				}
+			case *ast.CallExpr:
+				name := ""
+				switch fn := x.Fun.(type) {
+				case *ast.SelectorExpr:
+					name = fn.Sel.Name
+				case *ast.Ident:
+					name = fn.Name
+				}
+				if errTextMatchers[name] {
+					for _, a := range x.Args {
+						flag(errorTextIn(a), name+"(err.Error())")
+					}
+				}
+			case *ast.AssignStmt:
+				for _, r := range x.Rhs {
+					if isErrorText(r) {
+						flag([]ast.Node{r}, "v := err.Error()")
+					}
+				}
+			case *ast.ValueSpec:
+				for _, v := range x.Values {
+					if isErrorText(v) {
+						flag([]ast.Node{v}, "var v = err.Error()")
+					}
+				}
+			}
+			return true
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Slice(hits, func(i, j int) bool {
+		if hits[i].file != hits[j].file {
+			return hits[i].file < hits[j].file
+		}
+		return hits[i].line < hits[j].line
+	})
+	return hits
+}
+
+func TestHygieneNoErrorTextComparisons(t *testing.T) {
+	offending := map[string]bool{}
+	for _, h := range errTextHits(t, repo) {
+		offending[h.file] = true
+		if _, ok := errTextExempt[h.file]; ok {
+			continue
+		}
+		t.Errorf("%s:%d: %s: %s (or exempt the file in errTextExempt with a reason)", h.file, h.line, h.call, h.msg)
+	}
+	files := make([]string, 0, len(errTextExempt))
+	for f := range errTextExempt {
+		files = append(files, f)
+	}
+	sort.Strings(files)
+	for _, f := range files {
+		if strings.TrimSpace(errTextExempt[f]) == "" {
+			t.Errorf("%s: exemption has no reason", f)
+		}
+		if !offending[f] {
+			t.Errorf("%s: stale exemption, the file no longer offends; remove it from errTextExempt", f)
+		}
+	}
+}
+
+func TestHygieneErrorTextRuleCatchesWhatItClaims(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir+"/a_test.go", `package a
+import ("errors"; "regexp"; "strings"; "testing")
+func TestA(t *testing.T) {
+	err := errors.New("x")
+	_ = err.Error() == "x"
+	_ = strings.Contains(err.Error(), "x")
+	_ = regexp.MustCompile("x").MatchString(err.Error())
+	_ = strings.Contains(out+err.Error(), "x")
+	msg := err.Error()
+	switch err.Error() {
+	}
+	eq(t, "msg", "x", err.Error())
+	_ = "<" + err.Error() + ">"
+	t.Errorf("err = %v", err)
+	_ = "err.Error() == x in a string is fine" // err.Error() == "x" in a comment too
+	_ = errors.Is(err, err)
+	_ = msg
+}
+`)
+	write(t, dir+"/tests/messages_test.go", `package tests
+func TestM() { _ = err.Error() == "pinned here, on purpose" }
+`)
+	var got []string
+	for _, h := range errTextHits(t, dir) {
+		got = append(got, h.file+":"+strings.Fields(h.call)[0])
+	}
+	eq(t, "every comparison is caught, nothing else, and messages_test.go is the allowed place",
+		"a_test.go:err.Error(),a_test.go:Contains(err.Error()),a_test.go:MatchString(err.Error()),a_test.go:Contains(err.Error()),"+
+			"a_test.go:v,a_test.go:switch,a_test.go:eq(err.Error())",
+		strings.Join(got, ","))
+}
