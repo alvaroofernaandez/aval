@@ -333,7 +333,7 @@ Details for each one are in the [guide](docs/guide.md#️-commands).
 - **Nothing is deleted.** Everything moved aside is kept in `~/.aval-backup` and `aval restore` brings it back.
 - **Maintainability first.** A feature that makes aval harder to maintain waits until it does not.
 
-[Contributing](CONTRIBUTING.md) · [MIT License](LICENSE) · [Security](SECURITY.md) · [Code of conduct](CODE_OF_CONDUCT.md)
+[Architecture](ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md) · [MIT License](LICENSE) · [Security](SECURITY.md) · [Code of conduct](CODE_OF_CONDUCT.md)
 
 <br/>
 
