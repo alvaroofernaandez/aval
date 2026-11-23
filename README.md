@@ -244,6 +244,7 @@ Settings live in `${XDG_CONFIG_HOME:-~/.config}/aval/config` (`%APPDATA%\aval\co
 | `glyphs` | `auto`, `unicode`, `ascii` | `auto` | `AVAL_GLYPHS` | |
 | `motion` | `auto`, `off` | `auto` | `AVAL_MOTION` | |
 | `update_check` | `on`, `off` | `on` | `AVAL_NO_UPDATE_CHECK` | |
+| `language` | `auto`, `en`, `es` | `auto` | `AVAL_LANG` | `--lang` |
 
 Precedence: flag, then environment variable, then file, then default. `NO_COLOR` is honoured and wins over all of it. `--plain` means `mono`, ASCII glyphs and motion off, in one flag.
 
@@ -254,6 +255,12 @@ aval config get theme
 aval config set theme catppuccin
 aval config path
 ```
+
+**Language.** The hub, the installer and the human output of the CLI come in English and Spanish. `language = auto` picks Spanish when the first of `LC_ALL`, `LC_MESSAGES` and `LANG` that is set starts with `es`, and English otherwise. The order is `--lang`, then `AVAL_LANG`, then the file, then the locale, then English. `aval --lang es doctor` is a one-off; `aval config set language es` sticks. A wrong `--lang` exits 1; a wrong `AVAL_LANG` is skipped, and a wrong `language` in the file warns on stderr and falls back to the locale.
+
+Never translated, in any language: `--json` output, hook and statusline output, logs, and generated files. Scripts and agents read those.
+
+Known English left in a Spanish session: text that comes from the core packages (doctor check messages, plan group labels and reasons, sync warnings, the reasons inside install errors), `unknown command`, and the update-available notice.
 
 The settings view previews the theme live: enter saves, `esc` discards. Inside the installer, press `s`. An invalid value warns once on stderr and falls back to the default; `aval config set` refuses it with exit 1.
 
