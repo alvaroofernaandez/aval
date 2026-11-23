@@ -13,7 +13,14 @@ This file keeps a short, dated summary per release and links the notes; the sect
 
 [Release notes](docs/releases/v0.2.0.md) · [Notas en español](docs/releases/v0.2.0.es.md)
 
+### Breaking changes
+
+- **cli:** bare `aval` no longer installs; `aval install` is the explicit subcommand. The flag-only form still installs with a deprecation notice, and unknown commands fail
+
 ### Features
+
+- **deck:** `aval deck build|check|example` renders a plan as a local PDF deck; the plan gate denies edits until the active plan has a deck, and the `plan-deck` skill teaches agents to write it
+- **cli:** the repository resolves from `--repo`, `AVAL_REPO`, the location `aval install` records, the working directory or the executable
 
 - **hub:** bare `aval` on a terminal opens a hub with the wordmark, a status panel (version from the update cache, repo, doctor, last backup, theme) and nine views in four groups: Install, Update, Sync, Doctor, Backups, Uninstall, Settings, Dev sandbox and About. Opening it writes nothing and makes no network calls
 - **hub:** every write goes through preview, confirm, run and result; destructive confirms open on Cancel and name their safety net
