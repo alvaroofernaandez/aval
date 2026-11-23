@@ -25,6 +25,7 @@ var commands = []command{
 	{"budget", "[--json]", "always-on context per agent and hook latency"},
 	{"review", "assess [--base] [--json]", "git-only risk tier and reviewer lenses"},
 	{"design", "<gate|ack> ...", "design gates for the project in the current directory"},
+	{"config", "[list | get <key> | set <key> <value> | path]", "show or change aval settings (theme, glyphs, motion)"},
 	{"restore", "[--list | latest | <id> | --pin <id>]", "list or restore backup runs"},
 	{"uninstall", "[--dry-run] [--yes]", "remove aval's links and restore what they displaced"},
 	{"dev", "[run | diff | reset | ls | rm | project]", "sandboxed HOME for developing aval"},

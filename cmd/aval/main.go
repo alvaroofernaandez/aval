@@ -13,6 +13,7 @@
 //	aval macos      macOS defaults and the screenshot-to-clipboard LaunchAgent
 //	aval reap-orphan-tests  end orphaned test processes (--min-age, --dry-run)
 //	aval hook ...   agent hooks and the git pre-push gate
+//	aval config   show or change settings: list, get, set, path
 //	aval restore    list or restore backup runs (--list, latest, <id>, --pin <id>)
 //	aval uninstall  remove aval's links and restore what they displaced (--dry-run, --yes)
 //	aval version    version, commit, build date and channel (--version: same)
@@ -130,6 +131,15 @@ func run() error {
 	if flag.Arg(0) == "design" {
 		wd, _ := os.Getwd()
 		return runDesign(flag.Args()[1:], wd, os.Stdout)
+	}
+
+	// config reads and writes only aval's own settings file: no repo lookup.
+	if flag.Arg(0) == "config" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("cannot determine home directory: %w", err)
+		}
+		return runConfig(flag.Args()[1:], os.Stdout, os.Stderr, os.Getenv, home)
 	}
 
 	// Unix-only commands say so instead of failing somewhere inside.
