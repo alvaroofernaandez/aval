@@ -26,8 +26,11 @@ The release page does not resolve repo-relative paths, so rewrite them in `body.
 (`../adr/x.md`, `../../CHANGELOG.md`, `v0.2.0.es.md`) to
 `https://github.com/alvaroofernaandez/aval/blob/<tag>/<path from the repo root>`, and images
 (`../assets/x.gif`, `../assets/x.svg`) to `https://raw.githubusercontent.com/alvaroofernaandez/aval/<tag>/<path>`.
-Resolve each against `docs/releases/`. The two Mermaid diagrams may not render in the release body;
-the files in the repo are the reference. Keep `body.md` out of the repo.
+Resolve each against `docs/releases/`. Mermaid does not render in a release body (checked on
+v0.2.0-rc.1: the page shows it as a code block), so replace each diagram in `body.md` with a
+table that says the same; the files in the repo keep the diagrams. Put the generated list inside
+`<details><summary>All commits · Todos los commits</summary>` so the notes lead. Keep `body.md`
+out of the repo.
 
 ## The flow (3 commands)
 

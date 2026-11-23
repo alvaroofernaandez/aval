@@ -33,7 +33,7 @@ tar -xzf aval_X.Y.Z_<os>_<arch>.tar.gz && ./aval version
 npx @alvaroofernaandez/aval@next version          # rc/beta; @latest for stable
 ```
 
-8. **Release body (after publish).** Read GoReleaser's list with `gh release view vX.Y.Z-rc.N --json body -q .body`, then `gh release edit vX.Y.Z-rc.N --notes-file <file>` where the file is the English notes, then the Spanish notes, then that generated list. Relative links and images in the notes must be rewritten first to absolute `https://github.com/alvaroofernaandez/aval/blob/<tag>/...` and `https://raw.githubusercontent.com/alvaroofernaandez/aval/<tag>/...` URLs (details in `docs/releasing.md`). Editing a release body is a remote action: only with the owner's authorization.
+8. **Release body (after publish).** Read GoReleaser's list with `gh release view vX.Y.Z-rc.N --json body -q .body`, then `gh release edit vX.Y.Z-rc.N --notes-file <file>` where the file is the English notes, then the Spanish notes, then that generated list. Relative links and images in the notes must be rewritten first to absolute `https://github.com/alvaroofernaandez/aval/blob/<tag>/...` and `https://raw.githubusercontent.com/alvaroofernaandez/aval/<tag>/...` URLs (details in `docs/releasing.md`), and Mermaid diagrams replaced with tables, because a release body does not render Mermaid. Editing a release body is a remote action: only with the owner's authorization.
 
 ## If something fails
 
