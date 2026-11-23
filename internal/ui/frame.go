@@ -63,6 +63,8 @@ type layout struct {
 	margin int
 	// width is the usable content width, after margins and the cap.
 	width int
+	// hero is set when the view's hero rows replace the lockup.
+	hero bool
 }
 
 func (c chrome) layout() layout {
@@ -86,6 +88,14 @@ type view struct {
 	body func(l layout, h int) []string
 	// status is the plain-text line under the bottom rule; empty omits it.
 	status string
+	// hero, when set, returns styled rows that replace the lockup (the hub
+	// wordmark), or nil when they do not fit the width. The frame shows them
+	// only when everything else fits at its natural height, so the hero is
+	// the first thing to give way; body is then called with l.hero set.
+	hero func(l layout, height int) []string
+	// platform replaces the chrome's platform label when set (the sandbox
+	// marker inside `aval dev`).
+	platform string
 }
 
 // render lays v out inside the frame with the model's own key map.
@@ -99,8 +109,16 @@ func (m Model) hintLines(l layout, wrap bool) []string {
 // renderWith lays v out inside the frame at the chrome's size, with the hint
 // line built from km.
 func (c chrome) renderWith(v view, km keyMap) string {
+	if v.platform != "" {
+		c.platform = v.platform
+	}
 	l := c.layout()
 	compact := l.bp == bpCompact
+	if v.hero != nil && !compact {
+		if out, ok := c.renderHero(v, km, l); ok {
+			return out
+		}
+	}
 
 	showTagline, showRules, showGaps, wrapHints := !compact, !compact, !compact, !compact
 	fixed := func() int {
@@ -168,6 +186,43 @@ func (c chrome) renderWith(v view, km keyMap) string {
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+// renderHero lays v out with its hero rows in place of the lockup, and the
+// tagline beside the platform under them. It reports false when the hero
+// does not fit with every gap, the tagline and the wrapped hints, so the
+// caller falls back to the lockup.
+func (c chrome) renderHero(v view, km keyMap, l layout) (string, bool) {
+	hero := v.hero(l, c.height)
+	if len(hero) == 0 {
+		return "", false
+	}
+	l.hero = true
+	body := v.body(l, math.MaxInt32)
+	hints := c.hintLines(l, true, km)
+	n := len(hero) + 1 + 2 + 2 + len(body) + len(hints)
+	if v.status != "" {
+		n++
+	}
+	if n > c.height {
+		return "", false
+	}
+	lines := append([]string(nil), hero...)
+	lines = append(lines, c.headingRow(l, tagline, c.theme.Muted, c.platform, c.theme.Muted)[0])
+	lines = append(lines, c.rule(l), "")
+	lines = append(lines, body...)
+	lines = append(lines, "", c.rule(l))
+	if v.status != "" {
+		lines = append(lines, c.theme.Text.Render(c.fit(v.status, l.width)))
+	}
+	lines = append(lines, hints...)
+	pad := strings.Repeat(" ", l.margin)
+	for i, line := range lines {
+		if line != "" {
+			lines[i] = pad + line
+		}
+	}
+	return strings.Join(lines, "\n"), true
 }
 
 // lockup is "aval  <version>" with the platform right-aligned. Compact keeps

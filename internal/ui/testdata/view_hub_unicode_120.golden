@@ -1,0 +1,23 @@
+                       ▗██              ██
+                      ▗██▘              ██  Version  0.3.0 · ! 0.3.1 available
+     ▄▄▄▄▄▄▄▖  ▗▄▖    ▟█▘    ▗▄▄▄▄▄▄▄   ██  Repo     ~/.aval
+   ▗██▀▀▀▜██▌  ▝██▖  ▟█▛    ▟█▛▀▀▀███   ██  Doctor   ! 9 ok, 1 warn, 0 fail
+   ██▘    ▜█▌   ▝██▖▟█▛    ▐█▛    ▝██   ██  Backup   2026-11-23 10:14 · sync…
+   ▜█▙▖  ▄██▌    ▝███▛     ▝██▄  ▗▟██   ██  Theme    mono · unicode
+    ▀▜████▜█▌     ▝█▛       ▝▀████▛██   ██
+  Nothing passes without evidence.                               macOS (arm64)
+  ────────────────────────────────────────────────────────────────────────────
+
+  Set up   › Install      link the repo configs into this home
+             Update       pull the repo, then re-apply
+             Sync         merge repo-managed settings into the live config
+  Health     Doctor       check this machine against the repo
+  Undo       Backups      list backup runs and restore one
+             Uninstall    remove the links aval made, put back what was there
+  Tools      Settings     theme, glyphs, motion and update checks
+             Dev sandbox  a throwaway home for trying aval
+             About        version, paths and links
+
+  ────────────────────────────────────────────────────────────────────────────
+  1 warning · open Doctor to see it
+  ↑↓ move · enter open · ? help · q quit
