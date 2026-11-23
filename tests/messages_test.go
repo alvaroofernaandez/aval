@@ -451,13 +451,15 @@ func TestMessagesUsageText(t *testing.T) {
 }
 
 // doctor's table: the header, the status words, the fix hint and the summary
-// are translated; the message of each check is data from the checks.
+// are translated; the message of each check is data from the checks. PATH is
+// an empty directory so the deps row is the same on every machine: no git,
+// which blocks.
 func TestMessagesDoctor(t *testing.T) {
 	bare := func(t *testing.T, dir, _ string) {
 		write(t, filepath.Join(dir, "repo", "install.manifest"), "[g]\nlabel = G\ndetail = d\nplatforms = all\n")
 	}
 	runMessages(t, []msgCase{
-		{name: "doctor in English", setup: bare, args: []string{"doctor", "--repo", "DIR/repo"}, code: 1,
+		{name: "doctor in English", setup: bare, args: []string{"doctor", "--repo", "DIR/repo"}, env: []string{"PATH=DIR/empty"}, code: 1,
 			stdout: "STATUS  CHECK           MESSAGE\n" +
 				"OK      links           0 manifest links in place\n" +
 				"OK      broken-links    no dangling links in agent directories\n" +
@@ -470,8 +472,9 @@ func TestMessagesDoctor(t *testing.T) {
 				"FAIL    settings-drift  sync: repo settings: open DIR/repo/config/claude/settings.json: no such file or directory\n" +
 				"OK      overlay         absent (optional): ~/.config/aval/private\n" +
 				"OK      config          no config file, using defaults\n" +
-				"\n7 ok, 2 warn, 2 fail\n"},
-		{name: "doctor in Spanish", setup: bare, args: []string{"--lang", "es", "doctor", "--repo", "DIR/repo"}, code: 1,
+				"FAIL    deps            blocking tools missing: git (aval deps lists all)\n" +
+				"\n7 ok, 2 warn, 3 fail\n"},
+		{name: "doctor in Spanish", setup: bare, args: []string{"--lang", "es", "doctor", "--repo", "DIR/repo"}, env: []string{"PATH=DIR/empty"}, code: 1,
 			stdout: "ESTADO  COMPROBACIÓN    MENSAJE\n" +
 				"OK      links           0 manifest links in place\n" +
 				"OK      broken-links    no dangling links in agent directories\n" +
@@ -484,7 +487,8 @@ func TestMessagesDoctor(t *testing.T) {
 				"FALLO   settings-drift  sync: repo settings: open DIR/repo/config/claude/settings.json: no such file or directory\n" +
 				"OK      overlay         absent (optional): ~/.config/aval/private\n" +
 				"OK      config          no config file, using defaults\n" +
-				"\n7 correctos, 2 avisos, 2 fallos\n"},
+				"FALLO   deps            blocking tools missing: git (aval deps lists all)\n" +
+				"\n7 correctos, 2 avisos, 3 fallos\n"},
 	})
 }
 

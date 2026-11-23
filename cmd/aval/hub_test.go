@@ -18,6 +18,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/alvaroofernaandez/aval/internal/core/doctor"
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
 	"github.com/alvaroofernaandez/aval/internal/testenv"
 	"github.com/alvaroofernaandez/aval/internal/ui"
@@ -314,6 +315,31 @@ func TestHubServicesWithNoRepoAndInsideASandbox(t *testing.T) {
 	if svc.DevCommand != nil {
 		t.Error("no checkout: DevCommand must be nil")
 	}
+}
+
+// The hub's doctor checks the tool inventory, on the PATH the hub was given:
+// an empty one finds no git, which blocks.
+func TestHubDoctorChecksTheInventory(t *testing.T) {
+	home, _ := hubFixture(t)
+	e := fakeEnv(true, "xterm", nil)
+	getenv := e.getenv
+	e.getenv = func(k string) string {
+		if k == "PATH" {
+			return ""
+		}
+		return getenv(k)
+	}
+	svc, closeFn := newHubServices(e, home, "", uiSettings{})
+	defer closeFn()
+	for _, r := range svc.Doctor(false) {
+		if r.ID == "deps" {
+			if r.Status != doctor.Fail {
+				t.Errorf("deps on an empty PATH = %+v, want fail", r)
+			}
+			return
+		}
+	}
+	t.Error("the hub's doctor has no deps row")
 }
 
 // The broken-links fix removes the dangling link and records it in a backup

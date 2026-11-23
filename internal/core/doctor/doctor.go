@@ -51,22 +51,6 @@ const (
 	FixSync
 )
 
-// Options configures a run.
-type Options struct {
-	Repo       string
-	Home       string
-	PrivateDir string
-	GOOS       string
-	// Security enables the extra checks of `aval doctor --security`.
-	Security bool
-	// Allow lists suppressed check ids ("id" or "id:subject").
-	Allow []string
-	// LookPath resolves a bare command name; nil means exec.LookPath.
-	LookPath func(string) (string, error)
-	// ConfigPath is aval's config file; empty skips the config check.
-	ConfigPath string
-}
-
 // brokenLinkDirs are scanned one level deep for dangling symlinks.
 var brokenLinkDirs = []string{
 	".claude/skills", ".claude/agents", ".claude/commands", ".claude/hooks", ".claude",
@@ -90,6 +74,9 @@ func Run(opt Options) []Result {
 	rs = append(rs, checkOverlay(opt)...)
 	if opt.ConfigPath != "" {
 		rs = append(rs, checkConfig(opt))
+	}
+	if opt.DepsProber != nil {
+		rs = append(rs, checkDeps(opt))
 	}
 	if opt.Security {
 		rs = append(rs, checkSecurity(opt)...)

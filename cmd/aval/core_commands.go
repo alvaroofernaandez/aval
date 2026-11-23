@@ -15,6 +15,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/core/config"
+	"github.com/alvaroofernaandez/aval/internal/core/deps"
 	"github.com/alvaroofernaandez/aval/internal/core/doctor"
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
 	"github.com/alvaroofernaandez/aval/internal/core/txsync"
@@ -62,6 +63,7 @@ func runDoctor(repo, home string, args []string, out io.Writer, ui uiSettings) e
 		Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS,
 		Security: *security, Allow: allow,
 		ConfigPath: config.Path(os.Getenv, home, runtime.GOOS),
+		DepsProber: deps.SystemProber{GOOS: runtime.GOOS, Getenv: os.Getenv, NoVersion: true},
 	}
 
 	if *fix {

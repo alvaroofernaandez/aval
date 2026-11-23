@@ -78,8 +78,9 @@
     "name": "gentle-ai",
     "layer": "harness",
     "used_by": [
-      "hook Stop review",
-      "statusline telemetry"
+      "hook SessionStart",
+      "hook Stop",
+      "hook SubagentStop"
     ],
     "if_missing": "degrades",
     "native_substitute": "#4",

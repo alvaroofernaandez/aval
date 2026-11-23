@@ -97,7 +97,7 @@ func TestEveryRunIDHasADescription(t *testing.T) {
 	for _, r := range Run(o) {
 		seen[r.ID] = true
 	}
-	for _, id := range []string{"hooks-resolve", "hooks-retired", "hooks-drift", "overlay-links"} {
+	for _, id := range []string{"hooks-resolve", "hooks-retired", "hooks-drift", "overlay-links", "deps"} {
 		seen[id] = true
 	}
 	if len(seen) < 15 {
