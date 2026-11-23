@@ -922,3 +922,19 @@ func TestGoReleaserArchivesTheFontLicences(t *testing.T) {
 		}
 	}
 }
+
+// The npm dist-tag comes from release.NpmTag, so an older release published
+// late never moves `latest` or `next` back; the neutral tag it publishes under
+// is removed right after.
+func TestReleaseNpmTagComesFromTheRule(t *testing.T) {
+	js := jobs(workflows(t)["release.yml"])
+	if !strings.Contains(js["preflight"], `go run ./cmd/aval release npm-tag "$TAG"`) {
+		t.Error("release.yml: preflight must compute npm_tag with `aval release npm-tag`")
+	}
+	if strings.Contains(js["preflight"], "npm_tag=next") || strings.Contains(js["preflight"], "npm_tag=latest") {
+		t.Error("release.yml: preflight must not hard-code the npm dist-tag")
+	}
+	if !strings.Contains(js["npm"], `npm dist-tag rm "${name}" superseded`) {
+		t.Error("release.yml: the npm job must remove the superseded dist-tag after publishing")
+	}
+}

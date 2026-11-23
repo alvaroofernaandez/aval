@@ -97,7 +97,7 @@ GitHub release body comes from `main`, so its links to those files point at `mai
 | `preflight` | read-only | the tag has the form `vX.Y.Z[-rc.N\|-beta.N]`, is annotated and is on `origin/main`; `ci.yml` finished successfully on that commit; `goreleaser check` and a `release --snapshot` build all 6 targets |
 | `publish` | `contents: write`, `id-token`, `attestations`; **`release` environment** | GoReleaser builds, creates the release (a prerelease if it contains `-`) and uploads archives + `SHA256SUMS`; provenance attestation on each archive |
 | `verify` | read-only | downloads what was published: `sha256sum -c SHA256SUMS`, `gh attestation verify` on each archive, and that the binary prints the tag's version |
-| `npm` | **`release` environment**, `id-token` | reuses the same already-verified binaries; publishes with `--tag next` if the version contains `-`, `latest` otherwise |
+| `npm` | the environment preflight picks, `id-token` | reuses the same already-verified binaries; publishes under the dist-tag `aval release npm-tag` picks: `latest` for the newest stable, `next` for a prerelease newer than every tag, else `superseded`, which it removes right after, so an older release published late (an rc approved out of order, a re-run) never moves `latest` or `next` back |
 
 Commits on `main` only run `ci.yml`; they never publish.
 

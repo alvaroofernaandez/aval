@@ -222,3 +222,29 @@ func TestReleaseEnvironment(t *testing.T) {
 		}
 	}
 }
+
+func TestReleaseNpmTag(t *testing.T) {
+	work, _ := releaseRepo(t)
+	commitIn(t, work, "feat: a")
+	for _, tag := range []string{"v0.2.0", "v0.3.0-rc.1", "v0.3.0-rc.2"} {
+		relGit(t, work, "tag", "-a", tag, "-m", "x")
+	}
+	cases := map[string]string{
+		"v0.3.0-rc.2": release.NpmNext, "v0.3.0-rc.1": release.NpmSuperseded,
+		"v0.2.0": release.NpmLatest, "v0.1.9": release.NpmSuperseded,
+	}
+	for tag, want := range cases {
+		out, err := release1(t, work, "", "npm-tag", tag)
+		if err != nil {
+			t.Fatalf("%s: %v", tag, err)
+		}
+		if strings.TrimSpace(out) != want {
+			t.Errorf("npm-tag %s printed %q, want %q", tag, out, want)
+		}
+	}
+	for _, args := range [][]string{{"npm-tag"}, {"npm-tag", "not-a-tag"}} {
+		if _, err := release1(t, work, "", args...); !isUsage(err) {
+			t.Errorf("%v: err = %v, want usage", args, err)
+		}
+	}
+}
