@@ -15,6 +15,7 @@ Load before changing a README, a page under `docs/`, an ADR, the CHANGELOG, or a
   | --- | --- |
   | README images (`docs/assets/*.<hash>.svg`) | `go run ./tools/brand` (content-addressed names; `tests/readme_test.go`) |
   | `docs/assets/hub.gif` | `vhs docs/hub-demo.tape` |
+  | `docs/assets/hub-es.gif` | `vhs docs/hub-demo-es.tape` (same walk with `AVAL_LANG=es`) |
   | `docs/assets/installer.gif` | `vhs docs/installer-demo.tape` |
   | `docs/assets/environment.png` | `vhs docs/environment.tape` |
   | `docs/architecture/model.md` | `go test ./tests/ -run TestArchitectureModel -update` |
