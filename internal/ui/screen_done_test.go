@@ -32,6 +32,8 @@ func doneModel(t *testing.T) Model {
 	m := screenFixture(t, ScreenDone, true)
 	m.errs = []error{fmt.Errorf("link ~/.config/ghostty: source missing")}
 	m.queue = make([]plan.Action, 5)
+	// The fixture fakes the run, so it advances the index as record would.
+	m.index = len(m.results) + len(m.errs)
 	return m
 }
 

@@ -2,13 +2,15 @@
   Nothing passes without evidence.
   ────────────────────────────────────────────────────────────────────────────
 
-  Installing                                                            3 of 5
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────
+  Installing                                                            4 of 6
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────
 
     √ linked             ~/.tmux.conf
     √ already installed  ~/.config/some/very/long/d…at/keeps/going/config.toml
     ! backed up          ~/.zshrc
+    × failed             ~/.config/ghostty  source missing
     › linking            ~/.config/nvim
 
   ────────────────────────────────────────────────────────────────────────────
-  nothing failed so far
+  1 failed so far
+  ctrl+c stops after the current step

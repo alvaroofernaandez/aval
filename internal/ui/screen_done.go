@@ -30,12 +30,8 @@ func (m Model) doneView() view {
 }
 
 func (m Model) doneBody(l layout, h int) []string {
-	return m.doneContent(l, h, m.doneStopped())
+	return m.doneContent(l, h, m.Stopped())
 }
-
-// doneStopped reports whether the run was stopped before it finished.
-// Seam for T9 (graceful stop): wire it to the model's stopped flag.
-func (m Model) doneStopped() bool { return false }
 
 // userShell names the user's login shell ("zsh", "bash", ...); a variable so
 // tests do not depend on the machine.
@@ -75,7 +71,7 @@ func (m Model) doneContent(l layout, h int, stopped bool) []string {
 		}
 	}
 	failed := len(m.errs)
-	applied := len(m.results) + failed
+	applied, total := m.Progress()
 	written := !m.DryRun && (linked > 0 || backups > 0 || (stopped && applied > 0))
 
 	// Headline.
@@ -84,7 +80,7 @@ func (m Model) doneContent(l layout, h int, stopped bool) []string {
 	case m.DryRun:
 		headline = m.theme.Warning.Render(m.fit("Dry run complete: nothing was written.", l.width))
 	case stopped:
-		headline = m.theme.Warning.Render(m.fit(fmt.Sprintf("Stopped after %d of %d.", applied, len(m.queue)), l.width))
+		headline = m.theme.Warning.Render(m.fit(fmt.Sprintf("Stopped after %d of %d.", applied, total), l.width))
 	case failed > 0:
 		headline = m.theme.Failure.Render(m.fit(fmt.Sprintf("Installed. %d linked, %d failed.", linked, failed), l.width))
 	default:

@@ -95,13 +95,11 @@ func screenFixture(t *testing.T, screen Screen, unicode bool) Model {
 	switch screen {
 	case ScreenInstall:
 		m.screen = ScreenInstall
-		m.queue = acts("~/.tmux.conf", long, "~/.zshrc", "~/.config/nvim", "~/.gitconfig")
-		m.index = 3
-		m.results = []install.Result{
-			{Action: m.queue[0], Status: install.StatusLinked},
-			{Action: m.queue[1], Status: install.StatusAlready},
-			{Action: m.queue[2], Status: install.StatusLinked, Backup: "/home/u/.aval-backup/20260101-000000/.zshrc"},
-		}
+		m.queue = acts("~/.tmux.conf", long, "~/.zshrc", "~/.config/ghostty", "~/.config/nvim", "~/.gitconfig")
+		m = m.record(install.Result{Action: m.queue[0], Status: install.StatusLinked}, nil)
+		m = m.record(install.Result{Action: m.queue[1], Status: install.StatusAlready}, nil)
+		m = m.record(install.Result{Action: m.queue[2], Status: install.StatusLinked, Backup: "/home/u/.aval-backup/20260101-000000/.zshrc"}, nil)
+		m = m.record(install.Result{Action: m.queue[3]}, &install.Error{Action: m.queue[3], Reason: "source missing"})
 	case ScreenDone:
 		m.screen = ScreenDone
 		m.results = []install.Result{

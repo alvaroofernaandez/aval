@@ -109,7 +109,7 @@ func (r *Runner) Apply(a plan.Action) (Result, error) {
 	res := Result{Action: a}
 
 	if _, err := os.Stat(a.Source); err != nil {
-		return res, fmt.Errorf("install: source missing: %s", a.Source)
+		return res, &Error{Action: a, Reason: "source missing", err: fmt.Errorf("install: source missing: %s", a.Source)}
 	}
 
 	// Already correct? Nothing to do — this is what makes re-running safe.
@@ -124,30 +124,30 @@ func (r *Runner) Apply(a plan.Action) (Result, error) {
 	}
 
 	if err := r.rec.MkdirAll(filepath.Dir(a.Dest), 0o755); err != nil {
-		return res, fmt.Errorf("install: %w", err)
+		return res, fail(a, "create parent", fmt.Errorf("install: %w", err))
 	}
 
 	// Displace handles broken links too (it uses Lstat, not Stat) and records
 	// a destination that does not exist, so a restore can remove what we make.
 	saved, err := r.rec.Displace(a.Dest)
 	if err != nil {
-		return res, fmt.Errorf("install: backup %s: %w", a.Label, err)
+		return res, fail(a, "backup", fmt.Errorf("install: backup %s: %w", a.Label, err))
 	}
 	res.Backup = saved
 
 	if r.opt.Symlinks {
 		if err := os.Symlink(a.Source, a.Dest); err != nil {
-			return res, fmt.Errorf("install: link %s: %w", a.Label, err)
+			return res, fail(a, "link", fmt.Errorf("install: link %s: %w", a.Label, err))
 		}
 		res.Status = StatusLinked
 	} else {
 		if err := copyPath(a.Source, a.Dest); err != nil {
-			return res, fmt.Errorf("install: copy %s: %w", a.Label, err)
+			return res, fail(a, "copy", fmt.Errorf("install: copy %s: %w", a.Label, err))
 		}
 		res.Status = StatusCopied
 	}
 	if err := r.rec.Wrote(a.Dest); err != nil {
-		return res, fmt.Errorf("install: record %s: %w", a.Label, err)
+		return res, fail(a, "record", fmt.Errorf("install: record %s: %w", a.Label, err))
 	}
 	return res, nil
 }

@@ -161,18 +161,6 @@ func TestTheRunAppliesEveryActionAndFinishes(t *testing.T) {
 	}
 }
 
-func TestQuitIsRefusedMidInstall(t *testing.T) {
-	// Quitting here leaves the run half-applied with no summary explaining it.
-	m := testModel(t)
-	next, _ := m.Update(key("enter"))
-	m = next.(Model)
-
-	m = send(m, "q")
-	if m.Quitting {
-		t.Error("q must not quit while files are being written")
-	}
-}
-
 func TestQuitWorksOnTheSelectScreen(t *testing.T) {
 	m := testModel(t)
 	m = send(m, "q")

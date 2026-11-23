@@ -1,9 +1,10 @@
  aval 0.2.0
- Installing                  3 of 5
- ━━━━━━━━━━━━━━━━━━━━──────────────
+ Installing                  4 of 6
+ ━━━━━━━━━━━━━━━━━━━━━━────────────
 
    √ linked             ~/.tm….conf
    √ already installed  ~/.co….toml
    ! backed up          ~/.zshrc
+   × failed             ~/…ty  sou…
    › linking            ~/.co…/nvim
- nothing failed so far
+ 1 failed so far

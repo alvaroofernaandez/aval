@@ -43,6 +43,12 @@ type Options struct {
 	DryRun   bool
 }
 
+// step is one finished action: its result, and err when it failed.
+type step struct {
+	result install.Result
+	err    error
+}
+
 // appliedMsg reports one finished action back into the update loop.
 type appliedMsg struct {
 	result install.Result
@@ -71,6 +77,14 @@ type Model struct {
 	index   int
 	results []install.Result
 	errs    []error
+	// log is every finished action in run order, failures included, so the
+	// install screen shows a failure where it happened.
+	log []step
+
+	// stopping is set by ctrl+c or q mid-install: the action in flight
+	// finishes and the rest are skipped. stopped is the outcome, set on the
+	// done screen only when actions were actually left.
+	stopping, stopped bool
 
 	width, height int
 	// Quitting records a deliberate exit, so main can tell "the user pressed q"
@@ -146,16 +160,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.perform(act)
 
 	case appliedMsg:
-		if msg.err != nil {
-			m.errs = append(m.errs, msg.err)
-		} else {
-			m.results = append(m.results, msg.result)
-		}
-		m.index++
+		m = m.record(msg.result, msg.err)
 		return m, m.applyNext()
 
 	case doneMsg:
 		m.screen = ScreenDone
+		m.stopped = m.stopping && m.index < len(m.queue)
 		return m, nil
 	}
 	return m, nil
@@ -167,7 +177,10 @@ func (m Model) perform(act action) (tea.Model, tea.Cmd) {
 	case actQuit:
 		m.Quitting = true
 		return m, tea.Quit
-	case actHold:
+	case actStop:
+		if m.screen == ScreenInstall {
+			m.stopping = true
+		}
 		return m, nil
 	}
 	switch m.screen {
@@ -189,4 +202,16 @@ func (m Model) View() string {
 	default:
 		return m.render(m.selectView())
 	}
+}
+
+// record notes one finished action and moves to the next.
+func (m Model) record(res install.Result, err error) Model {
+	if err != nil {
+		m.errs = append(m.errs, err)
+	} else {
+		m.results = append(m.results, res)
+	}
+	m.log = append(m.log, step{result: res, err: err})
+	m.index++
+	return m
 }

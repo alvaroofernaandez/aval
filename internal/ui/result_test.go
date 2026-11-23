@@ -45,3 +45,14 @@ func TestCompletedIsTrueOnceTheRunReachesDone(t *testing.T) {
 		t.Error("quitting from the done screen must keep Completed() true")
 	}
 }
+
+func TestCompletedIsFalseWhenStoppedWithActionsLeft(t *testing.T) {
+	m, cmd := startInstall(t, testModel(t))
+	m = drain(t, send(m, "q"), cmd)
+	if m.Screen() != ScreenDone {
+		t.Fatalf("screen = %v, want done", m.Screen())
+	}
+	if m.Completed() {
+		t.Error("Completed() = true for a run stopped with actions left")
+	}
+}

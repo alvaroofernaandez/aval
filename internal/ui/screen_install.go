@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,15 +11,17 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 )
 
-// The install screen: one action per update cycle, so the bar moves. Inline
-// failures and the graceful ctrl+c stop belong here (T9): installKeys binds
-// q and ctrl+c to actHold today.
+// The install screen: one action per update cycle, so the bar moves. Each
+// finished action joins the log as it happens, failures included, and the
+// step running now closes it. ctrl+c or q asks for a stop: the step in flight
+// finishes and the rest are skipped.
 
 // applyNext applies one action per cycle, so the UI repaints between them and
 // the progress bar actually moves. Doing the whole run in one command would
-// freeze the frame until it finished.
+// freeze the frame until it finished. A pending stop ends the run here, once
+// the step in flight has reported back.
 func (m Model) applyNext() tea.Cmd {
-	if m.index >= len(m.queue) {
+	if m.stopping || m.index >= len(m.queue) {
 		return func() tea.Msg { return doneMsg{} }
 	}
 	action := m.queue[m.index]
@@ -33,6 +36,9 @@ func (m Model) installView() view {
 	status := "nothing failed so far"
 	if n := len(m.errs); n > 0 {
 		status = fmt.Sprintf("%d failed so far", n)
+	}
+	if m.stopping {
+		status += " · stopping after the current step"
 	}
 	return view{body: m.installBody, status: status}
 }
@@ -56,7 +62,8 @@ func (m Model) installBody(l layout, h int) []string {
 	return append(out, rows...)
 }
 
-// installRows is the log: "√ linked  ~/.config/yazi", then the step running now.
+// installRows is the log, "√ linked  ~/.config/yazi" or
+// "× failed  ~/.config/ghostty  source missing", then the step running now.
 func (m Model) installRows(l layout) []string {
 	g := m.theme.Glyphs
 	// A cell is a state kind and its word; the running step is the one cell
@@ -66,6 +73,7 @@ func (m Model) installRows(l layout) []string {
 		word    string
 		running bool
 		label   string
+		reason  string
 	}
 	render := func(c cell, word string) string {
 		if c.running {
@@ -74,9 +82,12 @@ func (m Model) installRows(l layout) []string {
 		return m.theme.State(c.kind, word)
 	}
 	var cells []cell
-	for _, r := range m.results {
+	for _, s := range m.log {
+		r := s.result
 		c := cell{kind: StateOK, word: r.Status.String(), label: r.Action.Label}
 		switch {
+		case s.err != nil:
+			c.kind, c.word, c.reason = StateFail, "failed", failReason(s.err)
 		case r.Backup != "":
 			c.kind, c.word = StateWarn, "backed up"
 		case r.Status == install.StatusWould:
@@ -108,8 +119,31 @@ func (m Model) installRows(l layout) []string {
 			rows = append(rows, "  "+render(c, m.fit(c.word, l.width-2-lipgloss.Width(render(c, "")))))
 			continue
 		}
-		cell := render(c, c.word)
-		rows = append(rows, "  "+cell+strings.Repeat(" ", stateW-lipgloss.Width(cell))+"  "+m.fitMiddle(c.label, pathW))
+		state := render(c, c.word)
+		rows = append(rows, "  "+state+strings.Repeat(" ", stateW-lipgloss.Width(state))+"  "+m.pathAndReason(c.label, c.reason, pathW))
 	}
 	return rows
+}
+
+// pathAndReason fits "path  reason" into w columns. The path keeps at least
+// half the room; the reason is cut first, and dropped when nothing of it fits.
+func (m Model) pathAndReason(path, reason string, w int) string {
+	if reason == "" {
+		return m.fitMiddle(path, w)
+	}
+	pathW := min(lipgloss.Width(path), max(w/2, w-2-lipgloss.Width(reason)))
+	if reasonW := w - pathW - 2; reasonW >= 4 {
+		return m.fitMiddle(path, pathW) + "  " + m.fit(reason, reasonW)
+	}
+	return m.fitMiddle(path, w)
+}
+
+// failReason is the short form of a failed action's error: install's own
+// reason when it has one, the full message otherwise.
+func failReason(err error) string {
+	var ie *install.Error
+	if errors.As(err, &ie) && ie.Reason != "" {
+		return ie.Reason
+	}
+	return err.Error()
 }

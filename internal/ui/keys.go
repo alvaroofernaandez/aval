@@ -17,10 +17,9 @@ const (
 	actInstall
 	actClose
 	actQuit
-	// actHold swallows a key on purpose: q and ctrl+c are bound mid-install
-	// so they are documented, but quitting there would leave a half-applied
-	// run with no summary.
-	actHold
+	// actStop ends an install after the step in flight: quitting there would
+	// leave a half-applied run with no summary.
+	actStop
 )
 
 // Label tokens resolved through the glyph tier, so ASCII terminals see
@@ -102,7 +101,13 @@ var selectKeys = keyMap{
 }
 
 var installKeys = keyMap{
-	{keys: []string{"q", "ctrl+c"}, action: actHold},
+	{keys: []string{"q", "ctrl+c"}, action: actStop, label: "ctrl+c", desc: "stops after the current step", core: true},
+}
+
+// stoppingKeys keeps q and ctrl+c bound once a stop is pending, so a second
+// press is swallowed, but drops the hint: the status line says it instead.
+var stoppingKeys = keyMap{
+	{keys: []string{"q", "ctrl+c"}, action: actStop},
 }
 
 var doneKeys = keyMap{
@@ -114,6 +119,9 @@ var doneKeys = keyMap{
 func (m Model) keyMap() keyMap {
 	switch m.screen {
 	case ScreenInstall:
+		if m.stopping {
+			return stoppingKeys
+		}
 		return installKeys
 	case ScreenDone:
 		return doneKeys

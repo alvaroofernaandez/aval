@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/core/install"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 	"github.com/alvaroofernaandez/aval/internal/ui"
 )
 
@@ -118,5 +120,74 @@ func TestInstallGuardAllowsYesWithoutTerminal(t *testing.T) {
 	}
 	if err := installGuard(false, func(uintptr) bool { return true }); err != nil {
 		t.Errorf("a terminal must pass the guard: %v", err)
+	}
+}
+
+// A stopped run skips finishInstall but still commits the backup of what it
+// displaced, so `aval restore latest` puts it back.
+func TestAStoppedRunCommitsItsBackupSoRestoreLatestUndoesIt(t *testing.T) {
+	testenv.NeedSymlinks(t)
+	repo, home := t.TempDir(), t.TempDir()
+	for _, n := range []string{"a", "b"} {
+		if err := os.WriteFile(filepath.Join(repo, n), []byte("repo "+n), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(home, "."+n), []byte("mine "+n), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	p := &plan.Plan{Groups: []plan.Group{{ID: "one", Label: "One", Selected: true, Actions: []plan.Action{
+		{Source: filepath.Join(repo, "a"), Dest: filepath.Join(home, ".a"), Label: "~/.a"},
+		{Source: filepath.Join(repo, "b"), Dest: filepath.Join(home, ".b"), Label: "~/.b"},
+	}}}}
+	runner := install.New(install.Options{Home: home, Symlinks: true})
+	model := ui.NewModel(p, runner, ui.Options{Symlinks: true})
+
+	// Drive the program as bubbletea would: enter, ctrl+c while the first
+	// action is in flight, then let the loop settle.
+	program := func(tm tea.Model) (tea.Model, error) {
+		m, cmd := step(tm.(ui.Model), keyMsg("enter"))
+		m, _ = step(m, tea.KeyMsg{Type: tea.KeyCtrlC})
+		for i := 0; i < 10 && cmd != nil && m.Screen() != ui.ScreenDone; i++ {
+			m, cmd = step(m, cmd())
+		}
+		return m, nil
+	}
+	finished := 0
+	var final ui.Model
+	err := driveInstall(model,
+		func(tm tea.Model) (tea.Model, error) {
+			out, err := program(tm)
+			final = out.(ui.Model)
+			return out, err
+		},
+		runner.Finish,
+		func() error { finished++; return nil })
+	if err != nil {
+		t.Fatalf("a stop is not an error: %v", err)
+	}
+	if !final.Stopped() {
+		t.Fatal("fixture: the run did not stop")
+	}
+	if finished != 0 {
+		t.Errorf("finishInstall ran %d times for a stopped run, want 0", finished)
+	}
+	if target, err := os.Readlink(filepath.Join(home, ".a")); err != nil || target != filepath.Join(repo, "a") {
+		t.Fatalf("~/.a = %q, %v; want the link the first step made", target, err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(home, ".b")); string(b) != "mine b" {
+		t.Errorf("~/.b = %q, the skipped step must leave it alone", b)
+	}
+
+	var out bytes.Buffer
+	if err := runRestore(repo, home, []string{"latest"}, false, &out); err != nil {
+		t.Fatalf("aval restore latest: %v\n%s", err, out.String())
+	}
+	fi, err := os.Lstat(filepath.Join(home, ".a"))
+	if err != nil || fi.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("~/.a after restore: %v, mode %v; want the original file back", err, fi.Mode())
+	}
+	if b, _ := os.ReadFile(filepath.Join(home, ".a")); string(b) != "mine a" {
+		t.Errorf("~/.a after restore = %q, want %q", b, "mine a")
 	}
 }
