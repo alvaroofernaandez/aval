@@ -17,6 +17,8 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
 )
 
 // repoRoot is this checkout: a real aval repository the hub can resolve.
@@ -348,5 +350,33 @@ func TestHubFixBrokenLinksBacksUpFirst(t *testing.T) {
 	runs, err := svc.Backups()
 	if err != nil || len(runs) != 1 {
 		t.Fatalf("backup runs: %v, %v", runs, err)
+	}
+}
+
+// A sync that fails rolls back; the outcome must still name the
+// backup run so the Sync view can print it.
+func TestHubSyncRollbackReportsItsBackupID(t *testing.T) {
+	home, _ := hubFixture(t)
+	e := fakeEnv(true, "xterm", nil)
+	svc, closeFn := newHubServices(e, home, "", uiSettings{})
+	defer closeFn()
+
+	priv := filepath.Join(avalsync.PrivateDir(home), "settings.json")
+	if err := os.MkdirAll(filepath.Dir(priv), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// A broken overlay fails the sync before it writes anything, so the
+	// rollback has no entries to restore.
+	overlay := "{not json"
+	if err := os.WriteFile(priv, []byte(overlay), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := svc.Sync()
+	if err == nil || out == nil || !out.RolledBack {
+		t.Fatalf("want a rolled-back sync, got out=%+v err=%v", out, err)
+	}
+	if out.RunID == "" {
+		t.Fatalf("rollback outcome has an empty backup id: %+v", out)
 	}
 }

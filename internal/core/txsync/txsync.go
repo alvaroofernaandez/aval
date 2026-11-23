@@ -112,6 +112,7 @@ func rollback(store *backup.Store, rec *backup.Recorder, ropt backup.RestoreOpti
 	if len(rec.Entries()) == 0 {
 		_ = rec.Fail(reason)
 		out.RolledBack = true
+		out.RunID = run.ID
 		return fmt.Errorf("sync rolled back: %s (nothing had been written)", reason)
 	}
 	if _, err := store.Restore(run, ropt); err != nil {
