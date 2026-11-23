@@ -206,7 +206,7 @@ func TestSettingsNotesAnEnvOverrideAndStillEditsTheFile(t *testing.T) {
 func TestSettingsHeaderShowsTheConfigPath(t *testing.T) {
 	m, _ := settingsModel(t, "", nil)
 	v := renderAtSize(m, 100, 30)
-	if !strings.Contains(v, "Settings") || !strings.Contains(v, filepath.Join("~", "aval", "config")) {
+	if !strings.Contains(v, "Settings") || !strings.Contains(v, "~/aval/config") {
 		t.Errorf("header lacks the title or the path:\n%s", v)
 	}
 	for _, row := range []string{"Theme", "Background", "Glyphs", "Motion", "Update check", "Repository"} {

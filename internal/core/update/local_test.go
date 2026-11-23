@@ -52,14 +52,25 @@ func cloneWithUpstreamAhead(t *testing.T) string {
 	return a
 }
 
-// snapshotGitDir maps every path under .git to its mode, size, mtime and a
-// digest of its content, so a failure names what changed.
+// snapshotGitDir maps every path under .git, relative to it, to its mode, size,
+// mtime and a digest of its content, so a failure names what changed. A
+// directory records only that it exists: NTFS refreshes a directory's
+// modification time lazily, so it moves without an entry changing.
 func snapshotGitDir(t *testing.T, repo string) map[string]string {
 	t.Helper()
 	snap := map[string]string{}
-	err := filepath.WalkDir(filepath.Join(repo, ".git"), func(p string, d fs.DirEntry, err error) error {
+	gitDir := filepath.Join(repo, ".git")
+	err := filepath.WalkDir(gitDir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
+		}
+		rel, err := filepath.Rel(gitDir, p)
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			snap[rel] = "dir"
+			return nil
 		}
 		info, err := d.Info()
 		if err != nil {

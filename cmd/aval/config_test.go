@@ -140,7 +140,7 @@ func TestConfigSetWritesFile(t *testing.T) {
 	if err != nil || !strings.Contains(string(b), "theme = catppuccin") {
 		t.Fatalf("file = %q, err %v", b, err)
 	}
-	want := "theme = catppuccin  (" + filepath.Join("~", ".config", "aval", "config") + ")\n"
+	want := "theme = catppuccin  (" + "~/.config/aval/config" + ")\n"
 	if got := e.stdout.String(); got != want {
 		t.Errorf("stdout = %q, want %q", got, want)
 	}

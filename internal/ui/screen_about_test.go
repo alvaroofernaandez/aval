@@ -2,6 +2,7 @@ package ui
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -51,8 +52,10 @@ func TestAboutShortensHomePathsWithATilde(t *testing.T) {
 }
 
 func TestAboutKeepsPathsOutsideHomeAbsolute(t *testing.T) {
+	// The binary path is cleaned to the OS separator, so on Windows it reads
+	// \usr\local\bin\aval: the same path, outside home, still absolute.
 	out := aboutApp(t, true, aboutServices(), "/usr/local/bin/aval", 120, 40).View()
-	if !strings.Contains(out, "/usr/local/bin/aval") {
+	if want := filepath.FromSlash("/usr/local/bin/aval"); !strings.Contains(out, want) {
 		t.Errorf("a path outside home was changed:\n%s", out)
 	}
 }
