@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -36,38 +35,13 @@ func TestAgentRulesBlockingRulesAreByteIdentical(t *testing.T) {
 	eq(t, "blocking rules missing from the shared block", "", strings.Join(missing, " "))
 }
 
-// Running the sync must be a no-op when things are already in sync; if it is
-// not idempotent it churns the file on every install. Run on a copy, so the
-// suite never writes into the checkout it is testing.
-func TestAgentRulesSyncIsIdempotentAndCheckSeesDrift(t *testing.T) {
+// Smoke for `aval rules sync` as a real process: --check on this checkout is
+// read-only and finds no drift. Idempotence and drift detection run in process
+// in cmd/aval/agent_rules_test.go.
+func TestAgentRulesSyncCheckBinarySmoke(t *testing.T) {
 	aval := avalBin(t)
-
-	tmp := t.TempDir()
-	write(t, tmp+"/config/claude/CLAUDE.md", read(t, "config/claude/CLAUDE.md"))
-	write(t, tmp+"/config/opencode/AGENTS.md", read(t, "config/opencode/AGENTS.md"))
-	write(t, tmp+"/install.manifest", "")
-	ents, _ := os.ReadDir(lessonsDir())
-	for _, e := range ents {
-		write(t, filepath.Join(tmp, "config/claude/lessons", e.Name()), readAbs(t, filepath.Join(lessonsDir(), e.Name())))
-	}
-	before := read(t, "config/opencode/AGENTS.md")
-	r := run(repo, isoEnv(t.TempDir()), "", aval, "--repo", tmp, "rules", "sync")
-	eq(t, "the sync runs ("+r.Out()+")", 0, r.Code)
-	eq(t, "the sync is idempotent (the committed AGENTS.md is already in sync)", before, readAbs(t, tmp+"/config/opencode/AGENTS.md"))
-
-	// --check on the real repo is read-only by contract.
-	r = run(repo, isoEnv(t.TempDir()), "", aval, "--repo", repo, "rules", "sync", "--check")
-	eq(t, "--check reports no drift after a sync\n"+r.Out(), 0, r.Code)
-
-	// --check must see drift and must not write.
-	stale := t.TempDir()
-	write(t, stale+"/config/claude/CLAUDE.md", read(t, "config/claude/CLAUDE.md"))
-	staleAgents := "# AGENTS\n" + rulesBegin + "\nstale\n" + rulesEnd + "\n"
-	write(t, stale+"/config/opencode/AGENTS.md", staleAgents)
-	write(t, stale+"/install.manifest", "")
-	r = run(repo, isoEnv(t.TempDir()), "", aval, "--repo", stale, "rules", "sync", "--check")
-	eq(t, "--check exits 1 on drift", 1, r.Code)
-	eq(t, "--check does not write", staleAgents, readAbs(t, stale+"/config/opencode/AGENTS.md"))
+	r := run(repo, isoEnv(t.TempDir()), "", aval, "--repo", repo, "rules", "sync", "--check")
+	eq(t, "--check reports no drift\n"+r.Out(), 0, r.Code)
 }
 
 // OpenCode has no lessons hook, so the scoped lessons that left the always-on

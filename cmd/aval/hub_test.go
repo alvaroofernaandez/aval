@@ -149,7 +149,7 @@ func TestBareAvalKeepsTheUsageWithoutAHub(t *testing.T) {
 }
 
 // help, --help and a bare aval on a pipe print the same bytes as before the
-// hub existed.
+// hub existed. Through run, the body of main, with a buffer for a pipe.
 func TestUsageBytesThroughTheRealMain(t *testing.T) {
 	want, err := os.ReadFile("testdata/usage_first_run.golden")
 	if err != nil {
@@ -157,17 +157,14 @@ func TestUsageBytesThroughTheRealMain(t *testing.T) {
 	}
 	for _, args := range [][]string{nil, {"help"}, {"--help"}} {
 		home := t.TempDir()
-		cmd := exec.Command(os.Args[0], args...)
-		cmd.Dir = t.TempDir()
-		cmd.Env = append(os.Environ(), "AVAL_TEST_MAIN=1", "HOME="+home, "XDG_CONFIG_HOME="+filepath.Join(home, "x"), "AVAL_REPO=", "TERM=xterm")
-		var so, se bytes.Buffer
-		cmd.Stdout, cmd.Stderr = &so, &se
-		if err := cmd.Run(); err != nil {
-			t.Fatalf("%v: %v", args, err)
+		env := map[string]string{"HOME": home, "XDG_CONFIG_HOME": filepath.Join(home, "x"), "TERM": "xterm"}
+		r := runIn(t, env, "", args...)
+		if r.code != 0 {
+			t.Fatalf("%v: exit %d", args, r.code)
 		}
-		got := so.String()
+		got := r.stdout
 		if len(args) == 1 && args[0] == "--help" {
-			got = se.String() // flag prints --help on stderr
+			got = r.stderr // flag prints --help on stderr
 		}
 		if got != string(want) {
 			t.Errorf("%v: usage changed:\n%s", args, got)

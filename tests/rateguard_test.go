@@ -18,7 +18,9 @@ import (
 
 const rateGuardBatch = `{"session_id":"rg","tool_name":"Bash","tool_input":{"command":"for p in a b c; do curl -s https://www.innohelp.es/$p; done"}}`
 
-func TestRateGuardBinaryDeniesABatchAndAllowsAOneOff(t *testing.T) {
+// Smoke for `aval hook rate-guard` as a real process. Deny and allow are
+// asserted in process in cmd/aval/run_test.go (TestRunHookRateGuardInProcess).
+func TestRateGuardBinaryDeniesABatch(t *testing.T) {
 	aval := avalBin(t)
 	home := t.TempDir()
 	r := run(repo, isoEnv(home), rateGuardBatch, aval, "hook", "rate-guard")
@@ -30,11 +32,6 @@ func TestRateGuardBinaryDeniesABatchAndAllowsAOneOff(t *testing.T) {
 	}
 	_ = json.Unmarshal([]byte(r.Stdout), &v)
 	eq(t, "a curl loop on innohelp.es is denied", "deny", v.H.D)
-
-	one := `{"tool_name":"Bash","tool_input":{"command":"curl -sL https://www.innohelp.es/"}}`
-	r = run(repo, isoEnv(home), one, aval, "hook", "rate-guard")
-	eq(t, "exit code on allow", 0, r.Code)
-	eq(t, "a single curl is allowed (no output)", "", r.Out())
 }
 
 // hyperfineMeanMs runs cmd under hyperfine with stdin from the file in and

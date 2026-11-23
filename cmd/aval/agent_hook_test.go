@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -199,5 +200,42 @@ func TestRunHookRateGuardFailsOpen(t *testing.T) {
 	}
 	if got := rateGuard(t, bashPayload(batch)); got != "" {
 		t.Errorf("unreadable hosts file: output = %q, want none", got)
+	}
+}
+
+// Behaviour against the real lessons in config/claude/lessons, in process.
+// Moved from tests/lessons_test.go, which keeps one real-binary smoke call.
+func TestLessonsInjectionAgainstTheRealLessons(t *testing.T) {
+	env := map[string]string{
+		"HOME":             t.TempDir(),
+		"AVAL_LESSONS_DIR": filepath.Join(repoRoot(t), "config", "claude", "lessons"),
+	}
+	fire := func(payload string) string {
+		r := runIn(t, env, payload, "hook", "lessons")
+		var v struct {
+			H struct {
+				C string `json:"additionalContext"`
+			} `json:"hookSpecificOutput"`
+		}
+		_ = json.Unmarshal([]byte(r.stdout), &v)
+		return v.H.C
+	}
+	cases := []struct{ what, payload, want string }{
+		{"editing a .tsx file injects the screenshot lesson", `{"session_id":"u1","tool_name":"Edit","tool_input":{"file_path":"/p/web/src/Card.tsx"}}`, `screenshot|shot.mjs`},
+		{"editing a .tsx file injects the native-elements lesson", `{"session_id":"u2","tool_name":"Write","tool_input":{"file_path":"/p/web/src/Card.tsx"}}`, `native`},
+		{"editing a Dockerfile injects the Kiri lesson", `{"session_id":"d1","tool_name":"Edit","tool_input":{"file_path":"/p/api/Dockerfile"}}`, `Kiri`},
+		{"running docker injects the Kiri lesson", `{"session_id":"d2","tool_name":"Bash","tool_input":{"command":"docker compose up -d"}}`, `Kiri`},
+		{"committing injects the attribution lesson", `{"session_id":"c1","tool_name":"Bash","tool_input":{"command":"git commit -m \"feat: x\""}}`, `Co-Authored-By`},
+	}
+	for _, c := range cases {
+		if got := fire(c.payload); !regexp.MustCompile(c.want).MatchString(got) {
+			t.Errorf("%s: /%s/ not found in %q", c.what, c.want, got)
+		}
+	}
+	if got := fire(`{"session_id":"n1","tool_name":"Edit","tool_input":{"file_path":"/p/main.go"}}`); got != "" {
+		t.Errorf("editing plain Go code injects nothing: got %q", got)
+	}
+	if got := fire(`{"session_id":"d1","tool_name":"Edit","tool_input":{"file_path":"/p/api/Dockerfile"}}`); got != "" {
+		t.Errorf("a lesson shows once per session: got %q", got)
 	}
 }

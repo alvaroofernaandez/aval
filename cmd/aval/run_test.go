@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -130,5 +131,56 @@ func TestRunCallsAreIndependent(t *testing.T) {
 	second := runIn(t, nil, "", "version")
 	if first.code != 0 || second.code != 0 || first.stdout != second.stdout {
 		t.Errorf("first %+v, second %+v", first, second)
+	}
+}
+
+// isoHome is an environment confined to a fresh HOME, as tests/isoEnv gives a
+// child process: nothing reaches the real home, config or cache.
+func isoHome(t *testing.T) (map[string]string, string) {
+	t.Helper()
+	home := t.TempDir()
+	return map[string]string{
+		"HOME": home, "USERPROFILE": home,
+		"XDG_CONFIG_HOME":      filepath.Join(home, ".config"),
+		"XDG_CACHE_HOME":       filepath.Join(home, ".cache"),
+		"XDG_STATE_HOME":       filepath.Join(home, ".state"),
+		"AVAL_NO_UPDATE_CHECK": "1",
+	}, home
+}
+
+// A bare `aval` is a question, not an order: it prints the usage and leaves
+// HOME untouched. Moved from tests/install_test.go. (Unknown commands, also
+// moved from there, are a case of TestRunExitCodes.)
+func TestBareAvalPrintsUsageAndChangesNothing(t *testing.T) {
+	env, home := isoHome(t)
+	r := runIn(t, env, "")
+	if r.code != 0 {
+		t.Fatalf("exit %d: %s%s", r.code, r.stdout, r.stderr)
+	}
+	if !strings.Contains(r.stdout, "Usage:") || !strings.Contains(r.stdout, "aval install") {
+		t.Errorf("no usage on stdout:\n%s%s", r.stdout, r.stderr)
+	}
+	entries, err := os.ReadDir(home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("bare aval wrote to HOME: %v", entries)
+	}
+}
+
+// The pre-v0.2 form keeps working for provisioning scripts, with a notice.
+// Moved from tests/install_test.go.
+func TestLegacyFlagsStillInstallWithNotice(t *testing.T) {
+	env, _ := isoHome(t)
+	r := runIn(t, env, "", "--yes", "--dry-run", "--repo", repoRoot(t))
+	if r.code != 0 {
+		t.Fatalf("exit %d: %s%s", r.code, r.stdout, r.stderr)
+	}
+	if !strings.Contains(r.stderr, "aval install") || !strings.Contains(r.stderr, "deprecated") {
+		t.Errorf("no deprecation notice on stderr:\n%s", r.stderr)
+	}
+	if !strings.Contains(r.stdout, "~/") {
+		t.Errorf("legacy dry run did not show the plan:\n%s", r.stdout)
 	}
 }

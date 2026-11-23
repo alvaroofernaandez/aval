@@ -17,6 +17,8 @@ import (
 // is allowed while that marker is younger than DESIGN_ACK_TTL seconds
 // (default 4 h) and .agents/DESIGN.md still hashes the same. The plugin reads
 // the same file, so one `aval design ack` opens both agents.
+//
+// Stays a real process: the bun plugin under test spawns the aval binary.
 
 type ocGate struct {
 	*dgEnv

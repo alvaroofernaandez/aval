@@ -102,39 +102,20 @@ func TestLessonsHookWithNoBinaryIsASilentNoOp(t *testing.T) {
 	eq(t, "output with no aval binary", "", r.Out())
 }
 
-// Behaviour against the real lessons, with the built binary.
-func TestLessonsInjectionAgainstTheRealLessons(t *testing.T) {
+// Smoke for `aval hook lessons` as a real process, against the real lessons.
+// The full injection table runs in process in cmd/aval/agent_hook_test.go.
+func TestLessonsHookBinarySmoke(t *testing.T) {
 	aval := avalBin(t)
 	env := isoEnv(t.TempDir(), "AVAL_LESSONS_DIR="+lessonsDir())
-	fire := func(payload string) string {
-		r := run(repo, env, payload, aval, "hook", "lessons")
-		var v struct {
-			H struct {
-				C string `json:"additionalContext"`
-			} `json:"hookSpecificOutput"`
-		}
-		_ = json.Unmarshal([]byte(r.Stdout), &v)
-		return v.H.C
+	r := run(repo, env, `{"session_id":"u1","tool_name":"Edit","tool_input":{"file_path":"/p/web/src/Card.tsx"}}`, aval, "hook", "lessons")
+	eq(t, "exit code", 0, r.Code)
+	var v struct {
+		H struct {
+			C string `json:"additionalContext"`
+		} `json:"hookSpecificOutput"`
 	}
-	mustHave(t, `screenshot|shot.mjs`,
-		fire(`{"session_id":"u1","tool_name":"Edit","tool_input":{"file_path":"/p/web/src/Card.tsx"}}`),
-		"editing a .tsx file injects the screenshot lesson")
-	mustHave(t, `native`,
-		fire(`{"session_id":"u2","tool_name":"Write","tool_input":{"file_path":"/p/web/src/Card.tsx"}}`),
-		"editing a .tsx file injects the native-elements lesson")
-	mustHave(t, `Kiri`,
-		fire(`{"session_id":"d1","tool_name":"Edit","tool_input":{"file_path":"/p/api/Dockerfile"}}`),
-		"editing a Dockerfile injects the Kiri lesson")
-	mustHave(t, `Kiri`,
-		fire(`{"session_id":"d2","tool_name":"Bash","tool_input":{"command":"docker compose up -d"}}`),
-		"running docker injects the Kiri lesson")
-	mustHave(t, `Co-Authored-By`,
-		fire(`{"session_id":"c1","tool_name":"Bash","tool_input":{"command":"git commit -m \"feat: x\""}}`),
-		"committing injects the attribution lesson")
-	eq(t, "editing plain Go code injects nothing", "",
-		fire(`{"session_id":"n1","tool_name":"Edit","tool_input":{"file_path":"/p/main.go"}}`))
-	eq(t, "a lesson shows once per session", "",
-		fire(`{"session_id":"d1","tool_name":"Edit","tool_input":{"file_path":"/p/api/Dockerfile"}}`))
+	_ = json.Unmarshal([]byte(r.Stdout), &v)
+	mustHave(t, `screenshot|shot.mjs`, v.H.C, "editing a .tsx file injects the screenshot lesson")
 }
 
 // The hook runs before every Edit/Write/Bash call. Measured, not assumed.

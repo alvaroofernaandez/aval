@@ -22,6 +22,9 @@ import (
 // exact decision Claude Code would act on. No API keys, no network, no real
 // $HOME/$XDG: everything lives in a temp dir.
 //
+// Stays a real process: the hooks run as the shell-form commands in
+// settings.json, through the binary installed at ~/.local/bin/aval.
+//
 // Only the design-pipeline hooks (`aval hook design-*`) are fired; third-party
 // hooks in the same settings (gentle-ai, rtk) are not ours to exercise.
 

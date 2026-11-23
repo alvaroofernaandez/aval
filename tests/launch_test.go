@@ -15,6 +15,8 @@ import (
 // launchd's minimal PATH, so a bare `tmux` is not found; these cases pin that
 // down against the real binary. Hermetic variants (fake tmux, no server) live
 // in internal/term/tmux; the cases here use the real tmux where it matters.
+// Stays a real process: tmux, PATH lookup under launchd's minimal PATH and
+// exec into tmux need one.
 
 const minimalPath = "/usr/bin:/bin:/usr/sbin:/sbin"
 

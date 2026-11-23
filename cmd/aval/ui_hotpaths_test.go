@@ -1,26 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 )
 
-// TestMain lets tests run the real main() in a child process: the test binary
-// re-executes itself with AVAL_TEST_MAIN set.
-func TestMain(m *testing.M) {
-	if os.Getenv("AVAL_TEST_MAIN") == "1" {
-		main()
-		os.Exit(0)
-	}
-	os.Exit(m.Run())
-}
-
-// runMain runs `aval args...` with a config file holding cfg and returns the
-// exit code and stderr.
+// runMain runs `aval args...` in process with a config file holding cfg and
+// returns the exit code and stderr.
 func runMain(t *testing.T, cfg string, stdin string, args ...string) (int, string) {
 	t.Helper()
 	xdg, home := t.TempDir(), t.TempDir()
@@ -33,21 +21,11 @@ func runMain(t *testing.T, cfg string, stdin string, args ...string) (int, strin
 			t.Fatal(err)
 		}
 	}
-	cmd := exec.Command(os.Args[0], args...)
-	cmd.Dir = t.TempDir()
-	cmd.Env = append(os.Environ(), "AVAL_TEST_MAIN=1", "XDG_CONFIG_HOME="+xdg, "HOME="+home,
-		"AVAL_REPO=", "AVAL_NO_UPDATE_CHECK=1", "NO_COLOR=")
-	cmd.Stdin = strings.NewReader(stdin)
-	var errb bytes.Buffer
-	cmd.Stderr = &errb
-	err := cmd.Run()
-	code := 0
-	if ee, ok := err.(*exec.ExitError); ok {
-		code = ee.ExitCode()
-	} else if err != nil {
-		t.Fatal(err)
-	}
-	return code, errb.String()
+	// A working directory with no repository, as the child process had.
+	t.Chdir(t.TempDir())
+	env := map[string]string{"XDG_CONFIG_HOME": xdg, "HOME": home, "USERPROFILE": home, "AVAL_NO_UPDATE_CHECK": "1"}
+	r := runIn(t, env, stdin, args...)
+	return r.code, r.stderr
 }
 
 // A bad --theme is an error only where the UI is drawn: install and doctor.

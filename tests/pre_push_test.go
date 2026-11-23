@@ -18,6 +18,8 @@ import (
 //
 // The scanning itself is unit-tested in internal/agent/prepush and cmd/aval; what is
 // pinned here is the shim and a real `git push` through it.
+// Stays a real process: git invokes the hook as a child with its own argv and
+// stdin, and only its exit code can refuse the push.
 
 func TestPrePushHookShim(t *testing.T) {
 	testenv.SkipWindows(t, "the git pre-push hook shim is a POSIX shell script that needs aval on PATH")

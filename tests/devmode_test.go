@@ -15,6 +15,10 @@ import (
 // `aval dev` promises one thing above all: nothing it runs reaches the real
 // machine. These tests hold it to that with a fake "real" HOME that is hashed
 // (content and mtime) before and after, so a single stray write fails them.
+//
+// Stays a real process: dev mode builds a child environment from os.Environ,
+// spawns shells and commands under it and passes their exit codes back, so only
+// a separate process can show that nothing leaks to the real HOME.
 
 // devMachine is a fake real HOME with the kind of files dev mode must never
 // touch, and the environment a developer's shell would have.
