@@ -66,7 +66,7 @@ type Model struct {
 // NewModel builds the initial state.
 func NewModel(p *plan.Plan, pf platform.Platform, r *install.Runner, symlinks, dryRun bool) Model {
 	return Model{
-		theme:    NewTheme(),
+		theme:    DefaultTheme(),
 		platform: pf,
 		plan:     p,
 		runner:   r,
@@ -207,7 +207,7 @@ func (m Model) header() string {
 	b.WriteString("\n")
 	b.WriteString(m.theme.Subtitle.Render(m.platform.Display()))
 	if m.DryRun {
-		b.WriteString(m.theme.Warning.Render("  ·  dry run: nothing will be written"))
+		b.WriteString(m.theme.Warning.Render("  " + m.theme.Glyphs.Sep + "  dry run: nothing will be written"))
 	}
 	b.WriteString("\n")
 	b.WriteString(m.theme.Muted.Render(m.platform.InstallStyle(m.Symlinks)))
@@ -230,13 +230,13 @@ func (m Model) viewSelect() string {
 	b.WriteString("\n\n")
 
 	for i, g := range m.plan.Groups {
-		box := m.theme.Unchecked.Render("[ ]")
+		box := m.theme.Unchecked.Render(m.theme.Glyphs.Unchecked)
 		if g.Selected {
-			box = m.theme.Checked.Render("[x]")
+			box = m.theme.Checked.Render(m.theme.Glyphs.Checked)
 		}
 		marker := "  "
 		if i == m.cursor {
-			marker = m.theme.Marker.Render("▸ ")
+			marker = m.theme.Marker.Render(m.theme.Glyphs.Cursor + " ")
 		}
 
 		line := fmt.Sprintf("%s %-22s %s", box, g.Label,
@@ -251,7 +251,7 @@ func (m Model) viewSelect() string {
 	}
 
 	for _, u := range m.Unavailable {
-		b.WriteString("  " + m.theme.Unavailable.Render(fmt.Sprintf("[-] %-22s %s", u.Label, u.Reason)) + "\n")
+		b.WriteString("  " + m.theme.Unavailable.Render(fmt.Sprintf("%s %-22s %s", m.theme.Glyphs.Partial, u.Label, u.Reason)) + "\n")
 	}
 
 	b.WriteString("\n")
@@ -309,7 +309,7 @@ func (m Model) viewDone() string {
 	if len(m.errs) > 0 {
 		b.WriteString(m.theme.Failure.Render(fmt.Sprintf("Finished with %d error(s)", len(m.errs))))
 	} else if m.DryRun {
-		b.WriteString(m.theme.Warning.Render("Dry run complete — nothing was written"))
+		b.WriteString(m.theme.Warning.Render("Dry run complete: nothing was written"))
 	} else {
 		b.WriteString(m.theme.Success.Render("Done"))
 	}
@@ -359,5 +359,5 @@ func (m Model) help(pairs ...string) string {
 	for i := 0; i+1 < len(pairs); i += 2 {
 		parts = append(parts, m.theme.Key.Render(pairs[i])+" "+m.theme.Muted.Render(pairs[i+1]))
 	}
-	return strings.Join(parts, m.theme.Muted.Render("  ·  "))
+	return strings.Join(parts, m.theme.Muted.Render("  "+m.theme.Glyphs.Sep+"  "))
 }
