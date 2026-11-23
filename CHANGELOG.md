@@ -9,6 +9,20 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.2.3 (2026-11-23)
+
+[Release notes](docs/releases/v0.2.3.md) · [Notas en español](docs/releases/v0.2.3.es.md)
+
+### Fixes
+
+- **design:** the render reminder of the Stop hook blocks once per UI edit on Linux too
+
+### Maintenance
+
+- **deps:** a dependency budget in `docs/dependencies.md`, kept true by a test; two unused OpenCode npm dependencies removed (#58)
+- **arch:** a one-page `ARCHITECTURE.md`, kept true by a test (#57)
+- **code:** size and complexity limits with an allow-list that can only shrink (#59)
+
 ## v0.2.2 (2026-11-23)
 
 [Release notes](docs/releases/v0.2.2.md) · [Notas en español](docs/releases/v0.2.2.es.md)
