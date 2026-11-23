@@ -26,7 +26,7 @@ import (
 // settings.json, through the binary installed at ~/.local/bin/aval.
 //
 // Only the design-pipeline hooks (`aval hook design-*`) are fired; third-party
-// hooks in the same settings (gentle-ai, rtk) are not ours to exercise.
+// hooks in the same settings (code-review-graph, rtk) are not ours to exercise.
 
 type fakeAgent struct {
 	t     *testing.T

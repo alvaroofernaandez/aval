@@ -430,8 +430,8 @@ cursor row on the hub is `›` plus bold, no reverse video. Paths keep their tai
 the backup row is relative, and every entry gets a letter from the key map.
 Doctor's `⊕` was replaced by `⊞`: `⊕` has an ambiguous East Asian width.
 
-### 2026-11-23: TUI hub: gentle-ai structure, aval aesthetic
-Every command except install and config was text you had to know by name. The owner chose gentle-ai's structure (a home screen with a large logo, a status panel and a menu, one view per action) with aval's aesthetic: ink only, colour on state glyphs, the existing frame. Decided questions:
+### 2026-11-23: TUI hub: a home-screen structure, aval aesthetic
+Every command except install and config was text you had to know by name. The owner chose the structure of the agent harness aval replaces (a home screen with a large logo, a status panel and a menu, one view per action) with aval's aesthetic: ink only, colour on state glyphs, the existing frame. Decided questions:
 - **Wordmark:** a 7-row by 40-column quadrant raster generated from the real brand geometry in `tools/brand`, with an ASCII tier derived from the same raster. Braille and a hand-drawn box-letter `a` were rejected.
 - **Update line:** read from the cache, so opening the hub stays offline and writes nothing.
 - **Dev sandbox without a checkout:** shown dimmed as unavailable with the reason "needs a checkout and Go", not hidden.

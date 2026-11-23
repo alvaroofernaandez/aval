@@ -193,7 +193,7 @@ func TestExecutables(t *testing.T) {
 		{`if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then code-review-graph update --skip-flows; fi`, []string{"git", "code-review-graph"}},
 		{`[ -x "$HOME/.tool/bin/g" ] && "$HOME/.tool/bin/g" || true`, nil},
 		{`rm -f /tmp/dk_* /tmp/.dk_* 2>/dev/null`, []string{"rm"}},
-		{`gentle-ai telemetry runtime claude --json`, []string{"gentle-ai"}},
+		{`other-tool telemetry runtime claude --json`, []string{"other-tool"}},
 		{`~/bin/tool --x && other | third`, []string{"/h/bin/tool", "other", "third"}},
 		{`echo "a && b"; true`, nil},
 	}

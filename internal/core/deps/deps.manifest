@@ -60,13 +60,6 @@ if_missing = degrades
 native_substitute = #6
 probe = bin rtk
 
-[gentle-ai]
-layer = harness
-used_by = hook SessionStart, hook Stop, hook SubagentStop
-if_missing = degrades
-native_substitute = #4
-probe = bin gentle-ai
-
 [code-review-graph]
 layer = harness
 used_by = hook SessionStart, hook PostToolUse

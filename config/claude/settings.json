@@ -121,16 +121,6 @@
         ]
       },
       {
-        "matcher": "startup|resume|clear|compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "gentle-ai review stop-hook --agent claude-code",
-            "timeout": 30
-          }
-        ]
-      },
-      {
         "matcher": "startup|resume|clear",
         "hooks": [
           {
@@ -143,45 +133,11 @@
     ],
     "Stop": [
       {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "gentle-ai review stop-hook --agent claude-code",
-            "timeout": 60
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "gentle-ai telemetry runtime claude --json",
-            "timeout": 5,
-            "async": true
-          }
-        ]
-      },
-      {
         "hooks": [
           {
             "type": "command",
             "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook design-shot-stop || true",
             "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "gentle-ai telemetry runtime claude --json",
-            "timeout": 5,
-            "async": true
           }
         ]
       }

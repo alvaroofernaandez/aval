@@ -85,7 +85,6 @@ brew "zsh-autocomplete"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 brew "gentleman-programming/tap/engram", trusted: true
-brew "gentleman-programming/tap/gentle-ai", trusted: true
 brew "gentleman-programming/tap/gga", trusted: true
 brew "lightpanda-io/browser/lightpanda", trusted: true
 brew "supabase/tap/supabase", trusted: true

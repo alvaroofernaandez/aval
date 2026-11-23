@@ -13,7 +13,6 @@ Skills with no licence line are this repo's own work.
 
 | Skill | Licence | Author |
 | ----- | ------- | ------ |
-| `_shared` | MIT | gentleman-programming |
 | `accessibility` | MIT | web-quality-skills |
 | `ai-sdk-5` | Apache-2.0 | gentleman-programming |
 | `branch-pr` | Apache-2.0 | gentleman-programming |

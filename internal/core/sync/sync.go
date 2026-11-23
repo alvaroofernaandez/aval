@@ -1,6 +1,6 @@
 // Package sync keeps the live agent configuration aligned with the repo.
 //
-// Claude Code and gentle-ai both rewrite ~/.claude/settings.json, and it holds
+// Claude Code and other agent tools rewrite ~/.claude/settings.json, and it holds
 // personal keys that cannot be published, so it is a real file rather than a
 // link to the repo. sync is how the repo-owned part of it stays authoritative:
 // it replaces or merges only the managed keys and leaves everything else alone.

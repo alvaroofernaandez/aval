@@ -432,3 +432,27 @@ func TestRunRecordsItsOriginInTheBackupRun(t *testing.T) {
 		t.Errorf("Origin = %q, want sync", runs[0].Origin)
 	}
 }
+
+// Hooks the repo dropped leave the live settings on the next sync: the repo
+// owns the hooks key whole, so a retired tool's Stop hooks do not linger.
+func TestRunDropsHooksTheRepoRemoved(t *testing.T) {
+	opt := fakeEnv(t)
+	repoHooks := `{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"aval hook design-shot-stop"}]}]}}`
+	write(t, filepath.Join(opt.Repo, "config/claude/settings.json"), repoHooks)
+	retired := `{"type":"command","command":"retired-tool review stop-hook"}`
+	live := filepath.Join(opt.Home, ".claude/settings.json")
+	write(t, live, `{"model":"sonnet","hooks":{`+
+		`"SessionStart":[{"hooks":[`+retired+`]}],`+
+		`"Stop":[{"hooks":[`+retired+`,{"type":"command","command":"retired-tool telemetry runtime"},{"type":"command","command":"aval hook design-shot-stop"}]}],`+
+		`"SubagentStop":[{"hooks":[{"type":"command","command":"retired-tool telemetry runtime"}]}]}}`)
+	if _, err := Run(opt); err != nil {
+		t.Fatal(err)
+	}
+	got := read(t, live)
+	if strings.Contains(got, "retired-tool") {
+		t.Errorf("hooks the repo removed survived the sync:\n%s", got)
+	}
+	if m := decode(t, got); m["model"] != "sonnet" {
+		t.Errorf("personal key lost: %v", m)
+	}
+}
