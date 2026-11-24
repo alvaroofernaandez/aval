@@ -1,0 +1,1 @@
+{"version":1,"action":"replace","capsule":"# aval relay capsule\n\n## Objective\nFirst request: Add a retry to the upload client\nLatest request: Now cover the timeout path with a test\n\n## Repository\nBranch: feat/upload-retry · changed files: 1\n\n## Files edited\n- internal/upload/client.go\n","keep":["m2","m3","m4"]}

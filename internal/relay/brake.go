@@ -15,6 +15,21 @@ const (
 	BrakeCostCap
 )
 
+// String is the reason's name on the wire.
+func (r BrakeReason) String() string {
+	switch r {
+	case BrakeNoProgress:
+		return "no_progress"
+	case BrakeThrash:
+		return "thrash"
+	case BrakeMaxChain:
+		return "max_chain"
+	case BrakeCostCap:
+		return "cost_cap"
+	}
+	return "none"
+}
+
 // Attempt is the relay being considered.
 type Attempt struct {
 	Fingerprint string

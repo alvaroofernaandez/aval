@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "event": "compact",
+  "trigger": "auto",
+  "session_id": "s-1",
+  "turn": 40,
+  "fingerprint": "f-40",
+  "model": "opus",
+  "reading": {"tokens": 201000, "window": 1000000, "floor": 58000, "source": "exact"},
+  "cache": {"age_ms": 60000, "ttl_ms": 0},
+  "messages": [
+    {"handle": "m1", "role": "user", "tokens": 30000},
+    {"handle": "m2", "role": "assistant", "tokens": 4000, "tool_uses": ["t1"]},
+    {"handle": "m3", "role": "user", "tokens": 9000, "tool_results": ["t1"]},
+    {"handle": "m4", "role": "assistant", "tokens": 2000}
+  ],
+  "capsule": {
+    "first_prompt": "Add a retry to the upload client",
+    "last_prompt": "Now cover the timeout path with a test",
+    "files": ["internal/upload/client.go"],
+    "repo": {"branch": "feat/upload-retry", "changed": 1}
+  }
+}

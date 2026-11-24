@@ -5,7 +5,7 @@ First request: Add a retry to the upload client
 Latest request: Now cover the timeout path with a test
 
 ## Repository
-Branch: feat/upload-retry · 2 changed files
+Branch: feat/upload-retry · changed files: 2
 
 ## Running work
 - go test ./internal/upload/ (background, running)

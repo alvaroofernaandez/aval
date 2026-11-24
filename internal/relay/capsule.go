@@ -21,8 +21,8 @@ type Capsule struct {
 
 // RepoFacts are read by an adapter; a nil value means no repository.
 type RepoFacts struct {
-	Branch  string
-	Changed int // files with uncommitted changes
+	Branch  string `json:"branch"`
+	Changed int    `json:"changed"` // files with uncommitted changes
 }
 
 // tokensOf is a conservative token count for capsule text (E1 of #63).
@@ -60,7 +60,7 @@ func render(c Capsule) string {
 		fmt.Fprintf(&b, "Latest request: %s\n", c.LastPrompt)
 	}
 	if c.Repo != nil {
-		fmt.Fprintf(&b, "\n## Repository\nBranch: %s · %d changed files\n", c.Repo.Branch, c.Repo.Changed)
+		fmt.Fprintf(&b, "\n## Repository\nBranch: %s · changed files: %d\n", c.Repo.Branch, c.Repo.Changed)
 	}
 	list(&b, "Running work", c.Work)
 	list(&b, "Recent requests", lastN(c.Prompts, maxPrompts))
