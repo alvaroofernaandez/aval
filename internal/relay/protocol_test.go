@@ -135,3 +135,18 @@ func TestProtocol_MaxChainAsksForANewSession(t *testing.T) {
 		t.Fatalf("capsule %q: want a capsule carrying the first request", r.Capsule)
 	}
 }
+
+// Only the engine's auto and the person's manual compaction are relayed
+// (plan T10); anything else, such as one a clear or a plugin starts, runs
+// natively. Found in the T11 sandbox run: a compaction during a clear.
+func TestProtocol_OnlyAutoAndManualAreRelayed(t *testing.T) {
+	for _, trig := range []string{"", "plugin", "clear"} {
+		r := handle(t, `{"version":1,"event":"compact","trigger":"`+trig+`","turn":60,"fingerprint":"f6",
+			"reading":{"tokens":201000,"window":1000000,"floor":58000,"source":"exact"},
+			"messages":[{"handle":"a","role":"user","tokens":30000},{"handle":"b","role":"assistant","tokens":10}],
+			"capsule":{"first_prompt":"Add retries."}}`)
+		if r.Action != AnswerPassthrough || r.Reason != ReasonTrigger {
+			t.Errorf("trigger %q: got %q/%q, want passthrough/%s", trig, r.Action, r.Reason, ReasonTrigger)
+		}
+	}
+}

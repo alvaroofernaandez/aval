@@ -86,6 +86,7 @@ const (
 	ReasonVersion   = "version"
 	ReasonEvent     = "event"
 	ReasonNoGain    = "no_gain" // the tail keeps every message
+	ReasonTrigger   = "trigger" // a compaction trigger the relay does not answer
 )
 
 // Handle answers one protocol request. Any input it cannot use yields a
@@ -101,6 +102,9 @@ func Handle(in []byte, p Policy, b Brakes) []byte {
 	brake := b.Check(Chain{Links: req.Chain}, Attempt{Fingerprint: req.Fingerprint, Turn: req.Turn})
 	switch req.Event {
 	case "compact":
+		if req.Trigger != "auto" && req.Trigger != "manual" {
+			return answer(Response{Action: AnswerPassthrough, Reason: ReasonTrigger})
+		}
 		if brake == BrakeMaxChain {
 			return answer(Response{
 				Action: AnswerNewSession, Reason: "brake:" + brake.String(),
