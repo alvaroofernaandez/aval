@@ -599,6 +599,8 @@ func TestMessagesRelay(t *testing.T) {
 			stdout: "relay activado: ventana de compactación de 233000 tokens, mod HOME/.claude/aval-relay. Reinicie Claude Code para cargarlo.\n"},
 		{name: "enable without the mod", args: []string{"relay", "enable"}, env: []string{"AVAL_LANG=en"}, code: 1,
 			stderr: "error: relay: the relay mod is not installed at HOME/.claude/aval-relay: run aval install first\n"},
+		{name: "enable under the minimum window", setup: mod, args: []string{"relay", "enable"}, env: []string{"AVAL_LANG=en", "AVAL_RELAY_HARD_TOKENS=40000"}, code: 1,
+			stderr: "error: relay: the compaction window is under Claude Code's minimum: 73000 tokens is under 100000; set AVAL_RELAY_HARD_TOKENS to 67000 or more\n"},
 		{name: "disable", args: []string{"relay", "disable"}, env: []string{"AVAL_LANG=en"}, stdout: "relay disabled. Restart Claude Code to unload it.\n"},
 		{name: "disable in Spanish", args: []string{"relay", "disable"}, env: []string{"AVAL_LANG=es"}, stdout: "relay desactivado. Reinicie Claude Code para descargarlo.\n"},
 		{name: "resume in Spanish", setup: repo, args: []string{"relay", "resume"}, env: []string{"AVAL_LANG=es"}, stdout: "relay reanudado en DIR\n"},

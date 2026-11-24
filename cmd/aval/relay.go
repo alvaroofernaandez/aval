@@ -225,3 +225,7 @@ const reasonPaused = "paused" // aval relay pause in this repository
 
 // errRelayModMissing: enable found no installed relay mod.
 var errRelayModMissing = errors.New("relay: the relay mod is not installed")
+
+// errRelayWindowTooSmall: the hard threshold gives a compaction window under
+// Claude Code's 100,000-token minimum.
+var errRelayWindowTooSmall = errors.New("relay: the compaction window is under Claude Code's minimum")

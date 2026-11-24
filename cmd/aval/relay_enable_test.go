@@ -161,3 +161,19 @@ func TestRelayDisableWithoutSettingsWritesNothing(t *testing.T) {
 		t.Fatalf("disable created %s (%v)", filepath.Join(home, ".claude"), err)
 	}
 }
+
+// Claude Code ignores a compaction window under 100,000 tokens ("treats it as
+// the 100k minimum"), so a hard threshold under 67,000 cannot be honoured.
+func TestRelayEnableRefusesAWindowClaudeCodeIgnores(t *testing.T) {
+	home := relayHome(t, `{}`, true)
+	err := relayCmd(home, map[string]string{"AVAL_RELAY_HARD_TOKENS": "40000"}, "enable")
+	if !errors.Is(err, errRelayWindowTooSmall) {
+		t.Fatalf("got %v, want errRelayWindowTooSmall", err)
+	}
+	if env := liveEnv(liveSettings(t, home)); len(env) != 0 {
+		t.Fatalf("settings changed on a refused enable: %v", env)
+	}
+	if err := relayCmd(home, map[string]string{"AVAL_RELAY_HARD_TOKENS": "67000"}, "enable"); err != nil {
+		t.Fatalf("hard 67000 (window 100000): %v", err)
+	}
+}

@@ -21,6 +21,10 @@ import (
 // (S3 of spike #63, measured at 100k only).
 const compactionBuffer = 33_000
 
+// minCompactionWindow is the smallest window Claude Code accepts: below it,
+// it "treats it as the 100k minimum" (its own warning, Claude Code 2.1.331).
+const minCompactionWindow = 100_000
+
 // relayEnvKeys are the live settings env keys enable sets and disable removes.
 const (
 	envRelay      = "AVAL_RELAY"
@@ -58,6 +62,10 @@ func relaySetEnabled(on bool, flags uiFlags, c cmdIO) error {
 		env = map[string]any{}
 	}
 	window := relayPolicy(c.env).HardTokens + compactionBuffer
+	if on && window < minCompactionWindow {
+		return fmt.Errorf("%w: %d tokens is under %d; set AVAL_RELAY_HARD_TOKENS to %d or more",
+			errRelayWindowTooSmall, window, minCompactionWindow, minCompactionWindow-compactionBuffer)
+	}
 	before := maps.Clone(env)
 	editRelayEnv(env, on, mod, window)
 	if !reflect.DeepEqual(before, env) {
