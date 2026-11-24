@@ -1,6 +1,6 @@
 # 0008. A process boundary between core, memory and desktop
 
-Status: proposed (2026-11-24)
+Status: accepted (2026-11-24)
 
 ## Context
 
