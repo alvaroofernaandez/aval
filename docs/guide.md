@@ -867,6 +867,8 @@ aval relay disable   # removes exactly the keys enable added
   | 4 | everything above failed | native compaction at the window `enable` set |
 
   A pause, `AVAL_RELAY=0` or another brake lets Claude Code compact as it would without aval.
+  Known limit of level 3: Claude Code queues the capsule behind any prompt you have already
+  sent, so a prompt typed during the compaction runs in the new session before the capsule.
   The level 2 hooks are in the settings `aval sync` installs and do nothing unless `AVAL_RELAY=1`.
 - What is not proven yet: the trigger at a turn boundary and on a cold cache, subagents,
   Windows, and any saving in cost. The plan and the open probes are in `odd/tasks/relay.md`.
