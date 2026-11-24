@@ -1,0 +1,69 @@
+{
+  "title": "Relay de contexto",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · relay v0.3.0", "title": "La sesión larga sigue sin perder el hilo", "lede": "Cuando la conversación con el agente se llena, aval la resume él mismo, sin esperar al resumen lento de Claude Code y sin olvidar el trabajo en curso.", "note": "La promesa: sesiones largas que no se rompen al compactar."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "El contexto es lo que el agente tiene delante", "lede": "Todo lo que ha leído y dicho en la sesión. Tiene un tamaño máximo; al llenarse, hay que resumirlo y empezar de nuevo con el resumen.", "note": "Contexto = la memoria de trabajo del agente, medida en tokens."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "Compactar hoy cuesta tiempo y memoria", "items": [
+      {"title": "Una espera de segundos", "text": "Claude Code llama a otro modelo para resumir: el spike midió de 8,5 a 10,8 s.", "tone": "warn"},
+      {"title": "Un resumen a ciegas", "text": "El resumen no sabe qué tareas, ficheros o trabajos en segundo plano importan.", "tone": "warn"},
+      {"title": "Se dispara tarde", "text": "Por porcentaje de una ventana de 1M, cuando ya es caro.", "tone": "warn"}
+    ]},
+    {"layout": "compare", "eyebrow": "La idea", "title": "aval escribe la nota en lugar de pedirla", "items": [
+      {"tag": "hoy", "title": "Resumen por otro modelo", "text": "Se espera, se paga una llamada y el agente pierde detalle.", "tone": "muted"},
+      {"tag": "con el plan", "title": "Nota de aval más la cola reciente", "text": "Una nota determinista con el objetivo, los ficheros y la última conversación, sin llamada extra.", "tone": "good"}
+    ]},
+    {"layout": "steps", "eyebrow": "Cómo funciona", "title": "Cuatro pasos en cada compactación", "items": [
+      {"title": "Medir", "text": "Claude Code da los tokens exactos; no hay que estimar."},
+      {"title": "Decidir", "text": "Se relaya por tokens absolutos y estado de la caché, no por porcentaje."},
+      {"title": "Escribir la nota", "text": "Objetivo, ficheros tocados, últimas peticiones, sin secretos."},
+      {"title": "Sustituir el contexto", "text": "La nota y la cola reciente reemplazan lo anterior.", "tone": "good"}
+    ]},
+    {"layout": "timeline", "eyebrow": "Un ejemplo", "title": "Una tarde de trabajo largo", "items": [
+      {"tag": "16:00", "title": "La sesión llega a 200k tokens", "text": "El umbral provisional se alcanza."},
+      {"tag": "16:00", "title": "aval responde a la compactación", "text": "La nota sustituye el contexto en milisegundos, no en segundos.", "tone": "good"},
+      {"tag": "16:01", "title": "La barra de estado dice «relay 1»", "text": "Y una notificación: 212k → 61k, suelo 58k (texto de ejemplo)."}
+    ]},
+    {"layout": "checklist", "eyebrow": "Lo que se garantiza", "title": "Apagado por defecto y nunca rompe la sesión", "items": [
+      {"title": "Opt-in", "text": "Solo con aval relay enable; aval sync no lo activa."},
+      {"title": "Si algo falla, Claude Code sigue", "text": "Cualquier error devuelve la compactación normal."},
+      {"title": "Frenos", "text": "No relaya dos veces lo mismo, ni en bucle, ni por encima de un coste."},
+      {"title": "Sin secretos en la nota", "text": "Las credenciales se enmascaran antes de escribirla."}
+    ]},
+    {"layout": "section", "eyebrow": "Parte dos", "title": "Dentro: cómo se construye", "lede": "Las piezas, qué está probado y qué espera a pruebas manuales."},
+    {"layout": "flow", "eyebrow": "Las piezas", "title": "Un núcleo sin E/S y adaptadores debajo", "items": [
+      {"title": "Decisor", "text": "Política, frenos, estimador: internal/relay, sin disco ni red.", "tone": "good"},
+      {"title": "Escritor de la nota", "text": "Cola segura por pares de herramientas y redacción de secretos."},
+      {"title": "Registro de estado", "text": "Diario, bloqueos y métricas en ~/.local/state/aval/relay."},
+      {"title": "Mod de Claude Code", "text": "Un shim JS mínimo que llama a aval relay compact."}
+    ]},
+    {"layout": "tree", "eyebrow": "Qué está probado", "title": "El spike #63 prueba la base, no todo", "items": [
+      {"title": "¿Sustituir el contexto en auto y manual?", "tag": "Probado", "tone": "good"},
+      {"title": "¿Tokens exactos desde Claude Code?", "tag": "Probado", "tone": "good"},
+      {"title": "¿Compactar desde el mod a voluntad?", "tag": "Sin probar: prueba manual", "tone": "warn"},
+      {"title": "¿Ahorra caché frente al resumen?", "tag": "No: no se promete ahorro", "tone": "muted"}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones tomadas", "title": "Por qué se construye así", "columns": ["Decidimos", "Porque", "En lugar de"], "rows": [
+      ["internal/relay es una hoja con su redacción", "prepush guarda nombres de empleo, no credenciales", "Importar prepush"],
+      ["Umbrales solo por entorno", "Los hooks nunca leen config", "aval config"],
+      ["aval relay enable fija la ventana de compactación", "El porcentaje es de la ventana del modelo", "PCT_OVERRIDE vía aval sync"],
+      ["Enmienda a ADR 0001 para el shim JS", "La API de mods solo acepta JS", "Fingir que es Go puro"],
+      ["rc.6 solo con trigger auto", "Los demás no están probados", "Esperar a todas las pruebas"]
+    ]},
+    {"layout": "table", "eyebrow": "El mapa", "title": "Dónde vive cada parte", "columns": ["Parte", "Dónde"], "rows": [
+      ["Decisor, nota, frenos, protocolo", "internal/relay"],
+      ["Estado y métricas", "internal/relay/adapter/statefs"],
+      ["Comandos", "aval relay compact · enable · status · log · doctor"],
+      ["Mod", "config/claude/plugins/aval-relay"],
+      ["Barra de estado", "internal/agent/statusline"]
+    ]},
+    {"layout": "steps", "eyebrow": "El camino", "title": "Seis entregas, la primera es la puerta", "items": [
+      {"title": "Núcleo (#64), sin release", "text": "T1–T7: decisor, frenos, nota, registro, protocolo.", "tone": "good"},
+      {"title": "Mod y enable → rc.6", "text": "T8–T10, tras las pruebas P2 del agente."},
+      {"title": "Escalera de respaldo → rc.7", "text": "T11: si el mod falla, hooks, sesión nueva o ventana baja."},
+      {"title": "Visibilidad → rc.8 a rc.10", "text": "T13–T16: textos, notificación, barra, doctor."},
+      {"title": "Lo bloqueado → rc.11", "text": "T12, cuando el dueño haga S1 plugin, P3, S4, S7.", "tone": "warn"}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "T1: el decisor por tokens absolutos", "lede": "Enmienda de ADR 0002, regla de arquitectura y el primer test RED de Decide."}
+  ]
+}
