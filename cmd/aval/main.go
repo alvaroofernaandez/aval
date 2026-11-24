@@ -169,7 +169,7 @@ func dispatch(argv []string, c cmdIO) error {
 
 	// The status line refreshes constantly: no repo lookup, no network.
 	if fs.Arg(0) == "statusline" {
-		fmt.Fprintln(c.stdout, statusline.Render(c.stdin))
+		fmt.Fprintln(c.stdout, statusline.RenderWith(c.stdin, statuslineOptions(c.env)))
 		return nil
 	}
 
