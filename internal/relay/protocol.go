@@ -65,12 +65,16 @@ type Response struct {
 	Capsule string   `json:"capsule,omitempty"`
 	Keep    []string `json:"keep,omitempty"`
 	Reason  string   `json:"reason,omitempty"`
+	// Instructions steer the runtime's native summary (AnswerSteer).
+	Instructions string `json:"instructions,omitempty"`
 }
 
 // Answers in Response.Action.
 const (
 	AnswerPassthrough = "passthrough" // let the runtime do what it would do
 	AnswerReplace     = "replace"     // replace the context with capsule plus keep
+	AnswerSteer       = "steer"       // compact natively, steered by Instructions
+	AnswerNewSession  = "new_session" // compact natively now; at the turn's end clear and submit Capsule
 	AnswerNone        = "none"        // nothing to do yet
 	AnswerPrecompute  = "precompute"  // prepare the capsule
 	AnswerRelay       = "relay"       // start a relay now
@@ -82,6 +86,7 @@ const (
 	ReasonVersion   = "version"
 	ReasonEvent     = "event"
 	ReasonNoGain    = "no_gain" // the tail keeps every message
+	ReasonTrigger   = "trigger" // a compaction trigger the relay does not answer
 )
 
 // Handle answers one protocol request. Any input it cannot use yields a
@@ -97,12 +102,21 @@ func Handle(in []byte, p Policy, b Brakes) []byte {
 	brake := b.Check(Chain{Links: req.Chain}, Attempt{Fingerprint: req.Fingerprint, Turn: req.Turn})
 	switch req.Event {
 	case "compact":
+		if req.Trigger != "auto" && req.Trigger != "manual" {
+			return answer(Response{Action: AnswerPassthrough, Reason: ReasonTrigger})
+		}
+		if brake == BrakeMaxChain {
+			return answer(Response{
+				Action: AnswerNewSession, Reason: "brake:" + brake.String(),
+				Capsule: Render(req.Capsule.capsule(), p.CapsuleTokens) + newSessionAsk,
+			})
+		}
 		if brake != BrakeNone {
 			return answer(Response{Action: AnswerPassthrough, Reason: "brake:" + brake.String()})
 		}
 		keep := SelectTail(req.messages(), p.TailTokens)
 		if len(keep) == len(req.Messages) {
-			return answer(Response{Action: AnswerPassthrough, Reason: ReasonNoGain})
+			return answer(Response{Action: AnswerSteer, Reason: ReasonNoGain, Instructions: SteerText(req.Capsule.capsule())})
 		}
 		return answer(Response{
 			Action:  AnswerReplace,
@@ -178,4 +192,23 @@ func (c WireCapsule) capsule() Capsule {
 		FirstPrompt: c.FirstPrompt, LastPrompt: c.LastPrompt, Prompts: c.Prompts,
 		Files: c.Files, Repo: c.Repo, Work: c.Work, Note: c.Note,
 	}
+}
+
+// steerMaxChars caps steer instructions at Claude Code's documented limit for
+// summariser instructions from a PreCompact hook (10,000 characters).
+const steerMaxChars = 10_000
+
+// steerTokens is the capsule budget inside steer instructions, about 8,000
+// characters, so the header fits under steerMaxChars.
+const steerTokens = 2_000
+
+// newSessionAsk ends the prompt that opens the new session (ladder level 3).
+const newSessionAsk = "\nThis is a new session that continues the work above. Carry on from the latest request.\n"
+
+const steerHeader = "Keep these facts in the summary, so work can continue without the earlier messages:\n\n"
+
+// SteerText is the capsule as summariser instructions. The capsule budget
+// keeps it under steerMaxChars (TestSteerText_StaysUnderTheCap).
+func SteerText(c Capsule) string {
+	return steerHeader + Render(c, steerTokens)
 }

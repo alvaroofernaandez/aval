@@ -164,7 +164,7 @@ func compactAnswer(c cmdIO) relay.Response {
 		return passthrough(relay.ReasonMalformed)
 	}
 	var resp relay.Response
-	if err := json.Unmarshal(relay.Handle(in, relayPolicy(c.env), relay.DefaultBrakes()), &resp); err != nil {
+	if err := json.Unmarshal(relay.Handle(in, relayPolicy(c.env), relayBrakes(c.env)), &resp); err != nil {
 		return passthrough(relay.ReasonMalformed)
 	}
 	if resp.Action == relay.AnswerReplace {
@@ -229,3 +229,13 @@ var errRelayModMissing = errors.New("relay: the relay mod is not installed")
 // errRelayWindowTooSmall: the hard threshold gives a compaction window under
 // Claude Code's 100,000-token minimum.
 var errRelayWindowTooSmall = errors.New("relay: the compaction window is under Claude Code's minimum")
+
+// relayBrakes is the default brakes with the limits the environment sets
+// (D3: env only). A value that is not a positive integer keeps the default.
+func relayBrakes(getenv func(string) string) relay.Brakes {
+	b := relay.DefaultBrakes()
+	if n, err := strconv.Atoi(getenv("AVAL_RELAY_MAX_CHAIN")); err == nil && n > 0 {
+		b.MaxChain = n
+	}
+	return b
+}

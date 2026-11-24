@@ -20,7 +20,7 @@ func relayFixture(t *testing.T) string {
 		t.Fatal(err)
 	}
 	// A long first answer, so the tail budget drops it: a tail that keeps
-	// every message is a passthrough (no gain).
+	// every message is a steer answer (no gain).
 	long := "A lighthouse keeps a fixed light for ships at night." + strings.Repeat(" Light.", 6000)
 	return strings.Replace(string(raw), "A lighthouse keeps a fixed light for ships at night.", long, 1)
 }
@@ -161,5 +161,20 @@ func TestRelayPauseAndResume(t *testing.T) {
 	}
 	if resp, _ := compact(t, state, fixture, nil); resp.Action != relay.AnswerReplace {
 		t.Fatalf("resumed: got %+v, want replace", resp)
+	}
+}
+
+// AVAL_RELAY_MAX_CHAIN lowers the chain limit that sends the work to a new
+// session (ladder level 3); anything but a positive integer keeps the default.
+func TestRelayBrakesFromEnv(t *testing.T) {
+	def := relay.DefaultBrakes().MaxChain
+	for _, c := range []struct {
+		val  string
+		want int
+	}{{"1", 1}, {"12", 12}, {"", def}, {"0", def}, {"-2", def}, {"x", def}} {
+		got := relayBrakes(func(k string) string { return map[string]string{"AVAL_RELAY_MAX_CHAIN": c.val}[k] }).MaxChain
+		if got != c.want {
+			t.Errorf("AVAL_RELAY_MAX_CHAIN=%q: got %d, want %d", c.val, got, c.want)
+		}
 	}
 }

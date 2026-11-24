@@ -1,0 +1,12 @@
+{"type":"mode","mode":"default"}
+{"type":"user","isSidechain":false,"message":{"role":"user","content":"Add retries to the upload client."}}
+{"type":"user","isSidechain":false,"isMeta":true,"message":{"role":"user","content":[{"type":"text","text":"Injected reminder."}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Reading the client."},{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"/work/repo/upload/read.go"}}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"package upload"}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"Edit","input":{"file_path":"/work/repo/upload/client.go","old_string":"a","new_string":"b"}}]}}
+{"type":"user","message":{"role":"user","content":"<command-name>/clear</command-name>"}}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Now cap the backoff at 30 s."}]}}
+not json at all
+{"type":"user","isSidechain":true,"message":{"role":"user","content":"A subagent prompt."}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t3","name":"Write","input":{"file_path":"/work/repo/upload/backoff.go","content":"x"}},{"type":"tool_use","id":"t4","name":"Edit","input":{"file_path":"/work/repo/upload/client.go","old_string":"b","new_string":"c"}}]}}
+{"type":"user","message":{"role":"user","content":"And add a test for it."}}

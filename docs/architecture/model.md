@@ -27,6 +27,7 @@ flowchart TD
     herdr["herdr/*"]
     i18n["i18n"]
     relay["relay"]
+    relay_adapter_claudehook["relay/adapter/claudehook"]
     relay_adapter_claudemod["relay/adapter/claudemod"]
     relay_adapter_facts["relay/adapter/facts"]
     relay_adapter_statefs["relay/adapter/statefs"]
@@ -48,6 +49,7 @@ flowchart TD
   cmd_aval --> docs
   cmd_aval --> i18n
   cmd_aval --> relay
+  cmd_aval --> relay_adapter_claudehook
   cmd_aval --> relay_adapter_claudemod
   cmd_aval --> relay_adapter_facts
   cmd_aval --> relay_adapter_statefs
@@ -61,6 +63,7 @@ flowchart TD
   core -.->|test| testenv
   design_hook --> design_ack
   design_hook -.->|test| testenv
+  relay_adapter_claudehook --> relay
   relay_adapter_claudemod --> relay
   relay_adapter_facts --> relay
   relay_adapter_statefs --> relay

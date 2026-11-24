@@ -67,6 +67,17 @@
         ]
       }
     ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook relay-precompact || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Edit|Write|NotebookEdit|Bash",
@@ -122,6 +133,16 @@
             "type": "command",
             "command": "code-review-graph status",
             "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook relay-sessionstart || true",
+            "timeout": 10
           }
         ]
       },

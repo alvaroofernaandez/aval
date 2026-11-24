@@ -241,7 +241,7 @@ Progress 2026-11-24: P1 and P2 passed (RESULTS.md); mod, manifest link,
 `aval relay enable|disable|commit` and the ADR 0001 amendment are on branch
 `feat/relay-claude-mod`. Deviation: the mod reads usage with `$.session.usage()`
 inside the compact handler and makes a per-process session id (the mods API
-exposes none). Waiting on the owner's interactive session; release notes after it.
+exposes none). Merged in #111; checked in `aval dev` (PR comment), interactive TUI not covered (S2). Shipped as v0.3.0-rc.6.
 
 Branch `feat/relay-claude-mod`. Starts only after P2 and D4, D5, D6.
 
@@ -250,35 +250,49 @@ logic.js, logic.test.js), `install.manifest`, `.github/workflows/ci.yml`
 (`node --test`), `cmd/aval/relay.go` (`enable`, `disable`),
 `docs/adr/0001-go-only.md` (amendment, D5), `docs/guide.md`, release notes.
 
-- [ ] Shim rules: no policy; `$` never passed to a helper declared inside
+- [x] Shim rules: no policy; `$` never passed to a helper declared inside
       `register`; hand-built messages have `toolUses: []`; `$.process.run` has a
       timeout; any error returns `next(e)`.
-- [ ] No-op path (ADR 0007): when `AVAL_RELAY` is not `1`, return `next(e)`.
-- [ ] Triggers: `auto` and `manual` only.
-- [ ] RED `logic.test.js`: `shapeSnapshot` builds the protocol v1 request.
-- [ ] RED `TestRelayEnableSetsEnvKeys`: `AVAL_RELAY=1` and
+- [x] No-op path (ADR 0007): when `AVAL_RELAY` is not `1`, return `next(e)`.
+- [x] Triggers: `auto` and `manual` only. (Ticked with T10 by mistake; the filter landed in T11 after the sandbox run showed a compaction during a clear.)
+- [x] RED `logic.test.js`: `shapeSnapshot` builds the protocol v1 request.
+- [x] RED `TestRelayEnableSetsEnvKeys`: `AVAL_RELAY=1` and
       `CLAUDE_CODE_AUTO_COMPACT_WINDOW = HardTokens + 33000`; `disable` removes them.
-- [ ] RED in `tests/manifest_test.go` (plugin linked) and `tests/agent_hooks_test.go`
+- [x] RED in `tests/manifest_test.go` (plugin linked) and `tests/agent_hooks_test.go`
       (repo settings hold no relay env key: off by default).
-- [ ] Commit-on-next-measure: `aval relay commit` on the first `session.measure`
+- [x] Commit-on-next-measure: `aval relay commit` on the first `session.measure`
       after an answer; appends `metrics.jsonl`.
-- [ ] One real interactive session by hand before merge, result in the PR.
-- [ ] Notes: experimental, off by default, engine-fired trigger only, macOS and
+- [x] One real interactive session by hand before merge, result in the PR.
+- [x] Notes: experimental, off by default, engine-fired trigger only, macOS and
       Linux, no cost claim.
-- [ ] Release: dry run shows v0.3.0-rc.6, then `aval release rc --yes`.
+- [x] Release: dry run shows v0.3.0-rc.6, then `aval release rc --yes`.
 
 ## T11 — #65 fallback ladder, levels 1 to 4 (feat → v0.3.0-rc.7)
 
 Branch `feat/relay-ladder`.
 
-- [ ] RED `TestLadder_BinarySlow_Level1`. Expected failure: level 0.
-- [ ] Then `_ModNotLoaded_Level2`, `_PolicyWantsNewSession_Level3`,
+Progress 2026-11-24: levels 1 to 3 on the branch. Owner decisions: level 1 with
+aval down uses a fixed `STEER` text in `logic.js` (aval answers `steer` itself on
+`no_gain`); level 3 fires when the `max_chain` brake refuses a replace (aval answers
+`new_session`, the mod compacts natively, then clears and submits the capsule at
+`turn.complete` and takes a new session id). Level 2 hooks live in
+`config/claude/settings.json` (the mod's plugin does not load when the mod does
+not); `relay-sessionstart` is silent when a journal entry is under 10 s old. Checked in
+`aval dev` (sandbox `relay11`, headless haiku, n=1): level 2 end to end, level 1 steer
+and aval-down fallback, level 3 clear plus submit in one stream-json process with
+`AVAL_RELAY_MAX_CHAIN=1`. The runs found and fixed: no trigger filter, the native
+summary, slash-command markers and the plugin-wrapped capsule taken as requests, the
+request in flight missing, and a stale capsule submitted after a queued clear. Known
+limit: input already queued runs before the clear. Not run: the interactive TUI.
+
+- [x] RED `TestLadder_BinarySlow_Level1`. Expected failure: level 0.
+- [x] Then `_ModNotLoaded_Level2`, `_PolicyWantsNewSession_Level3`,
       `_AllFailed_Level4`, `_NeverSilent`.
-- [ ] Level 1 only if P1 passed; otherwise skipped and the PR says so.
-- [ ] Level 2: `aval hook relay-precompact` and `aval hook relay-sessionstart`, in
+- [x] Level 1 only if P1 passed; otherwise skipped and the PR says so.
+- [x] Level 2: `aval hook relay-precompact` and `aval hook relay-sessionstart`, in
       the hot-path tests and `FuzzHookInput`; no-ops unless `AVAL_RELAY=1`.
-- [ ] Level 3: `clear` then `prompt.submit` from `turn.complete` only (S6).
-- [ ] Level 4: the lowered window already set by `enable`.
+- [x] Level 3: `clear` then `prompt.submit` from `turn.complete` only (S6).
+- [x] Level 4: the lowered window already set by `enable`.
 - [ ] Release: dry run shows v0.3.0-rc.7.
 
 ## T12 — #65 blocked remainder (feat → v0.3.0-rc.11 when unblocked)

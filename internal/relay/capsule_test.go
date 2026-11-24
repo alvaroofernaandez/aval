@@ -120,3 +120,34 @@ func TestCapsuleRender_UnknownChangeCountIsOmitted(t *testing.T) {
 		t.Fatalf("repository line:\n%s", got)
 	}
 }
+
+func TestIsRequest(t *testing.T) {
+	for text, want := range map[string]bool{
+		"Add retries.":                         true,
+		"":                                     false,
+		CapsuleHeader + "\nFirst request: x\n": false,
+		"This session is being continued from a previous conversation that ran out of context.": false,
+		"<command-name>/clear</command-name>":                                                   false,
+		"<local-command-stdout>Compacted</local-command-stdout>":                                false,
+	} {
+		if got := IsRequest(text); got != want {
+			t.Errorf("IsRequest(%.40q) = %v, want %v", text, got, want)
+		}
+	}
+}
+
+// Found in the T11 sandbox run: Claude Code wraps a plugin-submitted prompt
+// in one line naming the plugin, so a level 3 capsule no longer starts with
+// the header.
+func TestCapsuleFirst_UnderARuntimeLine(t *testing.T) {
+	text := "The aval-relay plugin sent a message:\n" + CapsuleHeader + "\n\n## Objective\n" + CapsuleFirstRequest + "ALPHA\n"
+	if first, ok := CapsuleFirst(text); !ok || first != "ALPHA" {
+		t.Fatalf("got %q, %v; want ALPHA, true", first, ok)
+	}
+	if IsRequest(text) {
+		t.Fatal("a wrapped capsule counted as a request")
+	}
+	if _, ok := CapsuleFirst("Line one\nLine two\n" + CapsuleHeader); ok {
+		t.Fatal("a header deeper than the second line counted as a capsule")
+	}
+}

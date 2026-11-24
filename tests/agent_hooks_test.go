@@ -166,3 +166,25 @@ func TestAgentHooksLiveSettingsRunExactlyAvalsHooks(t *testing.T) {
 	isTrue(t, "the live settings hide commit and PR attribution",
 		l.Attribution.Commit != nil && *l.Attribution.Commit == "" && l.Attribution.PR != nil && *l.Attribution.PR == "")
 }
+
+// Ladder level 2 of #65: the classic hooks carry the capsule when the relay
+// mod does not run. They live in the settings, not in the mod's plugin, which
+// does not load either when the mod does not. Both are no-ops unless
+// AVAL_RELAY=1, so installing them leaves the relay off.
+func TestAgentHooksCarryTheRelayLadder(t *testing.T) {
+	s := repoSettings(t)
+	find := func(event, matcher, hook string) bool {
+		for _, g := range s.Hooks[event] {
+			for _, h := range g.Hooks {
+				if strings.Contains(h.Command, "hook "+hook) {
+					eq(t, hook+" matcher", matcher, g.Matcher)
+					isTrue(t, hook+" runs synchronously", !h.Async)
+					return true
+				}
+			}
+		}
+		return false
+	}
+	isTrue(t, "a PreCompact hook runs aval hook relay-precompact", find("PreCompact", "", "relay-precompact"))
+	isTrue(t, "a SessionStart(compact) hook runs aval hook relay-sessionstart", find("SessionStart", "compact", "relay-sessionstart"))
+}

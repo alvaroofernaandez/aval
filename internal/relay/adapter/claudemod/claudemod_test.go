@@ -98,3 +98,68 @@ func TestDecode_APreviousCapsuleIsNotAPrompt(t *testing.T) {
 		t.Fatalf("prompts %v turn %d: the capsule counted as a request", req.Capsule.Prompts, req.Turn)
 	}
 }
+
+func decode(t *testing.T, env Envelope) relay.Request {
+	t.Helper()
+	env.Version, env.Event = 1, "compact"
+	in, err := json.Marshal(env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := Decode(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return req
+}
+
+// Found in the T11 sandbox run: after a native compaction the summary is a
+// user message, and later capsules took it as the first request.
+func TestDecode_ANativeSummaryIsNotAPrompt(t *testing.T) {
+	req := decode(t, Envelope{Messages: []Message{
+		{Handle: "s", Role: "user", Text: "This session is being continued from a previous conversation that ran out of context."},
+		{Handle: "u5", Role: "user", Text: "Turn 5."},
+		{Handle: "a5", Role: "assistant", Text: "done"},
+		{Handle: "u6", Role: "user", Text: "Turn 6."},
+	}})
+	if req.Capsule.FirstPrompt != "Turn 5." || req.Capsule.LastPrompt != "Turn 6." || req.Turn != 2 {
+		t.Fatalf("first %q last %q turn %d: the summary counted as a request", req.Capsule.FirstPrompt, req.Capsule.LastPrompt, req.Turn)
+	}
+}
+
+// Found in the T11 sandbox run: an auto compaction runs before the prompt in
+// flight joins the messages; the mod sends it, and it is the latest request.
+func TestDecode_ThePromptInFlightIsTheLatestRequest(t *testing.T) {
+	msgs := []Message{
+		{Handle: "u1", Role: "user", Text: "ALPHA"}, {Handle: "a1", Role: "assistant", Text: "OK"},
+		{Handle: "u2", Role: "user", Text: "BETA"}, {Handle: "a2", Role: "assistant", Text: "OK"},
+	}
+	for _, c := range []struct {
+		name, prompt, last string
+		prompts            []string
+	}{
+		{"in flight", "GAMMA", "GAMMA", []string{"BETA"}},
+		{"already in the messages", "BETA", "BETA", nil},
+		{"a slash command", "/compact", "BETA", nil},
+		{"none", "", "BETA", nil},
+	} {
+		req := decode(t, Envelope{Messages: msgs, Prompt: c.prompt})
+		if req.Capsule.FirstPrompt != "ALPHA" || req.Capsule.LastPrompt != c.last || !slices.Equal(req.Capsule.Prompts, c.prompts) {
+			t.Errorf("%s: first %q last %q prompts %q, want ALPHA, %q, %q", c.name, req.Capsule.FirstPrompt, req.Capsule.LastPrompt, req.Capsule.Prompts, c.last, c.prompts)
+		}
+	}
+}
+
+// Found in the T11 sandbox run: the mod's messages carry slash commands and
+// their output as user messages; they are not requests.
+func TestDecode_SlashCommandsAreNotPrompts(t *testing.T) {
+	req := decode(t, Envelope{Messages: []Message{
+		{Handle: "c", Role: "user", Text: "<command-name>/clear</command-name>"},
+		{Handle: "o", Role: "user", Text: "<local-command-stdout>Compacted</local-command-stdout>"},
+		{Handle: "u", Role: "user", Text: "Remember ZETA."},
+		{Handle: "a", Role: "assistant", Text: "OK"},
+	}})
+	if req.Capsule.FirstPrompt != "Remember ZETA." || req.Turn != 1 {
+		t.Fatalf("first %q turn %d: a slash command counted as a request", req.Capsule.FirstPrompt, req.Turn)
+	}
+}

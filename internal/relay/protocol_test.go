@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func handle(t *testing.T, in string) Response {
@@ -95,13 +96,57 @@ func TestProtocol_BrakeLetsTheNativeCompactionRun(t *testing.T) {
 }
 
 // A tail that keeps every message frees nothing: the capsule only adds to the
-// context. The native compaction runs instead (found in the T10 sandbox run).
-func TestProtocol_TailKeepingEverythingIsPassthrough(t *testing.T) {
+// context (found in the T10 sandbox run). The native compaction runs instead,
+// steered by the capsule facts (ladder level 1).
+func TestProtocol_TailKeepingEverythingSteers(t *testing.T) {
 	r := handle(t, `{"version":1,"event":"compact","trigger":"auto","turn":3,"fingerprint":"f",
 		"reading":{"tokens":59000,"window":1000000,"source":"exact"},
 		"messages":[{"handle":"a","role":"user","tokens":10},{"handle":"b","role":"assistant","tokens":9000}],
 		"capsule":{"first_prompt":"Turn 1"}}`)
-	if r.Action != AnswerPassthrough || r.Reason != ReasonNoGain {
-		t.Fatalf("got %+v, want passthrough/%s", r, ReasonNoGain)
+	if r.Action != AnswerSteer || r.Reason != ReasonNoGain || !strings.Contains(r.Instructions, "Turn 1") {
+		t.Fatalf("got %+v, want steer/%s with the first request in the instructions", r, ReasonNoGain)
+	}
+	if n := len(r.Instructions); n > steerMaxChars {
+		t.Fatalf("instructions are %d chars, over %d", n, steerMaxChars)
+	}
+}
+
+func TestSteerText_StaysUnderTheCap(t *testing.T) {
+	got := SteerText(Capsule{FirstPrompt: strings.Repeat("ñandú ", 5_000)})
+	if len(got) > steerMaxChars || !utf8.ValidString(got) {
+		t.Fatalf("got %d bytes, valid UTF-8 %v; want at most %d, valid", len(got), utf8.ValidString(got), steerMaxChars)
+	}
+}
+
+// Ladder level 3: once the chain is at MaxChain, another capsule on capsules
+// is refused and the work moves to a truly new session (owner decision,
+// 2026-11-24). Other brakes still let the native compaction run.
+func TestProtocol_MaxChainAsksForANewSession(t *testing.T) {
+	r := handle(t, `{"version":1,"event":"compact","trigger":"auto","turn":60,"fingerprint":"f6",
+		"reading":{"tokens":201000,"window":1000000,"floor":58000,"source":"exact"},
+		"messages":[{"handle":"a","role":"user","tokens":10}],
+		"capsule":{"first_prompt":"Add retries.","last_prompt":"Cap the backoff."},
+		"chain":[{"fingerprint":"f1","turn":10},{"fingerprint":"f2","turn":20},{"fingerprint":"f3","turn":30},
+			{"fingerprint":"f4","turn":40},{"fingerprint":"f5","turn":50}]}`)
+	if r.Action != AnswerNewSession || r.Reason != "brake:max_chain" {
+		t.Fatalf("got %q/%q, want new_session/brake:max_chain", r.Action, r.Reason)
+	}
+	if first, ok := CapsuleFirst(r.Capsule); !ok || first != "Add retries." {
+		t.Fatalf("capsule %q: want a capsule carrying the first request", r.Capsule)
+	}
+}
+
+// Only the engine's auto and the person's manual compaction are relayed
+// (plan T10); anything else, such as one a clear or a plugin starts, runs
+// natively. Found in the T11 sandbox run: a compaction during a clear.
+func TestProtocol_OnlyAutoAndManualAreRelayed(t *testing.T) {
+	for _, trig := range []string{"", "plugin", "clear"} {
+		r := handle(t, `{"version":1,"event":"compact","trigger":"`+trig+`","turn":60,"fingerprint":"f6",
+			"reading":{"tokens":201000,"window":1000000,"floor":58000,"source":"exact"},
+			"messages":[{"handle":"a","role":"user","tokens":30000},{"handle":"b","role":"assistant","tokens":10}],
+			"capsule":{"first_prompt":"Add retries."}}`)
+		if r.Action != AnswerPassthrough || r.Reason != ReasonTrigger {
+			t.Errorf("trigger %q: got %q/%q, want passthrough/%s", trig, r.Action, r.Reason, ReasonTrigger)
+		}
 	}
 }
