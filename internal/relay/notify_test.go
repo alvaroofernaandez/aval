@@ -31,3 +31,19 @@ func TestNotifyText_OneGoldenPerTier(t *testing.T) {
 		})
 	}
 }
+
+func TestTierString(t *testing.T) {
+	for tier, want := range map[Tier]string{T0: "T0", T2: "T2", T4: "T4", Tier(9): "T?"} {
+		if got := tier.String(); got != want {
+			t.Errorf("Tier(%d) = %q, want %q", tier, got, want)
+		}
+	}
+}
+
+func TestErrPctOf(t *testing.T) {
+	for src, want := range map[string]float64{"exact": 0.02, "transcript": 0.15, "bogus": 0.50} {
+		if got := ErrPctOf(src); got != want {
+			t.Errorf("ErrPctOf(%q) = %v, want %v", src, got, want)
+		}
+	}
+}

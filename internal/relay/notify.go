@@ -57,3 +57,21 @@ func Tokens(n int) string {
 	}
 	return strconv.Itoa(n)
 }
+
+// String is the tier's short name, T0 to T4.
+func (t Tier) String() string {
+	if t < T0 || t > T4 {
+		return "T?"
+	}
+	return "T" + strconv.Itoa(int(t))
+}
+
+// ErrPctOf is the error bound of a reading from the named source; an unknown
+// source gets the heuristic's bound.
+func ErrPctOf(source string) float64 {
+	src, ok := sources[source]
+	if !ok {
+		src = SourceHeuristic
+	}
+	return errPcts[src]
+}
