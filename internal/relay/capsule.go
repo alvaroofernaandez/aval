@@ -32,6 +32,21 @@ const CapsuleHeader = "# aval relay capsule"
 // CapsuleFirstRequest is the label of the original first request in a capsule.
 const CapsuleFirstRequest = "First request: "
 
+// CapsuleFirst reports whether text is a capsule and returns the original
+// first request it carries (empty when it carries none). Adapters use it so a
+// capsule from an earlier relay is never taken as a request.
+func CapsuleFirst(text string) (string, bool) {
+	if !strings.HasPrefix(text, CapsuleHeader) {
+		return "", false
+	}
+	for _, line := range strings.Split(text, "\n") {
+		if v, ok := strings.CutPrefix(line, CapsuleFirstRequest); ok {
+			return v, true
+		}
+	}
+	return "", true
+}
+
 // tokensOf is a conservative token count for capsule text (E1 of #63).
 func tokensOf(s string) int { return int(float64(len(s))/charsPerToken + 0.999) }
 

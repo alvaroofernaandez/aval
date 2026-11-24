@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/alvaroofernaandez/aval/internal/relay"
 )
@@ -83,24 +82,15 @@ func userPrompts(msgs []Message) (first string, prompts []string) {
 		if m.Role != "user" {
 			continue
 		}
-		if strings.HasPrefix(m.Text, relay.CapsuleHeader) {
+		if f, ok := relay.CapsuleFirst(m.Text); ok {
 			if first == "" {
-				first = capsuleFirstRequest(m.Text)
+				first = f
 			}
 			continue
 		}
 		prompts = append(prompts, m.Text)
 	}
 	return first, prompts
-}
-
-func capsuleFirstRequest(capsule string) string {
-	for _, line := range strings.Split(capsule, "\n") {
-		if v, ok := strings.CutPrefix(line, relay.CapsuleFirstRequest); ok {
-			return v
-		}
-	}
-	return ""
 }
 
 // messages converts the payload. No recorded payload of spike #63 holds a

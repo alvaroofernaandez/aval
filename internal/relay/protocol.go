@@ -105,7 +105,7 @@ func Handle(in []byte, p Policy, b Brakes) []byte {
 		}
 		keep := SelectTail(req.messages(), p.TailTokens)
 		if len(keep) == len(req.Messages) {
-			return answer(Response{Action: AnswerSteer, Reason: ReasonNoGain, Instructions: steerText(req.Capsule.capsule())})
+			return answer(Response{Action: AnswerSteer, Reason: ReasonNoGain, Instructions: SteerText(req.Capsule.capsule())})
 		}
 		return answer(Response{
 			Action:  AnswerReplace,
@@ -193,8 +193,8 @@ const steerTokens = 2_000
 
 const steerHeader = "Keep these facts in the summary, so work can continue without the earlier messages:\n\n"
 
-// steerText is the capsule as summariser instructions. The capsule budget
+// SteerText is the capsule as summariser instructions. The capsule budget
 // keeps it under steerMaxChars (TestSteerText_StaysUnderTheCap).
-func steerText(c Capsule) string {
+func SteerText(c Capsule) string {
 	return steerHeader + Render(c, steerTokens)
 }

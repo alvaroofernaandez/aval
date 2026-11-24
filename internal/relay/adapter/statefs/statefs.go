@@ -298,3 +298,24 @@ func (s Store) pausePath(root string) string {
 	sum := sha256.Sum256([]byte(filepath.Clean(root)))
 	return filepath.Join(s.Dir, "paused", hex.EncodeToString(sum[:8]))
 }
+
+// RelayedSince reports whether any session's journal holds a relay that was
+// not voided and is no older than since. The classic SessionStart hook uses
+// it: it cannot know the mod's session id, and a mod relay just happened
+// when one is this recent.
+func (s Store) RelayedSince(since time.Time) bool {
+	ents, err := os.ReadDir(filepath.Join(s.Dir, "journal"))
+	if err != nil {
+		return false
+	}
+	for _, d := range ents {
+		session, ok := strings.CutSuffix(d.Name(), ".json")
+		if !ok {
+			continue
+		}
+		if e, err := s.Read(session); err == nil && e.State != Void && !e.At.Before(since) {
+			return true
+		}
+	}
+	return false
+}

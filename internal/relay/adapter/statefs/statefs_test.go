@@ -185,3 +185,31 @@ func TestPause_SetAndClear(t *testing.T) {
 		t.Fatalf("resume twice: %v", err)
 	}
 }
+
+func TestRelayedSince(t *testing.T) {
+	s := store(t)
+	if s.RelayedSince(at.Add(-time.Minute)) {
+		t.Fatal("empty store: got relayed")
+	}
+	if err := s.Prepare("old", Entry{Trigger: "auto", At: at.Add(-time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Prepare("void", Entry{Trigger: "auto", At: at}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.VoidPrepared("void"); err != nil {
+		t.Fatal(err)
+	}
+	if s.RelayedSince(at.Add(-time.Minute)) {
+		t.Fatal("only an old and a voided relay: got relayed")
+	}
+	if err := s.Prepare("new", Entry{Trigger: "auto", At: at}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Commit("new", 30_000); err != nil {
+		t.Fatal(err)
+	}
+	if !s.RelayedSince(at.Add(-time.Minute)) {
+		t.Fatal("a committed relay a minute ago: got not relayed")
+	}
+}

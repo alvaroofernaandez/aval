@@ -112,7 +112,7 @@ func TestProtocol_TailKeepingEverythingSteers(t *testing.T) {
 }
 
 func TestSteerText_StaysUnderTheCap(t *testing.T) {
-	got := steerText(Capsule{FirstPrompt: strings.Repeat("ñandú ", 5_000)})
+	got := SteerText(Capsule{FirstPrompt: strings.Repeat("ñandú ", 5_000)})
 	if len(got) > steerMaxChars || !utf8.ValidString(got) {
 		t.Fatalf("got %d bytes, valid UTF-8 %v; want at most %d, valid", len(got), utf8.ValidString(got), steerMaxChars)
 	}

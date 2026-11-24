@@ -28,6 +28,7 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/i18n` | leaf | The message catalog, English and Spanish, with plurals. |
 | `internal/release` | leaf | Versions, preflight checks and notes from git history. |
 | `internal/relay` | leaf | The context relay core: when to relay and what the new context holds, with no I/O. |
+| `internal/relay/adapter/claudehook` | relay adapter | Capsule facts from a Claude Code transcript for the classic PreCompact and SessionStart hooks (fallback ladder level 2). |
 | `internal/relay/adapter/claudemod` | relay adapter | Turns what the Claude Code relay mod sends into a relay request. |
 | `internal/relay/adapter/facts` | relay adapter | Repository facts for the capsule from file reads, without a git process. |
 | `internal/relay/adapter/statefs` | relay adapter | The relay's journal, session locks and status line summary on disk, written atomically with mode 0600. |
