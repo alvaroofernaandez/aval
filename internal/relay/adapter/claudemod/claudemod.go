@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/alvaroofernaandez/aval/internal/relay"
 )
@@ -23,6 +24,10 @@ type Envelope struct {
 	Model     string    `json:"model,omitempty"`
 	Usage     Usage     `json:"usage"`
 	Messages  []Message `json:"messages"`
+	// Prompt is the latest prompt the person submitted, as the mod saw it on
+	// prompt.submit. An auto compaction runs before that prompt joins the
+	// messages, so without it the capsule loses the request in flight.
+	Prompt string `json:"prompt,omitempty"`
 }
 
 // Usage is session.measure's context reading (S3 of spike #63: percent and
@@ -39,6 +44,10 @@ type Message struct {
 	Text     string `json:"text"`
 	ToolUses []any  `json:"toolUses"`
 }
+
+// NativeSummaryPrefix starts the user message Claude Code writes after its own
+// compaction (recorded on 2.1.331); it is a summary, not a request.
+const NativeSummaryPrefix = "This session is being continued from a previous conversation"
 
 // charsPerToken matches the relay estimator (E1 of spike #63).
 const charsPerToken = 1.75
@@ -59,6 +68,7 @@ func Decode(raw []byte) (relay.Request, error) {
 		Messages: messages(env.Messages),
 	}
 	first, prompts := userPrompts(env.Messages)
+	prompts = withInFlight(prompts, env.Prompt)
 	req.Turn = len(prompts)
 	if first == "" && len(prompts) > 0 {
 		first, prompts = prompts[0], prompts[1:]
@@ -86,6 +96,9 @@ func userPrompts(msgs []Message) (first string, prompts []string) {
 			if first == "" {
 				first = f
 			}
+			continue
+		}
+		if strings.HasPrefix(m.Text, NativeSummaryPrefix) {
 			continue
 		}
 		prompts = append(prompts, m.Text)
@@ -126,4 +139,19 @@ func tokens(m Message) int {
 		n += len(raw)
 	}
 	return int(float64(n)/charsPerToken + 0.999)
+}
+
+// withInFlight appends the prompt in flight when the messages do not hold it
+// yet. A slash command or a capsule the mod submitted is not a request.
+func withInFlight(prompts []string, prompt string) []string {
+	if prompt == "" || strings.HasPrefix(prompt, "/") {
+		return prompts
+	}
+	if _, ok := relay.CapsuleFirst(prompt); ok {
+		return prompts
+	}
+	if n := len(prompts); n > 0 && prompts[n-1] == prompt {
+		return prompts
+	}
+	return append(prompts, prompt)
 }

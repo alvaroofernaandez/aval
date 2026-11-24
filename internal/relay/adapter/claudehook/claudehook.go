@@ -23,7 +23,7 @@ type entry struct {
 	Type        string `json:"type"`
 	IsMeta      bool   `json:"isMeta"`
 	IsSidechain bool   `json:"isSidechain"`
-	Summary     bool   `json:"isCompactSummary"` // unverified key; skipped when set
+	Summary     bool   `json:"isCompactSummary"` // seen on 2.1.331 on the native summary
 	Message     struct {
 		Content json.RawMessage `json:"content"`
 	} `json:"message"`
