@@ -127,10 +127,36 @@ func TestRelayCompact_NoProgressBrakesTheSecondRelay(t *testing.T) {
 func TestRelayUnknownSubcommandIsAUsageError(t *testing.T) {
 	for _, sub := range [][]string{nil, {"bogus"}} {
 		var out bytes.Buffer
-		err := runRelay(sub, cmdIO{stdin: strings.NewReader(""), stdout: &out, stderr: &out, env: envMap(nil)})
+		err := runRelay(sub, uiFlags{}, cmdIO{stdin: strings.NewReader(""), stdout: &out, stderr: &out, env: envMap(nil)})
 		var u *usageError
 		if !errors.As(err, &u) {
 			t.Errorf("relay %v: got %v, want a usage error", sub, err)
 		}
+	}
+}
+
+func TestRelayPauseAndResume(t *testing.T) {
+	state, repo := t.TempDir(), t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repo, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".git", "HEAD"), []byte("ref: refs/heads/main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	fixture := relayFixture(t)
+	t.Chdir(repo)
+	env := map[string]string{"XDG_STATE_HOME": state, "AVAL_NO_UPDATE_CHECK": "1", "AVAL_LANG": "en"}
+
+	if r := runIn(t, env, "", "relay", "pause"); r.code != 0 {
+		t.Fatalf("pause: exit %d, stderr %q", r.code, r.stderr)
+	}
+	if resp, _ := compact(t, state, fixture, nil); resp.Action != relay.AnswerPassthrough || resp.Reason != reasonPaused {
+		t.Fatalf("paused: got %+v, want passthrough/%s", resp, reasonPaused)
+	}
+	if r := runIn(t, env, "", "relay", "resume"); r.code != 0 {
+		t.Fatalf("resume: exit %d, stderr %q", r.code, r.stderr)
+	}
+	if resp, _ := compact(t, state, fixture, nil); resp.Action != relay.AnswerReplace {
+		t.Fatalf("resumed: got %+v, want replace", resp)
 	}
 }

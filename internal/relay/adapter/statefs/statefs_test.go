@@ -162,3 +162,26 @@ func TestChain_AppendAndRead(t *testing.T) {
 		t.Fatalf("got %+v, %v", c, err)
 	}
 }
+
+func TestPause_SetAndClear(t *testing.T) {
+	s := store(t)
+	repo := filepath.Join("work", "repo")
+	if s.Paused(repo) {
+		t.Fatal("paused before anything was set")
+	}
+	if err := s.SetPaused(repo, true); err != nil {
+		t.Fatal(err)
+	}
+	if !s.Paused(repo) || s.Paused(filepath.Join("work", "other")) {
+		t.Fatal("pause is not per repository")
+	}
+	if err := s.SetPaused(repo, false); err != nil {
+		t.Fatal(err)
+	}
+	if s.Paused(repo) {
+		t.Fatal("still paused after resume")
+	}
+	if err := s.SetPaused(repo, false); err != nil {
+		t.Fatalf("resume twice: %v", err)
+	}
+}

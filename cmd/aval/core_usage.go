@@ -40,7 +40,7 @@ var commands = []command{
 	{"dev", "[run | diff | reset | ls | rm | project]", "Setup"},
 	{"hook", "<lessons|design-gate|pre-push|...>", "Plumbing"},
 	{"statusline", "", "Plumbing"},
-	{"relay", "compact", "Plumbing"},
+	{"relay", "<compact|pause|resume>", "Plumbing"},
 	{"tmux", "<helper>", "Plumbing"},
 	{"macos", "<helper>", "Plumbing"},
 	{"reap-orphan-tests", "[--min-age] [--dry-run]", "Plumbing"},

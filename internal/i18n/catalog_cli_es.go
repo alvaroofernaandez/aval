@@ -22,6 +22,8 @@ var spanishCLI = catalog{
 	"cli.usage.cmd.budget":     {other: "contexto fijo por agente y latencia de los hooks"},
 	"cli.usage.cmd.deps":       {other: "herramientas externas de las que depende aval, y cuáles faltan"},
 	"cli.usage.cmd.relay":      {other: "responde a una compactación de contexto del mod del relay"},
+	"cli.relay.paused":         {other: "relay en pausa en {repo}"},
+	"cli.relay.resumed":        {other: "relay reanudado en {repo}"},
 	"cli.usage.cmd.review":     {other: "nivel de riesgo según git y lentes de revisión"},
 	"cli.usage.cmd.design":     {other: "controles de diseño para el proyecto del directorio actual"},
 	"cli.usage.cmd.config":     {other: "muestra o cambia los ajustes de aval (tema, glifos, animación)"},

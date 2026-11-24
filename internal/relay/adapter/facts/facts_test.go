@@ -52,3 +52,18 @@ func TestRepo_NoRepository(t *testing.T) {
 		t.Fatalf("got %+v, want nil outside a repository", got)
 	}
 }
+
+func TestRoot(t *testing.T) {
+	root := t.TempDir()
+	write(t, filepath.Join(root, ".git", "HEAD"), "ref: refs/heads/main\n")
+	sub := filepath.Join(root, "a", "b")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := Root(sub); got != root {
+		t.Fatalf("Root(%s) = %q, want %q", sub, got, root)
+	}
+	if got := Root(t.TempDir()); got != "" {
+		t.Fatalf("outside a repository: %q, want empty", got)
+	}
+}

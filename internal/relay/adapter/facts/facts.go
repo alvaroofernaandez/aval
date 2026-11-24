@@ -15,7 +15,7 @@ import (
 // commit. The count of changed files needs the index or a git process, so it
 // is left at zero and the capsule omits it.
 func Repo(dir string) *relay.RepoFacts {
-	gitdir, ok := findGitDir(dir)
+	_, gitdir, ok := findGitDir(dir)
 	if !ok {
 		return nil
 	}
@@ -31,27 +31,33 @@ func Repo(dir string) *relay.RepoFacts {
 }
 
 // findGitDir walks up from dir to the first .git, a directory or a worktree's
-// "gitdir:" file.
-func findGitDir(dir string) (string, bool) {
+// "gitdir:" file, and returns the directory that holds it and the git dir.
+func findGitDir(dir string) (root, gitdir string, ok bool) {
 	for d := filepath.Clean(dir); ; {
 		p := filepath.Join(d, ".git")
 		if fi, err := os.Stat(p); err == nil {
 			if fi.IsDir() {
-				return p, true
+				return d, p, true
 			}
 			if raw, err := os.ReadFile(p); err == nil {
 				if gd, ok := strings.CutPrefix(strings.TrimSpace(string(raw)), "gitdir: "); ok {
 					if !filepath.IsAbs(gd) {
 						gd = filepath.Join(d, gd)
 					}
-					return gd, true
+					return d, gd, true
 				}
 			}
 		}
 		parent := filepath.Dir(d)
 		if parent == d {
-			return "", false
+			return "", "", false
 		}
 		d = parent
 	}
+}
+
+// Root returns the top directory of the repository that holds dir, or "".
+func Root(dir string) string {
+	root, _, _ := findGitDir(dir)
+	return root
 }

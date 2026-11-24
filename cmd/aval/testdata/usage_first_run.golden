@@ -54,7 +54,7 @@ Plumbing
                             <lessons|design-gate|pre-push|...>
   aval statusline         Claude Code status line
   aval relay              answer a context compaction from the relay mod
-                            compact
+                            <compact|pause|resume>
   aval tmux               tmux, Ghostty and zsh helpers
                             <helper>
   aval macos              macOS defaults and LaunchAgents

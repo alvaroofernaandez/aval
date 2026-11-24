@@ -35,7 +35,7 @@ func FuzzRelayCompactInput(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, payload []byte) {
 		var out, errOut bytes.Buffer
-		if err := runRelay([]string{"compact"}, cmdIO{stdin: bytes.NewReader(payload), stdout: &out, stderr: &errOut, env: getenv}); err != nil {
+		if err := runRelay([]string{"compact"}, uiFlags{}, cmdIO{stdin: bytes.NewReader(payload), stdout: &out, stderr: &errOut, env: getenv}); err != nil {
 			t.Fatalf("relay compact returned %v", err)
 		}
 		var resp relay.Response
