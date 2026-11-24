@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/alvaroofernaandez/aval/internal/i18n"
+	"github.com/alvaroofernaandez/aval/internal/relay/adapter/statefs"
 )
 
 // compactionBuffer is how far before its window Claude Code fires an auto
@@ -188,8 +189,18 @@ func relayCommit(c cmdIO) error {
 	if !ok {
 		return nil
 	}
+	prev, err := store.Read(in.SessionID)
+	if err != nil {
+		return nil
+	}
 	if err := store.Commit(in.SessionID, in.Tokens); err != nil {
 		return nil
+	}
+	if prev.State == statefs.Prepared {
+		_ = store.AppendMetric(statefs.Metric{
+			At: prev.At, Session: in.SessionID, Trigger: prev.Trigger, Action: prev.Action,
+			Source: prev.Source, Before: prev.TokensBefore, After: in.Tokens, Floor: prev.Floor,
+		})
 	}
 	sum, err := store.ReadSummary(in.SessionID)
 	if err == nil {

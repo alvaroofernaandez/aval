@@ -168,7 +168,7 @@ func compactAnswer(c cmdIO) relay.Response {
 		return passthrough(relay.ReasonMalformed)
 	}
 	if resp.Action == relay.AnswerReplace {
-		recordRelay(store, req, time.Now())
+		recordRelay(store, req, resp.Action, time.Now())
 	}
 	return resp
 }
@@ -212,12 +212,15 @@ func relayPolicy(getenv func(string) string) relay.Policy {
 
 // recordRelay journals the answer, extends the chain and updates the summary
 // the status line reads. A failure here does not change the answer.
-func recordRelay(store statefs.Store, req relay.Request, now time.Time) {
-	_ = store.Prepare(req.SessionID, statefs.Entry{Trigger: req.Trigger, TokensBefore: req.Reading.Tokens, At: now})
+func recordRelay(store statefs.Store, req relay.Request, action string, now time.Time) {
+	_ = store.Prepare(req.SessionID, statefs.Entry{
+		Trigger: req.Trigger, Action: action, Source: req.Reading.Source, Floor: req.Reading.Floor,
+		TokensBefore: req.Reading.Tokens, At: now,
+	})
 	_ = store.AppendLink(req.SessionID, relay.Link{SessionID: req.SessionID, Fingerprint: req.Fingerprint, Turn: req.Turn})
 	sum, _ := store.ReadSummary(req.SessionID)
 	sum.Relays++
-	sum.Before, sum.After, sum.Trigger = req.Reading.Tokens, 0, req.Trigger
+	sum.Before, sum.After, sum.Floor, sum.Trigger = req.Reading.Tokens, 0, req.Reading.Floor, req.Trigger
 	_ = store.WriteSummary(req.SessionID, sum)
 }
 

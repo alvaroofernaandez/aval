@@ -38,6 +38,9 @@ const (
 type Entry struct {
 	State        State     `json:"state"`
 	Trigger      string    `json:"trigger"`
+	Action       string    `json:"action,omitempty"`
+	Source       string    `json:"source,omitempty"`
+	Floor        int       `json:"floor,omitempty"`
 	TokensBefore int       `json:"tokens_before"`
 	TokensAfter  int       `json:"tokens_after,omitempty"`
 	At           time.Time `json:"at"`
