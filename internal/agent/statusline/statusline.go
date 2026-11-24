@@ -49,9 +49,16 @@ const (
 // Render returns one line. Bad input still yields a line: a status line that
 // disappears looks like a crash.
 func Render(r io.Reader) string {
+	return render(decode(r))
+}
+
+func decode(r io.Reader) input {
 	var in input
 	_ = json.NewDecoder(r).Decode(&in)
+	return in
+}
 
+func render(in input) string {
 	var parts []string
 	model := in.Model.DisplayName
 	if model == "" {
@@ -75,15 +82,7 @@ func Render(r io.Reader) string {
 	}
 
 	if in.RateLimits != nil && in.RateLimits.FiveHour != nil {
-		p := in.RateLimits.FiveHour.UsedPercentage
-		c := ""
-		switch {
-		case p >= 90:
-			c = red
-		case p >= 70:
-			c = yellow
-		}
-		parts = append(parts, fmt.Sprintf("%s5h %d%%%s", c, int(p), reset))
+		parts = append(parts, fiveHour(in.RateLimits.FiveHour.UsedPercentage))
 	}
 
 	if pc := in.PromptCache; pc != nil && pc.CachingObserved && !pc.Warm {
@@ -98,8 +97,23 @@ func Render(r io.Reader) string {
 		parts = append(parts, fmt.Sprintf("odd %d/%d", done, total))
 	}
 
-	return strings.Join(parts, " "+dim+"·"+reset+" ")
+	return strings.Join(parts, separator)
 }
+
+// fiveHour is the 5-hour limit segment, yellow from 70% and red from 90%.
+func fiveHour(p float64) string {
+	c := ""
+	switch {
+	case p >= 90:
+		c = red
+	case p >= 70:
+		c = yellow
+	}
+	return fmt.Sprintf("%s5h %d%%%s", c, int(p), reset)
+}
+
+// separator joins the segments.
+const separator = " " + dim + "·" + reset + " "
 
 // branch reads HEAD for dir's repository, following a worktree's .git file.
 func branch(dir string) string {

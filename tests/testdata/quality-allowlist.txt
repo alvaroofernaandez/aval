@@ -13,7 +13,6 @@ complexity|internal/agent/rateguard/rateguard.go|Decide|36
 complexity|internal/agent/repoprofile/repoprofile.go|Profile|17
 complexity|internal/agent/review/review.go|tier|21
 complexity|internal/agent/rtkhook/rtkhook.go|Run|18
-complexity|internal/agent/statusline/statusline.go|Render|16
 complexity|internal/core/backup/backup.go|Store.undoCreation|16
 complexity|internal/core/doctor/commands.go|tokenize|27
 complexity|internal/core/doctor/doctor.go|checkHooks|21
