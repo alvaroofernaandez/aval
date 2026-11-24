@@ -117,3 +117,21 @@ func TestSteerText_StaysUnderTheCap(t *testing.T) {
 		t.Fatalf("got %d bytes, valid UTF-8 %v; want at most %d, valid", len(got), utf8.ValidString(got), steerMaxChars)
 	}
 }
+
+// Ladder level 3: once the chain is at MaxChain, another capsule on capsules
+// is refused and the work moves to a truly new session (owner decision,
+// 2026-11-24). Other brakes still let the native compaction run.
+func TestProtocol_MaxChainAsksForANewSession(t *testing.T) {
+	r := handle(t, `{"version":1,"event":"compact","trigger":"auto","turn":60,"fingerprint":"f6",
+		"reading":{"tokens":201000,"window":1000000,"floor":58000,"source":"exact"},
+		"messages":[{"handle":"a","role":"user","tokens":10}],
+		"capsule":{"first_prompt":"Add retries.","last_prompt":"Cap the backoff."},
+		"chain":[{"fingerprint":"f1","turn":10},{"fingerprint":"f2","turn":20},{"fingerprint":"f3","turn":30},
+			{"fingerprint":"f4","turn":40},{"fingerprint":"f5","turn":50}]}`)
+	if r.Action != AnswerNewSession || r.Reason != "brake:max_chain" {
+		t.Fatalf("got %q/%q, want new_session/brake:max_chain", r.Action, r.Reason)
+	}
+	if first, ok := CapsuleFirst(r.Capsule); !ok || first != "Add retries." {
+		t.Fatalf("capsule %q: want a capsule carrying the first request", r.Capsule)
+	}
+}

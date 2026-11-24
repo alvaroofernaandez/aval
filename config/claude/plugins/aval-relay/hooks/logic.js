@@ -63,18 +63,30 @@ export const STEER = [
 
 /**
  * The event to hand to next() when aval does not replace (ladder level 1).
- * No answer, or a replace the mod could not apply, steers with STEER; a steer
+ * No answer, a replace the mod could not apply, or a new_session answer (the
+ * compaction must still happen now) steers with STEER; a steer
  * answer steers with aval's own
  * text; any other answer was a deliberate passthrough and changes nothing.
  * The person's own /compact instructions are kept first.
  */
 export function steered(event, response) {
   let text = null;
-  if (!response || typeof response !== "object" || response.action === "replace") {
+  if (!response || typeof response !== "object" || response.action === "replace" || response.action === "new_session") {
     text = STEER;
   } else if (response.version === PROTOCOL_VERSION && response.action === "steer" && response.instructions) {
     text = response.instructions;
   }
   if (text === null) return event;
   return { ...event, instructions: event.instructions ? event.instructions + "\n\n" + text : text };
+}
+
+/**
+ * The prompt that opens the new session of ladder level 3, or null. aval
+ * answers new_session when the relay chain is at its limit; the mod compacts
+ * natively now and, at the end of the turn, clears and submits this prompt.
+ */
+export function newSessionPrompt(response) {
+  if (!response || typeof response !== "object") return null;
+  if (response.version !== PROTOCOL_VERSION || response.action !== "new_session") return null;
+  return typeof response.capsule === "string" && response.capsule ? response.capsule : null;
 }

@@ -4,11 +4,12 @@
 // next(e) and starts no process (ADR 0007). Any error, timeout or non-zero
 // exit falls to ladder level 1: Claude Code compacts natively, steered by the
 // fixed STEER text. A capsule that cannot be applied falls the same way.
-import { newSessionId, envelope, answer, steered, PROTOCOL_VERSION } from "./logic.js";
+import { newSessionId, envelope, answer, steered, newSessionPrompt, PROTOCOL_VERSION } from "./logic.js";
 
 const TIMEOUT_MS = 2000;
-const session = newSessionId(Math.random);
+let session = newSessionId(Math.random);
 let commitPending = false;
+let submitPending = null; // ladder level 3: the prompt of the new session
 
 async function relayOn($) {
   return (await $.env.get("AVAL_RELAY")) === "1";
@@ -30,10 +31,30 @@ export const register = (on) => {
     } catch {
       return next(steered(e, null));
     }
+    submitPending = newSessionPrompt(resp);
     const out = answer(resp, e.messages);
     if (!out) return next(steered(e, resp));
     commitPending = true;
     return out;
+  });
+
+  // Ladder level 3, from turn.complete only (spike #63 S6): clear, then open
+  // the new session with the capsule. The new session gets a new id, so its
+  // relay chain starts again (relay.Chain). Subagent turns are left alone.
+  on("turn.complete", async ($, e, next) => {
+    if (!submitPending || e.agentId !== undefined) return next(e);
+    const text = submitPending;
+    submitPending = null;
+    try {
+      if (await relayOn($)) {
+        await $.command.run({ command: "clear" });
+        session = newSessionId(Math.random);
+        await $.prompt.submit({ text });
+      }
+    } catch {
+      // A failed clear leaves the natively compacted session running.
+    }
+    return next(e);
   });
 
   // The first measure after a relay records the tokens the new context holds.

@@ -74,6 +74,7 @@ const (
 	AnswerPassthrough = "passthrough" // let the runtime do what it would do
 	AnswerReplace     = "replace"     // replace the context with capsule plus keep
 	AnswerSteer       = "steer"       // compact natively, steered by Instructions
+	AnswerNewSession  = "new_session" // compact natively now; at the turn's end clear and submit Capsule
 	AnswerNone        = "none"        // nothing to do yet
 	AnswerPrecompute  = "precompute"  // prepare the capsule
 	AnswerRelay       = "relay"       // start a relay now
@@ -100,6 +101,12 @@ func Handle(in []byte, p Policy, b Brakes) []byte {
 	brake := b.Check(Chain{Links: req.Chain}, Attempt{Fingerprint: req.Fingerprint, Turn: req.Turn})
 	switch req.Event {
 	case "compact":
+		if brake == BrakeMaxChain {
+			return answer(Response{
+				Action: AnswerNewSession, Reason: "brake:" + brake.String(),
+				Capsule: Render(req.Capsule.capsule(), p.CapsuleTokens) + newSessionAsk,
+			})
+		}
 		if brake != BrakeNone {
 			return answer(Response{Action: AnswerPassthrough, Reason: "brake:" + brake.String()})
 		}
@@ -190,6 +197,9 @@ const steerMaxChars = 10_000
 // steerTokens is the capsule budget inside steer instructions, about 8,000
 // characters, so the header fits under steerMaxChars.
 const steerTokens = 2_000
+
+// newSessionAsk ends the prompt that opens the new session (ladder level 3).
+const newSessionAsk = "\nThis is a new session that continues the work above. Carry on from the latest request.\n"
 
 const steerHeader = "Keep these facts in the summary, so work can continue without the earlier messages:\n\n"
 

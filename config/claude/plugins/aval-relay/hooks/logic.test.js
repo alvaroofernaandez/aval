@@ -1,7 +1,7 @@
 // Run: node --test config/claude/plugins/aval-relay/hooks/logic.test.js
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { newSessionId, envelope, answer, steered, STEER, PROTOCOL_VERSION } from "./logic.js";
+import { newSessionId, envelope, answer, steered, newSessionPrompt, STEER, PROTOCOL_VERSION } from "./logic.js";
 
 const messages = [
   { handle: "h1", role: "user", text: "Turn 1", toolUses: [] },
@@ -93,4 +93,21 @@ test("a replace the mod cannot apply steers with the fixed text", () => {
   const resp = { version: PROTOCOL_VERSION, action: "replace", capsule: "C", keep: ["gone"] };
   assert.equal(answer(resp, messages), null);
   assert.equal(steered({ trigger: "auto", messages }, resp).instructions, STEER);
+});
+
+const newSession = { version: PROTOCOL_VERSION, action: "new_session", reason: "brake:max_chain", capsule: "# aval relay capsule\nFirst request: x\n" };
+
+test("a new_session answer compacts natively now, steered", () => {
+  assert.equal(steered({ trigger: "auto", messages }, newSession).instructions, STEER);
+});
+
+test("a new_session answer gives the prompt for the new session", () => {
+  assert.equal(newSessionPrompt(newSession), newSession.capsule);
+});
+
+test("no prompt for other answers, other versions or no capsule", () => {
+  assert.equal(newSessionPrompt(null), null);
+  assert.equal(newSessionPrompt({ ...newSession, version: 99 }), null);
+  assert.equal(newSessionPrompt({ ...newSession, capsule: "" }), null);
+  assert.equal(newSessionPrompt({ version: PROTOCOL_VERSION, action: "replace", capsule: "C", keep: ["h1"] }), null);
 });
