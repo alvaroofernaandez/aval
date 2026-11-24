@@ -10,7 +10,7 @@ import (
 
 // fuzzHooks are the JSON hooks that do pure work on their input. rtk-rewrite
 // and pre-push are left out: they start processes.
-var fuzzHooks = []string{"lessons", "design-gate", "plan-gate", "design-shot-stop", "rate-guard", "repo-profile"}
+var fuzzHooks = []string{"lessons", "design-gate", "plan-gate", "design-shot-stop", "rate-guard", "repo-profile", "relay-precompact", "relay-sessionstart"}
 
 // FuzzHookInput feeds arbitrary bytes to every JSON hook. A hook must never
 // panic or fail, must print nothing or one JSON value, and must never block

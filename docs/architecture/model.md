@@ -49,6 +49,7 @@ flowchart TD
   cmd_aval --> docs
   cmd_aval --> i18n
   cmd_aval --> relay
+  cmd_aval --> relay_adapter_claudehook
   cmd_aval --> relay_adapter_claudemod
   cmd_aval --> relay_adapter_facts
   cmd_aval --> relay_adapter_statefs
