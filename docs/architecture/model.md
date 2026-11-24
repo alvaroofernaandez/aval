@@ -26,6 +26,7 @@ flowchart TD
     docs["docs/*"]
     herdr["herdr/*"]
     i18n["i18n"]
+    relay["relay"]
     release["release"]
     term["term/*"]
     testenv["testenv"]
@@ -85,6 +86,8 @@ flowchart TD
 | `internal/release` | nothing internal | - | leaf |
 | `internal/devmode` | nothing internal | - | leaf |
 | `internal/i18n` | nothing internal | - | leaf: message catalog and language selection (ADR 0006) |
+| `internal/relay` | nothing internal | - | leaf: I/O-free context relay core (ADR 0005) |
+| `internal/relay/*` | `internal/relay` | - | relay adapters: state files, runtime shims, facts |
 | `internal/testenv` | nothing internal | - | leaf: test-only helpers |
 | `tools/*` | nothing internal | - | leaf: build-time tools |
 | `tests` | nothing internal | - | repository checks: drive the binary, import nothing internal |

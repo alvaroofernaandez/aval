@@ -71,3 +71,15 @@ the language selection, and imports nothing internal. Who may import it:
 into text. The language is itself a config key, so `config.Load` reports a bad
 value before any language is known; only the caller can render that warning in
 the language that wins. Core results also feed `--json`, which stays English.
+
+### 2026-11-24
+
+`internal/relay` is a new leaf: the I/O-free core of the context relay
+(issue #64, plan `odd/tasks/relay.md`). It imports nothing internal. Its
+adapters live below it, in `internal/relay/*`, and may import
+`internal/relay` only. `cmd/aval` wires them.
+
+`core/*`, `ui` and `agent/*` do not import relay: the hooks and the status
+line reach it only through `cmd/aval`, and the relay redacts credentials with
+its own table instead of importing `agent/prepush`, whose table holds
+employer names, not credential shapes.
