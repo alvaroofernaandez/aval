@@ -22,6 +22,8 @@ var englishCLI = catalog{
 	"cli.usage.cmd.budget":     {other: "always-on context per agent and hook latency"},
 	"cli.usage.cmd.deps":       {other: "external tools aval relies on, and which are missing"},
 	"cli.usage.cmd.relay":      {other: "answer a context compaction from the relay mod"},
+	"cli.relay.paused":         {other: "relay paused in {repo}"},
+	"cli.relay.resumed":        {other: "relay resumed in {repo}"},
 	"cli.usage.cmd.review":     {other: "git-only risk tier and reviewer lenses"},
 	"cli.usage.cmd.design":     {other: "design gates for the project in the current directory"},
 	"cli.usage.cmd.config":     {other: "show or change aval settings (theme, glyphs, motion)"},

@@ -4,6 +4,8 @@
 package statefs
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -271,4 +273,28 @@ func (s Store) AppendLink(session string, l relay.Link) error {
 		return err
 	}
 	return writeAtomic(path, append(raw, '\n'))
+}
+
+// Paused reports whether the relay is paused for the repository at root.
+func (s Store) Paused(root string) bool {
+	_, err := os.Stat(s.pausePath(root))
+	return err == nil
+}
+
+// SetPaused pauses or resumes the relay for the repository at root. The flag
+// file is named by a hash of root and holds root, for a person reading it.
+func (s Store) SetPaused(root string, on bool) error {
+	path := s.pausePath(root)
+	if on {
+		return writeAtomic(path, []byte(root+"\n"))
+	}
+	if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+func (s Store) pausePath(root string) string {
+	sum := sha256.Sum256([]byte(filepath.Clean(root)))
+	return filepath.Join(s.Dir, "paused", hex.EncodeToString(sum[:8]))
 }

@@ -3,19 +3,21 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/relay"
 	"github.com/alvaroofernaandez/aval/internal/relay/adapter/claudemod"
 	"github.com/alvaroofernaandez/aval/internal/relay/adapter/facts"
 	"github.com/alvaroofernaandez/aval/internal/relay/adapter/statefs"
 )
 
-const relayUsage = "usage: aval relay compact"
+const relayUsage = "usage: aval relay compact|pause|resume"
 
 // Reasons only the command gives (the core's are in package relay).
 const (
@@ -34,11 +36,56 @@ const maxRelayInput = 64 << 20
 const relayLockTTL = 30 * time.Second
 
 // runRelay runs `aval relay <sub>`.
-func runRelay(sub []string, c cmdIO) error {
-	if len(sub) != 1 || sub[0] != "compact" {
+func runRelay(sub []string, flags uiFlags, c cmdIO) error {
+	if len(sub) != 1 {
 		return newUsage(relayUsage)
 	}
-	return relayCompact(c)
+	switch sub[0] {
+	case "compact":
+		return relayCompact(c)
+	case "pause", "resume":
+		return relaySetPaused(sub[0] == "pause", flags, c)
+	}
+	return newUsage(relayUsage)
+}
+
+// relaySetPaused pauses or resumes the relay for the repository that holds
+// the working directory (the directory itself outside a repository).
+func relaySetPaused(on bool, flags uiFlags, c cmdIO) error {
+	ui, err := langOnlySettings(flags, c.env)
+	if err != nil {
+		return err
+	}
+	store, ok := relayStore(c.env)
+	if !ok {
+		return errors.New("relay: no state directory: set HOME or XDG_STATE_HOME")
+	}
+	root, err := relayRoot()
+	if err != nil {
+		return err
+	}
+	if err := store.SetPaused(root, on); err != nil {
+		return err
+	}
+	key := i18n.Key("cli.relay.resumed")
+	if on {
+		key = i18n.Key("cli.relay.paused")
+	}
+	_, err = fmt.Fprintln(c.stdout, i18n.New(ui.Lang).T(key, i18n.Args{"repo": root}))
+	return err
+}
+
+// relayRoot is the repository root of the working directory, or the
+// directory itself outside a repository.
+func relayRoot() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	if root := facts.Root(wd); root != "" {
+		return root, nil
+	}
+	return wd, nil
 }
 
 // relayCompact answers the mod's session.compact. It is a hook path: it reads
@@ -57,24 +104,37 @@ func passthrough(reason string) relay.Response {
 	return relay.Response{Version: relay.ProtocolVersion, Action: relay.AnswerPassthrough, Reason: reason}
 }
 
-func compactAnswer(c cmdIO) relay.Response {
+// readCompactRequest reads and checks the mod's envelope; a non-empty reason
+// means answer passthrough.
+func readCompactRequest(c cmdIO) (relay.Request, string) {
 	if c.env("AVAL_RELAY") == "0" {
-		return passthrough(reasonDisabled)
+		return relay.Request{}, reasonDisabled
 	}
 	raw, err := io.ReadAll(io.LimitReader(c.stdin, maxRelayInput))
 	if err != nil {
-		return passthrough(relay.ReasonMalformed)
+		return relay.Request{}, relay.ReasonMalformed
 	}
 	req, err := claudemod.Decode(raw)
 	if err != nil {
-		return passthrough(relay.ReasonMalformed)
+		return relay.Request{}, relay.ReasonMalformed
 	}
 	if req.Version != relay.ProtocolVersion {
-		return passthrough(relay.ReasonVersion)
+		return relay.Request{}, relay.ReasonVersion
+	}
+	return req, ""
+}
+
+func compactAnswer(c cmdIO) relay.Response {
+	req, reason := readCompactRequest(c)
+	if reason != "" {
+		return passthrough(reason)
 	}
 	store, ok := relayStore(c.env)
 	if !ok {
 		return passthrough(reasonNoState)
+	}
+	if root, err := relayRoot(); err == nil && store.Paused(root) {
+		return passthrough(reasonPaused)
 	}
 	release, err := store.Lock(req.SessionID)
 	switch {
@@ -156,3 +216,5 @@ func recordRelay(store statefs.Store, req relay.Request, now time.Time) {
 	sum.Before, sum.After, sum.Trigger = req.Reading.Tokens, 0, req.Trigger
 	_ = store.WriteSummary(req.SessionID, sum)
 }
+
+const reasonPaused = "paused" // aval relay pause in this repository
