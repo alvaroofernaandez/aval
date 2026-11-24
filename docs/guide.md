@@ -880,6 +880,9 @@ aval relay log       # every applied relay, tokens before and after (`--json` on
   Linux (an OSC 9 terminal sequence without it), or a PowerShell toast on Windows and WSL.
   The text is always an argument or an environment value, never part of a script; a
   notifier that fails or hangs (3 s) never touches the relay. `AVAL_RELAY_NOTIFY=0` turns it off.
+- `aval statusline` shows `relay N`: the relays of the repository in the last 12 hours. It
+  counts per repository, not per session (the mods API gives no session id the status line
+  also sees), and adds nothing when there is no relay state.
 - What is not proven yet: the trigger at a turn boundary and on a cold cache, subagents,
   Windows, and any saving in cost. The plan and the open probes are in `odd/tasks/relay.md`.
 

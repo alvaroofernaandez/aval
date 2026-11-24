@@ -9,6 +9,19 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.3.0-rc.9 (2026-11-24)
+
+[Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
+
+### Features
+
+- **relay:** a system notification after each relay (`aval relay notify`, started by the mod without waiting): osascript on macOS, notify-send or an OSC 9 sequence on Linux, a PowerShell toast on Windows and WSL; `AVAL_RELAY_NOTIFY=0` turns it off
+- **statusline:** a `relay N` segment, the relays of the repository in the last 12 hours
+
+### Maintenance
+
+- **relay:** a metric records its repository; the status line reads `metrics.jsonl` under a pinned contract; `statusline.Render` leaves the complexity allowlist
+
 ## v0.3.0-rc.8 (2026-11-24)
 
 [Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)

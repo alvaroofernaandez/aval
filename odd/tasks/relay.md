@@ -341,12 +341,17 @@ on macOS only: exit 0 in 0.7 s; Windows, WSL and Linux are argv-tested, not run.
 
 Branch `feat/relay-statusline`.
 
-- [ ] RED `TestRender_RelaySegment`: gives `relay 3`. Expected failure: no segment.
-- [ ] `TestRender_NoRelayStateIsByteIdentical`.
-- [ ] The segment is a helper (`Render` at complexity 16). `statusline` reads the
+Progress 2026-11-24: owner decision, the segment counts the repository's relays in the last
+12 hours (metrics carry the repo), because the mod's session id is per process and the status
+line cannot match it. `session_id` from the status line input is not used. Benchmark about
+0.18 ms with a 2,000-line log; `aval budget` has no status line row.
+
+- [x] RED `TestRender_RelaySegment`: gives `relay 3`. Expected failure: no segment.
+- [x] `TestRender_NoRelayStateIsByteIdentical`.
+- [x] The segment is a helper (`Render` at complexity 16). `statusline` reads the
       one-line file itself; `cmd/aval/relay_contract_test.go` pins the format.
 - [ ] `session_id` in the statusline input only after a recorded payload shows it.
-- [ ] `BenchmarkRenderWithRelay` against 1 ms; `aval budget` row in the PR.
+- [x] `BenchmarkRenderWithRelay` against 1 ms; `aval budget` row in the PR.
 
 ## T16 — #66 `aval relay doctor` (feat → v0.3.0-rc.10)
 
