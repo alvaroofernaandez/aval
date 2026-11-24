@@ -1,0 +1,22 @@
+# aval relay capsule
+
+## Objective
+First request: Add a retry to the upload client
+Latest request: Now cover the timeout path with a test
+
+## Repository
+Branch: feat/upload-retry · 2 changed files
+
+## Running work
+- go test ./internal/upload/ (background, running)
+
+## Recent requests
+- Show me the upload client
+- Use exponential backoff
+
+## Files edited
+- internal/upload/client.go
+- internal/upload/client_test.go
+
+## Note
+Next: assert the third attempt waits 400 ms.
