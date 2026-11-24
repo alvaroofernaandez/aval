@@ -4,12 +4,13 @@
 // next(e) and starts no process (ADR 0007). Any error, timeout or non-zero
 // exit falls to ladder level 1: Claude Code compacts natively, steered by the
 // fixed STEER text. A capsule that cannot be applied falls the same way.
-import { newSessionId, envelope, answer, steered, newSessionPrompt, PROTOCOL_VERSION } from "./logic.js";
+import { newSessionId, envelope, answer, steered, nextPending, PROTOCOL_VERSION } from "./logic.js";
 
 const TIMEOUT_MS = 2000;
 let session = newSessionId(Math.random);
 let commitPending = false;
 let submitPending = null; // ladder level 3: the prompt of the new session
+let clearing = false; // a level 3 clear is waiting in Claude Code's queue
 let lastPrompt = ""; // the latest prompt submitted, the request in flight
 
 async function relayOn($) {
@@ -32,7 +33,7 @@ export const register = (on) => {
     } catch {
       return next(steered(e, null));
     }
-    submitPending = newSessionPrompt(resp);
+    submitPending = nextPending(submitPending, resp);
     const out = answer(resp, e.messages);
     if (!out) return next(steered(e, resp));
     commitPending = true;
@@ -49,17 +50,23 @@ export const register = (on) => {
   // the new session with the capsule. The new session gets a new id, so its
   // relay chain starts again (relay.Chain). Subagent turns are left alone.
   on("turn.complete", async ($, e, next) => {
-    if (!submitPending || e.agentId !== undefined) return next(e);
-    const text = submitPending;
-    submitPending = null;
+    if (!submitPending || clearing || e.agentId !== undefined) return next(e);
+    clearing = true;
     try {
       if (await relayOn($)) {
         await $.command.run({ command: "clear" });
+        // Read after the clear: compactions that ran while it waited may
+        // have left a newer capsule.
+        const text = submitPending;
+        submitPending = null;
         session = newSessionId(Math.random);
         await $.prompt.submit({ text });
       }
     } catch {
-      // A failed clear leaves the natively compacted session running.
+      // A refused clear leaves the compacted session running; the capsule
+      // stays pending for the next turn.complete.
+    } finally {
+      clearing = false;
     }
     return next(e);
   });

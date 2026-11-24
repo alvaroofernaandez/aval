@@ -1,7 +1,7 @@
 // Run: node --test config/claude/plugins/aval-relay/hooks/logic.test.js
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { newSessionId, envelope, answer, steered, newSessionPrompt, STEER, PROTOCOL_VERSION } from "./logic.js";
+import { newSessionId, envelope, answer, steered, newSessionPrompt, nextPending, STEER, PROTOCOL_VERSION } from "./logic.js";
 
 const messages = [
   { handle: "h1", role: "user", text: "Turn 1", toolUses: [] },
@@ -116,4 +116,16 @@ test("envelope carries the prompt in flight when there is one", () => {
   const got = envelope({ trigger: "auto", messages }, undefined, "relay-abc12345", "GAMMA");
   assert.equal(got.prompt, "GAMMA");
   assert.equal("prompt" in envelope({ trigger: "auto", messages }, undefined, "relay-abc12345"), false);
+});
+
+// Found in the T11 sandbox run: the clear waits behind queued input, so more
+// compactions answer before it runs. The newest capsule wins, and an answer
+// that is not new_session never drops one still to submit.
+test("nextPending keeps the newest capsule until it is submitted", () => {
+  const newer = { ...newSession, capsule: "# aval relay capsule\nFirst request: y\n" };
+  assert.equal(nextPending(null, newSession), newSession.capsule);
+  assert.equal(nextPending(newSession.capsule, newer), newer.capsule);
+  assert.equal(nextPending(newSession.capsule, { version: PROTOCOL_VERSION, action: "steer", instructions: "x" }), newSession.capsule);
+  assert.equal(nextPending(newSession.capsule, null), newSession.capsule);
+  assert.equal(nextPending(null, { version: PROTOCOL_VERSION, action: "passthrough" }), null);
 });

@@ -95,3 +95,13 @@ export function newSessionPrompt(response) {
   if (response.version !== PROTOCOL_VERSION || response.action !== "new_session") return null;
   return typeof response.capsule === "string" && response.capsule ? response.capsule : null;
 }
+
+/**
+ * The level 3 prompt still to submit after aval answers response. The clear
+ * waits behind input already queued, so more compactions can answer before
+ * it runs: the newest capsule wins, and an answer that is not new_session
+ * never drops one still to submit.
+ */
+export function nextPending(current, response) {
+  return newSessionPrompt(response) || current;
+}
