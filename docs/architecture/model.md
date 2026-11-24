@@ -30,6 +30,7 @@ flowchart TD
     relay_adapter_claudehook["relay/adapter/claudehook"]
     relay_adapter_claudemod["relay/adapter/claudemod"]
     relay_adapter_facts["relay/adapter/facts"]
+    relay_adapter_notify["relay/adapter/notify"]
     relay_adapter_statefs["relay/adapter/statefs"]
     release["release"]
     term["term/*"]
@@ -52,6 +53,7 @@ flowchart TD
   cmd_aval --> relay_adapter_claudehook
   cmd_aval --> relay_adapter_claudemod
   cmd_aval --> relay_adapter_facts
+  cmd_aval --> relay_adapter_notify
   cmd_aval --> relay_adapter_statefs
   cmd_aval --> release
   cmd_aval --> term

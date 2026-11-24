@@ -125,7 +125,7 @@ func TestMessagesUsage(t *testing.T) {
 			stderr: "error: unknown layer \"kernel\"; use harness, agent or env\nusage: aval deps [--json] [--layer harness|agent|env]\n"},
 		{name: "deps with an unknown layer, Spanish", args: []string{"--lang", "es", "deps", "--layer", "kernel"}, code: 1,
 			stderr: "error: capa desconocida \"kernel\"; use harness, agent o env\nuso: aval deps [--json] [--layer harness|agent|env]\n"},
-		{name: "relay with an unknown subcommand", args: []string{"relay", "bogus"}, code: 1, stderr: "error: usage: aval relay status|log [--json] | pause|resume|enable|disable | compact|commit\n"},
+		{name: "relay with an unknown subcommand", args: []string{"relay", "bogus"}, code: 1, stderr: "error: usage: aval relay status|log [--json] | pause|resume|enable|disable | compact|commit|notify\n"},
 		{name: "config with an unknown subcommand", args: []string{"config", "bogus"}, code: 1, stderr: "error: unknown config command \"bogus\"; usage: aval config [list | get <key> | set <key> <value> | path]\n"},
 		{name: "kiri without up", args: []string{"kiri"}, unix: true, code: 1, stderr: "error: usage: aval kiri up    (make Docker ready on Kiri; idempotent, deletes nothing)\n"},
 		{name: "docker without cleanup", args: []string{"docker"}, unix: true, code: 1, stderr: "error: usage: aval docker cleanup [--dry-run]    (safe prunes on the kiri context only)\n"},
@@ -336,7 +336,7 @@ Plumbing
                             <lessons|design-gate|pre-push|...>
   aval statusline         Claude Code status line
   aval relay              context relay: status, log, pause, enable
-                            <compact|commit|pause|resume|enable|disable>
+                            <subcommand>
   aval tmux               tmux, Ghostty and zsh helpers
                             <helper>
   aval macos              macOS defaults and LaunchAgents
@@ -421,7 +421,7 @@ Piezas internas
                             <lessons|design-gate|pre-push|...>
   aval statusline         línea de estado de Claude Code
   aval relay              relay de contexto: status, log, pause, enable
-                            <compact|commit|pause|resume|enable|disable>
+                            <subcommand>
   aval tmux               utilidades de tmux, Ghostty y zsh
                             <helper>
   aval macos              ajustes de macOS y LaunchAgents
