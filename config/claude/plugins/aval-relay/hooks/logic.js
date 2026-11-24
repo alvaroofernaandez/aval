@@ -47,3 +47,34 @@ export function answer(response, messages) {
   if (kept.length === 0) return null;
   return { messages: [{ role: "user", text: response.capsule, toolUses: [] }, ...kept] };
 }
+
+/**
+ * The fixed summariser instructions of ladder level 1, used when aval gives no
+ * answer (missing, slow or failed). A constant, not a decision: the policy
+ * stays in Go. Spike #63 P1 showed the native summary follows instructions.
+ */
+export const STEER = [
+  "Write the summary so work can continue without the earlier messages.",
+  "Keep, verbatim where short: the person's first request and their latest one,",
+  "the repository and branch, every file path read or changed, commands still",
+  "running or scheduled, decisions taken and why, and the next step.",
+  "Drop tool output that was already acted on.",
+].join(" ");
+
+/**
+ * The event to hand to next() when aval does not replace (ladder level 1).
+ * No answer, or a replace the mod could not apply, steers with STEER; a steer
+ * answer steers with aval's own
+ * text; any other answer was a deliberate passthrough and changes nothing.
+ * The person's own /compact instructions are kept first.
+ */
+export function steered(event, response) {
+  let text = null;
+  if (!response || typeof response !== "object" || response.action === "replace") {
+    text = STEER;
+  } else if (response.version === PROTOCOL_VERSION && response.action === "steer" && response.instructions) {
+    text = response.instructions;
+  }
+  if (text === null) return event;
+  return { ...event, instructions: event.instructions ? event.instructions + "\n\n" + text : text };
+}

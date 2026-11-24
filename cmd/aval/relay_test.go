@@ -20,7 +20,7 @@ func relayFixture(t *testing.T) string {
 		t.Fatal(err)
 	}
 	// A long first answer, so the tail budget drops it: a tail that keeps
-	// every message is a passthrough (no gain).
+	// every message is a steer answer (no gain).
 	long := "A lighthouse keeps a fixed light for ships at night." + strings.Repeat(" Light.", 6000)
 	return strings.Replace(string(raw), "A lighthouse keeps a fixed light for ships at night.", long, 1)
 }

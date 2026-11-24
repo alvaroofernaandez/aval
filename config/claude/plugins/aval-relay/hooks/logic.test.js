@@ -1,7 +1,7 @@
 // Run: node --test config/claude/plugins/aval-relay/hooks/logic.test.js
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { newSessionId, envelope, answer, PROTOCOL_VERSION } from "./logic.js";
+import { newSessionId, envelope, answer, steered, STEER, PROTOCOL_VERSION } from "./logic.js";
 
 const messages = [
   { handle: "h1", role: "user", text: "Turn 1", toolUses: [] },
@@ -60,4 +60,37 @@ test("answer is null for anything but a usable replace", () => {
   ]) {
     assert.equal(answer(r, messages), null, JSON.stringify(r));
   }
+});
+
+test("no answer from aval steers the native summary with the fixed text", () => {
+  const got = steered({ trigger: "auto", messages }, null);
+  assert.equal(got.instructions, STEER);
+  assert.match(STEER, /first request/);
+  assert.deepEqual(got.messages, messages);
+});
+
+test("a steer answer passes aval's instructions to the summariser", () => {
+  const got = steered({ trigger: "auto", messages }, { version: PROTOCOL_VERSION, action: "steer", instructions: "Keep branch feat/x." });
+  assert.equal(got.instructions, "Keep branch feat/x.");
+});
+
+test("the person's /compact instructions come first and are kept", () => {
+  const got = steered({ trigger: "manual", instructions: "focus on tests", messages }, null);
+  assert.equal(got.instructions, "focus on tests\n\n" + STEER);
+});
+
+test("a deliberate passthrough leaves the event as it is", () => {
+  const e = { trigger: "auto", messages };
+  assert.equal(steered(e, { version: PROTOCOL_VERSION, action: "passthrough", reason: "paused" }), e);
+});
+
+test("a steer answer of another version is not trusted", () => {
+  const e = { trigger: "auto", messages };
+  assert.equal(steered(e, { version: 99, action: "steer", instructions: "x" }), e);
+});
+
+test("a replace the mod cannot apply steers with the fixed text", () => {
+  const resp = { version: PROTOCOL_VERSION, action: "replace", capsule: "C", keep: ["gone"] };
+  assert.equal(answer(resp, messages), null);
+  assert.equal(steered({ trigger: "auto", messages }, resp).instructions, STEER);
 });

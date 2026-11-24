@@ -2,8 +2,9 @@
 // forwards session.compact to `aval relay compact` and applies the answer.
 // Every decision is in Go. With AVAL_RELAY other than 1 every handler returns
 // next(e) and starts no process (ADR 0007). Any error, timeout or non-zero
-// exit falls back to next(e): Claude Code compacts as it would without aval.
-import { newSessionId, envelope, answer, PROTOCOL_VERSION } from "./logic.js";
+// exit falls to ladder level 1: Claude Code compacts natively, steered by the
+// fixed STEER text. A capsule that cannot be applied falls the same way.
+import { newSessionId, envelope, answer, steered, PROTOCOL_VERSION } from "./logic.js";
 
 const TIMEOUT_MS = 2000;
 const session = newSessionId(Math.random);
@@ -22,15 +23,17 @@ async function aval($, args, input) {
 export const register = (on) => {
   on("session.compact", async ($, e, next) => {
     if (!(await relayOn($))) return next(e);
+    let resp;
     try {
       const usage = await $.session.usage();
-      const out = answer(await aval($, ["compact"], envelope(e, usage, session)), e.messages);
-      if (!out) return next(e);
-      commitPending = true;
-      return out;
+      resp = await aval($, ["compact"], envelope(e, usage, session));
     } catch {
-      return next(e);
+      return next(steered(e, null));
     }
+    const out = answer(resp, e.messages);
+    if (!out) return next(steered(e, resp));
+    commitPending = true;
+    return out;
   });
 
   // The first measure after a relay records the tokens the new context holds.

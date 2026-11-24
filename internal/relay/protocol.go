@@ -65,12 +65,15 @@ type Response struct {
 	Capsule string   `json:"capsule,omitempty"`
 	Keep    []string `json:"keep,omitempty"`
 	Reason  string   `json:"reason,omitempty"`
+	// Instructions steer the runtime's native summary (AnswerSteer).
+	Instructions string `json:"instructions,omitempty"`
 }
 
 // Answers in Response.Action.
 const (
 	AnswerPassthrough = "passthrough" // let the runtime do what it would do
 	AnswerReplace     = "replace"     // replace the context with capsule plus keep
+	AnswerSteer       = "steer"       // compact natively, steered by Instructions
 	AnswerNone        = "none"        // nothing to do yet
 	AnswerPrecompute  = "precompute"  // prepare the capsule
 	AnswerRelay       = "relay"       // start a relay now
@@ -102,7 +105,7 @@ func Handle(in []byte, p Policy, b Brakes) []byte {
 		}
 		keep := SelectTail(req.messages(), p.TailTokens)
 		if len(keep) == len(req.Messages) {
-			return answer(Response{Action: AnswerPassthrough, Reason: ReasonNoGain})
+			return answer(Response{Action: AnswerSteer, Reason: ReasonNoGain, Instructions: steerText(req.Capsule.capsule())})
 		}
 		return answer(Response{
 			Action:  AnswerReplace,
@@ -178,4 +181,20 @@ func (c WireCapsule) capsule() Capsule {
 		FirstPrompt: c.FirstPrompt, LastPrompt: c.LastPrompt, Prompts: c.Prompts,
 		Files: c.Files, Repo: c.Repo, Work: c.Work, Note: c.Note,
 	}
+}
+
+// steerMaxChars caps steer instructions at Claude Code's documented limit for
+// summariser instructions from a PreCompact hook (10,000 characters).
+const steerMaxChars = 10_000
+
+// steerTokens is the capsule budget inside steer instructions, about 8,000
+// characters, so the header fits under steerMaxChars.
+const steerTokens = 2_000
+
+const steerHeader = "Keep these facts in the summary, so work can continue without the earlier messages:\n\n"
+
+// steerText is the capsule as summariser instructions. The capsule budget
+// keeps it under steerMaxChars (TestSteerText_StaysUnderTheCap).
+func steerText(c Capsule) string {
+	return steerHeader + Render(c, steerTokens)
 }
