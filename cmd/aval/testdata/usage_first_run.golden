@@ -53,7 +53,7 @@ Plumbing
   aval hook               agent hooks and the git pre-push gate
                             <lessons|design-gate|pre-push|...>
   aval statusline         Claude Code status line
-  aval relay              answer a context compaction from the relay mod
+  aval relay              context relay: status, log, pause, enable
                             <compact|commit|pause|resume|enable|disable>
   aval tmux               tmux, Ghostty and zsh helpers
                             <helper>

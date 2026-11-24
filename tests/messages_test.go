@@ -125,7 +125,7 @@ func TestMessagesUsage(t *testing.T) {
 			stderr: "error: unknown layer \"kernel\"; use harness, agent or env\nusage: aval deps [--json] [--layer harness|agent|env]\n"},
 		{name: "deps with an unknown layer, Spanish", args: []string{"--lang", "es", "deps", "--layer", "kernel"}, code: 1,
 			stderr: "error: capa desconocida \"kernel\"; use harness, agent o env\nuso: aval deps [--json] [--layer harness|agent|env]\n"},
-		{name: "relay with an unknown subcommand", args: []string{"relay", "bogus"}, code: 1, stderr: "error: usage: aval relay compact|commit|pause|resume|enable|disable\n"},
+		{name: "relay with an unknown subcommand", args: []string{"relay", "bogus"}, code: 1, stderr: "error: usage: aval relay status|log [--json] | pause|resume|enable|disable | compact|commit\n"},
 		{name: "config with an unknown subcommand", args: []string{"config", "bogus"}, code: 1, stderr: "error: unknown config command \"bogus\"; usage: aval config [list | get <key> | set <key> <value> | path]\n"},
 		{name: "kiri without up", args: []string{"kiri"}, unix: true, code: 1, stderr: "error: usage: aval kiri up    (make Docker ready on Kiri; idempotent, deletes nothing)\n"},
 		{name: "docker without cleanup", args: []string{"docker"}, unix: true, code: 1, stderr: "error: usage: aval docker cleanup [--dry-run]    (safe prunes on the kiri context only)\n"},
@@ -335,7 +335,7 @@ Plumbing
   aval hook               agent hooks and the git pre-push gate
                             <lessons|design-gate|pre-push|...>
   aval statusline         Claude Code status line
-  aval relay              answer a context compaction from the relay mod
+  aval relay              context relay: status, log, pause, enable
                             <compact|commit|pause|resume|enable|disable>
   aval tmux               tmux, Ghostty and zsh helpers
                             <helper>
@@ -420,7 +420,7 @@ Piezas internas
   aval hook               hooks de agentes y el control previo al push de git
                             <lessons|design-gate|pre-push|...>
   aval statusline         línea de estado de Claude Code
-  aval relay              responde a una compactación de contexto del mod del relay
+  aval relay              relay de contexto: status, log, pause, enable
                             <compact|commit|pause|resume|enable|disable>
   aval tmux               utilidades de tmux, Ghostty y zsh
                             <helper>
@@ -589,6 +589,11 @@ func TestMessagesRelay(t *testing.T) {
 	mod := func(t *testing.T, _, home string) {
 		write(t, filepath.Join(home, ".claude", "aval-relay", "hooks", "hooks.json"), "{}\n")
 	}
+	metrics := func(t *testing.T, _, home string) {
+		write(t, filepath.Join(home, ".state", "aval", "relay", "metrics.jsonl"),
+			`{"at":"2026-11-24T10:12:00Z","trigger":"auto","action":"replace","tokens_before":201480,"tokens_after":38210}`+"\n"+
+				`{"at":"2026-11-24T13:40:00Z","trigger":"manual","action":"new_session","tokens_before":64100,"tokens_after":31950}`+"\n")
+	}
 	runMessages(t, []msgCase{
 		{name: "pause", setup: repo, args: []string{"relay", "pause"}, env: []string{"AVAL_LANG=en"}, stdout: "relay paused in DIR\n"},
 		{name: "resume", setup: repo, args: []string{"relay", "resume"}, env: []string{"AVAL_LANG=en"}, stdout: "relay resumed in DIR\n"},
@@ -604,5 +609,19 @@ func TestMessagesRelay(t *testing.T) {
 		{name: "disable", args: []string{"relay", "disable"}, env: []string{"AVAL_LANG=en"}, stdout: "relay disabled. Restart Claude Code to unload it.\n"},
 		{name: "disable in Spanish", args: []string{"relay", "disable"}, env: []string{"AVAL_LANG=es"}, stdout: "relay desactivado. Reinicie Claude Code para descargarlo.\n"},
 		{name: "resume in Spanish", setup: repo, args: []string{"relay", "resume"}, env: []string{"AVAL_LANG=es"}, stdout: "relay reanudado en DIR\n"},
+		{name: "status with nothing recorded", setup: repo, args: []string{"relay", "status"}, env: []string{"AVAL_LANG=en"}, stdout: "relay    off: run aval relay enable\n" +
+			"tier     T0 replace in place, no model call\n" +
+			"context  exact reading, error within 2%\n" +
+			"repo     DIR, active\n" +
+			"relays   none recorded yet in ~/.state/aval/relay\n"},
+		{name: "status in Spanish", setup: repo, args: []string{"relay", "status"}, env: []string{"AVAL_LANG=es"}, stdout: "relay     desactivado: ejecute aval relay enable\n" +
+			"nivel     T0 sustitución en el sitio, sin llamada al modelo\n" +
+			"contexto  lectura exacta, error dentro del 2%\n" +
+			"repo      DIR, activo\n" +
+			"relays    ninguno registrado aún en ~/.state/aval/relay\n"},
+		{name: "log with nothing recorded", args: []string{"relay", "log"}, env: []string{"AVAL_LANG=en"}, stdout: "no relay recorded yet in ~/.state/aval/relay\n"},
+		{name: "log aligns its columns", setup: metrics, args: []string{"relay", "log"}, env: []string{"AVAL_LANG=en", "TZ=UTC"},
+			stdout: "2026-11-24 10:12  auto    replace      201k to 38k\n2026-11-24 13:40  manual  new_session  64k to 32k\n"},
+		{name: "log in Spanish", args: []string{"relay", "log"}, env: []string{"AVAL_LANG=es"}, stdout: "aún no hay relays registrados en ~/.state/aval/relay\n"},
 	})
 }

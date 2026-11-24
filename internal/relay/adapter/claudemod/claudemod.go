@@ -12,6 +12,18 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/relay"
 )
 
+// Runtime names Claude Code in machine output.
+const Runtime = "claude-code"
+
+// Source is where the mod's token reading comes from: session.measure
+// reports the context tokens exactly (E1 of the #63 spike).
+const Source = "exact"
+
+// Capabilities is what the mods API lets the relay do on Claude Code:
+// replace the context (S1), steer the native summary (P1) and clear then
+// resubmit at a turn boundary (S6).
+var Capabilities = relay.Capabilities{Compaction: relay.CompactionReplace, Inject: true, Session: relay.SessionRestart}
+
 // ErrMalformed is returned for input that is not a mod envelope.
 var ErrMalformed = errors.New("claudemod: malformed envelope")
 
@@ -60,7 +72,7 @@ func Decode(raw []byte) (relay.Request, error) {
 	req := relay.Request{
 		Version: env.Version, Event: env.Event, Trigger: env.Trigger,
 		SessionID: env.SessionID, Model: env.Model,
-		Reading:  relay.WireReading{Tokens: env.Usage.Tokens, Window: env.Usage.Window, Source: "exact"},
+		Reading:  relay.WireReading{Tokens: env.Usage.Tokens, Window: env.Usage.Window, Source: Source},
 		Messages: messages(env.Messages),
 	}
 	first, prompts := userPrompts(env.Messages)

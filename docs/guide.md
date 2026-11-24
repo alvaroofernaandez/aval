@@ -851,6 +851,8 @@ Code on macOS and Linux.
 aval relay enable    # AVAL_RELAY=1, the compaction window and the mod in your live settings
 aval relay pause     # this repository answers passthrough until `aval relay resume`
 aval relay disable   # removes exactly the keys enable added
+aval relay status    # on or off, tier, reading source and error bound, pause, last relay
+aval relay log       # every applied relay, tokens before and after (`--json` on both)
 ```
 
 - `enable` sets `CLAUDE_CODE_AUTO_COMPACT_WINDOW` to the hard threshold (200,000 tokens by
@@ -871,6 +873,8 @@ aval relay disable   # removes exactly the keys enable added
   queued. Such a prompt runs in the old session first; the capsule carries it only when it
   compacts again before the clear, so send nothing while a level 3 relay is pending.
   The level 2 hooks are in the settings `aval sync` installs and do nothing unless `AVAL_RELAY=1`.
+- Each applied relay is one line of `~/.local/state/aval/relay/metrics.jsonl` (mode 0600),
+  written when the mod first measures the new context; `status` and `log` read it.
 - What is not proven yet: the trigger at a turn boundary and on a cold cache, subagents,
   Windows, and any saving in cost. The plan and the open probes are in `odd/tasks/relay.md`.
 

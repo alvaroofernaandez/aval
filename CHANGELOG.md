@@ -9,6 +9,18 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.3.0-rc.8 (2026-11-24)
+
+[Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
+
+### Features
+
+- **relay:** `aval relay status` and `aval relay log`, with `--json`: whether the relay is on, its tier, the reading source and its error bound, the pause, and every applied relay from `metrics.jsonl`, which `aval relay commit` now writes
+
+### Maintenance
+
+- **relay:** `relay.NotifyText`, the notification text of every delivery tier, golden-tested; tier names and the error bound of a reading source
+
 ## v0.3.0-rc.7 (2026-11-24)
 
 [Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
