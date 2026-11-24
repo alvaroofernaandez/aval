@@ -111,3 +111,12 @@ func TestCapsuleRender_KeepsNewestFilesAndPrompts(t *testing.T) {
 		}
 	}
 }
+
+func TestCapsuleRender_UnknownChangeCountIsOmitted(t *testing.T) {
+	c := sample()
+	c.Repo = &RepoFacts{Branch: "main"}
+	got := Render(c, 4_000)
+	if !strings.Contains(got, "Branch: main\n") || strings.Contains(got, "changed files") {
+		t.Fatalf("repository line:\n%s", got)
+	}
+}
