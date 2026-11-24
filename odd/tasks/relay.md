@@ -241,7 +241,7 @@ Progress 2026-11-24: P1 and P2 passed (RESULTS.md); mod, manifest link,
 `aval relay enable|disable|commit` and the ADR 0001 amendment are on branch
 `feat/relay-claude-mod`. Deviation: the mod reads usage with `$.session.usage()`
 inside the compact handler and makes a per-process session id (the mods API
-exposes none). Waiting on the owner's interactive session; release notes after it.
+exposes none). Merged in #111; checked in `aval dev` (PR comment), interactive TUI not covered (S2). Shipped as v0.3.0-rc.6.
 
 Branch `feat/relay-claude-mod`. Starts only after P2 and D4, D5, D6.
 
@@ -250,22 +250,22 @@ logic.js, logic.test.js), `install.manifest`, `.github/workflows/ci.yml`
 (`node --test`), `cmd/aval/relay.go` (`enable`, `disable`),
 `docs/adr/0001-go-only.md` (amendment, D5), `docs/guide.md`, release notes.
 
-- [ ] Shim rules: no policy; `$` never passed to a helper declared inside
+- [x] Shim rules: no policy; `$` never passed to a helper declared inside
       `register`; hand-built messages have `toolUses: []`; `$.process.run` has a
       timeout; any error returns `next(e)`.
-- [ ] No-op path (ADR 0007): when `AVAL_RELAY` is not `1`, return `next(e)`.
-- [ ] Triggers: `auto` and `manual` only.
-- [ ] RED `logic.test.js`: `shapeSnapshot` builds the protocol v1 request.
-- [ ] RED `TestRelayEnableSetsEnvKeys`: `AVAL_RELAY=1` and
+- [x] No-op path (ADR 0007): when `AVAL_RELAY` is not `1`, return `next(e)`.
+- [x] Triggers: `auto` and `manual` only.
+- [x] RED `logic.test.js`: `shapeSnapshot` builds the protocol v1 request.
+- [x] RED `TestRelayEnableSetsEnvKeys`: `AVAL_RELAY=1` and
       `CLAUDE_CODE_AUTO_COMPACT_WINDOW = HardTokens + 33000`; `disable` removes them.
-- [ ] RED in `tests/manifest_test.go` (plugin linked) and `tests/agent_hooks_test.go`
+- [x] RED in `tests/manifest_test.go` (plugin linked) and `tests/agent_hooks_test.go`
       (repo settings hold no relay env key: off by default).
-- [ ] Commit-on-next-measure: `aval relay commit` on the first `session.measure`
+- [x] Commit-on-next-measure: `aval relay commit` on the first `session.measure`
       after an answer; appends `metrics.jsonl`.
-- [ ] One real interactive session by hand before merge, result in the PR.
-- [ ] Notes: experimental, off by default, engine-fired trigger only, macOS and
+- [x] One real interactive session by hand before merge, result in the PR.
+- [x] Notes: experimental, off by default, engine-fired trigger only, macOS and
       Linux, no cost claim.
-- [ ] Release: dry run shows v0.3.0-rc.6, then `aval release rc --yes`.
+- [x] Release: dry run shows v0.3.0-rc.6, then `aval release rc --yes`.
 
 ## T11 — #65 fallback ladder, levels 1 to 4 (feat → v0.3.0-rc.7)
 
