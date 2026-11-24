@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "event": "compact",
+  "trigger": "auto",
+  "session_id": "session-a",
+  "model": "haiku",
+  "usage": {"tokens": 63795, "window": 1000000},
+  "messages": [
+    {"handle": "h-01", "role": "user", "text": "Turn 1. Write about a lighthouse.", "toolUses": []},
+    {"handle": "h-02", "role": "assistant", "text": "A lighthouse keeps a fixed light for ships at night.", "toolUses": []},
+    {"handle": "h-03", "role": "user", "text": "Turn 2. Write about a river.", "toolUses": []},
+    {"handle": "h-04", "role": "assistant", "text": "A river carries water and sediment to the sea.", "toolUses": []},
+    {"handle": "h-05", "role": "user", "text": "Turn 3. Write about a glacier.", "toolUses": []},
+    {"handle": "h-06", "role": "assistant", "text": "A glacier is ice that moves under its own weight.", "toolUses": []}
+  ]
+}

@@ -53,6 +53,8 @@ Plumbing
   aval hook               agent hooks and the git pre-push gate
                             <lessons|design-gate|pre-push|...>
   aval statusline         Claude Code status line
+  aval relay              answer a context compaction from the relay mod
+                            compact
   aval tmux               tmux, Ghostty and zsh helpers
                             <helper>
   aval macos              macOS defaults and LaunchAgents
