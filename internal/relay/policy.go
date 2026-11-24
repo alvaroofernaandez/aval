@@ -23,6 +23,7 @@ type Reading struct {
 	Window      int     // model window in tokens; 0 when unknown
 	ErrPct      float64 // relative error bound of Tokens (0.15 is 15%)
 	FloorTokens int     // tokens a fresh session starts with
+	Source      Source  // where Tokens comes from
 }
 
 // Snapshot is what an adapter knows when it asks for a decision.
