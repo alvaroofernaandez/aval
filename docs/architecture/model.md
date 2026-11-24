@@ -27,6 +27,7 @@ flowchart TD
     herdr["herdr/*"]
     i18n["i18n"]
     relay["relay"]
+    relay_adapter_statefs["relay/adapter/statefs"]
     release["release"]
     term["term/*"]
     testenv["testenv"]
