@@ -856,8 +856,18 @@ aval relay disable   # removes exactly the keys enable added
 - `enable` sets `CLAUDE_CODE_AUTO_COMPACT_WINDOW` to the hard threshold (200,000 tokens by
   default, `AVAL_RELAY_HARD_TOKENS`) plus the 33,000-token buffer Claude Code keeps before its
   window (measured at a 100,000 window in spike #63). The repo settings never carry these keys.
-- Anything unexpected (aval slower than 2 s, a malformed answer, a held lock, a brake) lets
-  Claude Code compact as it would without aval.
+- When the relay cannot answer, it falls down a ladder instead of failing:
+
+  | Level | When | What happens |
+  | --- | --- | --- |
+  | 0 | the default | the mod replaces the context with the capsule and the latest messages |
+  | 1 | aval missing, slower than 2 s or failing; a tail that would keep every message | Claude Code compacts natively, its summary steered by the capsule or a fixed text |
+  | 2 | the mod does not load | `aval hook relay-precompact` steers the summary and `aval hook relay-sessionstart` adds the capsule after it |
+  | 3 | the chain already holds 5 relays | Claude Code compacts natively, then at the end of the turn the mod clears and opens a new session with the capsule |
+  | 4 | everything above failed | native compaction at the window `enable` set |
+
+  A pause, `AVAL_RELAY=0` or another brake lets Claude Code compact as it would without aval.
+  The level 2 hooks are in the settings `aval sync` installs and do nothing unless `AVAL_RELAY=1`.
 - What is not proven yet: the trigger at a turn boundary and on a cold cache, subagents,
   Windows, and any saving in cost. The plan and the open probes are in `odd/tasks/relay.md`.
 
