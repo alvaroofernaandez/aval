@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/alvaroofernaandez/aval/internal/agent/statusline"
 	"github.com/alvaroofernaandez/aval/internal/i18n"
 	"github.com/alvaroofernaandez/aval/internal/relay"
 	"github.com/alvaroofernaandez/aval/internal/relay/adapter/claudemod"
@@ -222,4 +224,14 @@ func sourceKey(source string) string {
 // padRight pads s with spaces to width bytes; trigger and action are ASCII.
 func padRight(s string, width int) string {
 	return s + strings.Repeat(" ", max(0, width-len(s)))
+}
+
+// statuslineOptions points the status line at the relay state. Env only: the
+// status line is a hot path and reads no config.
+func statuslineOptions(getenv func(string) string) statusline.Options {
+	o := statusline.Options{Now: time.Now()}
+	if store, ok := relayStore(getenv); ok {
+		o.RelayDir = store.Dir
+	}
+	return o
 }

@@ -220,9 +220,10 @@ func relayPolicy(getenv func(string) string) relay.Policy {
 // recordRelay journals the answer, extends the chain and updates the summary
 // the status line reads. A failure here does not change the answer.
 func recordRelay(store statefs.Store, req relay.Request, action string, now time.Time) {
+	repo, _ := relayRoot()
 	_ = store.Prepare(req.SessionID, statefs.Entry{
 		Trigger: req.Trigger, Action: action, Source: req.Reading.Source, Floor: req.Reading.Floor,
-		TokensBefore: req.Reading.Tokens, At: now,
+		TokensBefore: req.Reading.Tokens, At: now, Repo: repo,
 	})
 	_ = store.AppendLink(req.SessionID, relay.Link{SessionID: req.SessionID, Fingerprint: req.Fingerprint, Turn: req.Turn})
 	sum, _ := store.ReadSummary(req.SessionID)

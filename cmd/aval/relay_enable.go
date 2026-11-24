@@ -199,7 +199,7 @@ func relayCommit(c cmdIO) error {
 	if prev.State == statefs.Prepared {
 		_ = store.AppendMetric(statefs.Metric{
 			At: prev.At, Session: in.SessionID, Trigger: prev.Trigger, Action: prev.Action,
-			Source: prev.Source, Before: prev.TokensBefore, After: in.Tokens, Floor: prev.Floor,
+			Source: prev.Source, Before: prev.TokensBefore, After: in.Tokens, Floor: prev.Floor, Repo: prev.Repo,
 		})
 	}
 	sum, err := store.ReadSummary(in.SessionID)
