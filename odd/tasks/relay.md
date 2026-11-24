@@ -271,14 +271,24 @@ logic.js, logic.test.js), `install.manifest`, `.github/workflows/ci.yml`
 
 Branch `feat/relay-ladder`.
 
-- [ ] RED `TestLadder_BinarySlow_Level1`. Expected failure: level 0.
-- [ ] Then `_ModNotLoaded_Level2`, `_PolicyWantsNewSession_Level3`,
+Progress 2026-11-24: levels 1 to 3 on the branch. Owner decisions: level 1 with
+aval down uses a fixed `STEER` text in `logic.js` (aval answers `steer` itself on
+`no_gain`); level 3 fires when the `max_chain` brake refuses a replace (aval answers
+`new_session`, the mod compacts natively, then clears and submits the capsule at
+`turn.complete` and takes a new session id). Level 2 hooks live in
+`config/claude/settings.json` (the mod's plugin does not load when the mod does
+not); `relay-sessionstart` is silent when a journal entry is under 10 s old. Not
+run: any of it in a real Claude Code session; the transcript format is undocumented
+(read from a 2.1.331 transcript, keys only).
+
+- [x] RED `TestLadder_BinarySlow_Level1`. Expected failure: level 0.
+- [x] Then `_ModNotLoaded_Level2`, `_PolicyWantsNewSession_Level3`,
       `_AllFailed_Level4`, `_NeverSilent`.
-- [ ] Level 1 only if P1 passed; otherwise skipped and the PR says so.
-- [ ] Level 2: `aval hook relay-precompact` and `aval hook relay-sessionstart`, in
+- [x] Level 1 only if P1 passed; otherwise skipped and the PR says so.
+- [x] Level 2: `aval hook relay-precompact` and `aval hook relay-sessionstart`, in
       the hot-path tests and `FuzzHookInput`; no-ops unless `AVAL_RELAY=1`.
-- [ ] Level 3: `clear` then `prompt.submit` from `turn.complete` only (S6).
-- [ ] Level 4: the lowered window already set by `enable`.
+- [x] Level 3: `clear` then `prompt.submit` from `turn.complete` only (S6).
+- [x] Level 4: the lowered window already set by `enable`.
 - [ ] Release: dry run shows v0.3.0-rc.7.
 
 ## T12 — #65 blocked remainder (feat → v0.3.0-rc.11 when unblocked)
