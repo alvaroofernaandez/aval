@@ -36,7 +36,7 @@ const CapsuleFirstRequest = "First request: "
 // first request it carries (empty when it carries none). Adapters use it so a
 // capsule from an earlier relay is never taken as a request.
 func CapsuleFirst(text string) (string, bool) {
-	if !strings.HasPrefix(text, CapsuleHeader) {
+	if !isCapsule(text) {
 		return "", false
 	}
 	for _, line := range strings.Split(text, "\n") {
@@ -144,6 +144,17 @@ func truncateTokens(s string, budget int) string {
 	return s[:limit] + cut
 }
 
+// isCapsule: the header starts the text, or its second line when the runtime
+// wraps a plugin-submitted prompt in one line of its own (Claude Code writes
+// "The aval-relay plugin sent a message:"; T11 sandbox run).
+func isCapsule(text string) bool {
+	if strings.HasPrefix(text, CapsuleHeader) {
+		return true
+	}
+	_, rest, ok := strings.Cut(text, "\n")
+	return ok && strings.HasPrefix(rest, CapsuleHeader)
+}
+
 // notRequests are the prefixes of user messages a runtime writes itself:
 // Claude Code's summary after its own compaction and its slash-command
 // markers (recorded on 2.1.331, T11 sandbox run).
@@ -156,7 +167,7 @@ var notRequests = []string{
 // IsRequest reports whether a user message is a request of the person: not
 // empty, not a capsule and not a message the runtime wrote itself.
 func IsRequest(text string) bool {
-	if text == "" || strings.HasPrefix(text, CapsuleHeader) {
+	if text == "" || isCapsule(text) {
 		return false
 	}
 	for _, p := range notRequests {
