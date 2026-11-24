@@ -35,3 +35,22 @@ churn); no test or CI step depends on it.
 - Contributors need only Go and git.
 - Checks that other ecosystems do with scripts are Go tests under `tests/`.
 - Report-only tools stay optional and outside the gate.
+
+## Amendments
+
+### 2026-11-24
+
+A runtime shim that a host's plugin API requires may be written in that
+host's language, when it is plumbing only: it forwards events to the `aval`
+binary and applies the answer, and every decision stays in Go. Its pure
+logic lives in a file with no host imports and is tested with `node --test`,
+run from a Go test that skips without `node` (as
+`internal/herdr/mods/diffreview_test.go` does); CI already sets up node for
+`npm/cli`.
+
+This records what the repository already ships, the herdr `diff-review` mod
+and the OpenCode plugins, and adds the Claude Code relay mod
+(`config/claude/plugins/aval-relay`, `odd/tasks/relay.md` T10, decision D5):
+Claude Code's mods API only loads JavaScript or TypeScript modules (spike
+#63, probe P2). Node stays out of the product: the shims run inside the host,
+and `aval` remains one Go binary.
