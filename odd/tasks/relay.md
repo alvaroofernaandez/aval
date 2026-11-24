@@ -254,7 +254,7 @@ logic.js, logic.test.js), `install.manifest`, `.github/workflows/ci.yml`
       `register`; hand-built messages have `toolUses: []`; `$.process.run` has a
       timeout; any error returns `next(e)`.
 - [x] No-op path (ADR 0007): when `AVAL_RELAY` is not `1`, return `next(e)`.
-- [x] Triggers: `auto` and `manual` only.
+- [x] Triggers: `auto` and `manual` only. (Ticked with T10 by mistake; the filter landed in T11 after the sandbox run showed a compaction during a clear.)
 - [x] RED `logic.test.js`: `shapeSnapshot` builds the protocol v1 request.
 - [x] RED `TestRelayEnableSetsEnvKeys`: `AVAL_RELAY=1` and
       `CLAUDE_CODE_AUTO_COMPACT_WINDOW = HardTokens + 33000`; `disable` removes them.
