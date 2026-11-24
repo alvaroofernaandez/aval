@@ -1,6 +1,7 @@
 package claudemod
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -69,5 +70,31 @@ func TestDecode_Malformed(t *testing.T) {
 		if _, err := Decode([]byte(in)); !errors.Is(err, ErrMalformed) {
 			t.Errorf("Decode(%q): got %v, want ErrMalformed", in, err)
 		}
+	}
+}
+
+// After a relay the first user message is aval's own capsule. A second relay
+// must not take it for the first request (found in the T10 sandbox run: the
+// capsules nested).
+func TestDecode_APreviousCapsuleIsNotAPrompt(t *testing.T) {
+	capsule := "# aval relay capsule\n\n## Objective\nFirst request: Turn 1. Find OTTER1.\nLatest request: Turn 3.\n"
+	in, err := json.Marshal(Envelope{Version: 1, Event: "compact", Messages: []Message{
+		{Handle: "c", Role: "user", Text: capsule},
+		{Handle: "u3", Role: "user", Text: "Turn 3."},
+		{Handle: "a3", Role: "assistant", Text: "done"},
+		{Handle: "u4", Role: "user", Text: "Turn 4."},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := Decode(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req.Capsule.FirstPrompt != "Turn 1. Find OTTER1." || req.Capsule.LastPrompt != "Turn 4." {
+		t.Fatalf("first %q last %q, want the original first request and Turn 4.", req.Capsule.FirstPrompt, req.Capsule.LastPrompt)
+	}
+	if !slices.Equal(req.Capsule.Prompts, []string{"Turn 3."}) || req.Turn != 2 {
+		t.Fatalf("prompts %v turn %d: the capsule counted as a request", req.Capsule.Prompts, req.Turn)
 	}
 }

@@ -93,3 +93,15 @@ func TestProtocol_BrakeLetsTheNativeCompactionRun(t *testing.T) {
 		t.Fatalf("got %q/%q, want passthrough/brake:no_progress", r.Action, r.Reason)
 	}
 }
+
+// A tail that keeps every message frees nothing: the capsule only adds to the
+// context. The native compaction runs instead (found in the T10 sandbox run).
+func TestProtocol_TailKeepingEverythingIsPassthrough(t *testing.T) {
+	r := handle(t, `{"version":1,"event":"compact","trigger":"auto","turn":3,"fingerprint":"f",
+		"reading":{"tokens":59000,"window":1000000,"source":"exact"},
+		"messages":[{"handle":"a","role":"user","tokens":10},{"handle":"b","role":"assistant","tokens":9000}],
+		"capsule":{"first_prompt":"Turn 1"}}`)
+	if r.Action != AnswerPassthrough || r.Reason != ReasonNoGain {
+		t.Fatalf("got %+v, want passthrough/%s", r, ReasonNoGain)
+	}
+}

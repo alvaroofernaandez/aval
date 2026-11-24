@@ -838,6 +838,28 @@ shared skills.
 | `claude/themes/` | Custom colour themes, referenced as `custom:<file>` |
 | `opencode/opencode.json`, `AGENTS.md`, `package.json` | Global configuration and instructions |
 | `opencode/agents/`, `commands/`, `plugin(s)/`, `profiles/` | Adapters and extensions |
+| `claude/plugins/aval-relay/` | The context relay mod (experimental, off by default), linked to `~/.claude/aval-relay` |
+
+### 🔁 Context relay (experimental)
+
+When a Claude Code session compacts, the relay answers the compaction itself: an aval
+capsule (objective, branch, recent requests, edited files) and the latest messages verbatim
+replace the context, with no summariser call. It is **off by default** and only for Claude
+Code on macOS and Linux.
+
+```bash
+aval relay enable    # AVAL_RELAY=1, the compaction window and the mod in your live settings
+aval relay pause     # this repository answers passthrough until `aval relay resume`
+aval relay disable   # removes exactly the keys enable added
+```
+
+- `enable` sets `CLAUDE_CODE_AUTO_COMPACT_WINDOW` to the hard threshold (200,000 tokens by
+  default, `AVAL_RELAY_HARD_TOKENS`) plus the 33,000-token buffer Claude Code keeps before its
+  window (measured at a 100,000 window in spike #63). The repo settings never carry these keys.
+- Anything unexpected (aval slower than 2 s, a malformed answer, a held lock, a brake) lets
+  Claude Code compact as it would without aval.
+- What is not proven yet: the trigger at a turn boundary and on a cold cache, subagents,
+  Windows, and any saving in cost. The plan and the open probes are in `odd/tasks/relay.md`.
 
 ---
 

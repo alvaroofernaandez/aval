@@ -64,6 +64,9 @@ config/claude/agents               .claude/agents
 config/claude/commands             .claude/commands
 config/claude/lessons              .claude/lessons
 config/claude/themes               .claude/themes
+# The relay mod, loaded only when `aval relay enable` adds it to the plugin
+# dirs in the live settings (odd/tasks/relay.md, T10).
+config/claude/plugins/aval-relay   .claude/aval-relay
 
 [opencode]
 label = OpenCode

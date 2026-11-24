@@ -81,6 +81,7 @@ const (
 	ReasonMalformed = "malformed"
 	ReasonVersion   = "version"
 	ReasonEvent     = "event"
+	ReasonNoGain    = "no_gain" // the tail keeps every message
 )
 
 // Handle answers one protocol request. Any input it cannot use yields a
@@ -99,10 +100,14 @@ func Handle(in []byte, p Policy, b Brakes) []byte {
 		if brake != BrakeNone {
 			return answer(Response{Action: AnswerPassthrough, Reason: "brake:" + brake.String()})
 		}
+		keep := SelectTail(req.messages(), p.TailTokens)
+		if len(keep) == len(req.Messages) {
+			return answer(Response{Action: AnswerPassthrough, Reason: ReasonNoGain})
+		}
 		return answer(Response{
 			Action:  AnswerReplace,
 			Capsule: Render(req.Capsule.capsule(), p.CapsuleTokens),
-			Keep:    SelectTail(req.messages(), p.TailTokens),
+			Keep:    keep,
 		})
 	case "measure":
 		return answer(measure(p.Decide(req.snapshot()), brake))

@@ -9,6 +9,19 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.3.0-rc.6 (2026-11-24)
+
+[Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
+
+### Features
+
+- **relay:** an experimental context relay for Claude Code, off by default: `aval relay enable` loads a mod that answers a compaction with an aval note and the latest messages, through `aval relay compact`; `aval relay pause`, `resume` and `disable`
+
+### Maintenance
+
+- **relay:** `internal/relay`, the I/O-free relay core (policy, brakes, tiers, estimator, tail, note, work ledger, protocol v1), and its state, Claude Code and repository adapters
+- **adr:** ADR 0001 allows plumbing-only runtime shims; ADR 0002 adds `internal/relay` as a leaf
+
 ## v0.3.0-rc.5 (2026-11-23)
 
 [Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)

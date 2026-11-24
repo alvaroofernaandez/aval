@@ -19,7 +19,10 @@ func relayFixture(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return string(raw)
+	// A long first answer, so the tail budget drops it: a tail that keeps
+	// every message is a passthrough (no gain).
+	long := "A lighthouse keeps a fixed light for ships at night." + strings.Repeat(" Light.", 6000)
+	return strings.Replace(string(raw), "A lighthouse keeps a fixed light for ships at night.", long, 1)
 }
 
 // compact runs `aval relay compact` with stdin and a state dir under state.

@@ -94,16 +94,16 @@ The flow of `odd/tasks/v0.3.0-batch-2.md`, steps 1 to 11, unchanged. Additions:
 ## T0 — before the first edit
 
 - [x] Owner answers D1 to D10; record them here as answers.
-- [ ] Plan and deck built (`plan-deck`); commit both on the T1 branch:
+- [x] Plan and deck built (`plan-deck`); commit both on the T1 branch:
       `docs(plan): relay plan and deck`.
-- [ ] Hand the owner the runbook for S1 `plugin`, P3, S2 (plus `$.ui.*`), S4,
+- [x] Hand the owner the runbook for S1 `plugin`, P3, S2 (plus `$.ui.*`), S4,
       S1 `agentId`, S7, E1 live. Nothing in T1 to T11 waits on them.
-- [ ] Agent probes in the spike directory, outside the repo, appended to RESULTS.md:
+- [x] Agent probes in the spike directory, outside the repo, appended to RESULTS.md:
   - P1: steered compaction. A mod returning `next({...e, instructions})`; record
     whether the summary follows the instructions and the `usage`.
   - P2: persistent loading. Does `CLAUDE_CODE_PLUGIN_DIRS` in a settings `env` block
     load the plugin, and does a `.js` module load? Scratch settings file only.
-- [ ] Sanitise the S1 fixtures for the repo (D7). `s3-*` and `e2-native` contain a
+- [x] Sanitise the S1 fixtures for the repo (D7). `s3-*` and `e2-native` contain a
       home path; the others hold real session text.
 
 ## T1 — #64 ADR amendment, package rule, cost-aware `Decide` (no release)
@@ -115,91 +115,91 @@ Files: `docs/adr/0002-internal-layering.md` (dated amendment),
 `tests/architecture_test.go`, `docs/architecture/model.md` (regenerated),
 `ARCHITECTURE.md`, `internal/relay/policy.go`, `internal/relay/policy_test.go`.
 
-- [ ] Amendment: `internal/relay` is a leaf; `internal/relay/*` may import
+- [x] Amendment: `internal/relay` is a leaf; `internal/relay/*` may import
       `internal/relay` only; `cmd/aval` wires them; `core/*`, `ui`, `agent/*` do not
       import relay.
-- [ ] `archRules`: `{pkg: "internal/relay"}` and
+- [x] `archRules`: `{pkg: "internal/relay"}` and
       `{pkg: "internal/relay/*", allow: ["internal/relay"]}`; regenerate the model.
-- [ ] Stub first: `Decide(Snapshot) Decision` returning none.
-- [ ] RED `TestDecide_HardTokensCapsLargeWindow`: a 1M window at 200k tokens with a
+- [x] Stub first: `Decide(Snapshot) Decision` returning none.
+- [x] RED `TestDecide_HardTokensCapsLargeWindow`: a 1M window at 200k tokens with a
       warm cache returns relay. Expected failure: got none.
-- [ ] Then `_BelowSoft_None`, `_AtSoft_Precompute`, `_SmallWindowUsesPctCap`,
+- [x] Then `_BelowSoft_None`, `_AtSoft_Precompute`, `_SmallWindowUsesPctCap`,
       `_ColdCacheAboveColdMin_Relay`, `_ColdCacheBelowColdMin_None`,
       `_WarmCacheBelowHardTokens_None`, `_NetBenefitBelowFloor_None`,
       `_UnknownCache_TreatedAsWarm`, `_UsesUpperBound`.
-- [ ] Defaults as provisional constants: soft 160k, hard 200k, cold minimum 100k.
-- [ ] The issue's `TestDecide_AtHard_Relay` (61%) is superseded by the cost model;
+- [x] Defaults as provisional constants: soft 160k, hard 200k, cold minimum 100k.
+- [x] The issue's `TestDecide_AtHard_Relay` (61%) is superseded by the cost model;
       say so in the PR.
-- [ ] Commits: `docs(adr): internal/relay is a leaf with adapters below it`,
+- [x] Commits: `docs(adr): internal/relay is a leaf with adapters below it`,
       `feat(relay): cost-aware Decide on absolute tokens and cache age`. PR `Refs #64`.
 
 ## T2 — #64 brakes and chain (no release)
 
 Branch `feat/relay-brakes`. Files: `internal/relay/brake.go`, `chain.go`, tests.
 
-- [ ] RED `TestBrake_SameFingerprintTwice`: same progress fingerprint twice returns
+- [x] RED `TestBrake_SameFingerprintTwice`: same progress fingerprint twice returns
       brake with a typed reason. Expected failure: got go.
-- [ ] Then `_ThrashWithinMinTurns`, `_MaxChain`, `_CostCap`,
+- [x] Then `_ThrashWithinMinTurns`, `_MaxChain`, `_CostCap`,
       `TestChain_EpochIncrements`, `_SessionIDMapAfterClear`.
-- [ ] Reasons are a closed type, asserted by value.
-- [ ] Commit `feat(relay): brakes and the relay chain`.
+- [x] Reasons are a closed type, asserted by value.
+- [x] Commit `feat(relay): brakes and the relay chain`.
 
 ## T3 — #64 capabilities, tier, estimator (no release)
 
 Branch `feat/relay-capabilities`. Files: `capability.go`, `estimator.go`, tests.
 
-- [ ] RED `TestTier_ClaudeNativeUI_T0`. Expected failure: got T4.
-- [ ] Table per vector and `RunMode`; `TestDegrade_ReplaceProbeFailed_T1` and down.
-- [ ] `TestEstimator_UpperBoundTriggersEarly`, `_CalibratesOnCompaction`,
+- [x] RED `TestTier_ClaudeNativeUI_T0`. Expected failure: got T4.
+- [x] Table per vector and `RunMode`; `TestDegrade_ReplaceProbeFailed_T1` and down.
+- [x] `TestEstimator_UpperBoundTriggersEarly`, `_CalibratesOnCompaction`,
       `_UnknownModelWidensBound`, `_TranscriptDivisorIsProvisional`.
-- [ ] Bounds from E1: exact 0 to 2%; transcript D = 1.75, `ErrPct` 15 ("in-sample,
+- [x] Bounds from E1: exact 0 to 2%; transcript D = 1.75, `ErrPct` 15 ("in-sample,
       one person, Opus"); 50% for an unknown model.
-- [ ] `Capabilities` defined here as closed types (D8).
-- [ ] Commits: `feat(relay): closed capability model with Tier and Degrade`,
+- [x] `Capabilities` defined here as closed types (D8).
+- [x] Commits: `feat(relay): closed capability model with Tier and Degrade`,
       `feat(relay): context estimator that compares its upper bound`.
 
 ## T4 — #64 message model and pair-safe tail (no release)
 
 Branch `feat/relay-tail`. Files: `message.go`, `tail.go`, tests.
 
-- [ ] RED `TestSelectTail_NeverSplitsToolPair`. Expected failure: stub cuts by count.
-- [ ] Then `_RespectsBudget`, `_MidTurnKeepsInflightPair`,
+- [x] RED `TestSelectTail_NeverSplitsToolPair`. Expected failure: stub cuts by count.
+- [x] Then `_RespectsBudget`, `_MidTurnKeepsInflightPair`,
       `_OversizedLastPairKeptAlone`, `_ReturnsHandlesNotCopies`.
-- [ ] Commit `feat(relay): pair-safe tail selection by handle`.
+- [x] Commit `feat(relay): pair-safe tail selection by handle`.
 
 ## T5 — #64 capsule and redaction (no release)
 
 Branch `feat/relay-capsule`. Files: `capsule.go`, `redact.go`, `testdata/*.golden`.
 
-- [ ] RED `TestCapsuleRender_Golden`. Expected failure: empty output.
-- [ ] Then `_ShrinksInOrder_NoteTailObjective`, `_NoRepoOmitsGit`, `_NeverAboveBudget`.
-- [ ] Baseline: up to 15 previous prompts, 25 most recently edited files, last exchange.
-- [ ] RED `TestRedact_MasksCredentialShapes`. The relay owns this table (D1).
-- [ ] Commits: `feat(relay): deterministic capsule with a fixed shrink order`,
+- [x] RED `TestCapsuleRender_Golden`. Expected failure: empty output.
+- [x] Then `_ShrinksInOrder_NoteTailObjective`, `_NoRepoOmitsGit`, `_NeverAboveBudget`.
+- [x] Baseline: up to 15 previous prompts, 25 most recently edited files, last exchange.
+- [x] RED `TestRedact_MasksCredentialShapes`. The relay owns this table (D1).
+- [x] Commits: `feat(relay): deterministic capsule with a fixed shrink order`,
       `feat(relay): credential redaction for capsule text`.
 
 ## T6 — #64 work ledger (no release)
 
 Branch `feat/relay-ledger`. Files: `ledger.go`, tests.
 
-- [ ] RED `TestLedger_RunningJobIsNeverRestartable`. Expected failure: restartable.
-- [ ] Then `_Replay`, `_Merge`, `_Reconcile_LostAndOrphaned`, `_EpochCarriesLedger`.
-- [ ] Job kinds are an open string until S4; state that in the PR.
-- [ ] Commit `feat(relay): work ledger state machine`.
+- [x] RED `TestLedger_RunningJobIsNeverRestartable`. Expected failure: restartable.
+- [x] Then `_Replay`, `_Merge`, `_Reconcile_LostAndOrphaned`, `_EpochCarriesLedger`.
+- [x] Job kinds are an open string until S4; state that in the PR.
+- [x] Commit `feat(relay): work ledger state machine`.
 
 ## T7 — #64 protocol v1, entry point, budget (no release; closes #64)
 
 Branch `feat/relay-protocol`. Files: `protocol.go`, `ports.go`, `handle.go`,
 `bench_test.go`, `imports_test.go`, `testdata/protocol/*.json`.
 
-- [ ] RED `TestProtocol_GoldenIO`. Expected failure: passthrough.
-- [ ] Then `_VersionMismatch_Passthrough`, `_UnknownEvent_Passthrough`,
+- [x] RED `TestProtocol_GoldenIO`. Expected failure: passthrough.
+- [x] Then `_VersionMismatch_Passthrough`, `_UnknownEvent_Passthrough`,
       `_MalformedInput_Passthrough`.
-- [ ] `ports.go` declares only `Store`, `Clock`, `FactsProvider`, `Notifier`,
+- [x] `ports.go` declares only `Store`, `Clock`, `FactsProvider`, `Notifier`,
       `Redactor`; the rest arrive with their first implementation.
-- [ ] RED `TestRelayImportsNoIO`: fails on `os`, `net`, `os/exec`.
-- [ ] `BenchmarkHandle2000Messages` against the 20 ms target; no wall-clock assertion.
-- [ ] Commits: `feat(relay): adapter protocol v1`,
+- [x] RED `TestRelayImportsNoIO`: fails on `os`, `net`, `os/exec`.
+- [x] `BenchmarkHandle2000Messages` against the 20 ms target; no wall-clock assertion.
+- [x] Commits: `feat(relay): adapter protocol v1`,
       `test(relay): the core imports no I/O and meets its budget`. PR `Closes #64`.
 
 ## T8 — #65 state files (no release)
@@ -209,12 +209,12 @@ Branch `feat/relay-statefs`. Package `internal/relay/adapter/statefs`. State dir
 `%LOCALAPPDATA%\aval\relay` on Windows, as `lessonsOptions` in
 `cmd/aval/agent_hook.go`. Files 0600.
 
-- [ ] RED `TestJournal_PreparedThenCommitted`. Expected failure: stub reads nothing.
-- [ ] Then `_VoidOnResume`, `TestLock_StaleReclaimed`, `TestLock_SecondRelaySkips`,
+- [x] RED `TestJournal_PreparedThenCommitted`. Expected failure: stub reads nothing.
+- [x] Then `_VoidOnResume`, `TestLock_StaleReclaimed`, `TestLock_SecondRelaySkips`,
       `TestAtomicWrite_NoPartialFile`, `TestStateFilesAre0600` (skipped on Windows).
-- [ ] Per-session summary `sessions/<session_id>`: one pinned line (relay count,
+- [x] Per-session summary `sessions/<session_id>`: one pinned line (relay count,
       tokens before and after, floor, trigger). T15 reads it.
-- [ ] Commit `feat(relay): journal, locks and atomic state files`.
+- [x] Commit `feat(relay): journal, locks and atomic state files`.
 
 ## T9 — #65 `aval relay compact`, pause and resume (no release)
 
@@ -222,20 +222,26 @@ Branch `feat/relay-compact`. Files: `cmd/aval/relay.go`, `cmd/aval/relay_test.go
 `internal/relay/adapter/claudemod`, `internal/relay/adapter/facts`,
 `cmd/aval/ui_hotpaths_test.go`, `cmd/aval/testdata/relay/`.
 
-- [ ] RED `TestCompact_AnswersWithCapsuleAndHandles` on the sanitised
+- [x] RED `TestCompact_AnswersWithCapsuleAndHandles` on the sanitised
       `s1-auto-normal` payload. Expected failure: passthrough.
-- [ ] Then `_ManualTrigger`, `_ProtocolVersionMismatch_Passthrough`,
+- [x] Then `_ManualTrigger`, `_ProtocolVersionMismatch_Passthrough`,
       `_PausedPassthrough`, `_SecondRelayInSessionSkips`, `_BadJSONPassthroughExitZero`.
-- [ ] Hot path (D3): add `{"relay","compact"}` to `TestHotPathsNeverReadConfig` and
+- [x] Hot path (D3): add `{"relay","compact"}` to `TestHotPathsNeverReadConfig` and
       `TestHooksIgnoreTheLanguage`. Thresholds from env only.
-- [ ] `facts` reads `.git` with stat and file reads; no `git` process, no network.
-- [ ] `CacheTTL` is unknown to the mods API, so `Decide` gets "unknown" (warm).
-- [ ] `aval relay pause|resume`; text pinned in `tests/messages_test.go`.
-- [ ] Fuzz `FuzzRelayCompactInput` plus its step in the `fuzz` job.
-- [ ] Commits: `feat(relay): aval relay compact answers a compaction with a capsule and a tail`,
+- [x] `facts` reads `.git` with stat and file reads; no `git` process, no network.
+- [x] `CacheTTL` is unknown to the mods API, so `Decide` gets "unknown" (warm).
+- [x] `aval relay pause|resume`; text pinned in `tests/messages_test.go`.
+- [x] Fuzz `FuzzRelayCompactInput` plus its step in the `fuzz` job.
+- [x] Commits: `feat(relay): aval relay compact answers a compaction with a capsule and a tail`,
       `feat(relay): aval relay pause and resume`.
 
 ## T10 — #65 the mod and its install (feat → v0.3.0-rc.6)
+
+Progress 2026-11-24: P1 and P2 passed (RESULTS.md); mod, manifest link,
+`aval relay enable|disable|commit` and the ADR 0001 amendment are on branch
+`feat/relay-claude-mod`. Deviation: the mod reads usage with `$.session.usage()`
+inside the compact handler and makes a per-process session id (the mods API
+exposes none). Waiting on the owner's interactive session; release notes after it.
 
 Branch `feat/relay-claude-mod`. Starts only after P2 and D4, D5, D6.
 

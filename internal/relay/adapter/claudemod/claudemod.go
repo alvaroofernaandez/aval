@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/alvaroofernaandez/aval/internal/relay"
 )
@@ -58,23 +59,48 @@ func Decode(raw []byte) (relay.Request, error) {
 		Reading:  relay.WireReading{Tokens: env.Usage.Tokens, Window: env.Usage.Window, Source: "exact"},
 		Messages: messages(env.Messages),
 	}
-	var prompts []string
-	for _, m := range env.Messages {
-		if m.Role == "user" {
-			prompts = append(prompts, m.Text)
-		}
-	}
+	first, prompts := userPrompts(env.Messages)
 	req.Turn = len(prompts)
+	if first == "" && len(prompts) > 0 {
+		first, prompts = prompts[0], prompts[1:]
+	}
+	req.Capsule.FirstPrompt = first
 	if n := len(prompts); n > 0 {
-		req.Capsule.FirstPrompt, req.Capsule.LastPrompt = prompts[0], prompts[n-1]
-		if n > 2 {
-			req.Capsule.Prompts = prompts[1 : n-1]
-		}
+		req.Capsule.LastPrompt = prompts[n-1]
+		req.Capsule.Prompts = prompts[:n-1]
 	}
 	if n := len(env.Messages); n > 0 {
 		req.Fingerprint = env.Messages[n-1].Handle
 	}
 	return req, nil
+}
+
+// userPrompts returns the user requests in order. A capsule from an earlier
+// relay is not a request: it only gives back the original first request,
+// returned as first (empty when there is no capsule).
+func userPrompts(msgs []Message) (first string, prompts []string) {
+	for _, m := range msgs {
+		if m.Role != "user" {
+			continue
+		}
+		if strings.HasPrefix(m.Text, relay.CapsuleHeader) {
+			if first == "" {
+				first = capsuleFirstRequest(m.Text)
+			}
+			continue
+		}
+		prompts = append(prompts, m.Text)
+	}
+	return first, prompts
+}
+
+func capsuleFirstRequest(capsule string) string {
+	for _, line := range strings.Split(capsule, "\n") {
+		if v, ok := strings.CutPrefix(line, relay.CapsuleFirstRequest); ok {
+			return v
+		}
+	}
+	return ""
 }
 
 // messages converts the payload. No recorded payload of spike #63 holds a
