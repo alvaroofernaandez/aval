@@ -28,6 +28,7 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/i18n` | leaf | The message catalog, English and Spanish, with plurals. |
 | `internal/release` | leaf | Versions, preflight checks and notes from git history. |
 | `internal/relay` | leaf | The context relay core: when to relay and what the new context holds, with no I/O. |
+| `internal/relay/adapter/statefs` | relay adapter | The relay's journal, session locks and status line summary on disk, written atomically with mode 0600. |
 | `internal/devmode` | leaf | The `aval dev` sandbox: a throwaway HOME for trying aval. |
 | `internal/deck` | leaf | Renders a JSON slide spec into a PDF deck. |
 | `internal/agent/budget` | leaf | Measures always-on context and hook latency per agent. |
