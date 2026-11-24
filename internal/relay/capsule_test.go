@@ -120,3 +120,18 @@ func TestCapsuleRender_UnknownChangeCountIsOmitted(t *testing.T) {
 		t.Fatalf("repository line:\n%s", got)
 	}
 }
+
+func TestIsRequest(t *testing.T) {
+	for text, want := range map[string]bool{
+		"Add retries.":                         true,
+		"":                                     false,
+		CapsuleHeader + "\nFirst request: x\n": false,
+		"This session is being continued from a previous conversation that ran out of context.": false,
+		"<command-name>/clear</command-name>":                                                   false,
+		"<local-command-stdout>Compacted</local-command-stdout>":                                false,
+	} {
+		if got := IsRequest(text); got != want {
+			t.Errorf("IsRequest(%.40q) = %v, want %v", text, got, want)
+		}
+	}
+}

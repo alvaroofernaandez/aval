@@ -117,7 +117,7 @@ func decode(t *testing.T, env Envelope) relay.Request {
 // user message, and later capsules took it as the first request.
 func TestDecode_ANativeSummaryIsNotAPrompt(t *testing.T) {
 	req := decode(t, Envelope{Messages: []Message{
-		{Handle: "s", Role: "user", Text: NativeSummaryPrefix + " The summary below covers the earlier portion."},
+		{Handle: "s", Role: "user", Text: "This session is being continued from a previous conversation that ran out of context."},
 		{Handle: "u5", Role: "user", Text: "Turn 5."},
 		{Handle: "a5", Role: "assistant", Text: "done"},
 		{Handle: "u6", Role: "user", Text: "Turn 6."},
@@ -147,5 +147,19 @@ func TestDecode_ThePromptInFlightIsTheLatestRequest(t *testing.T) {
 		if req.Capsule.FirstPrompt != "ALPHA" || req.Capsule.LastPrompt != c.last || !slices.Equal(req.Capsule.Prompts, c.prompts) {
 			t.Errorf("%s: first %q last %q prompts %q, want ALPHA, %q, %q", c.name, req.Capsule.FirstPrompt, req.Capsule.LastPrompt, req.Capsule.Prompts, c.last, c.prompts)
 		}
+	}
+}
+
+// Found in the T11 sandbox run: the mod's messages carry slash commands and
+// their output as user messages; they are not requests.
+func TestDecode_SlashCommandsAreNotPrompts(t *testing.T) {
+	req := decode(t, Envelope{Messages: []Message{
+		{Handle: "c", Role: "user", Text: "<command-name>/clear</command-name>"},
+		{Handle: "o", Role: "user", Text: "<local-command-stdout>Compacted</local-command-stdout>"},
+		{Handle: "u", Role: "user", Text: "Remember ZETA."},
+		{Handle: "a", Role: "assistant", Text: "OK"},
+	}})
+	if req.Capsule.FirstPrompt != "Remember ZETA." || req.Turn != 1 {
+		t.Fatalf("first %q turn %d: a slash command counted as a request", req.Capsule.FirstPrompt, req.Turn)
 	}
 }

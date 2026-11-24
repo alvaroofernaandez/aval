@@ -72,7 +72,7 @@ func (f *facts) add(e entry) {
 		if first, _ := relay.CapsuleFirst(text); f.first == "" {
 			f.first = first
 		}
-	case isRequest(text):
+	case relay.IsRequest(text):
 		f.prompts = append(f.prompts, text)
 	}
 }
@@ -80,11 +80,6 @@ func (f *facts) add(e entry) {
 func isCapsule(text string) bool {
 	_, ok := relay.CapsuleFirst(text)
 	return ok
-}
-
-// isRequest: a slash command and its output are not a request.
-func isRequest(text string) bool {
-	return text != "" && !strings.HasPrefix(text, "<command-") && !strings.HasPrefix(text, "<local-command-")
 }
 
 func edited(blocks []block) []string {

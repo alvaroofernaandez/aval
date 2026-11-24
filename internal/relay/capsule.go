@@ -143,3 +143,26 @@ func truncateTokens(s string, budget int) string {
 	}
 	return s[:limit] + cut
 }
+
+// notRequests are the prefixes of user messages a runtime writes itself:
+// Claude Code's summary after its own compaction and its slash-command
+// markers (recorded on 2.1.331, T11 sandbox run).
+var notRequests = []string{
+	"This session is being continued from a previous conversation",
+	"<command-",
+	"<local-command-",
+}
+
+// IsRequest reports whether a user message is a request of the person: not
+// empty, not a capsule and not a message the runtime wrote itself.
+func IsRequest(text string) bool {
+	if text == "" || strings.HasPrefix(text, CapsuleHeader) {
+		return false
+	}
+	for _, p := range notRequests {
+		if strings.HasPrefix(text, p) {
+			return false
+		}
+	}
+	return true
+}

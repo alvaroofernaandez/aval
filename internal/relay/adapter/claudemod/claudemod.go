@@ -45,10 +45,6 @@ type Message struct {
 	ToolUses []any  `json:"toolUses"`
 }
 
-// NativeSummaryPrefix starts the user message Claude Code writes after its own
-// compaction (recorded on 2.1.331); it is a summary, not a request.
-const NativeSummaryPrefix = "This session is being continued from a previous conversation"
-
 // charsPerToken matches the relay estimator (E1 of spike #63).
 const charsPerToken = 1.75
 
@@ -98,10 +94,9 @@ func userPrompts(msgs []Message) (first string, prompts []string) {
 			}
 			continue
 		}
-		if strings.HasPrefix(m.Text, NativeSummaryPrefix) {
-			continue
+		if relay.IsRequest(m.Text) {
+			prompts = append(prompts, m.Text)
 		}
-		prompts = append(prompts, m.Text)
 	}
 	return first, prompts
 }
@@ -144,10 +139,7 @@ func tokens(m Message) int {
 // withInFlight appends the prompt in flight when the messages do not hold it
 // yet. A slash command or a capsule the mod submitted is not a request.
 func withInFlight(prompts []string, prompt string) []string {
-	if prompt == "" || strings.HasPrefix(prompt, "/") {
-		return prompts
-	}
-	if _, ok := relay.CapsuleFirst(prompt); ok {
+	if !relay.IsRequest(prompt) || strings.HasPrefix(prompt, "/") {
 		return prompts
 	}
 	if n := len(prompts); n > 0 && prompts[n-1] == prompt {
