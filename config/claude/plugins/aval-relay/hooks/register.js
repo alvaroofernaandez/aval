@@ -4,9 +4,10 @@
 // next(e) and starts no process (ADR 0007). Any error, timeout or non-zero
 // exit falls to ladder level 1: Claude Code compacts natively, steered by the
 // fixed STEER text. A capsule that cannot be applied falls the same way.
-import { newSessionId, envelope, answer, steered, nextPending, PROTOCOL_VERSION } from "./logic.js";
+import { newSessionId, envelope, answer, steered, nextPending, measured } from "./logic.js";
 
 const TIMEOUT_MS = 2000;
+const NOTIFY_TIMEOUT_MS = 5000; // above aval's own 3 s bound on the notifier
 let session = newSessionId(Math.random);
 let commitPending = false;
 let submitPending = null; // ladder level 3: the prompt of the new session
@@ -17,10 +18,10 @@ async function relayOn($) {
   return (await $.env.get("AVAL_RELAY")) === "1";
 }
 
-async function aval($, args, input) {
-  const r = await $.process.run(["aval", "relay", ...args], { stdin: JSON.stringify(input), timeoutMs: TIMEOUT_MS });
+async function aval($, args, input, timeoutMs = TIMEOUT_MS) {
+  const r = await $.process.run(["aval", "relay", ...args], { stdin: JSON.stringify(input), timeoutMs });
   if (r.exitCode !== 0) throw new Error(`aval relay ${args[0]} exited ${r.exitCode}`);
-  return JSON.parse(r.stdout);
+  return r.stdout ? JSON.parse(r.stdout) : null; // commit and notify print nothing
 }
 
 export const register = (on) => {
@@ -71,13 +72,17 @@ export const register = (on) => {
     return next(e);
   });
 
-  // The first measure after a relay records the tokens the new context holds.
+  // The first measure after a relay records the tokens the new context holds,
+  // then starts the notification without waiting for it (#66): a notifier
+  // that hangs or fails never holds the session.
   on("session.measure", async ($, e, next) => {
     if (!commitPending) return next(e);
     commitPending = false;
     try {
       if (await relayOn($)) {
-        await aval($, ["commit"], { version: PROTOCOL_VERSION, session_id: session, tokens: (e.context && e.context.tokens) || 0 });
+        const { commit, notify } = measured(session, e);
+        await aval($, ["commit"], commit);
+        aval($, ["notify"], notify, NOTIFY_TIMEOUT_MS).catch(() => {});
       }
     } catch {
       // A failed commit leaves the journal prepared; the next relay is not affected.

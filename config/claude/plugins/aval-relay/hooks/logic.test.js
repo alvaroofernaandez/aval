@@ -1,7 +1,7 @@
 // Run: node --test config/claude/plugins/aval-relay/hooks/logic.test.js
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { newSessionId, envelope, answer, steered, newSessionPrompt, nextPending, STEER, PROTOCOL_VERSION } from "./logic.js";
+import { newSessionId, envelope, answer, steered, newSessionPrompt, nextPending, measured, STEER, PROTOCOL_VERSION } from "./logic.js";
 
 const messages = [
   { handle: "h1", role: "user", text: "Turn 1", toolUses: [] },
@@ -128,4 +128,14 @@ test("nextPending keeps the newest capsule until it is submitted", () => {
   assert.equal(nextPending(newSession.capsule, { version: PROTOCOL_VERSION, action: "steer", instructions: "x" }), newSession.capsule);
   assert.equal(nextPending(newSession.capsule, null), newSession.capsule);
   assert.equal(nextPending(null, { version: PROTOCOL_VERSION, action: "passthrough" }), null);
+});
+
+test("measured gives the commit input, then the notify input", () => {
+  const { commit, notify } = measured("s-1", { context: { tokens: 61000 } });
+  assert.deepEqual(commit, { version: PROTOCOL_VERSION, session_id: "s-1", tokens: 61000 });
+  assert.deepEqual(notify, { version: PROTOCOL_VERSION, session_id: "s-1" });
+});
+
+test("measured survives a measure with no context", () => {
+  assert.equal(measured("s-1", {}).commit.tokens, 0);
 });

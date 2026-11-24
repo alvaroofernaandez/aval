@@ -17,7 +17,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/relay/adapter/statefs"
 )
 
-const relayUsage = "usage: aval relay status|log [--json] | pause|resume|enable|disable | compact|commit"
+const relayUsage = "usage: aval relay status|log [--json] | pause|resume|enable|disable | compact|commit|notify"
 
 // Reasons only the command gives (the core's are in package relay).
 const (
@@ -48,6 +48,8 @@ func runRelay(sub []string, flags uiFlags, c cmdIO) error {
 		return relayReport(sub[0], false, flags, c)
 	case "compact":
 		return relayCompact(c)
+	case "notify":
+		return relayNotify(c)
 	case "commit":
 		return relayCommit(c)
 	case "pause", "resume":

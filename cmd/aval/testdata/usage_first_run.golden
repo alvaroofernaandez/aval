@@ -54,7 +54,7 @@ Plumbing
                             <lessons|design-gate|pre-push|...>
   aval statusline         Claude Code status line
   aval relay              context relay: status, log, pause, enable
-                            <compact|commit|pause|resume|enable|disable>
+                            <subcommand>
   aval tmux               tmux, Ghostty and zsh helpers
                             <helper>
   aval macos              macOS defaults and LaunchAgents

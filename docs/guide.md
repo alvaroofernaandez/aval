@@ -875,6 +875,11 @@ aval relay log       # every applied relay, tokens before and after (`--json` on
   The level 2 hooks are in the settings `aval sync` installs and do nothing unless `AVAL_RELAY=1`.
 - Each applied relay is one line of `~/.local/state/aval/relay/metrics.jsonl` (mode 0600),
   written when the mod first measures the new context; `status` and `log` read it.
+- After that first measure the mod starts `aval relay notify`, without waiting for it: a
+  notification such as `Relayed 201k → 38k` through osascript on macOS, notify-send on
+  Linux (an OSC 9 terminal sequence without it), or a PowerShell toast on Windows and WSL.
+  The text is always an argument or an environment value, never part of a script; a
+  notifier that fails or hangs (3 s) never touches the relay. `AVAL_RELAY_NOTIFY=0` turns it off.
 - What is not proven yet: the trigger at a turn boundary and on a cold cache, subagents,
   Windows, and any saving in cost. The plan and the open probes are in `odd/tasks/relay.md`.
 
