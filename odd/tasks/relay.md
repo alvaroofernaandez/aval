@@ -325,11 +325,16 @@ are not in the log yet.
 
 Branch `feat/relay-notify`. Package `internal/relay/adapter/notify`.
 
-- [ ] RED `TestNotifier_Darwin_Command`. Expected failure: empty argv.
-- [ ] Then `_Linux_NotifySend`, `_Linux_FallsBackToOSC`, `_Windows_PowerShellArgs`,
+Progress 2026-11-24: notify runs after the commit, so it shows the before and after figures;
+the mod does not wait for it (5 s timeout, aval bounds the notifier at 3 s). macOS argv passes
+the text through `on run argv`; Windows and WSL through `AVAL_NOTIFY_TEXT` (WSLENV). Checked
+on macOS only: exit 0 in 0.7 s; Windows, WSL and Linux are argv-tested, not run.
+
+- [x] RED `TestNotifier_Darwin_Command`. Expected failure: empty argv.
+- [x] Then `_Linux_NotifySend`, `_Linux_FallsBackToOSC`, `_Windows_PowerShellArgs`,
       `_WSL_PowerShellExe`, `_TextIsNeverShellInterpreted`,
       `TestNotify_FailureNeverFailsTheRelay`.
-- [ ] `aval relay notify` is started by the shim after the answer, never inside
+- [x] `aval relay notify` is started by the shim after the answer, never inside
       `aval relay compact`. In-app `$.ui.*` waits for S2.
 
 ## T15 — #66 statusline segment (feat → v0.3.0-rc.9)
