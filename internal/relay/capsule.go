@@ -25,6 +25,13 @@ type RepoFacts struct {
 	Changed int    `json:"changed"` // files with uncommitted changes; 0 when unknown
 }
 
+// CapsuleHeader starts every capsule; adapters use it to recognise a capsule
+// from an earlier relay among the messages.
+const CapsuleHeader = "# aval relay capsule"
+
+// CapsuleFirstRequest is the label of the original first request in a capsule.
+const CapsuleFirstRequest = "First request: "
+
 // tokensOf is a conservative token count for capsule text (E1 of #63).
 func tokensOf(s string) int { return int(float64(len(s))/charsPerToken + 0.999) }
 
@@ -54,8 +61,8 @@ const (
 
 func render(c Capsule) string {
 	var b strings.Builder
-	b.WriteString("# aval relay capsule\n\n## Objective\n")
-	fmt.Fprintf(&b, "First request: %s\n", c.FirstPrompt)
+	b.WriteString(CapsuleHeader + "\n\n## Objective\n")
+	fmt.Fprintf(&b, "%s%s\n", CapsuleFirstRequest, c.FirstPrompt)
 	if c.LastPrompt != "" && c.LastPrompt != c.FirstPrompt {
 		fmt.Fprintf(&b, "Latest request: %s\n", c.LastPrompt)
 	}
