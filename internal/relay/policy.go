@@ -23,6 +23,7 @@ type Reading struct {
 	Window      int     // model window in tokens; 0 when unknown
 	ErrPct      float64 // relative error bound of Tokens (0.15 is 15%)
 	FloorTokens int     // tokens a fresh session starts with
+	Source      Source  // where Tokens comes from
 }
 
 // Snapshot is what an adapter knows when it asks for a decision.
@@ -46,6 +47,8 @@ type Policy struct {
 	HardPct        float64 // caps HardTokens on small windows
 	ColdMinTokens  int     // relay a cold cache from here
 	MinFreedTokens int     // a relay must free at least this much
+	TailTokens     int     // budget of the verbatim tail
+	CapsuleTokens  int     // budget of the capsule text
 }
 
 // DefaultPolicy returns the provisional defaults.
@@ -57,6 +60,8 @@ func DefaultPolicy() Policy {
 		HardPct:        0.60,
 		ColdMinTokens:  100_000,
 		MinFreedTokens: 20_000,
+		TailTokens:     20_000,
+		CapsuleTokens:  8_000,
 	}
 }
 

@@ -4,10 +4,10 @@ import "slices"
 
 // Link is one relay in a chain.
 type Link struct {
-	SessionID   string  // the runtime session the relay ran in
-	Fingerprint string  // progress fingerprint at the relay
-	Turn        int     // turn number at the relay
-	CostUSD     float64 // cost attributed to the relay
+	SessionID   string  `json:"session_id"`  // the runtime session the relay ran in
+	Fingerprint string  `json:"fingerprint"` // progress fingerprint at the relay
+	Turn        int     `json:"turn"`        // turn number at the relay
+	CostUSD     float64 `json:"cost_usd"`    // cost attributed to the relay
 }
 
 // Chain is the sequence of relays of one piece of work. A relay that clears
