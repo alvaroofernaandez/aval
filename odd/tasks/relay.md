@@ -308,12 +308,17 @@ limit: input already queued runs before the clear. Not run: the interactive TUI.
 
 Branch `feat/relay-status`.
 
-- [ ] RED `TestNotifyText_T0_TokensBeforeAfterFloor`:
+Progress 2026-11-24: T10 ticked "appends `metrics.jsonl`" but nothing wrote it; `aval relay
+commit` now appends one metric per prepared relay. The mod sends no floor, so the texts
+omit it on Claude Code; only replace answers (level 0) are journaled, so levels 1 and 3
+are not in the log yet.
+
+- [x] RED `TestNotifyText_T0_TokensBeforeAfterFloor`:
       `Relayed 212k → 61k (floor 58k) · cold cache`. Expected failure: empty string.
-- [ ] One golden per tier; `TestMetrics_AppendAndReadBack`,
+- [x] One golden per tier; `TestMetrics_AppendAndReadBack`,
       `TestRelayStatus_PrintsTierSourceAndBound`, `TestRelayLog_ReadsMetrics`,
       `TestRelayStatus_NoStateIsNotAnError`.
-- [ ] Tokens, never percentages (ADR 0005). `--json` stays English.
+- [x] Tokens, never percentages (ADR 0005). `--json` stays English.
 - [ ] Release: dry run shows v0.3.0-rc.8.
 
 ## T14 — #66 OS notifier (rides with rc.9)
