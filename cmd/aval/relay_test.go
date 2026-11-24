@@ -163,3 +163,18 @@ func TestRelayPauseAndResume(t *testing.T) {
 		t.Fatalf("resumed: got %+v, want replace", resp)
 	}
 }
+
+// AVAL_RELAY_MAX_CHAIN lowers the chain limit that sends the work to a new
+// session (ladder level 3); anything but a positive integer keeps the default.
+func TestRelayBrakesFromEnv(t *testing.T) {
+	def := relay.DefaultBrakes().MaxChain
+	for _, c := range []struct {
+		val  string
+		want int
+	}{{"1", 1}, {"12", 12}, {"", def}, {"0", def}, {"-2", def}, {"x", def}} {
+		got := relayBrakes(func(k string) string { return map[string]string{"AVAL_RELAY_MAX_CHAIN": c.val}[k] }).MaxChain
+		if got != c.want {
+			t.Errorf("AVAL_RELAY_MAX_CHAIN=%q: got %d, want %d", c.val, got, c.want)
+		}
+	}
+}

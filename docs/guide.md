@@ -863,7 +863,7 @@ aval relay disable   # removes exactly the keys enable added
   | 0 | the default | the mod replaces the context with the capsule and the latest messages |
   | 1 | aval missing, slower than 2 s or failing; a tail that would keep every message | Claude Code compacts natively, its summary steered by the capsule or a fixed text |
   | 2 | the mod does not load | `aval hook relay-precompact` steers the summary and `aval hook relay-sessionstart` adds the capsule after it |
-  | 3 | the chain already holds 5 relays | Claude Code compacts natively, then at the end of the turn the mod clears and opens a new session with the capsule |
+  | 3 | the chain already holds 5 relays (`AVAL_RELAY_MAX_CHAIN`) | Claude Code compacts natively, then at the end of the turn the mod clears and opens a new session with the capsule |
   | 4 | everything above failed | native compaction at the window `enable` set |
 
   A pause, `AVAL_RELAY=0` or another brake lets Claude Code compact as it would without aval.
