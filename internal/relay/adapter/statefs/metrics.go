@@ -23,6 +23,7 @@ type Metric struct {
 	Before  int       `json:"tokens_before"`
 	After   int       `json:"tokens_after"`
 	Floor   int       `json:"floor"`
+	Repo    string    `json:"repo,omitempty"` // the repository root the relay ran in
 }
 
 // AppendMetric adds m to metrics.jsonl, creating it with mode 0600. One

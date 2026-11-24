@@ -28,7 +28,7 @@ func TestRelayCommit_AppendsOneMetric(t *testing.T) {
 	}
 	m := got[0]
 	if m.Session != "session-a" || m.Trigger != "auto" || m.Action != "replace" || m.Source != "exact" ||
-		m.Before != 63_795 || m.After != 61_000 || m.At.IsZero() {
+		m.Before != 63_795 || m.After != 61_000 || m.At.IsZero() || m.Repo == "" {
 		t.Fatalf("metric %+v", m)
 	}
 }
