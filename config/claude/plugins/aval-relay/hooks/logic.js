@@ -15,10 +15,13 @@ export function newSessionId(random) {
   return "relay-" + id.slice(0, 12);
 }
 
-/** The envelope `aval relay compact` reads on stdin. */
-export function envelope(event, usage, sessionId) {
+/**
+ * The envelope `aval relay compact` reads on stdin. prompt is the latest one
+ * the person submitted: an auto compaction runs before it joins the messages.
+ */
+export function envelope(event, usage, sessionId, prompt) {
   const context = (usage && usage.context) || {};
-  return {
+  const env = {
     version: PROTOCOL_VERSION,
     event: "compact",
     trigger: event.trigger,
@@ -31,6 +34,8 @@ export function envelope(event, usage, sessionId) {
       toolUses: m.toolUses || [],
     })),
   };
+  if (prompt) env.prompt = prompt;
+  return env;
 }
 
 /**

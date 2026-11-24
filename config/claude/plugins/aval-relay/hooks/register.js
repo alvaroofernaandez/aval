@@ -10,6 +10,7 @@ const TIMEOUT_MS = 2000;
 let session = newSessionId(Math.random);
 let commitPending = false;
 let submitPending = null; // ladder level 3: the prompt of the new session
+let lastPrompt = ""; // the latest prompt submitted, the request in flight
 
 async function relayOn($) {
   return (await $.env.get("AVAL_RELAY")) === "1";
@@ -27,7 +28,7 @@ export const register = (on) => {
     let resp;
     try {
       const usage = await $.session.usage();
-      resp = await aval($, ["compact"], envelope(e, usage, session));
+      resp = await aval($, ["compact"], envelope(e, usage, session, lastPrompt));
     } catch {
       return next(steered(e, null));
     }
@@ -36,6 +37,12 @@ export const register = (on) => {
     if (!out) return next(steered(e, resp));
     commitPending = true;
     return out;
+  });
+
+  // Remember the request in flight; no process, no decision (ADR 0007).
+  on("prompt.submit", async ($, e, next) => {
+    if (typeof e.text === "string") lastPrompt = e.text;
+    return next(e);
   });
 
   // Ladder level 3, from turn.complete only (spike #63 S6): clear, then open

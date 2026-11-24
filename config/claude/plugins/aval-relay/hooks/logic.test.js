@@ -111,3 +111,9 @@ test("no prompt for other answers, other versions or no capsule", () => {
   assert.equal(newSessionPrompt({ ...newSession, capsule: "" }), null);
   assert.equal(newSessionPrompt({ version: PROTOCOL_VERSION, action: "replace", capsule: "C", keep: ["h1"] }), null);
 });
+
+test("envelope carries the prompt in flight when there is one", () => {
+  const got = envelope({ trigger: "auto", messages }, undefined, "relay-abc12345", "GAMMA");
+  assert.equal(got.prompt, "GAMMA");
+  assert.equal("prompt" in envelope({ trigger: "auto", messages }, undefined, "relay-abc12345"), false);
+});
