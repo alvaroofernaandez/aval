@@ -589,6 +589,11 @@ func TestMessagesRelay(t *testing.T) {
 	mod := func(t *testing.T, _, home string) {
 		write(t, filepath.Join(home, ".claude", "aval-relay", "hooks", "hooks.json"), "{}\n")
 	}
+	metrics := func(t *testing.T, _, home string) {
+		write(t, filepath.Join(home, ".state", "aval", "relay", "metrics.jsonl"),
+			`{"at":"2026-11-24T10:12:00Z","trigger":"auto","action":"replace","tokens_before":201480,"tokens_after":38210}`+"\n"+
+				`{"at":"2026-11-24T13:40:00Z","trigger":"manual","action":"new_session","tokens_before":64100,"tokens_after":31950}`+"\n")
+	}
 	runMessages(t, []msgCase{
 		{name: "pause", setup: repo, args: []string{"relay", "pause"}, env: []string{"AVAL_LANG=en"}, stdout: "relay paused in DIR\n"},
 		{name: "resume", setup: repo, args: []string{"relay", "resume"}, env: []string{"AVAL_LANG=en"}, stdout: "relay resumed in DIR\n"},
@@ -615,6 +620,8 @@ func TestMessagesRelay(t *testing.T) {
 			"repo      DIR, activo\n" +
 			"relays    ninguno registrado aún en ~/.state/aval/relay\n"},
 		{name: "log with nothing recorded", args: []string{"relay", "log"}, env: []string{"AVAL_LANG=en"}, stdout: "no relay recorded yet in ~/.state/aval/relay\n"},
+		{name: "log aligns its columns", setup: metrics, args: []string{"relay", "log"}, env: []string{"AVAL_LANG=en", "TZ=UTC"},
+			stdout: "2026-11-24 10:12  auto    replace      201k to 38k\n2026-11-24 13:40  manual  new_session  64k to 32k\n"},
 		{name: "log in Spanish", args: []string{"relay", "log"}, env: []string{"AVAL_LANG=es"}, stdout: "aún no hay relays registrados en ~/.state/aval/relay\n"},
 	})
 }

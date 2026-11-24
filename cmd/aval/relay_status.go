@@ -145,9 +145,13 @@ func relayLogCmd(asJSON bool, flags uiFlags, c cmdIO) error {
 		_, err := fmt.Fprintln(c.stdout, tr.T("cli.relay.log.none", i18n.Args{"dir": tildePath(dir, home)}))
 		return err
 	}
+	trig, act := 0, 0
+	for _, m := range metrics {
+		trig, act = max(trig, len(m.Trigger)), max(act, len(m.Action))
+	}
 	for _, m := range metrics {
 		line := tr.T("cli.relay.log.row", i18n.Args{
-			"at": m.At.Local().Format("2006-01-02 15:04"), "trigger": m.Trigger, "action": m.Action,
+			"at": m.At.Local().Format("2006-01-02 15:04"), "trigger": padRight(m.Trigger, trig), "action": padRight(m.Action, act),
 			"before": relay.Tokens(m.Before), "after": relay.Tokens(m.After),
 		})
 		if _, err := fmt.Fprintln(c.stdout, line); err != nil {
@@ -213,4 +217,9 @@ func sourceKey(source string) string {
 		return i18n.Key("cli.relay.source.transcript")
 	}
 	return i18n.Key("cli.relay.source.heuristic")
+}
+
+// padRight pads s with spaces to width bytes; trigger and action are ASCII.
+func padRight(s string, width int) string {
+	return s + strings.Repeat(" ", max(0, width-len(s)))
 }
