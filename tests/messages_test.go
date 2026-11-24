@@ -125,7 +125,7 @@ func TestMessagesUsage(t *testing.T) {
 			stderr: "error: unknown layer \"kernel\"; use harness, agent or env\nusage: aval deps [--json] [--layer harness|agent|env]\n"},
 		{name: "deps with an unknown layer, Spanish", args: []string{"--lang", "es", "deps", "--layer", "kernel"}, code: 1,
 			stderr: "error: capa desconocida \"kernel\"; use harness, agent o env\nuso: aval deps [--json] [--layer harness|agent|env]\n"},
-		{name: "relay with an unknown subcommand", args: []string{"relay", "bogus"}, code: 1, stderr: "error: usage: aval relay compact|pause|resume\n"},
+		{name: "relay with an unknown subcommand", args: []string{"relay", "bogus"}, code: 1, stderr: "error: usage: aval relay compact|commit|pause|resume|enable|disable\n"},
 		{name: "config with an unknown subcommand", args: []string{"config", "bogus"}, code: 1, stderr: "error: unknown config command \"bogus\"; usage: aval config [list | get <key> | set <key> <value> | path]\n"},
 		{name: "kiri without up", args: []string{"kiri"}, unix: true, code: 1, stderr: "error: usage: aval kiri up    (make Docker ready on Kiri; idempotent, deletes nothing)\n"},
 		{name: "docker without cleanup", args: []string{"docker"}, unix: true, code: 1, stderr: "error: usage: aval docker cleanup [--dry-run]    (safe prunes on the kiri context only)\n"},
@@ -336,7 +336,7 @@ Plumbing
                             <lessons|design-gate|pre-push|...>
   aval statusline         Claude Code status line
   aval relay              answer a context compaction from the relay mod
-                            <compact|pause|resume>
+                            <compact|commit|pause|resume|enable|disable>
   aval tmux               tmux, Ghostty and zsh helpers
                             <helper>
   aval macos              macOS defaults and LaunchAgents
@@ -421,7 +421,7 @@ Piezas internas
                             <lessons|design-gate|pre-push|...>
   aval statusline         línea de estado de Claude Code
   aval relay              responde a una compactación de contexto del mod del relay
-                            <compact|pause|resume>
+                            <compact|commit|pause|resume|enable|disable>
   aval tmux               utilidades de tmux, Ghostty y zsh
                             <helper>
   aval macos              ajustes de macOS y LaunchAgents
@@ -586,10 +586,21 @@ func TestMessagesRelay(t *testing.T) {
 	repo := func(t *testing.T, dir, _ string) {
 		write(t, filepath.Join(dir, ".git", "HEAD"), "ref: refs/heads/main\n")
 	}
+	mod := func(t *testing.T, _, home string) {
+		write(t, filepath.Join(home, ".claude", "aval-relay", "hooks", "hooks.json"), "{}\n")
+	}
 	runMessages(t, []msgCase{
 		{name: "pause", setup: repo, args: []string{"relay", "pause"}, env: []string{"AVAL_LANG=en"}, stdout: "relay paused in DIR\n"},
 		{name: "resume", setup: repo, args: []string{"relay", "resume"}, env: []string{"AVAL_LANG=en"}, stdout: "relay resumed in DIR\n"},
 		{name: "pause in Spanish", setup: repo, args: []string{"relay", "pause"}, env: []string{"AVAL_LANG=es"}, stdout: "relay en pausa en DIR\n"},
+		{name: "enable", setup: mod, args: []string{"relay", "enable"}, env: []string{"AVAL_LANG=en"},
+			stdout: "relay enabled: compaction window 233000 tokens, mod HOME/.claude/aval-relay. Restart Claude Code to load it.\n"},
+		{name: "enable in Spanish", setup: mod, args: []string{"relay", "enable"}, env: []string{"AVAL_LANG=es"},
+			stdout: "relay activado: ventana de compactación de 233000 tokens, mod HOME/.claude/aval-relay. Reinicie Claude Code para cargarlo.\n"},
+		{name: "enable without the mod", args: []string{"relay", "enable"}, env: []string{"AVAL_LANG=en"}, code: 1,
+			stderr: "error: relay: the relay mod is not installed at HOME/.claude/aval-relay: run aval install first\n"},
+		{name: "disable", args: []string{"relay", "disable"}, env: []string{"AVAL_LANG=en"}, stdout: "relay disabled. Restart Claude Code to unload it.\n"},
+		{name: "disable in Spanish", args: []string{"relay", "disable"}, env: []string{"AVAL_LANG=es"}, stdout: "relay desactivado. Reinicie Claude Code para descargarlo.\n"},
 		{name: "resume in Spanish", setup: repo, args: []string{"relay", "resume"}, env: []string{"AVAL_LANG=es"}, stdout: "relay reanudado en DIR\n"},
 	})
 }

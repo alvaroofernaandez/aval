@@ -17,7 +17,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/relay/adapter/statefs"
 )
 
-const relayUsage = "usage: aval relay compact|pause|resume"
+const relayUsage = "usage: aval relay compact|commit|pause|resume|enable|disable"
 
 // Reasons only the command gives (the core's are in package relay).
 const (
@@ -43,8 +43,12 @@ func runRelay(sub []string, flags uiFlags, c cmdIO) error {
 	switch sub[0] {
 	case "compact":
 		return relayCompact(c)
+	case "commit":
+		return relayCommit(c)
 	case "pause", "resume":
 		return relaySetPaused(sub[0] == "pause", flags, c)
+	case "enable", "disable":
+		return relaySetEnabled(sub[0] == "enable", flags, c)
 	}
 	return newUsage(relayUsage)
 }
@@ -218,3 +222,6 @@ func recordRelay(store statefs.Store, req relay.Request, now time.Time) {
 }
 
 const reasonPaused = "paused" // aval relay pause in this repository
+
+// errRelayModMissing: enable found no installed relay mod.
+var errRelayModMissing = errors.New("relay: the relay mod is not installed")

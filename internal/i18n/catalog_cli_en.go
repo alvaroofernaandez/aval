@@ -24,6 +24,8 @@ var englishCLI = catalog{
 	"cli.usage.cmd.relay":      {other: "answer a context compaction from the relay mod"},
 	"cli.relay.paused":         {other: "relay paused in {repo}"},
 	"cli.relay.resumed":        {other: "relay resumed in {repo}"},
+	"cli.relay.enabled":        {other: "relay enabled: compaction window {window} tokens, mod {mod}. Restart Claude Code to load it."},
+	"cli.relay.disabled":       {other: "relay disabled. Restart Claude Code to unload it."},
 	"cli.usage.cmd.review":     {other: "git-only risk tier and reviewer lenses"},
 	"cli.usage.cmd.design":     {other: "design gates for the project in the current directory"},
 	"cli.usage.cmd.config":     {other: "show or change aval settings (theme, glyphs, motion)"},
