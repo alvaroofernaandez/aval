@@ -105,3 +105,13 @@ export function newSessionPrompt(response) {
 export function nextPending(current, response) {
   return newSessionPrompt(response) || current;
 }
+
+// measured is what the first session.measure after a relay sends: the commit
+// of the tokens the new context holds, then the notification of that relay.
+export function measured(sessionId, event) {
+  const tokens = (event && event.context && event.context.tokens) || 0;
+  return {
+    commit: { version: PROTOCOL_VERSION, session_id: sessionId, tokens },
+    notify: { version: PROTOCOL_VERSION, session_id: sessionId },
+  };
+}
