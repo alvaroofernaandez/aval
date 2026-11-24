@@ -58,6 +58,8 @@ var archRules = []archRule{
 	{pkg: "internal/release", why: "leaf"},
 	{pkg: "internal/devmode", why: "leaf"},
 	{pkg: "internal/i18n", why: "leaf: message catalog and language selection (ADR 0006)"},
+	{pkg: "internal/relay", why: "leaf: I/O-free context relay core (ADR 0005)"},
+	{pkg: "internal/relay/*", allow: []string{"internal/relay"}, why: "relay adapters: state files, runtime shims, facts"},
 	{pkg: "internal/testenv", why: "leaf: test-only helpers"},
 	{pkg: "tools/*", why: "leaf: build-time tools"},
 	{pkg: "tests", why: "repository checks: drive the binary, import nothing internal"},
