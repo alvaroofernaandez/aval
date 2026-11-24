@@ -9,6 +9,22 @@ list GoReleaser generates from conventional commits (see [docs/releasing.md](doc
 This file keeps a short, dated summary per release and links the notes; the section
 "Before v0.1.0" is the history before versions existed.
 
+## v0.3.0-rc.7 (2026-11-24)
+
+[Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
+
+### Features
+
+- **relay:** a fallback ladder for the context relay: a steered native summary when aval is down or a relay would gain nothing, `aval hook relay-precompact` and `relay-sessionstart` when the mod does not load, and a new session from the note when the chain reaches its limit (`AVAL_RELAY_MAX_CHAIN`, default 5)
+
+### Fixes
+
+- **relay:** only automatic and `/compact` compactions are relayed; the note no longer takes Claude Code's own summary, a slash command or a wrapped note for a request, and keeps the request in flight
+
+### Maintenance
+
+- **relay:** `relay.Ladder`, the `claudehook` transcript adapter and one `relay.IsRequest` rule for both Claude Code adapters
+
 ## v0.3.0-rc.6 (2026-11-24)
 
 [Release notes](docs/releases/v0.3.0.md) · [Notas en español](docs/releases/v0.3.0.es.md)
