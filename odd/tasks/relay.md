@@ -277,9 +277,13 @@ aval down uses a fixed `STEER` text in `logic.js` (aval answers `steer` itself o
 `new_session`, the mod compacts natively, then clears and submits the capsule at
 `turn.complete` and takes a new session id). Level 2 hooks live in
 `config/claude/settings.json` (the mod's plugin does not load when the mod does
-not); `relay-sessionstart` is silent when a journal entry is under 10 s old. Not
-run: any of it in a real Claude Code session; the transcript format is undocumented
-(read from a 2.1.331 transcript, keys only).
+not); `relay-sessionstart` is silent when a journal entry is under 10 s old. Checked in
+`aval dev` (sandbox `relay11`, headless haiku, n=1): level 2 end to end, level 1 steer
+and aval-down fallback, level 3 clear plus submit in one stream-json process with
+`AVAL_RELAY_MAX_CHAIN=1`. The runs found and fixed: no trigger filter, the native
+summary, slash-command markers and the plugin-wrapped capsule taken as requests, the
+request in flight missing, and a stale capsule submitted after a queued clear. Known
+limit: input already queued runs before the clear. Not run: the interactive TUI.
 
 - [x] RED `TestLadder_BinarySlow_Level1`. Expected failure: level 0.
 - [x] Then `_ModNotLoaded_Level2`, `_PolicyWantsNewSession_Level3`,
