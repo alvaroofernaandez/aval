@@ -1,0 +1,9 @@
+{
+  "name": "aval-relay",
+  "version": "0.1.0",
+  "description": "aval context relay (experimental, off unless AVAL_RELAY=1): answers a compaction with an aval capsule and the latest messages, through aval relay compact.",
+  "author": {
+    "name": "aval",
+    "url": "https://github.com/alvaroofernaandez/aval"
+  }
+}
