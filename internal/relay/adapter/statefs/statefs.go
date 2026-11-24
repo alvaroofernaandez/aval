@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/relay"
 )
 
 // Errors a caller tells apart with errors.Is.
@@ -232,4 +234,41 @@ func writeAtomic(path string, data []byte) error {
 		os.Remove(tmp)
 	}
 	return werr
+}
+
+// ReadChain returns the relay chain of session; none yet is an empty chain.
+func (s Store) ReadChain(session string) (relay.Chain, error) {
+	path, err := s.path("chains", session+".json")
+	if err != nil {
+		return relay.Chain{}, err
+	}
+	raw, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return relay.Chain{}, nil
+	}
+	if err != nil {
+		return relay.Chain{}, err
+	}
+	var c relay.Chain
+	if err := json.Unmarshal(raw, &c.Links); err != nil {
+		return relay.Chain{}, fmt.Errorf("statefs: chain of %s: %w", session, err)
+	}
+	return c, nil
+}
+
+// AppendLink adds one relay to the chain of session.
+func (s Store) AppendLink(session string, l relay.Link) error {
+	c, err := s.ReadChain(session)
+	if err != nil {
+		return err
+	}
+	raw, err := json.Marshal(c.Record(l).Links)
+	if err != nil {
+		return err
+	}
+	path, err := s.path("chains", session+".json")
+	if err != nil {
+		return err
+	}
+	return writeAtomic(path, append(raw, '\n'))
 }

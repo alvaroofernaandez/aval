@@ -42,6 +42,8 @@ func runStandalone(name string, sub []string, repoFlag string, ui uiFlags, c cmd
 		return true, runDev(repoFlag, sub)
 	case "deps":
 		return true, runDeps(sub, ui, c)
+	case "relay":
+		return true, runRelay(sub, c)
 	}
 	return false, nil
 }

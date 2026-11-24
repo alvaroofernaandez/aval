@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/alvaroofernaandez/aval/internal/relay"
 )
 
 func store(t *testing.T) Store {
@@ -142,5 +144,21 @@ func TestStateFilesAre0600(t *testing.T) {
 		if fi.Mode().Perm() != 0o600 {
 			t.Errorf("%s: mode %v, want 0600", p, fi.Mode().Perm())
 		}
+	}
+}
+
+func TestChain_AppendAndRead(t *testing.T) {
+	s := store(t)
+	if c, err := s.ReadChain("s1"); err != nil || c.Epoch() != 0 {
+		t.Fatalf("fresh chain: epoch %d, %v", c.Epoch(), err)
+	}
+	for i, fp := range []string{"a", "b"} {
+		if err := s.AppendLink("s1", relay.Link{SessionID: "s1", Fingerprint: fp, Turn: 10 * (i + 1)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	c, err := s.ReadChain("s1")
+	if err != nil || c.Epoch() != 2 || c.Links[1].Fingerprint != "b" {
+		t.Fatalf("got %+v, %v", c, err)
 	}
 }
