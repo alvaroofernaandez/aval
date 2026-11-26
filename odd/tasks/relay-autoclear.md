@@ -61,8 +61,17 @@ Facts this plan relies on (verified 2026-11-26):
       SessionEnd/SessionStart). Cold cache path per T0 result: keep advisor
       (a blocked prompt never reaches turn.complete)
 - [x] AVAL_RELAY != 1 → no-op; any error → no clear
-- [ ] Live check: a session crosses a commit boundary above threshold and
-      continues without the user typing `/clear`
+- [x] Live check: a session crosses a commit boundary above threshold and
+      continues without the user typing `/clear`. 2026-11-26, Claude Code
+      2.1.332, haiku, tmux, live config (mod symlinked, aval installed in
+      ~/.local/bin, backup `aval.bak-pre-autoclear`), threshold lowered with
+      `AVAL_RELAY_BOUNDARY_TOKENS=1000` (floor alone is ~40k). After the model
+      ran `git commit` the screen showed `/clear`, "Prompt from the aval-relay
+      plugin", the text "aval relay: context relayed after commit (49k
+      tokens). Your previous reply, shown again for the user: PINEAPPLE-DONE
+      ...", then the model's "relayed.". Asked next, the new session quoted the
+      capsule's "First request:" line (SessionStart(clear) injected it).
+      Evidence: `~/Documents/aval/spikes/autoclear-t4/screen.txt`.
 
 ## T5 — closing
 - [ ] ADR 0005 amendment (boundary trigger, handoff key, capsule fields)
