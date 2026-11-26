@@ -8,6 +8,7 @@ import (
 
 	"github.com/alvaroofernaandez/aval/internal/relay/adapter/claudehook"
 	"github.com/alvaroofernaandez/aval/internal/relay/adapter/facts"
+	"github.com/alvaroofernaandez/aval/internal/relay/adapter/workfacts"
 )
 
 // relayHookRecent is how recent a journal entry must be for SessionStart to
@@ -27,7 +28,7 @@ func relayHook(name string, c cmdIO) {
 		relayPrompt(c)
 		return
 	}
-	opt := claudehook.Options{Repo: facts.Repo, CapsuleTokens: relayPolicy(c.env).CapsuleTokens, Now: time.Now(), Owner: facts.OwnerID}
+	opt := claudehook.Options{Repo: facts.Repo, CapsuleTokens: relayPolicy(c.env).CapsuleTokens, Now: time.Now(), Owner: facts.OwnerID, Plans: workfacts.Plans, Tree: workfacts.Tree}
 	if store, ok := relayStore(c.env); ok {
 		opt.Handoff = store
 		opt.Paused = func(dir string) bool { return store.Paused(repoRootOr(dir)) }

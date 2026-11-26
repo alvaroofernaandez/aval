@@ -46,11 +46,11 @@ Facts this plan relies on (verified 2026-11-26):
 - [x] Handoff survives until consumed or 24 h, not 10 min
 
 ## T3 — capsule quality (TDD)
-- [ ] Open plan tasks: unchecked boxes of the `odd/tasks/*.md` touched in
+- [x] Open plan tasks: unchecked boxes of the `odd/tasks/*.md` touched in
       the session (title + next unchecked items)
-- [ ] Working tree: uncommitted files and commits made in the session
-- [ ] Recent requests de-duplicated and capped; edited files keep order
-- [ ] Golden test on a real transcript fixture; size stays under budget
+- [x] Working tree: uncommitted files and commits made in the session
+- [x] Recent requests de-duplicated and capped; edited files keep order
+- [x] Golden test on a real transcript fixture; size stays under budget
 
 ## T4 — auto-clear at boundaries (Go policy + mod plumbing)
 - [ ] `aval relay boundary` (Go, TDD): given usage, idle time and the last
