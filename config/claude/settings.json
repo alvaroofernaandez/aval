@@ -146,6 +146,16 @@
             "command": "rm -f /tmp/dk_* /tmp/.dk_* /tmp/dk.json 2>/dev/null"
           }
         ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook relay-sessionend || true",
+            "timeout": 2
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -160,7 +170,7 @@
         ]
       },
       {
-        "matcher": "compact",
+        "matcher": "compact|clear",
         "hooks": [
           {
             "type": "command",
@@ -175,6 +185,17 @@
           {
             "type": "command",
             "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook repo-profile || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook relay-prompt || true",
             "timeout": 5
           }
         ]

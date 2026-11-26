@@ -186,5 +186,7 @@ func TestAgentHooksCarryTheRelayLadder(t *testing.T) {
 		return false
 	}
 	isTrue(t, "a PreCompact hook runs aval hook relay-precompact", find("PreCompact", "", "relay-precompact"))
-	isTrue(t, "a SessionStart(compact) hook runs aval hook relay-sessionstart", find("SessionStart", "compact", "relay-sessionstart"))
+	isTrue(t, "a SessionStart(compact|clear) hook runs aval hook relay-sessionstart", find("SessionStart", "compact|clear", "relay-sessionstart"))
+	isTrue(t, "a SessionEnd(clear) hook runs aval hook relay-sessionend", find("SessionEnd", "clear", "relay-sessionend"))
+	isTrue(t, "a UserPromptSubmit hook runs aval hook relay-prompt", find("UserPromptSubmit", "", "relay-prompt"))
 }
