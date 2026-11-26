@@ -11,15 +11,16 @@
     ],
     "deny": [
       "Bash(rm -rf /)",
-      "Bash(sudo rm -rf /)",
       "Bash(rm -rf ~)",
+      "Bash(sudo rm -rf /)",
       "Bash(sudo rm -rf ~)",
-      "Read(~/.ssh/**)",
-      "Read(~/.aws/**)",
-      "Read(~/.claude/.credentials.json)",
       "Read(**/.credentials.json)",
       "Read(**/.env)",
-      "Read(**/.env.*)"
+      "Read(**/.env.*)",
+      "Read(~/.aws/**)",
+      "Read(~/.claude/.credentials.json)",
+      "Read(~/.ssh/**)",
+      "Workflow"
     ],
     "ask": [
       "Edit(.env.*)",
@@ -30,6 +31,7 @@
     "defaultMode": "bypassPermissions"
   },
   "model": "opus",
+  "syncClaudeAiSkills": false,
   "skillOverrides": {
     "hallmark": "off",
     "ai-sdk-5": "off",
@@ -46,7 +48,29 @@
     "clerk-backend-api": "off",
     "repo-prep": "off",
     "high-end-visual-design": "off",
-    "anthropic-skills:skill-creator": "off"
+    "anthropic-skills:skill-creator": "off",
+    "design-refactor": "off",
+    "design-shotgun": "off",
+    "land-and-deploy": "off",
+    "remotion-best-practices": "off",
+    "logo-design": "name-only",
+    "contabo": "name-only",
+    "alvarofernandez-dev": "name-only",
+    "manual-de-uso-cliente": "name-only",
+    "pdf-report": "name-only",
+    "mac-disk-cleanup": "name-only",
+    "docker-space-optimizer": "name-only",
+    "docker-build-optimized": "name-only",
+    "readme-portal": "name-only",
+    "issue-creation-pro": "name-only",
+    "chained-pr": "name-only",
+    "redesign-existing-projects": "name-only",
+    "ui-craft-dense-dashboard": "name-only",
+    "video-shotcraft": "name-only",
+    "transitions-dev": "name-only",
+    "cognitive-doc-design": "name-only",
+    "clerk-cli": "name-only",
+    "architecture-evidence": "name-only"
   },
   "hooks": {
     "PostToolUse": [
@@ -123,6 +147,16 @@
             "command": "rm -f /tmp/dk_* /tmp/.dk_* /tmp/dk.json 2>/dev/null"
           }
         ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook relay-sessionend || true",
+            "timeout": 2
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -137,7 +171,7 @@
         ]
       },
       {
-        "matcher": "compact",
+        "matcher": "compact|clear",
         "hooks": [
           {
             "type": "command",
@@ -152,6 +186,17 @@
           {
             "type": "command",
             "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook repo-profile || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook relay-prompt || true",
             "timeout": 5
           }
         ]
@@ -172,7 +217,7 @@
   "enabledPlugins": {
     "bencium-innovative-ux-designer@bencium-marketplace": false,
     "claude-code-wakatime@wakatime": true,
-    "claude-security@claude-plugins-official": true,
+    "claude-security@claude-plugins-official": false,
     "engram@engram": true,
     "rust-analyzer-lsp@claude-plugins-official": false,
     "typescript-lsp@claude-plugins-official": true,
@@ -265,5 +310,34 @@
     "type": "command",
     "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" statusline || echo claude",
     "padding": 0
-  }
+  },
+  "deniedMcpServers": [
+    {
+      "serverName": "claude.ai Booking.com"
+    },
+    {
+      "serverName": "claude.ai Wego"
+    },
+    {
+      "serverName": "claude.ai lastminute.com"
+    },
+    {
+      "serverName": "claude.ai Expedia"
+    },
+    {
+      "serverName": "claude.ai SlickTrip"
+    },
+    {
+      "serverName": "claude.ai Google Docs"
+    },
+    {
+      "serverName": "claude.ai Google Sheets"
+    },
+    {
+      "serverName": "claude.ai Google Slides"
+    },
+    {
+      "serverName": "claude.ai Claude Docs"
+    }
+  ]
 }

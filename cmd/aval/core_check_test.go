@@ -76,3 +76,21 @@ func TestRunDoctorSecurityAllowFlag(t *testing.T) {
 		t.Errorf("--allow did not suppress:\n%s", out.String())
 	}
 }
+
+func TestRunSyncCheckFlagsUnmanagedRepoKeysMissingLive(t *testing.T) {
+	repo, home := fakeMachine(t)
+	writeFile(t, filepath.Join(repo, "config/claude/settings.json"), `{"spinnerTipsEnabled":false,"skipAutoPermissionPrompt":true}`)
+	if err := runSync(repo, home, nil, false, &bytes.Buffer{}, englishTr); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	err := runSync(repo, home, []string{"--check"}, false, &out, englishTr)
+	if !errors.Is(err, errChecksFailed) || !strings.Contains(out.String(), "skipAutoPermissionPrompt") {
+		t.Fatalf("err = %v, want errChecksFailed naming the key:\n%s", err, out.String())
+	}
+	writeFile(t, filepath.Join(home, ".claude/settings.json"), `{"spinnerTipsEnabled":false,"skipAutoPermissionPrompt":true,"env":{"AVAL_RELAY":"1"}}`)
+	out.Reset()
+	if err := runSync(repo, home, []string{"--check"}, false, &out, englishTr); err != nil {
+		t.Errorf("live-only keys and equal keys must pass --check: %v\n%s", err, out.String())
+	}
+}

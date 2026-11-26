@@ -34,6 +34,13 @@ func TestKnownCommand(t *testing.T) {
 			t.Errorf("%q should be known", name)
 		}
 	}
+	// Every standalone command runStandalone dispatches must pass main's
+	// knownCommand gate, or it is unreachable from the CLI.
+	for _, name := range []string{"kiri", "docker", "pdf", "deck", "dev", "deps", "relay", "context"} {
+		if !knownCommand(name) {
+			t.Errorf("standalone %q is dispatched but unknown to main", name)
+		}
+	}
 	for _, name := range []string{"instal", "nope", "--yes"} {
 		if knownCommand(name) {
 			t.Errorf("%q should be unknown", name)

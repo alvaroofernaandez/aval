@@ -62,14 +62,14 @@ func runHook(args []string, c cmdIO) error {
 		// PostToolUse, sync: formats the edited file; a failure is one line on
 		// stderr and never fails the edit.
 		fmthook.Run(in, c.stderr, fmthook.DefaultOptions())
-	case "relay-precompact", "relay-sessionstart":
+	case "relay-precompact", "relay-sessionstart", "relay-prompt", "relay-sessionend":
 		relayHook(name, c)
 	case "lessons":
 		// Exit 0 whatever happens: a lessons hook that can fail is a hook that
 		// can be mistaken for a block.
 		_ = lessons.Run(in, out, lessonsOptions(getenv))
 	default:
-		return newUsage("usage: aval hook lessons|repo-profile|relay-precompact|relay-sessionstart|design-gate|plan-gate|design-shot-stop|rate-guard|rtk-rewrite|pre-push|fmt (reads hook JSON on stdin)")
+		return newUsage("usage: aval hook lessons|repo-profile|relay-precompact|relay-sessionstart|relay-prompt|relay-sessionend|design-gate|plan-gate|design-shot-stop|rate-guard|rtk-rewrite|pre-push|fmt (reads hook JSON on stdin)")
 	}
 	return nil
 }

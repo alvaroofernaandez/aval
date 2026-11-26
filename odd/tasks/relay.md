@@ -298,8 +298,8 @@ limit: input already queued runs before the clear. Not run: the interactive TUI.
 ## T12 — #65 blocked remainder (feat → v0.3.0-rc.11 when unblocked)
 
 - [ ] Turn-boundary trigger: needs S1 `plugin`.
-- [ ] Cold-cache trigger: needs P3; if it fails, record it as not deliverable on
-      Claude Code.
+- [x] Cold-cache trigger: delivered as a blocking `UserPromptSubmit` advisor
+      (`aval hook relay-prompt`), not a compaction; see ADR 0005 amendment.
 - [ ] Subagent capsule: needs S1 `agentId`.
 - [ ] Windows exec form in `internal/core/sync/winhooks.go`: needs S7.
 - [ ] PR `Closes #65` only when the surviving acceptance criteria are met.

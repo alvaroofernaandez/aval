@@ -1,0 +1,69 @@
+{
+  "title": "Suelo de contexto + relay",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · fase 0 del ecosistema sumi", "title": "Cada sesión empieza más ligera y nunca paga una caché fría", "lede": "Bajamos lo que Claude Code carga antes de que escribas nada, y el relay de aval pasa a decidir solo cuándo compactar, limpiar y traspasar.", "note": "Lo que cambia: sesiones y subagentes más baratos y un solo dueño del contexto."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "El contexto es todo lo que el modelo lee en cada turno", "lede": "Instrucciones, skills, herramientas y la conversación. Lo que se carga antes de tu primer mensaje es el suelo: hoy 68,7k tokens.", "note": "Medido en esta misma sesión tras /clear, desde el registro de la sesión."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "Pagamos el suelo una y otra vez", "items": [
+      {"title": "Suelo alto", "text": "68,7k tokens antes de empezar, en cada sesión.", "tone": "warn"},
+      {"title": "Subagentes caros", "text": "Cada subagente recarga CLAUDE.md y reglas que no necesita.", "tone": "warn"},
+      {"title": "Caché fría", "text": "Volver tras una hora con mucho contexto lo reescribe entero, al precio caro.", "tone": "warn"}
+    ]},
+    {"layout": "compare", "eyebrow": "La idea", "title": "De varios dueños a uno solo", "items": [
+      {"tag": "hoy", "title": "Ajustes sueltos", "text": "Ventana de compactado, avisos y traspasos por separado, y config activa distinta de aval.", "tone": "muted"},
+      {"tag": "con este plan", "title": "El relay manda", "text": "Una política: compacta a 233k, avisa con caché fría, traspasa una nota tras /clear.", "tone": "good"}
+    ]},
+    {"layout": "steps", "eyebrow": "Cómo funciona", "title": "Cuatro cambios, medidos uno a uno", "items": [
+      {"title": "Medir", "text": "Un medidor lee los tokens reales del registro de la sesión."},
+      {"title": "Aligerar", "text": "Subagente general sin CLAUDE.md y lista de skills recortada.", "tone": "good"},
+      {"title": "Avisar", "text": "Si la caché está fría y el contexto es grande, propone /clear antes de gastar."},
+      {"title": "Traspasar", "text": "Tras /clear, una nota con lo importante entra en la sesión nueva.", "tone": "good"}
+    ]},
+    {"layout": "timeline", "eyebrow": "Un ejemplo", "title": "Una tarde normal", "items": [
+      {"tag": "16:00", "title": "Trabajas en aval", "text": "La sesión llega a 140k tokens."},
+      {"tag": "17:20", "title": "Vuelves tras una reunión", "text": "La caché lleva más de una hora fría.", "tone": "warn"},
+      {"tag": "17:20", "title": "El aviso te frena", "text": "Haz /clear: la nota viaja contigo y no reescribes 140k caros."},
+      {"tag": "17:21", "title": "Sesión nueva", "text": "Empieza con tus últimos prompts y archivos editados.", "tone": "good"}
+    ]},
+    {"layout": "checklist", "eyebrow": "Lo que se garantiza", "title": "Nada se rompe si algo falla", "items": [
+      {"title": "Falla abierto", "text": "Si el aviso falla, tu prompt pasa igual."},
+      {"title": "Apagable", "text": "Sin AVAL_RELAY=1 los hooks no hacen nada."},
+      {"title": "Medido", "text": "Cada cambio tiene su número antes y después."},
+      {"title": "Una sola fuente", "text": "La config vive en aval y la activa es idéntica."}
+    ]},
+    {"layout": "section", "eyebrow": "Parte dos", "title": "Dentro: cómo se construye", "lede": "Las piezas, cómo deciden y por qué así."},
+    {"layout": "flow", "eyebrow": "Las piezas", "title": "Un medidor alimenta al decisor", "items": [
+      {"title": "Medidor", "text": "Lee tokens exactos y la hora del último turno del registro."},
+      {"title": "Decisor", "text": "La política del relay que ya existe (Policy.Decide).", "tone": "good"},
+      {"title": "Aviso de prompt", "text": "Hook UserPromptSubmit: frena o avisa."},
+      {"title": "Escritor de notas", "text": "Guarda la nota al cerrar con /clear y la inyecta al empezar."}
+    ]},
+    {"layout": "tree", "eyebrow": "Cómo decide", "title": "Antes de enviar tu prompt", "items": [
+      {"title": "¿Relay apagado o error?", "tag": "Pasa sin tocar nada", "tone": "muted"},
+      {"title": "¿Caché fría (más de 1 h) y 100k o más?", "tag": "Frena y propone /clear", "tone": "warn"},
+      {"title": "¿Caché caliente y 160k o más?", "tag": "Avisa, no frena"},
+      {"title": "Si no", "tag": "Pasa", "tone": "good"}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones", "title": "Por qué se construye así", "columns": ["Decidimos", "Porque", "En vez de"], "rows": [
+      ["El relay fija la ventana (233k)", "Está dentro del óptimo medido de 200-230k", "Un ajuste suelto de 250k que compite"],
+      ["Aviso por hook", "No necesita API del mod, que está bloqueada", "Esperar a la sonda P3 del relay"],
+      ["Umbrales en tokens absolutos", "No cambian si cambia la ventana", "Porcentajes de la ventana"],
+      ["Resumen de Engram en su plugin", "Ya lo hace; evita duplicar", "Otro hook al cerrar sesión"]
+    ]},
+    {"layout": "table", "eyebrow": "Mapa", "title": "Dónde vive cada parte", "columns": ["Parte", "Dónde"], "rows": [
+      ["Medidor", "internal/relay + aval context floor"],
+      ["Aviso de prompt", "aval hook relay-prompt"],
+      ["Nota tras /clear", "hooks SessionEnd y SessionStart(clear)"],
+      ["Subagente ligero", "config/claude/agents/general-purpose.md"],
+      ["Config", "config/claude/settings.json = ~/.claude"]
+    ]},
+    {"layout": "steps", "eyebrow": "El camino", "title": "Ocho pasos, uno detrás de otro", "items": [
+      {"title": "T0 Medidor", "text": "La puerta: sin números no hay cambios.", "tone": "warn"},
+      {"title": "T1-T2 Config unida y relay encendido", "text": "Activa y aval idénticas."},
+      {"title": "T3-T4 Subagente y skills", "text": "Bajar el suelo, medido.", "tone": "good"},
+      {"title": "T5-T6 Aviso y nota", "text": "Con tests primero."},
+      {"title": "T7 Cierre", "text": "ADR 0005 al día y tabla de resultados."}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Construir el medidor con un test que falle primero", "lede": "Sin verificar aún: que general-purpose.md sustituya al integrado y cuánto baja el suelo. Lo dirán las medidas."}
+  ]
+}
