@@ -126,3 +126,45 @@ func TestRelayPromptHook_Silent(t *testing.T) {
 		t.Errorf("small context printed %q", got)
 	}
 }
+
+const clearTranscriptBody = `{"type":"user","message":{"role":"user","content":"Add retries to the upload client."}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Retries are in client.go."}]}}
+`
+
+// clearHookRun runs a relay hook with the given input fields.
+func clearHookRun(t *testing.T, name, state, relayOn string, fields map[string]string) string {
+	t.Helper()
+	in, _ := json.Marshal(fields)
+	env := map[string]string{"XDG_STATE_HOME": state, "AVAL_RELAY": relayOn}
+	var out bytes.Buffer
+	if err := runHook([]string{name}, cmdIO{stdin: bytes.NewReader(in), stdout: &out, stderr: &bytes.Buffer{}, env: func(k string) string { return env[k] }}); err != nil {
+		t.Fatalf("hook %s: %v", name, err)
+	}
+	return out.String()
+}
+
+func TestRelayHook_CapsuleSurvivesClear(t *testing.T) {
+	state, dir := t.TempDir(), t.TempDir()
+	tr := filepath.Join(dir, "t.jsonl")
+	writeFile(t, tr, clearTranscriptBody)
+	if got := clearHookRun(t, "relay-sessionend", state, "1", map[string]string{"cwd": dir, "transcript_path": tr, "reason": "clear"}); got != "" {
+		t.Fatalf("sessionend printed %q", got)
+	}
+	got := clearHookRun(t, "relay-sessionstart", state, "1", map[string]string{"cwd": dir, "source": "clear"})
+	if !strings.Contains(got, "Add retries to the upload client.") || !strings.Contains(got, "Retries are in client.go.") {
+		t.Fatalf("start after clear: %q, want the capsule and the last reply", got)
+	}
+	if again := clearHookRun(t, "relay-sessionstart", state, "1", map[string]string{"cwd": dir, "source": "clear"}); again != "" {
+		t.Errorf("second start printed %q, want nothing", again)
+	}
+}
+
+func TestRelayHook_ClearIsSilentWhenRelayIsOff(t *testing.T) {
+	state, dir := t.TempDir(), t.TempDir()
+	tr := filepath.Join(dir, "t.jsonl")
+	writeFile(t, tr, clearTranscriptBody)
+	clearHookRun(t, "relay-sessionend", state, "", map[string]string{"cwd": dir, "transcript_path": tr, "reason": "clear"})
+	if got := clearHookRun(t, "relay-sessionstart", state, "1", map[string]string{"cwd": dir, "source": "clear"}); got != "" {
+		t.Errorf("printed %q: sessionend with relay off must store nothing", got)
+	}
+}

@@ -7,11 +7,14 @@ package claudehook
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"io"
 	"os"
 	"slices"
 	"strings"
+	"time"
+	"unicode/utf8"
 
 	"github.com/alvaroofernaandez/aval/internal/relay"
 )
@@ -44,6 +47,12 @@ var editTools = map[string]bool{"Edit": true, "Write": true, "MultiEdit": true, 
 // FromTranscript reads a transcript and returns the capsule facts: the
 // person's requests and the files edited. Lines it cannot read are skipped.
 func FromTranscript(r io.Reader) relay.Capsule {
+	c, _ := fromTranscript(r)
+	return c
+}
+
+// fromTranscript is FromTranscript plus the text of the last assistant reply.
+func fromTranscript(r io.Reader) (relay.Capsule, string) {
 	var f facts
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 0, 64<<10), maxLine)
@@ -53,13 +62,14 @@ func FromTranscript(r io.Reader) relay.Capsule {
 			f.add(e)
 		}
 	}
-	return capsule(f.first, f.prompts, f.files)
+	return capsule(f.first, f.prompts, f.files), f.reply
 }
 
 // facts accumulates what the transcript says, in order.
 type facts struct {
 	first          string // from an earlier capsule
 	prompts, files []string
+	reply          string // text of the last assistant entry that has any
 }
 
 func (f *facts) add(e entry) {
@@ -67,6 +77,9 @@ func (f *facts) add(e entry) {
 	switch {
 	case e.Type == "assistant":
 		f.files = append(f.files, edited(blocks)...)
+		if text != "" {
+			f.reply = text
+		}
 	case e.Type != "user" || e.IsMeta || e.Summary:
 	case isCapsule(text):
 		if first, _ := relay.CapsuleFirst(text); f.first == "" {
@@ -138,6 +151,55 @@ type Options struct {
 	CapsuleTokens int                               // budget of the SessionStart capsule
 	Relayed       bool                              // the mod just replaced the context (level 0)
 	Paused        func(dir string) bool             // aval relay pause holds for dir; nil for never
+	Handoff       Handoffs                          // capsule kept across /clear; nil for none
+	Now           time.Time                         // the clock of SessionEnd and SessionStart(clear)
+}
+
+// Handoffs keeps the capsule a cleared session leaves for the next one.
+type Handoffs interface {
+	PutHandoff(cwd, text string, at time.Time) error
+	TakeHandoff(cwd string, now time.Time, maxAge time.Duration) (string, bool)
+}
+
+// handoffMaxAge is how long a stored capsule stays valid for the next session.
+const handoffMaxAge = 10 * time.Minute
+
+// SessionEnd keeps the capsule, with the last exchange, for the session that
+// follows a /clear. It stores nothing for other reasons or unusable input.
+// It reads the transcript once and does no other work: SessionEnd has 1.5 s.
+func SessionEnd(in io.Reader, opt Options) {
+	var h input
+	if opt.Handoff == nil || json.NewDecoder(io.LimitReader(in, 1<<20)).Decode(&h) != nil ||
+		h.Reason != "clear" || h.TranscriptPath == "" || h.CWD == "" || (opt.Paused != nil && opt.Paused(h.CWD)) {
+		return
+	}
+	f, err := os.Open(h.TranscriptPath)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	c, reply := fromTranscript(f)
+	if c.FirstPrompt == "" {
+		return
+	}
+	text := relay.Render(opt.withRepo(c, h.CWD), opt.CapsuleTokens)
+	if reply != "" {
+		text += "\n\nLast reply before /clear:\n" + relay.Redact(truncate(reply, maxReply))
+	}
+	_ = opt.Handoff.PutHandoff(h.CWD, text, opt.Now)
+}
+
+// maxReply bounds the last assistant reply the handoff carries, in bytes.
+const maxReply = 4000
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n] + " [...]"
 }
 
 // PreCompact prints the summariser instructions built from the transcript
@@ -158,17 +220,36 @@ func SessionStart(in io.Reader, out io.Writer, opt Options) {
 	if opt.Relayed {
 		return
 	}
-	c, cwd, ok := read(in, "compact", opt)
+	raw, err := io.ReadAll(io.LimitReader(in, 1<<20))
+	if err != nil {
+		return
+	}
+	var h input
+	if json.Unmarshal(raw, &h) == nil && h.Source == "clear" {
+		if opt.Handoff == nil || h.CWD == "" {
+			return
+		}
+		if text, ok := opt.Handoff.TakeHandoff(h.CWD, opt.Now, handoffMaxAge); ok {
+			context(out, text)
+		}
+		return
+	}
+	c, cwd, ok := read(bytes.NewReader(raw), "compact", opt)
 	if !ok {
 		return
 	}
+	context(out, relay.Render(opt.withRepo(c, cwd), opt.CapsuleTokens))
+}
+
+// context prints text as the additionalContext of SessionStart.
+func context(out io.Writer, text string) {
 	var o struct {
 		H struct {
 			Event   string `json:"hookEventName"`
 			Context string `json:"additionalContext"`
 		} `json:"hookSpecificOutput"`
 	}
-	o.H.Event, o.H.Context = "SessionStart", relay.Render(opt.withRepo(c, cwd), opt.CapsuleTokens)
+	o.H.Event, o.H.Context = "SessionStart", text
 	b, err := json.Marshal(o)
 	if err != nil {
 		return
@@ -180,6 +261,7 @@ type input struct {
 	CWD            string `json:"cwd"`
 	TranscriptPath string `json:"transcript_path"`
 	Source         string `json:"source"`
+	Reason         string `json:"reason"`
 }
 
 // read decodes the hook input, checks its source when one is wanted and that
