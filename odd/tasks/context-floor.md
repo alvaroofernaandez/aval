@@ -27,25 +27,25 @@ the measured 200-230k optimum); two owners would conflict.
 - [ ] `aval context floor [--session <id>]` prints main and sub-agent floors
 
 ## T1 — settings: union of live and aval
-- [ ] aval gains the 5 live `skillOverrides` "off" (design-refactor,
+- [x] aval gains the 5 live `skillOverrides` "off" (design-refactor,
       design-shotgun, one company skill (private overlay), land-and-deploy,
       remotion-best-practices); live gains the relay hooks and
       `skipAutoPermissionPrompt`; drop empty `pluginConfigs`
-- [ ] Sync live == aval; diff is empty
+- [x] Sync live == aval; diff is empty
 
 ## T2 — relay on, as the one compaction owner
-- [ ] `aval relay enable` live (AVAL_RELAY=1, window 233k); `aval relay
+- [x] `aval relay enable` live (AVAL_RELAY=1, window 233k); `aval relay
       status` healthy; mod loaded
 
 ## T3 — general-purpose sub-agent without CLAUDE.md
-- [ ] `config/claude/agents/general-purpose.md`: `omitClaudeMd: true`,
+- [x] `config/claude/agents/general-purpose.md`: `omitClaudeMd: true`,
       `model: sonnet`, ~1k-token worker core (absolute paths, rtk tools,
       English artifacts, no commits, report format)
-- [ ] Measure sub-agent floor before/after; confirm the override took effect
+- [x] Measure sub-agent floor before/after; confirm the override took effect
 
 ## T4 — skill listing trim
-- [ ] `syncClaudeAiSkills: false` if no claude.ai skill is needed locally
-- [ ] Rarely used user skills → `name-only`; never used → `off`
+- [x] `syncClaudeAiSkills: false` if no claude.ai skill is needed locally
+- [x] Rarely used user skills → `name-only`; never used → `off`
       (history audit decides). Measure floor before/after
 
 ## T5 — cold-cache advisor (relay T12 cold trigger, hook channel)
@@ -67,6 +67,13 @@ the measured 200-230k optimum); two owners would conflict.
 ## Results
 | Task | Metric | Before | After |
 |------|--------|--------|-------|
-| floor | main first turn | 68.7k | |
-| T3 | sub-agent first turn | | |
-| T4 | main first turn | | |
+| floor | main first turn, interactive | 68.7k | |
+| T3 | general-purpose sub-agent first turn (headless probe) | 30.7k | 27.2k (−3.5k) |
+| T4 | main first turn (headless `claude -p`) | 49.4k | 45.0k (−4.3k) |
+
+T4 detail: 19 rarely used user skills → `name-only` (history audit of 2167
+transcripts: ≤1 use or self-explanatory name); remote-ops and Kiri skills stay
+`on` for their trigger phrases. claude.ai skills moved to `~/.claude/skills/.trash`.
+T2: live aval was 0.2.0 without `relay`; rebuilt 0.3.0-rc.9 into `~/.local/bin`
+(old binary kept as `aval.0.2.0.bak`).
+Finding: `aval sync` merges only hooks, so top-level keys drifted silently (T1b).
