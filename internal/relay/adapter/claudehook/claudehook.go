@@ -14,7 +14,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/alvaroofernaandez/aval/internal/relay"
 )
@@ -207,23 +206,13 @@ func SessionEnd(in io.Reader, opt Options) {
 	}
 	text := relay.Render(opt.withWork(opt.withRepo(t.capsule, h.CWD), h.CWD, t.since), opt.CapsuleTokens)
 	if t.reply != "" {
-		text += "\n\nLast reply before /clear:\n" + relay.Redact(truncate(t.reply, maxReply))
+		text += "\n\nLast reply before /clear:\n" + relay.Redact(relay.TruncateBytes(t.reply, maxReply))
 	}
 	_ = opt.Handoff.PutHandoff(h.CWD, opt.owner(), text, opt.Now)
 }
 
 // maxReply bounds the last assistant reply the handoff carries, in bytes.
-const maxReply = 4000
-
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	for n > 0 && !utf8.RuneStart(s[n]) {
-		n--
-	}
-	return s[:n] + " [...]"
-}
+const maxReply = relay.BoundaryReplyMax
 
 // PreCompact prints the summariser instructions built from the transcript
 // (plain stdout is the instruction channel of PreCompact). Input it cannot

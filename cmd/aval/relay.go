@@ -17,7 +17,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/relay/adapter/statefs"
 )
 
-const relayUsage = "usage: aval relay status|log [--json] | pause|resume|enable|disable | compact|commit|notify"
+const relayUsage = "usage: aval relay status|log [--json] | pause|resume|enable|disable | compact|commit|notify|boundary"
 
 // Reasons only the command gives (the core's are in package relay).
 const (
@@ -48,6 +48,8 @@ func runRelay(sub []string, flags uiFlags, c cmdIO) error {
 		return relayReport(sub[0], false, flags, c)
 	case "compact":
 		return relayCompact(c)
+	case "boundary":
+		return relayBoundary(c)
 	case "notify":
 		return relayNotify(c)
 	case "commit":
@@ -209,6 +211,7 @@ func relayPolicy(getenv func(string) string) relay.Policy {
 		"AVAL_RELAY_SOFT_TOKENS":     &p.SoftTokens,
 		"AVAL_RELAY_HARD_TOKENS":     &p.HardTokens,
 		"AVAL_RELAY_COLD_MIN_TOKENS": &p.ColdMinTokens,
+		"AVAL_RELAY_BOUNDARY_TOKENS": &p.BoundaryTokens,
 	} {
 		if n, err := strconv.Atoi(getenv(key)); err == nil && n > 0 {
 			*field = n

@@ -115,3 +115,58 @@ export function measured(sessionId, event) {
     notify: { version: PROTOCOL_VERSION, session_id: sessionId },
   };
 }
+
+// Boundary clear (relay-autoclear T4). The mod only shapes the last turn;
+// `aval relay boundary` decides. Tool inputs are cut to the fields the policy
+// reads and capped, so the process input stays small.
+const INPUT_FIELDS = ["command", "file_path", "old_string", "new_string", "content"];
+const INPUT_CAP = 20000;
+
+function pickInput(input) {
+  const out = {};
+  for (const k of INPUT_FIELDS) {
+    if (typeof (input || {})[k] === "string") out[k] = input[k].slice(0, INPUT_CAP);
+  }
+  return out;
+}
+
+/**
+ * The envelope `aval relay boundary` reads: the tokens in context and the
+ * last main-thread turn, that is the messages after the person's last prompt
+ * (a user message with text and no tool results). Null when messages is not
+ * a list (a denied read), so the caller does nothing.
+ */
+export function boundaryEnvelope(messages, usage) {
+  if (!Array.isArray(messages)) return null;
+  let start = 0;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role === "user" && m.text && !(m.toolResults && m.toolResults.length)) {
+      start = i + 1;
+      break;
+    }
+  }
+  const turn = messages.slice(start);
+  const failed = new Set();
+  for (const m of turn) for (const r of m.toolResults || []) if (r.isError) failed.add(r.tool_use_id);
+  const tools = [];
+  let reply = "";
+  for (const m of turn) {
+    if (m.role !== "assistant") continue;
+    if (m.text) reply = m.text;
+    for (const u of m.toolUses || []) {
+      const t = { tool: u.tool, input: pickInput(u.input) };
+      if (u.isError || failed.has(u.tool_use_id)) t.isError = true;
+      tools.push(t);
+    }
+  }
+  const tokens = (usage && usage.context && usage.context.tokens) || 0;
+  return { version: PROTOCOL_VERSION, tokens, turn: { reply, tools } };
+}
+
+/** The prompt to submit after the clear, or null when aval does not say clear. */
+export function boundaryText(response) {
+  if (!response || typeof response !== "object") return null;
+  if (response.version !== PROTOCOL_VERSION || response.action !== "clear") return null;
+  return typeof response.text === "string" && response.text ? response.text : null;
+}
