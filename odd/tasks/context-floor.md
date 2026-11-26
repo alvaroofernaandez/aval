@@ -67,7 +67,7 @@ the measured 200-230k optimum); two owners would conflict.
 ## Results
 | Task | Metric | Before | After |
 |------|--------|--------|-------|
-| floor | main first turn, interactive | 68.7k | next fresh session (`aval context floor`) |
+| floor | main first turn, interactive | 68.7k | 65.0k (−3.6k, −5.3%) |
 | all | main first turn (headless, all hooks on) | 49.4k | 45.0k (−8.8%) |
 | T3 | general-purpose sub-agent first turn (headless probe) | 30.7k | 27.2k (−3.5k) |
 | T4 | main first turn (headless `claude -p`) | 49.4k | 45.0k (−4.3k) |
