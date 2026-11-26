@@ -11,15 +11,16 @@
     ],
     "deny": [
       "Bash(rm -rf /)",
-      "Bash(sudo rm -rf /)",
       "Bash(rm -rf ~)",
+      "Bash(sudo rm -rf /)",
       "Bash(sudo rm -rf ~)",
-      "Read(~/.ssh/**)",
-      "Read(~/.aws/**)",
-      "Read(~/.claude/.credentials.json)",
       "Read(**/.credentials.json)",
       "Read(**/.env)",
-      "Read(**/.env.*)"
+      "Read(**/.env.*)",
+      "Read(~/.aws/**)",
+      "Read(~/.claude/.credentials.json)",
+      "Read(~/.ssh/**)",
+      "Workflow"
     ],
     "ask": [
       "Edit(.env.*)",
@@ -216,7 +217,7 @@
   "enabledPlugins": {
     "bencium-innovative-ux-designer@bencium-marketplace": false,
     "claude-code-wakatime@wakatime": true,
-    "claude-security@claude-plugins-official": true,
+    "claude-security@claude-plugins-official": false,
     "engram@engram": true,
     "rust-analyzer-lsp@claude-plugins-official": false,
     "typescript-lsp@claude-plugins-official": true,
@@ -334,6 +335,9 @@
     },
     {
       "serverName": "claude.ai Google Slides"
+    },
+    {
+      "serverName": "claude.ai Claude Docs"
     }
   ]
 }
