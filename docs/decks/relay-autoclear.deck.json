@@ -1,0 +1,71 @@
+{
+  "title": "Relay auto-clear",
+  "lang": "es",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · relay auto-clear", "title": "No vuelves a escribir /clear", "lede": "La sesión se limpia sola en los cortes naturales del trabajo y sigue donde estaba, con una nota de traspaso que sí sirve para continuar.", "note": "La promesa: menos gestión manual del contexto y menos tokens por sesión."},
+    {"layout": "statement", "eyebrow": "Primero, una palabra", "title": "El contexto es todo lo que Claude lee en cada mensaje", "lede": "Las reglas, las herramientas y la conversación entera. Cuanto más crece, más cuesta cada respuesta y peor recuerda lo del principio.", "note": "Definir contexto antes de hablar de limpiarlo."},
+    {"layout": "cards", "eyebrow": "El problema", "title": "Hoy el contexto se gestiona a mano", "items": [
+      {"title": "Tú haces el /clear", "text": "El aviso de caché fría bloquea tu mensaje, pero limpiar sigue siendo cosa tuya.", "tone": "warn"},
+      {"title": "La nota se pierde", "text": "Si tardas más de 10 minutos en abrir la sesión nueva, o hay dos sesiones en la misma carpeta.", "tone": "warn"},
+      {"title": "La nota dice poco", "text": "Guarda tus mensajes literales, no las tareas pendientes ni lo que queda sin commit.", "tone": "warn"}
+    ]},
+    {"layout": "compare", "eyebrow": "La idea", "title": "Limpiar en el corte, no en el límite", "items": [
+      {"tag": "hoy", "title": "Esperar al límite", "text": "Se compacta a 233k tokens, en mitad de lo que estés haciendo, o limpias tú.", "tone": "muted"},
+      {"tag": "con este plan", "title": "Limpiar al terminar algo", "text": "Tras un commit o una tarea cerrada, si la sesión ya pesa, se limpia sola y sigue.", "tone": "good"}
+    ]},
+    {"layout": "steps", "eyebrow": "Cómo funciona", "title": "Cuatro pasos, sin que escribas nada", "items": [
+      {"title": "Terminas algo", "text": "Un commit, una tarea marcada en el plan o una pausa larga."},
+      {"title": "Se decide", "text": "Si la sesión supera unos 100k tokens, toca limpiar."},
+      {"title": "Se escribe la nota", "text": "Objetivo, tareas pendientes, archivos sin commit y tu última petición."},
+      {"title": "Sesión nueva con la nota", "text": "Empieza ligera y sabe exactamente por dónde iba.", "tone": "good"}
+    ]},
+    {"layout": "timeline", "eyebrow": "Un ejemplo", "title": "Una tarde de trabajo en aval", "items": [
+      {"tag": "16:00", "title": "Empiezas la tarea T2", "text": "La sesión arranca en unos 26k tokens."},
+      {"tag": "17:10", "title": "Commit de T2 con 130k", "text": "Corte natural y sesión pesada: se limpia sola.", "tone": "good"},
+      {"tag": "17:11", "title": "Pides la T3", "text": "La sesión nueva ya sabe que T2 está hecha y qué falta."}
+    ]},
+    {"layout": "checklist", "eyebrow": "Lo que se mantiene", "title": "Lo que la nota siempre conserva", "items": [
+      {"title": "El objetivo", "text": "Tu primera petición de la sesión."},
+      {"title": "Tu última petición de texto", "text": "Nunca una imagen suelta como [Image #11]."},
+      {"title": "Las tareas abiertas del plan", "text": "Las casillas sin marcar de odd/tasks."},
+      {"title": "El estado del repo", "text": "Rama, archivos sin commit y commits de la sesión."}
+    ]},
+    {"layout": "section", "eyebrow": "Parte dos", "title": "Dentro: cómo se construye", "lede": "Las piezas, cómo se hablan y por qué así."},
+    {"layout": "flow", "eyebrow": "Las piezas", "title": "Un observador, un decisor, un escritor de notas", "items": [
+      {"title": "Observador (mod)", "text": "Al acabar cada turno pregunta si toca limpiar. Es el único que puede ejecutar /clear."},
+      {"title": "Decisor (aval relay boundary)", "text": "En Go: mira tokens, pausa y señales del turno. Responde limpiar o nada.", "tone": "good"},
+      {"title": "Escritor de notas (hooks)", "text": "SessionEnd guarda la nota; SessionStart la entrega a la sesión nueva."}
+    ]},
+    {"layout": "tree", "eyebrow": "Cómo decide", "title": "Al terminar cada turno", "items": [
+      {"title": "¿Relay apagado o un subagente?", "tag": "No hacer nada", "tone": "muted"},
+      {"title": "¿Menos de 100k tokens?", "tag": "No hacer nada"},
+      {"title": "¿Hubo commit, tarea cerrada o caché fría?", "tag": "Limpiar y seguir con la nota", "tone": "good"},
+      {"title": "¿Cualquier error?", "tag": "No limpiar nunca", "tone": "warn"}
+    ]},
+    {"layout": "table", "eyebrow": "Decisiones", "title": "Por qué se construye así", "columns": ["Decidimos", "Porque", "En vez de"], "rows": [
+      ["Limpiar desde el mod", "Los hooks no pueden ejecutar /clear; el mod sí (probado, S6)", "Pedirte que lo escribas"],
+      ["Limpiar en cortes naturales", "Nada queda a medias y la nota es completa", "Esperar al límite de 233k"],
+      ["Clave de nota = carpeta + proceso", "Dos sesiones en la misma carpeta no se pisan", "Solo la carpeta"],
+      ["Nota válida 24 h", "Abrir la sesión nueva tarde no la pierde", "10 minutos"]
+    ]},
+    {"layout": "table", "eyebrow": "Además", "title": "Recortes del suelo de contexto", "columns": ["Recorte", "Ahorro estimado", "Estado"], "rows": [
+      ["Protocolo de Engram en una sola copia", "~1,5k", "Por medir"],
+      ["Bloques de CLAUDE.md a lecciones bajo demanda", "~1k", "Por medir"],
+      ["Quitar chrome-devtools", "0,6k", "Medido"]
+    ]},
+    {"layout": "checklist", "eyebrow": "Frenos", "title": "Qué pasa si algo falla", "items": [
+      {"title": "AVAL_RELAY distinto de 1", "text": "Todo queda como hoy."},
+      {"title": "Error o tiempo agotado", "text": "No se limpia; la sesión sigue."},
+      {"title": "Subagentes", "text": "Nunca se limpian."},
+      {"title": "Sin verificar aún", "text": "Si /clear desde el mod borra la última respuesta visible. Lo mide el spike T0.", "tone": "warn"}
+    ]},
+    {"layout": "steps", "eyebrow": "El camino", "title": "Seis tareas, la primera es la puerta", "items": [
+      {"title": "T0 spike", "text": "Probar el /clear desde el mod tras un bloqueo y su efecto en pantalla.", "tone": "warn"},
+      {"title": "T1 recortes", "text": "Engram, CLAUDE.md y chrome-devtools, medidos."},
+      {"title": "T2 y T3 nota", "text": "Robusta y con tareas pendientes y estado del repo, con TDD."},
+      {"title": "T4 auto-clear", "text": "Decisor en Go y observador en el mod; prueba en vivo."},
+      {"title": "T5 cierre", "text": "ADR, resultados y PR sobre la #117.", "tone": "good"}
+    ]},
+    {"layout": "closing", "eyebrow": "Siguiente paso", "title": "Empezar por el spike T0", "lede": "Su resultado decide cómo se limpia cuando la caché está fría."}
+  ]
+}
