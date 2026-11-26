@@ -309,5 +309,22 @@
     "type": "command",
     "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" statusline || echo claude",
     "padding": 0
-  }
+  },
+  "deniedMcpServers": [
+    {
+      "serverName": "claude.ai Booking.com"
+    },
+    {
+      "serverName": "claude.ai Wego"
+    },
+    {
+      "serverName": "claude.ai lastminute.com"
+    },
+    {
+      "serverName": "claude.ai Expedia"
+    },
+    {
+      "serverName": "claude.ai SlickTrip"
+    }
+  ]
 }
