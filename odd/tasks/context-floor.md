@@ -21,10 +21,10 @@ already owns the window (`aval relay enable` → hard 200k + 33k = 233k, inside
 the measured 200-230k optimum); two owners would conflict.
 
 ## T0 — transcript usage reader
-- [ ] `internal/relay` reader: exact tokens per assistant turn
+- [x] `internal/relay` reader: exact tokens per assistant turn
       (input + cache_creation + cache_read), last turn timestamp, main vs
       sidechain. TDD on a fixture JSONL
-- [ ] `aval context floor [--session <id>]` prints main and sub-agent floors
+- [x] `aval context floor [--session <id>]` prints main and sub-agent floors
 
 ## T1 — settings: union of live and aval
 - [x] aval gains the 5 live `skillOverrides` "off" (design-refactor,
@@ -49,25 +49,26 @@ the measured 200-230k optimum); two owners would conflict.
       (history audit decides). Measure floor before/after
 
 ## T5 — cold-cache advisor (relay T12 cold trigger, hook channel)
-- [ ] `aval hook relay-prompt` on UserPromptSubmit, reusing `Policy.Decide`
+- [x] `aval hook relay-prompt` on UserPromptSubmit, reusing `Policy.Decide`
       with T0 tokens and idle time from the last turn timestamp: block when
       cold and >= 100k ("/clear, the capsule carries over"), warn when warm
       >= 160k, fail-open on any error, silent when AVAL_RELAY is off. TDD
 
 ## T6 — capsule across /clear
-- [ ] SessionEnd(reason=clear) writes the capsule (plus last full exchange)
+- [x] SessionEnd(reason=clear) writes the capsule (plus last full exchange)
       to statefs keyed by cwd; SessionStart(matcher clear) injects it once
-- [ ] Engram summary stays with the Engram plugin (no duplicate hook)
+- [x] Engram summary stays with the Engram plugin (no duplicate hook)
 
 ## T7 — closing
-- [ ] ADR 0005 amended (status, hook channel for the cold trigger, /clear
+- [x] ADR 0005 amended (status, hook channel for the cold trigger, /clear
       capsule); `relay.md` T12 cold-trigger box updated
-- [ ] Results table filled
+- [x] Results table filled
 
 ## Results
 | Task | Metric | Before | After |
 |------|--------|--------|-------|
-| floor | main first turn, interactive | 68.7k | |
+| floor | main first turn, interactive | 68.7k | next fresh session (`aval context floor`) |
+| all | main first turn (headless, all hooks on) | 49.4k | 45.0k (−8.8%) |
 | T3 | general-purpose sub-agent first turn (headless probe) | 30.7k | 27.2k (−3.5k) |
 | T4 | main first turn (headless `claude -p`) | 49.4k | 45.0k (−4.3k) |
 
@@ -77,3 +78,11 @@ transcripts: ≤1 use or self-explanatory name); remote-ops and Kiri skills stay
 T2: live aval was 0.2.0 without `relay`; rebuilt 0.3.0-rc.9 into `~/.local/bin`
 (old binary kept as `aval.0.2.0.bak`).
 Finding: `aval sync` merges only hooks, so top-level keys drifted silently (T1b).
+
+Closing notes:
+- T6 capsule is keyed by cwd: two sessions clearing in the same directory
+  overwrite each other. Cold TTL assumed 1 h (hook input has no TTL).
+- Not yet observed live: a real Claude Code UserPromptSubmit block and a real
+  SessionEnd(clear) → SessionStart(clear) round trip (unit + e2e on copies only).
+- Found while executing: `aval context` was dispatched but rejected by main's
+  `knownCommand` gate; the test now pins every standalone command.
