@@ -12,17 +12,17 @@ import (
 
 // fakeHandoffs is an in-memory Handoffs.
 type fakeHandoffs struct {
-	cwd, text string
-	at        time.Time
+	cwd, owner, text string
+	at               time.Time
 }
 
-func (f *fakeHandoffs) PutHandoff(cwd, text string, at time.Time) error {
-	f.cwd, f.text, f.at = cwd, text, at
+func (f *fakeHandoffs) PutHandoff(cwd, owner, text string, at time.Time) error {
+	f.cwd, f.owner, f.text, f.at = cwd, owner, text, at
 	return nil
 }
 
-func (f *fakeHandoffs) TakeHandoff(cwd string, now time.Time, maxAge time.Duration) (string, bool) {
-	if f.cwd != cwd || f.text == "" || now.Sub(f.at) > maxAge {
+func (f *fakeHandoffs) TakeHandoff(cwd, owner string, now time.Time, maxAge time.Duration) (string, bool) {
+	if f.cwd != cwd || f.owner != owner || f.text == "" || now.Sub(f.at) > maxAge {
 		return "", false
 	}
 	text := f.text
@@ -93,7 +93,7 @@ func TestSessionStart_ClearInjectsTheHandoffOnce(t *testing.T) {
 	h := &fakeHandoffs{cwd: "/w", text: "CAPSULE", at: clearAt}
 	run := func(now time.Time) string {
 		var out bytes.Buffer
-		SessionStart(hookIn(t, map[string]string{"cwd": "/w", "source": "clear"}), &out, Options{Handoff: h, Now: now})
+		SessionStart(hookIn(t, map[string]string{"cwd": "/w", "source": "clear"}), &out, Options{Handoff: h, Now: now, Owner: func() string { return "" }})
 		return out.String()
 	}
 	var o struct {
@@ -114,10 +114,49 @@ func TestSessionStart_ClearInjectsTheHandoffOnce(t *testing.T) {
 func TestSessionStart_ClearIgnoresStaleAndForeignHandoffs(t *testing.T) {
 	var out bytes.Buffer
 	h := &fakeHandoffs{cwd: "/w", text: "CAPSULE", at: clearAt}
-	SessionStart(hookIn(t, map[string]string{"cwd": "/w", "source": "clear"}), &out, Options{Handoff: h, Now: clearAt.Add(11 * time.Minute)})
+	SessionStart(hookIn(t, map[string]string{"cwd": "/w", "source": "clear"}), &out, Options{Handoff: h, Now: clearAt.Add(25 * time.Hour)})
 	SessionStart(hookIn(t, map[string]string{"cwd": "/other", "source": "clear"}), &out, Options{Handoff: &fakeHandoffs{cwd: "/w", text: "C", at: clearAt}, Now: clearAt})
 	SessionStart(hookIn(t, map[string]string{"cwd": "/w", "source": "startup"}), &out, Options{Handoff: &fakeHandoffs{cwd: "/w", text: "C", at: clearAt}, Now: clearAt})
 	if out.Len() != 0 {
 		t.Errorf("printed %q, want nothing", out.String())
+	}
+}
+
+func TestSessionEnd_AndStart_UseTheOwnerOfTheClaudeProcess(t *testing.T) {
+	h := &fakeHandoffs{}
+	owner := func() string { return "4242" }
+	tr := writeTranscript(t, clearTranscript)
+	SessionEnd(hookIn(t, map[string]string{"cwd": "/w", "transcript_path": tr, "reason": "clear"}), Options{Handoff: h, Now: clearAt, Owner: owner})
+	if h.owner != "4242" {
+		t.Fatalf("stored for owner %q, want 4242", h.owner)
+	}
+	var out bytes.Buffer
+	SessionStart(hookIn(t, map[string]string{"cwd": "/w", "source": "clear"}), &out, Options{Handoff: h, Now: clearAt.Add(time.Minute), Owner: func() string { return "9999" }})
+	if out.Len() != 0 {
+		t.Fatalf("another session took the handoff: %q", out.String())
+	}
+	SessionStart(hookIn(t, map[string]string{"cwd": "/w", "source": "clear"}), &out, Options{Handoff: h, Now: clearAt.Add(time.Minute), Owner: owner})
+	if out.Len() == 0 {
+		t.Fatal("the owner did not get its handoff")
+	}
+}
+
+func TestSessionStart_HandoffSurvivesHoursButNotADay(t *testing.T) {
+	for age, want := range map[time.Duration]bool{12 * time.Hour: true, 25 * time.Hour: false} {
+		var out bytes.Buffer
+		h := &fakeHandoffs{cwd: "/w", text: "CAPSULE", at: clearAt}
+		SessionStart(hookIn(t, map[string]string{"cwd": "/w", "source": "clear"}), &out, Options{Handoff: h, Now: clearAt.Add(age)})
+		if (out.Len() > 0) != want {
+			t.Errorf("after %v: printed=%v, want %v", age, out.Len() > 0, want)
+		}
+	}
+}
+
+func TestFromTranscript_ImageOnlyPromptKeepsTheLastTextRequest(t *testing.T) {
+	c := FromTranscript(strings.NewReader(clearTranscript +
+		`{"type":"user","message":{"role":"user","content":"[Image #11]"}}` + "\n" +
+		`{"type":"user","message":{"role":"user","content":[{"type":"text","text":"[Image #12]"},{"type":"text","text":"[Pasted text #1 +9 lines]"}]}}` + "\n"))
+	if c.LastPrompt != "Cap the backoff." {
+		t.Fatalf("latest request %q, want the last text request", c.LastPrompt)
 	}
 }

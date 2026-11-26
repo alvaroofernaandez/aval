@@ -129,6 +129,12 @@ func TestIsRequest(t *testing.T) {
 		"This session is being continued from a previous conversation that ran out of context.": false,
 		"<command-name>/clear</command-name>":                                                   false,
 		"<local-command-stdout>Compacted</local-command-stdout>":                                false,
+		"[Image #11]":                          false,
+		"  [Image #1]\n[Image #2]  ":           false,
+		"[Pasted text #3 +40 lines]":           false,
+		"[Image #1] [Pasted text #2 +5 lines]": false,
+		"[Image #1] what is wrong here?":       true,
+		"see [Image #1]":                       true,
 	} {
 		if got := IsRequest(text); got != want {
 			t.Errorf("IsRequest(%.40q) = %v, want %v", text, got, want)
@@ -149,5 +155,23 @@ func TestCapsuleFirst_UnderARuntimeLine(t *testing.T) {
 	}
 	if _, ok := CapsuleFirst("Line one\nLine two\n" + CapsuleHeader); ok {
 		t.Fatal("a header deeper than the second line counted as a capsule")
+	}
+}
+
+func TestCapsuleRender_CapsEachPrompt(t *testing.T) {
+	c := sample()
+	c.LastPrompt = strings.Repeat("x", 1500)
+	c.Prompts = []string{strings.Repeat("é", 900)}
+	got := Render(c, 40_000)
+	if strings.Contains(got, strings.Repeat("x", maxPromptRunes+1)) {
+		t.Fatal("a long prompt was kept whole")
+	}
+	for _, want := range []string{"… [truncated 900 chars]", "… [truncated 300 chars]"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("marker %q missing:\n%s", want, got)
+		}
+	}
+	if short := Render(sample(), 4_000); strings.Contains(short, "truncated") {
+		t.Error("a short prompt was marked as truncated")
 	}
 }

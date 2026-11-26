@@ -16,26 +16,37 @@ type handoff struct {
 	At   time.Time `json:"at"`
 }
 
-func (s Store) handoffPath(cwd string) string {
-	sum := sha256.Sum256([]byte(filepath.Clean(cwd)))
+// handoffPath is the file for a cwd and the owner, the id of the Claude Code
+// process that survives /clear. An empty owner is the old cwd-only key.
+func (s Store) handoffPath(cwd, owner string) string {
+	key := filepath.Clean(cwd)
+	if owner != "" {
+		key += "\x00" + owner
+	}
+	sum := sha256.Sum256([]byte(key))
 	return filepath.Join(s.Dir, "handoff", hex.EncodeToString(sum[:8])+".json")
 }
 
-// PutHandoff stores text for the next session started in cwd, replacing
-// any earlier one.
-func (s Store) PutHandoff(cwd, text string, at time.Time) error {
+// PutHandoff stores text for the next session of owner started in cwd,
+// replacing any earlier one.
+func (s Store) PutHandoff(cwd, owner, text string, at time.Time) error {
 	raw, err := json.Marshal(handoff{Cwd: filepath.Clean(cwd), Text: text, At: at})
 	if err != nil {
 		return err
 	}
-	return writeAtomic(s.handoffPath(cwd), append(raw, '\n'))
+	return writeAtomic(s.handoffPath(cwd, owner), append(raw, '\n'))
 }
 
-// TakeHandoff returns the text stored for cwd and deletes it, once. One
-// older than maxAge is deleted and not returned.
-func (s Store) TakeHandoff(cwd string, now time.Time, maxAge time.Duration) (string, bool) {
-	path := s.handoffPath(cwd)
+// TakeHandoff returns the text stored for cwd and owner and deletes it, once.
+// A non-empty owner falls back to the old cwd-only key. One older than maxAge
+// is deleted and not returned.
+func (s Store) TakeHandoff(cwd, owner string, now time.Time, maxAge time.Duration) (string, bool) {
+	path := s.handoffPath(cwd, owner)
 	raw, err := os.ReadFile(path)
+	if err != nil && owner != "" {
+		path = s.handoffPath(cwd, "")
+		raw, err = os.ReadFile(path)
+	}
 	if err != nil {
 		return "", false
 	}

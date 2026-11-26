@@ -27,7 +27,7 @@ func relayHook(name string, c cmdIO) {
 		relayPrompt(c)
 		return
 	}
-	opt := claudehook.Options{Repo: facts.Repo, CapsuleTokens: relayPolicy(c.env).CapsuleTokens, Now: time.Now()}
+	opt := claudehook.Options{Repo: facts.Repo, CapsuleTokens: relayPolicy(c.env).CapsuleTokens, Now: time.Now(), Owner: facts.OwnerID}
 	if store, ok := relayStore(c.env); ok {
 		opt.Handoff = store
 		opt.Paused = func(dir string) bool { return store.Paused(repoRootOr(dir)) }

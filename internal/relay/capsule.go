@@ -2,6 +2,7 @@ package relay
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 )
@@ -72,7 +73,27 @@ func Render(c Capsule, budget int) string {
 const (
 	maxPrompts = 15
 	maxFiles   = 25
+	// maxPromptRunes caps one request in the capsule: a long paste says little
+	// about what to do next and would eat the budget.
+	maxPromptRunes = 600
 )
+
+// capPrompt cuts a request to maxPromptRunes and says how much it dropped.
+func capPrompt(s string) string {
+	if utf8.RuneCountInString(s) <= maxPromptRunes {
+		return s
+	}
+	r := []rune(s)
+	return string(r[:maxPromptRunes]) + fmt.Sprintf("… [truncated %d chars]", len(r)-maxPromptRunes)
+}
+
+func capPrompts(in []string) []string {
+	out := make([]string, len(in))
+	for i, s := range in {
+		out[i] = capPrompt(s)
+	}
+	return out
+}
 
 func render(c Capsule) string {
 	var b strings.Builder
@@ -116,6 +137,7 @@ func lastN(items []string, n int) []string {
 func redactCapsule(c Capsule) Capsule {
 	c.FirstPrompt, c.LastPrompt, c.Note = Redact(c.FirstPrompt), Redact(c.LastPrompt), Redact(c.Note)
 	c.Prompts, c.Work, c.Files = redactAll(c.Prompts), redactAll(c.Work), redactAll(c.Files)
+	c.FirstPrompt, c.LastPrompt, c.Prompts = capPrompt(c.FirstPrompt), capPrompt(c.LastPrompt), capPrompts(c.Prompts)
 	return c
 }
 
@@ -164,10 +186,14 @@ var notRequests = []string{
 	"<local-command-",
 }
 
+// attachmentOnly matches a message that is only placeholders of attachments
+// ("[Image #11]", "[Pasted text #2 +40 lines]") and whitespace.
+var attachmentOnly = regexp.MustCompile(`^\s*(?:\[(?:Image|Pasted text) #\d+[^\]]*\]\s*)+$`)
+
 // IsRequest reports whether a user message is a request of the person: not
 // empty, not a capsule and not a message the runtime wrote itself.
 func IsRequest(text string) bool {
-	if text == "" || isCapsule(text) {
+	if text == "" || isCapsule(text) || attachmentOnly.MatchString(text) {
 		return false
 	}
 	for _, p := range notRequests {

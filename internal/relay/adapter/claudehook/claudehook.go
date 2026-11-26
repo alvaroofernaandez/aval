@@ -153,16 +153,25 @@ type Options struct {
 	Paused        func(dir string) bool             // aval relay pause holds for dir; nil for never
 	Handoff       Handoffs                          // capsule kept across /clear; nil for none
 	Now           time.Time                         // the clock of SessionEnd and SessionStart(clear)
+	Owner         func() string                     // id of the Claude Code process, the handoff key beside cwd; nil or "" for cwd only
+}
+
+func (o Options) owner() string {
+	if o.Owner == nil {
+		return ""
+	}
+	return o.Owner()
 }
 
 // Handoffs keeps the capsule a cleared session leaves for the next one.
 type Handoffs interface {
-	PutHandoff(cwd, text string, at time.Time) error
-	TakeHandoff(cwd string, now time.Time, maxAge time.Duration) (string, bool)
+	PutHandoff(cwd, owner, text string, at time.Time) error
+	TakeHandoff(cwd, owner string, now time.Time, maxAge time.Duration) (string, bool)
 }
 
-// handoffMaxAge is how long a stored capsule stays valid for the next session.
-const handoffMaxAge = 10 * time.Minute
+// handoffMaxAge is how long a stored capsule stays valid for the next session:
+// until consumed, or a day.
+const handoffMaxAge = 24 * time.Hour
 
 // SessionEnd keeps the capsule, with the last exchange, for the session that
 // follows a /clear. It stores nothing for other reasons or unusable input.
@@ -186,7 +195,7 @@ func SessionEnd(in io.Reader, opt Options) {
 	if reply != "" {
 		text += "\n\nLast reply before /clear:\n" + relay.Redact(truncate(reply, maxReply))
 	}
-	_ = opt.Handoff.PutHandoff(h.CWD, text, opt.Now)
+	_ = opt.Handoff.PutHandoff(h.CWD, opt.owner(), text, opt.Now)
 }
 
 // maxReply bounds the last assistant reply the handoff carries, in bytes.
@@ -229,7 +238,7 @@ func SessionStart(in io.Reader, out io.Writer, opt Options) {
 		if opt.Handoff == nil || h.CWD == "" {
 			return
 		}
-		if text, ok := opt.Handoff.TakeHandoff(h.CWD, opt.Now, handoffMaxAge); ok {
+		if text, ok := opt.Handoff.TakeHandoff(h.CWD, opt.owner(), opt.Now, handoffMaxAge); ok {
 			context(out, text)
 		}
 		return

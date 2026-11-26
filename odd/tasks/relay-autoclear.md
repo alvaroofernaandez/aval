@@ -38,12 +38,12 @@ Facts this plan relies on (verified 2026-11-26):
 - [x] Measure: headless 29.1k → 27.8k (−1.3k)
 
 ## T2 — handoff robustness (TDD, internal/relay)
-- [ ] Image-only and attachment-only prompts are not requests; keep the last
+- [x] Image-only and attachment-only prompts are not requests; keep the last
       text request
-- [ ] Per-prompt cap in the capsule (long pastes truncated with a marker)
-- [ ] Handoff key = cwd + Claude Code process (the PID that survives
+- [x] Per-prompt cap in the capsule (long pastes truncated with a marker)
+- [x] Handoff key = cwd + Claude Code process (the PID that survives
       /clear), so two sessions in one directory do not collide
-- [ ] Handoff survives until consumed or 24 h, not 10 min
+- [x] Handoff survives until consumed or 24 h, not 10 min
 
 ## T3 — capsule quality (TDD)
 - [ ] Open plan tasks: unchecked boxes of the `odd/tasks/*.md` touched in
