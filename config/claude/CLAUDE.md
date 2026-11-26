@@ -1,30 +1,12 @@
-## Engram Persistent Memory
+## Engram
 
-Engram persistent memory is ACTIVE. The full protocol (save format, lifecycle,
-search flow, after-compaction steps) is delivered every session by the Engram
-MCP server instructions and the SessionStart hook. Always-on rules:
-
-- Call `mem_save` PROACTIVELY after any decision, bugfix, discovery, convention,
-  or config change — do not wait to be asked. Use `capture_prompt: false` for
-  automated artifacts.
-- On any reference to past work: `mem_context` → `mem_search` → `mem_get_observation`.
-- Before saying "done", call `mem_session_summary`.
-- Saving to memory is bookkeeping, never the reply: it NEVER counts as answering.
-  End every turn with the complete user-facing answer as the final message (no
-  tool calls after it), and save memory before composing it — never collapse the
-  answer into a "saved / done" acknowledgement.
-- If a memory call fails or times out, deliver the answer anyway — memory
-  failures never block or replace the reply.
-- If `mem_session_start` fails with `ambiguous_project`: resolve the intended
-  repository root and retry `mem_session_start` with that root as `directory`.
-  The session ID remains unregistered until registration succeeds; never attach
-  an unregistered session ID to writes. Do not pass `project`,
-  `project_choice_reason`, or `recovery_token` to `mem_session_start`.
-- On `ambiguous_project` from write tools (`mem_save`, `mem_save_prompt`,
-  `mem_session_summary`): never guess. Ask the user to choose exactly one value
-  from `available_projects`, then retry the write tool with `project`,
-  `project_choice_reason=user_selected_after_ambiguous_project`, and the
-  returned `recovery_token`.
+Protocol comes from the Engram MCP instructions and SessionStart hook. Always-on:
+save proactively; memory is bookkeeping, never the reply (save first, end with
+the full answer); a failed memory call never blocks the answer. On
+`ambiguous_project`: for `mem_session_start` retry with the repo root as
+`directory`; for writes, ask the user to pick one of `available_projects`, then
+retry with `project`, `project_choice_reason=user_selected_after_ambiguous_project`
+and the `recovery_token`.
 
 @RTK.md
 ## Rules
@@ -69,35 +51,16 @@ This section carries only tooling and workflow directives — it does not restat
 - Before executing an `odd/tasks` plan, run the `plan-deck` skill (a local PDF via
   `aval deck build … --plan <plan>`). `plan-gate` blocks other edits until then.
 
-## Strict TDD (MANDATORY for ALL projects — frontend AND backend)
+## Strict TDD (MANDATORY, every project)
 
-Iron law, for any feature, bug fix, or refactor with behavioural change:
+RED (failing test, on an assertion) → GREEN (minimum code) → REFACTOR. Never
+invert it. Before implementation code emit the `[tdd-gate]` block (Runner, RED
+test); details in the `strict-tdd` skill.
 
-1. **RED** — write the failing test first. It must fail on an assertion, not an
-   import error.
-2. **GREEN** — the minimum code that passes. Nothing more.
-3. **REFACTOR** — clean up while green.
+## Skills (MANDATORY)
 
-Never invert this. "Tests later" never comes. Before writing implementation
-code, emit:
-
-```
-[tdd-gate]
-Runner: <pytest | vitest | jest | go test | …>
-RED test: <path::name — what it asserts and why it must fail now>
-```
-
-If you cannot fill that block honestly, you may not write implementation code
-yet. **Invoke the `strict-tdd` skill** for per-layer scope, the setup-first rule
-when a project has no runner.
-
-## Contextual Skill Loading (MANDATORY)
-
-The `<available_skills>` block in your system prompt is authoritative — it lists every skill installed for this session.
-
-**Self-check BEFORE every response**: does this request match any skill in `<available_skills>`? If yes, invoke it via the built-in `Skill` tool BEFORE generating your reply. This is a blocking requirement, not optional context. Skipping it is a discipline failure.
-
-Multiple skills can apply at once. Match by file context (extensions, paths) and task context (what the user is asking for).
+Before every response, check `<available_skills>`; if one matches the request
+or the files, invoke it with `Skill` first. Several can apply.
 
 ## Scoped lessons
 

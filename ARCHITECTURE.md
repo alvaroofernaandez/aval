@@ -32,6 +32,7 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/relay/adapter/claudemod` | relay adapter | Turns what the Claude Code relay mod sends into a relay request. |
 | `internal/relay/adapter/facts` | relay adapter | Repository facts for the capsule from file reads, without a git process. |
 | `internal/relay/adapter/statefs` | relay adapter | The relay's journal, session locks and status line summary on disk, written atomically with mode 0600. |
+| `internal/relay/adapter/workfacts` | relay adapter | Open plan tasks and the git working tree for the capsule; git runs with a short timeout and a failure omits the section. |
 | `internal/relay/adapter/notify` | relay adapter | The OS notification of a relay as an argv: osascript, notify-send, a PowerShell toast on Windows and WSL, or an OSC 9 sequence; the text is never part of a script. |
 | `internal/devmode` | leaf | The `aval dev` sandbox: a throwaway HOME for trying aval. |
 | `internal/deck` | leaf | Renders a JSON slide spec into a PDF deck. |

@@ -32,6 +32,7 @@ flowchart TD
     relay_adapter_facts["relay/adapter/facts"]
     relay_adapter_notify["relay/adapter/notify"]
     relay_adapter_statefs["relay/adapter/statefs"]
+    relay_adapter_workfacts["relay/adapter/workfacts"]
     release["release"]
     term["term/*"]
     testenv["testenv"]
@@ -55,6 +56,7 @@ flowchart TD
   cmd_aval --> relay_adapter_facts
   cmd_aval --> relay_adapter_notify
   cmd_aval --> relay_adapter_statefs
+  cmd_aval --> relay_adapter_workfacts
   cmd_aval --> release
   cmd_aval --> term
   cmd_aval --> ui
@@ -69,6 +71,7 @@ flowchart TD
   relay_adapter_claudemod --> relay
   relay_adapter_facts --> relay
   relay_adapter_statefs --> relay
+  relay_adapter_workfacts --> relay
   ui --> core
   ui --> devmode
   ui --> i18n

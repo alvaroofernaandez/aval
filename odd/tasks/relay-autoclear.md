@@ -1,0 +1,89 @@
+# Relay auto-clear + leaner floor (sumi ecosystem, phase 0b)
+
+Goal: the user never types `/clear`. Relay clears on its own at natural
+boundaries and the new session continues from a capsule that is good enough
+to keep working. In the same pass, trim the last user-owned parts of the
+context floor. Builds on `context-floor.md` (PR #117); branch
+`feat/relay-autoclear` stacks on `feat/context-floor`.
+
+Measurement: as in `context-floor.md` (first main turn, input + cache_creation
++ cache_read). Baseline 2026-11-26: headless 29.1k, interactive 39k (before
+T9 of context-floor).
+
+Facts this plan relies on (verified 2026-11-26):
+- Hooks cannot run `/clear`. The mod can: `$.command.run({command:"clear"})`
+  then `$.prompt.submit`, proven headless from `turn.complete` only (relay.md
+  S6). Ladder level 3 already does this, but only at the hard threshold.
+- `/clear` fires SessionEnd(reason=clear) → capsule written; SessionStart
+  (source=clear) injects it (context-floor T6, observed live).
+- Capsule today: first/latest/recent requests (raw, uncapped), edited files,
+  branch. Handoff keyed by sha256(cwd), expires after 10 min, deleted on read.
+  An image-only prompt becomes the "Latest request" (`relay.IsRequest`,
+  `internal/relay/capsule.go:169`).
+
+## T0 — spike: clear from a blocked or finished turn (no code kept)
+Results in `~/Documents/aval/spikes/autoclear-t0/RESULTS.md` (2.1.332, haiku).
+- [x] A UserPromptSubmit block gives the mod only `prompt.submit` (no
+      `turn.complete`): a blocked prompt cannot be cleared and resubmitted.
+      The cold-cache path stays an advisor block
+- [x] Clearing from `turn.complete` wipes the last reply from screen and
+      scrollback. From `prompt.submit` clear and submit are refused by a host
+      check; from `turn.start` clear runs after the turn. Hence T4 clears at
+      `turn.complete` and re-shows the last reply in the submitted prompt
+- [x] Results recorded here
+
+## T1 — floor trim (config only)
+- [x] Engram protocol appears 3× (CLAUDE.md, SessionStart hook, MCP
+      instructions): CLAUDE.md copy cut to one paragraph. The SessionStart
+      dump is not configurable (third-party plugin script); left as is
+- [x] CLAUDE.md 7.3 → 5.2 KB: TDD detail moved to lesson `strict-tdd.md`
+      (source-file triggers), skills rule condensed; the shared block keeps
+      the blocking keywords (`aval rules sync`, AGENTS.md mirrored)
+- [x] Deny `chrome-devtools` (duplicates Claude in Chrome)
+- [x] Measure: headless 29.1k → 27.8k (−1.3k)
+
+## T2 — handoff robustness (TDD, internal/relay)
+- [x] Image-only and attachment-only prompts are not requests; keep the last
+      text request
+- [x] Per-prompt cap in the capsule (long pastes truncated with a marker)
+- [x] Handoff key = cwd + Claude Code process (the PID that survives
+      /clear), so two sessions in one directory do not collide
+- [x] Handoff survives until consumed or 24 h, not 10 min
+
+## T3 — capsule quality (TDD)
+- [x] Open plan tasks: unchecked boxes of the `odd/tasks/*.md` touched in
+      the session (title + next unchecked items)
+- [x] Working tree: uncommitted files and commits made in the session
+- [x] Recent requests de-duplicated and capped; edited files keep order
+- [x] Golden test on a real transcript fixture; size stays under budget
+
+## T4 — auto-clear at boundaries (Go policy + mod plumbing)
+- [x] `aval relay boundary` (Go, TDD): given usage and the last turn's
+      signals (successful git commit, plan box checked), answers clear | none.
+      Threshold provisional: ≥ 100k tokens (`AVAL_RELAY_BOUNDARY_TOKENS`)
+- [x] Mod `turn.complete`: ask `aval relay boundary`; on clear run
+      `$.command.run clear` then submit the last reply again (capsule via
+      SessionEnd/SessionStart). Cold cache path per T0 result: keep advisor
+      (a blocked prompt never reaches turn.complete)
+- [x] AVAL_RELAY != 1 → no-op; any error → no clear
+- [x] Live check: a session crosses a commit boundary above threshold and
+      continues without the user typing `/clear`. 2026-11-26, Claude Code
+      2.1.332, haiku, tmux, live config (mod symlinked, aval installed in
+      ~/.local/bin, backup `aval.bak-pre-autoclear`), threshold lowered with
+      `AVAL_RELAY_BOUNDARY_TOKENS=1000` (floor alone is ~40k). After the model
+      ran `git commit` the screen showed `/clear`, "Prompt from the aval-relay
+      plugin", the text "aval relay: context relayed after commit (49k
+      tokens). Your previous reply, shown again for the user: PINEAPPLE-DONE
+      ...", then the model's "relayed.". Asked next, the new session quoted the
+      capsule's "First request:" line (SessionStart(clear) injected it).
+      Evidence: `~/Documents/aval/spikes/autoclear-t4/screen.txt`.
+
+## T5 — closing
+- [x] ADR 0005 amendment (boundary trigger, handoff key and 24 h, capsule fields)
+- [x] Results table; PR stacked on #117
+
+## Results
+| Task | Metric | Before | After |
+|------|--------|--------|-------|
+| T1 | main first turn (headless) | 29.1k | 27.8k (−1.3k) |
+| T4 | /clear typed by the user at a commit boundary | manual | automatic (live check, tmux) |

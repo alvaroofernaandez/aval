@@ -14,7 +14,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/alvaroofernaandez/aval/internal/relay"
 )
@@ -23,10 +22,11 @@ import (
 const maxLine = 16 << 20
 
 type entry struct {
-	Type        string `json:"type"`
-	IsMeta      bool   `json:"isMeta"`
-	IsSidechain bool   `json:"isSidechain"`
-	Summary     bool   `json:"isCompactSummary"` // seen on 2.1.331 on the native summary
+	Timestamp   time.Time `json:"timestamp"`
+	Type        string    `json:"type"`
+	IsMeta      bool      `json:"isMeta"`
+	IsSidechain bool      `json:"isSidechain"`
+	Summary     bool      `json:"isCompactSummary"` // seen on 2.1.331 on the native summary
 	Message     struct {
 		Content json.RawMessage `json:"content"`
 	} `json:"message"`
@@ -47,12 +47,19 @@ var editTools = map[string]bool{"Edit": true, "Write": true, "MultiEdit": true, 
 // FromTranscript reads a transcript and returns the capsule facts: the
 // person's requests and the files edited. Lines it cannot read are skipped.
 func FromTranscript(r io.Reader) relay.Capsule {
-	c, _ := fromTranscript(r)
-	return c
+	t := fromTranscript(r)
+	return t.capsule
 }
 
-// fromTranscript is FromTranscript plus the text of the last assistant reply.
-func fromTranscript(r io.Reader) (relay.Capsule, string) {
+// transcript is what a transcript says beyond the capsule: the last assistant
+// reply and when the session began.
+type transcript struct {
+	capsule relay.Capsule
+	reply   string    // text of the last assistant reply
+	since   time.Time // timestamp of the first entry; zero when none
+}
+
+func fromTranscript(r io.Reader) transcript {
 	var f facts
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 0, 64<<10), maxLine)
@@ -62,7 +69,7 @@ func fromTranscript(r io.Reader) (relay.Capsule, string) {
 			f.add(e)
 		}
 	}
-	return capsule(f.first, f.prompts, f.files), f.reply
+	return transcript{capsule: capsule(f.first, f.prompts, f.files), reply: f.reply, since: f.since}
 }
 
 // facts accumulates what the transcript says, in order.
@@ -70,9 +77,13 @@ type facts struct {
 	first          string // from an earlier capsule
 	prompts, files []string
 	reply          string // text of the last assistant entry that has any
+	since          time.Time
 }
 
 func (f *facts) add(e entry) {
+	if f.since.IsZero() && !e.Timestamp.IsZero() {
+		f.since = e.Timestamp
+	}
 	text, blocks := content(e.Message.Content)
 	switch {
 	case e.Type == "assistant":
@@ -147,22 +158,33 @@ func capsule(first string, prompts, files []string) relay.Capsule {
 
 // Options are what the hooks need from their caller.
 type Options struct {
-	Repo          func(dir string) *relay.RepoFacts // repo facts of the session's cwd; nil for none
-	CapsuleTokens int                               // budget of the SessionStart capsule
-	Relayed       bool                              // the mod just replaced the context (level 0)
-	Paused        func(dir string) bool             // aval relay pause holds for dir; nil for never
-	Handoff       Handoffs                          // capsule kept across /clear; nil for none
-	Now           time.Time                         // the clock of SessionEnd and SessionStart(clear)
+	Repo          func(dir string) *relay.RepoFacts                                 // repo facts of the session's cwd; nil for none
+	CapsuleTokens int                                                               // budget of the SessionStart capsule
+	Relayed       bool                                                              // the mod just replaced the context (level 0)
+	Paused        func(dir string) bool                                             // aval relay pause holds for dir; nil for never
+	Handoff       Handoffs                                                          // capsule kept across /clear; nil for none
+	Plans         func(cwd string, files []string, branch string) []relay.PlanFacts // open plan tasks; nil for none
+	Tree          func(cwd string, since time.Time) *relay.TreeFacts                // working tree facts since the session began; nil for none
+	Now           time.Time                                                         // the clock of SessionEnd and SessionStart(clear)
+	Owner         func() string                                                     // id of the Claude Code process, the handoff key beside cwd; nil or "" for cwd only
+}
+
+func (o Options) owner() string {
+	if o.Owner == nil {
+		return ""
+	}
+	return o.Owner()
 }
 
 // Handoffs keeps the capsule a cleared session leaves for the next one.
 type Handoffs interface {
-	PutHandoff(cwd, text string, at time.Time) error
-	TakeHandoff(cwd string, now time.Time, maxAge time.Duration) (string, bool)
+	PutHandoff(cwd, owner, text string, at time.Time) error
+	TakeHandoff(cwd, owner string, now time.Time, maxAge time.Duration) (string, bool)
 }
 
-// handoffMaxAge is how long a stored capsule stays valid for the next session.
-const handoffMaxAge = 10 * time.Minute
+// handoffMaxAge is how long a stored capsule stays valid for the next session:
+// until consumed, or a day.
+const handoffMaxAge = 24 * time.Hour
 
 // SessionEnd keeps the capsule, with the last exchange, for the session that
 // follows a /clear. It stores nothing for other reasons or unusable input.
@@ -178,29 +200,19 @@ func SessionEnd(in io.Reader, opt Options) {
 		return
 	}
 	defer f.Close()
-	c, reply := fromTranscript(f)
-	if c.FirstPrompt == "" {
+	t := fromTranscript(f)
+	if t.capsule.FirstPrompt == "" {
 		return
 	}
-	text := relay.Render(opt.withRepo(c, h.CWD), opt.CapsuleTokens)
-	if reply != "" {
-		text += "\n\nLast reply before /clear:\n" + relay.Redact(truncate(reply, maxReply))
+	text := relay.Render(opt.withWork(opt.withRepo(t.capsule, h.CWD), h.CWD, t.since), opt.CapsuleTokens)
+	if t.reply != "" {
+		text += "\n\nLast reply before /clear:\n" + relay.Redact(relay.TruncateBytes(t.reply, maxReply))
 	}
-	_ = opt.Handoff.PutHandoff(h.CWD, text, opt.Now)
+	_ = opt.Handoff.PutHandoff(h.CWD, opt.owner(), text, opt.Now)
 }
 
 // maxReply bounds the last assistant reply the handoff carries, in bytes.
-const maxReply = 4000
-
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	for n > 0 && !utf8.RuneStart(s[n]) {
-		n--
-	}
-	return s[:n] + " [...]"
-}
+const maxReply = relay.BoundaryReplyMax
 
 // PreCompact prints the summariser instructions built from the transcript
 // (plain stdout is the instruction channel of PreCompact). Input it cannot
@@ -229,7 +241,7 @@ func SessionStart(in io.Reader, out io.Writer, opt Options) {
 		if opt.Handoff == nil || h.CWD == "" {
 			return
 		}
-		if text, ok := opt.Handoff.TakeHandoff(h.CWD, opt.Now, handoffMaxAge); ok {
+		if text, ok := opt.Handoff.TakeHandoff(h.CWD, opt.owner(), opt.Now, handoffMaxAge); ok {
 			context(out, text)
 		}
 		return
@@ -287,6 +299,22 @@ func read(in io.Reader, source string, opt Options) (relay.Capsule, string, bool
 		return relay.Capsule{}, "", false
 	}
 	return c, h.CWD, true
+}
+
+// withWork adds the open plan tasks and the working tree when the caller
+// gives a source for them.
+func (o Options) withWork(c relay.Capsule, cwd string, since time.Time) relay.Capsule {
+	if o.Plans != nil && cwd != "" {
+		branch := ""
+		if c.Repo != nil {
+			branch = c.Repo.Branch
+		}
+		c.Plans = o.Plans(cwd, c.Files, branch)
+	}
+	if o.Tree != nil && cwd != "" {
+		c.Tree = o.Tree(cwd, since)
+	}
+	return c
 }
 
 // withRepo adds the repo facts of cwd when the caller gives a source.

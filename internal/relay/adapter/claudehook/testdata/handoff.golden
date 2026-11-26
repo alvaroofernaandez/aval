@@ -1,0 +1,49 @@
+# aval relay capsule
+
+## Objective
+First request: Implement T2 of odd/tasks/relay-autoclear.md: robust handoff.
+Latest request: commit T2 and start T3
+
+## Repository
+Branch: feat/relay-autoclear · changed files: 3
+
+## Open plan tasks
+Relay auto-clear + leaner floor
+- [ ] Open plan tasks section
+- [ ] Working tree section
+- [ ] Golden test on a real transcript fixture
+
+## Working tree
+Uncommitted:
+- M internal/relay/capsule.go
+- ?? internal/relay/adapter/workfacts/
+Commits this session:
+- c298e4d feat(relay): robust handoff
+
+## Recent requests
+- [Image #2]
+why does this fail?
+- run the tests
+- Here is the log:
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection reset by peer
+ERROR upload failed: connection… [truncated 2177 chars]
+
+## Files edited
+- /w/aval/odd/tasks/relay-autoclear.md
+- /w/aval/internal/relay/capsule.go
+- /w/aval/internal/relay/capsule_test.go
+
+
+Last reply before /clear:
+T2 done: the handoff is keyed by the claude process and lasts 24 h.

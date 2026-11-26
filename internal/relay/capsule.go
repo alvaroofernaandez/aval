@@ -2,6 +2,8 @@ package relay
 
 import (
 	"fmt"
+	"regexp"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -15,8 +17,10 @@ type Capsule struct {
 	Prompts     []string // earlier requests, oldest first (at most 15 kept)
 	Files       []string // recently edited files, newest first (at most 25 kept)
 	Repo        *RepoFacts
-	Work        []string // running work, one line each
-	Note        string   // optional next-step note
+	Plans       []PlanFacts // open plan tasks of the plans in play
+	Tree        *TreeFacts  // working tree facts; nil when unknown
+	Work        []string    // running work, one line each
+	Note        string      // optional next-step note
 }
 
 // RepoFacts are read by an adapter; a nil value means no repository.
@@ -59,7 +63,9 @@ func Render(c Capsule, budget int) string {
 		func(c *Capsule) {},
 		func(c *Capsule) { c.Note = "" },
 		func(c *Capsule) { c.Prompts = nil },
+		func(c *Capsule) { c.Tree = nil },
 		func(c *Capsule) { c.Files = nil },
+		func(c *Capsule) { c.Plans = nil },
 	} {
 		drop(&c)
 		if s := render(c); tokensOf(s) <= budget {
@@ -72,7 +78,27 @@ func Render(c Capsule, budget int) string {
 const (
 	maxPrompts = 15
 	maxFiles   = 25
+	// maxPromptRunes caps one request in the capsule: a long paste says little
+	// about what to do next and would eat the budget.
+	maxPromptRunes = 600
 )
+
+// capPrompt cuts a request to maxPromptRunes and says how much it dropped.
+func capPrompt(s string) string {
+	if utf8.RuneCountInString(s) <= maxPromptRunes {
+		return s
+	}
+	r := []rune(s)
+	return string(r[:maxPromptRunes]) + fmt.Sprintf("… [truncated %d chars]", len(r)-maxPromptRunes)
+}
+
+func capPrompts(in []string) []string {
+	out := make([]string, len(in))
+	for i, s := range in {
+		out[i] = capPrompt(s)
+	}
+	return out
+}
 
 func render(c Capsule) string {
 	var b strings.Builder
@@ -88,6 +114,8 @@ func render(c Capsule) string {
 		}
 		b.WriteString("\n")
 	}
+	renderPlans(&b, c.Plans)
+	renderTree(&b, c.Tree)
 	list(&b, "Running work", c.Work)
 	list(&b, "Recent requests", lastN(c.Prompts, maxPrompts))
 	list(&b, "Files edited", c.Files[:min(len(c.Files), maxFiles)])
@@ -96,6 +124,45 @@ func render(c Capsule) string {
 	}
 	return b.String()
 }
+
+func renderPlans(b *strings.Builder, plans []PlanFacts) {
+	var out strings.Builder
+	for _, p := range plans {
+		if len(p.Items) == 0 {
+			continue
+		}
+		if p.Title != "" {
+			out.WriteString(p.Title + "\n")
+		}
+		for _, it := range p.Items[:min(len(p.Items), maxPlanItems)] {
+			fmt.Fprintf(&out, "- [ ] %s\n", it)
+		}
+	}
+	if out.Len() > 0 {
+		b.WriteString("\n## Open plan tasks\n" + out.String())
+	}
+}
+
+func renderTree(b *strings.Builder, t *TreeFacts) {
+	if t == nil || len(t.Dirty)+len(t.Commits) == 0 {
+		return
+	}
+	b.WriteString("\n## Working tree\n")
+	for _, g := range []struct {
+		label string
+		items []string
+	}{{"Uncommitted:", head(t.Dirty, maxDirty)}, {"Commits this session:", head(t.Commits, maxCommits)}} {
+		if len(g.items) == 0 {
+			continue
+		}
+		b.WriteString(g.label + "\n")
+		for _, it := range g.items {
+			fmt.Fprintf(b, "- %s\n", strings.TrimSpace(it))
+		}
+	}
+}
+
+func head(items []string, n int) []string { return items[:min(len(items), n)] }
 
 // list writes a section of bullet lines.
 func list(b *strings.Builder, title string, items []string) {
@@ -116,7 +183,45 @@ func lastN(items []string, n int) []string {
 func redactCapsule(c Capsule) Capsule {
 	c.FirstPrompt, c.LastPrompt, c.Note = Redact(c.FirstPrompt), Redact(c.LastPrompt), Redact(c.Note)
 	c.Prompts, c.Work, c.Files = redactAll(c.Prompts), redactAll(c.Work), redactAll(c.Files)
+	c.FirstPrompt, c.LastPrompt, c.Prompts = capPrompt(c.FirstPrompt), capPrompt(c.LastPrompt), capPrompts(c.Prompts)
+	c.Prompts = dedupeLast(c.Prompts, c.FirstPrompt, c.LastPrompt)
+	c.Files = dedupe(c.Files)
+	plans := make([]PlanFacts, len(c.Plans))
+	for i, p := range c.Plans {
+		plans[i] = PlanFacts{Title: Redact(p.Title), Items: capPrompts(redactAll(p.Items))}
+	}
+	c.Plans = plans
+	if c.Tree != nil {
+		c.Tree = &TreeFacts{Dirty: redactAll(c.Tree.Dirty), Commits: redactAll(c.Tree.Commits)}
+	}
 	return c
+}
+
+// dedupe drops repeats, keeping the first occurrence of each item and the
+// order of the rest, and drops every item equal to one of skip.
+func dedupe(in []string, skip ...string) []string {
+	seen := map[string]bool{}
+	for _, s := range skip {
+		seen[s] = true
+	}
+	var out []string
+	for _, s := range in {
+		if !seen[s] {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// dedupeLast is dedupe for an oldest-first list: a repeat keeps its newest
+// place.
+func dedupeLast(in []string, skip ...string) []string {
+	rev := slices.Clone(in)
+	slices.Reverse(rev)
+	out := dedupe(rev, skip...)
+	slices.Reverse(out)
+	return out
 }
 
 func redactAll(in []string) []string {
@@ -164,10 +269,14 @@ var notRequests = []string{
 	"<local-command-",
 }
 
+// attachmentOnly matches a message that is only placeholders of attachments
+// ("[Image #11]", "[Pasted text #2 +40 lines]") and whitespace.
+var attachmentOnly = regexp.MustCompile(`^\s*(?:\[(?:Image|Pasted text) #\d+[^\]]*\]\s*)+$`)
+
 // IsRequest reports whether a user message is a request of the person: not
 // empty, not a capsule and not a message the runtime wrote itself.
 func IsRequest(text string) bool {
-	if text == "" || isCapsule(text) {
+	if text == "" || isCapsule(text) || attachmentOnly.MatchString(text) {
 		return false
 	}
 	for _, p := range notRequests {
@@ -176,4 +285,38 @@ func IsRequest(text string) bool {
 		}
 	}
 	return true
+}
+
+// PlanFacts is one plan file: its title and its next unchecked items.
+type PlanFacts struct {
+	Title string
+	Items []string
+}
+
+// TreeFacts is the working tree as git sees it, read by an adapter.
+type TreeFacts struct {
+	Dirty   []string // `git status --porcelain` lines
+	Commits []string // commits made during the session, one line each, newest first
+}
+
+const (
+	maxPlanItems = 8
+	maxDirty     = 20
+	maxCommits   = 10
+)
+
+var openItem = regexp.MustCompile(`^\s*- \[ \] (.+)$`)
+
+// ParsePlan reads a plan file: its first heading and the first line of its
+// next unchecked items (at most maxPlanItems).
+func ParsePlan(md string) PlanFacts {
+	var p PlanFacts
+	for _, line := range strings.Split(md, "\n") {
+		if t, ok := strings.CutPrefix(line, "# "); ok && p.Title == "" {
+			p.Title = strings.TrimSpace(t)
+		} else if m := openItem.FindStringSubmatch(line); m != nil && len(p.Items) < maxPlanItems {
+			p.Items = append(p.Items, strings.TrimSpace(m[1]))
+		}
+	}
+	return p
 }

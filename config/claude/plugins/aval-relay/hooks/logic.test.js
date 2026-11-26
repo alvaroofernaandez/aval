@@ -1,7 +1,7 @@
 // Run: node --test config/claude/plugins/aval-relay/hooks/logic.test.js
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { newSessionId, envelope, answer, steered, newSessionPrompt, nextPending, measured, STEER, PROTOCOL_VERSION } from "./logic.js";
+import { newSessionId, envelope, answer, steered, newSessionPrompt, nextPending, measured, boundaryEnvelope, boundaryText, STEER, PROTOCOL_VERSION } from "./logic.js";
 
 const messages = [
   { handle: "h1", role: "user", text: "Turn 1", toolUses: [] },
@@ -138,4 +138,51 @@ test("measured gives the commit input, then the notify input", () => {
 
 test("measured survives a measure with no context", () => {
   assert.equal(measured("s-1", {}).commit.tokens, 0);
+});
+
+// Boundary clear (relay-autoclear T4): the mod shapes the last turn, Go decides.
+const use = (tool, input, extra = {}) => ({ tool_use_id: "u", tool, input, ...extra });
+const turnMessages = [
+  { role: "user", text: "old prompt", toolUses: [] },
+  { role: "assistant", text: "old reply", toolUses: [use("Bash", { command: "git commit -m old" })] },
+  { role: "user", text: "Add the retry", toolUses: [] },
+  { role: "assistant", text: "Editing.", toolUses: [use("Edit", { file_path: "/w/a.go", old_string: "a", new_string: "b", extra: "dropped" })] },
+  { role: "user", text: "", toolUses: [], toolResults: [{ tool_use_id: "u", text: "ok", isError: false }] },
+  { role: "assistant", text: "Committed.", toolUses: [use("Bash", { command: "git commit -m x" }, { isError: true })] },
+];
+
+test("boundaryEnvelope keeps only the last turn, the reply and the tokens", () => {
+  const got = boundaryEnvelope(turnMessages, { context: { tokens: 123456 } });
+  assert.equal(got.version, PROTOCOL_VERSION);
+  assert.equal(got.tokens, 123456);
+  assert.equal(got.turn.reply, "Committed.");
+  assert.deepEqual(got.turn.tools, [
+    { tool: "Edit", input: { file_path: "/w/a.go", old_string: "a", new_string: "b" } },
+    { tool: "Bash", input: { command: "git commit -m x" }, isError: true },
+  ]);
+});
+
+test("boundaryEnvelope takes an error from the tool result too", () => {
+  const msgs = [
+    { role: "user", text: "go", toolUses: [] },
+    { role: "assistant", text: "", toolUses: [use("Bash", { command: "git commit -m x" })] },
+    { role: "user", text: "", toolUses: [], toolResults: [{ tool_use_id: "u", text: "boom", isError: true }] },
+  ];
+  assert.equal(boundaryEnvelope(msgs, { context: { tokens: 1 } }).turn.tools[0].isError, true);
+});
+
+test("boundaryEnvelope caps long edit strings and survives bad input", () => {
+  const big = "x".repeat(50000);
+  const msgs = [{ role: "assistant", text: "r", toolUses: [use("Write", { file_path: "/w/odd/tasks/p.md", content: big })] }];
+  assert.equal(boundaryEnvelope(msgs, { context: { tokens: 1 } }).turn.tools[0].input.content.length, 20000);
+  assert.equal(boundaryEnvelope({ deny: "x" }, { context: { tokens: 1 } }), null);
+  assert.equal(boundaryEnvelope([], undefined).tokens, 0);
+});
+
+test("boundaryText is the text of a clear answer, else null", () => {
+  assert.equal(boundaryText({ version: PROTOCOL_VERSION, action: "clear", reason: "commit", text: "T" }), "T");
+  assert.equal(boundaryText({ version: PROTOCOL_VERSION, action: "none", reason: "no_signal" }), null);
+  assert.equal(boundaryText({ version: PROTOCOL_VERSION, action: "clear", text: "" }), null);
+  assert.equal(boundaryText({ version: 99, action: "clear", text: "T" }), null);
+  assert.equal(boundaryText(null), null);
 });

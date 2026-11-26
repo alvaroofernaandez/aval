@@ -129,6 +129,12 @@ func TestIsRequest(t *testing.T) {
 		"This session is being continued from a previous conversation that ran out of context.": false,
 		"<command-name>/clear</command-name>":                                                   false,
 		"<local-command-stdout>Compacted</local-command-stdout>":                                false,
+		"[Image #11]":                          false,
+		"  [Image #1]\n[Image #2]  ":           false,
+		"[Pasted text #3 +40 lines]":           false,
+		"[Image #1] [Pasted text #2 +5 lines]": false,
+		"[Image #1] what is wrong here?":       true,
+		"see [Image #1]":                       true,
 	} {
 		if got := IsRequest(text); got != want {
 			t.Errorf("IsRequest(%.40q) = %v, want %v", text, got, want)
@@ -149,5 +155,95 @@ func TestCapsuleFirst_UnderARuntimeLine(t *testing.T) {
 	}
 	if _, ok := CapsuleFirst("Line one\nLine two\n" + CapsuleHeader); ok {
 		t.Fatal("a header deeper than the second line counted as a capsule")
+	}
+}
+
+func TestCapsuleRender_CapsEachPrompt(t *testing.T) {
+	c := sample()
+	c.LastPrompt = strings.Repeat("x", 1500)
+	c.Prompts = []string{strings.Repeat("é", 900)}
+	got := Render(c, 40_000)
+	if strings.Contains(got, strings.Repeat("x", maxPromptRunes+1)) {
+		t.Fatal("a long prompt was kept whole")
+	}
+	for _, want := range []string{"… [truncated 900 chars]", "… [truncated 300 chars]"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("marker %q missing:\n%s", want, got)
+		}
+	}
+	if short := Render(sample(), 4_000); strings.Contains(short, "truncated") {
+		t.Error("a short prompt was marked as truncated")
+	}
+}
+
+func TestParsePlan_TitleAndNextUnchecked(t *testing.T) {
+	md := "# Relay auto-clear\n\nintro\n\n## T1\n- [x] done thing\n- [ ] first open\n      continuation line\n- [ ] second open\n## T2\n  - [ ] nested open\n"
+	for i := range 10 {
+		md += fmt.Sprintf("- [ ] extra %d\n", i)
+	}
+	p := ParsePlan(md)
+	if p.Title != "Relay auto-clear" {
+		t.Errorf("title %q", p.Title)
+	}
+	if len(p.Items) != maxPlanItems || p.Items[0] != "first open" || p.Items[2] != "nested open" {
+		t.Errorf("items %q", p.Items)
+	}
+	if got := ParsePlan("no heading\n- [x] a\n"); got.Title != "" || len(got.Items) != 0 {
+		t.Errorf("got %+v", got)
+	}
+}
+
+func TestCapsuleRender_PlanAndWorkingTreeSections(t *testing.T) {
+	c := sample()
+	c.Plans = []PlanFacts{{Title: "Relay auto-clear", Items: []string{"Handoff survives 24 h", "Golden test"}}}
+	c.Tree = &TreeFacts{Dirty: []string{" M internal/a.go", "?? b.txt"}, Commits: []string{"abc1234 feat: x"}}
+	got := Render(c, 4_000)
+	for _, want := range []string{
+		"## Open plan tasks\nRelay auto-clear\n- [ ] Handoff survives 24 h\n- [ ] Golden test\n",
+		"## Working tree\nUncommitted:\n- M internal/a.go\n- ?? b.txt\nCommits this session:\n- abc1234 feat: x\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
+	}
+	if none := Render(sample(), 4_000); strings.Contains(none, "## Working tree") || strings.Contains(none, "## Open plan tasks") {
+		t.Error("empty sections were written")
+	}
+}
+
+func TestCapsuleRender_WorkingTreeIsCapped(t *testing.T) {
+	c := sample()
+	c.Tree = &TreeFacts{}
+	for i := range 30 {
+		c.Tree.Dirty = append(c.Tree.Dirty, fmt.Sprintf("?? f%02d", i))
+		c.Tree.Commits = append(c.Tree.Commits, fmt.Sprintf("c%02d msg", i))
+	}
+	got := Render(c, 40_000)
+	for _, want := range []string{"f19", "c09"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("%q missing", want)
+		}
+	}
+	for _, gone := range []string{"f20", "c10"} {
+		if strings.Contains(got, gone) {
+			t.Errorf("%q kept past the cap", gone)
+		}
+	}
+}
+
+func TestCapsuleRender_DedupesRequestsAndKeepsFileOrder(t *testing.T) {
+	c := sample()
+	c.Prompts = []string{"run tests", "fix it", "run tests", "Add a retry to the upload client", "fix it"}
+	c.LastPrompt = "fix it"
+	c.Files = []string{"b.go", "a.go", "b.go", "c.go"}
+	got := Render(c, 4_000)
+	if n := strings.Count(got, "- run tests\n"); n != 1 {
+		t.Errorf("run tests appears %d times:\n%s", n, got)
+	}
+	if strings.Contains(got, "- fix it\n") || strings.Contains(got, "- Add a retry") {
+		t.Errorf("a request repeated from the objective was kept:\n%s", got)
+	}
+	if !strings.Contains(got, "- b.go\n- a.go\n- c.go\n") {
+		t.Errorf("files order:\n%s", got)
 	}
 }

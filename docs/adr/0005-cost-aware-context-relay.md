@@ -59,8 +59,39 @@ The relay shipped (rc.6 to rc.9), so this ADR is accepted. Two changes:
   passes. It fails open and is silent unless `AVAL_RELAY=1`. The 1 h TTL is
   assumed: the hook input carries no TTL.
 - **The capsule survives /clear.** `SessionEnd(reason=clear)` stores the
-  capsule plus the last assistant reply per working directory;
-  `SessionStart(clear)` injects it once, within 10 minutes. Two sessions
-  clearing in the same directory overwrite each other.
+  capsule plus the last assistant reply, keyed by working directory and the
+  Claude Code process that survives /clear (relay-autoclear T2; the old
+  cwd-only key is still read); `SessionStart(clear)` injects it once, within
+  24 hours.
 - **Exact tokens come from the transcript** (`input + cache_creation +
   cache_read` per assistant turn), also exposed as `aval context floor`.
+
+## Amendment (2026-11-26): boundary trigger, auto-clear without /clear
+
+The goal of `odd/tasks/relay-autoclear.md` is that the person never types
+`/clear`. A second trigger joins the cold-cache advisor:
+
+- **Boundary trigger.** `aval relay boundary` (policy in `internal/relay`,
+  pure) answers `clear` when the last main-thread turn ended on a natural
+  boundary and the context is worth clearing: a successful `git commit` Bash
+  call, or an Edit/Write that turned a `- [ ]` of an `odd/tasks/*.md` plan into
+  `- [x]`, with at least `BoundaryTokens` in context (provisional 100k, to be
+  calibrated; `AVAL_RELAY_BOUNDARY_TOKENS` overrides it). Everything else, an
+  error, `AVAL_RELAY` other than 1, a paused repository, or a relay in the last
+  minute, answers `none`: a boundary never clears on a guess.
+- **Why `turn.complete`.** Spikes (autoclear T0, #63 S6) showed the host refuses
+  `$.command.run clear` and `$.prompt.submit` from any event before the turn
+  ends, and a clear from `turn.start` runs after the turn on the old context.
+  Only `turn.complete` can clear and then start a new turn. The mod shapes the
+  last turn from `$.session.messages` (it has no transcript path) and sends it
+  to aval; the decision stays in Go.
+- **Why the reply is shown again.** A clear from `turn.complete` wipes the last
+  reply from the screen and scrollback (T0 Q2). The prompt the mod submits
+  carries the reply (redacted, capped at 4000 bytes) so the person still reads
+  it, and ends with "Reply only: relayed." so the model spends no real turn.
+  The capsule is not in that prompt: `SessionEnd(clear)` stores it and
+  `SessionStart(clear)` injects it, as for a manual `/clear`.
+- **The cold path is unchanged.** A blocked `UserPromptSubmit` never produces
+  `turn.complete` (T0 Q1) and a clear from `prompt.submit` is refused, so the
+  mod cannot clear and resubmit a blocked prompt. The advisor keeps asking the
+  person for `/clear`; the boundary trigger covers the warm, working case.

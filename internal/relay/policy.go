@@ -49,6 +49,7 @@ type Policy struct {
 	MinFreedTokens int     // a relay must free at least this much
 	TailTokens     int     // budget of the verbatim tail
 	CapsuleTokens  int     // budget of the capsule text
+	BoundaryTokens int     // least context a boundary clear needs
 }
 
 // DefaultPolicy returns the provisional defaults.
@@ -62,6 +63,7 @@ func DefaultPolicy() Policy {
 		MinFreedTokens: 20_000,
 		TailTokens:     20_000,
 		CapsuleTokens:  8_000,
+		BoundaryTokens: DefaultBoundaryTokens,
 	}
 }
 
