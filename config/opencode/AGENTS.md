@@ -224,35 +224,16 @@ Multiple skills can apply at once. Match by file context (extensions, paths) and
 - Before executing an `odd/tasks` plan, run the `plan-deck` skill (a local PDF via
   `aval deck build … --plan <plan>`). `plan-gate` blocks other edits until then.
 
-## Strict TDD (MANDATORY for ALL projects — frontend AND backend)
+## Strict TDD (MANDATORY, every project)
 
-Iron law, for any feature, bug fix, or refactor with behavioural change:
+RED (failing test, on an assertion) → GREEN (minimum code) → REFACTOR. Never
+invert it. Before implementation code emit the `[tdd-gate]` block (Runner, RED
+test); details in the `strict-tdd` skill.
 
-1. **RED** — write the failing test first. It must fail on an assertion, not an
-   import error.
-2. **GREEN** — the minimum code that passes. Nothing more.
-3. **REFACTOR** — clean up while green.
+## Skills (MANDATORY)
 
-Never invert this. "Tests later" never comes. Before writing implementation
-code, emit:
-
-```
-[tdd-gate]
-Runner: <pytest | vitest | jest | go test | …>
-RED test: <path::name — what it asserts and why it must fail now>
-```
-
-If you cannot fill that block honestly, you may not write implementation code
-yet. **Invoke the `strict-tdd` skill** for per-layer scope, the setup-first rule
-when a project has no runner.
-
-## Contextual Skill Loading (MANDATORY)
-
-The `<available_skills>` block in your system prompt is authoritative — it lists every skill installed for this session.
-
-**Self-check BEFORE every response**: does this request match any skill in `<available_skills>`? If yes, invoke it via the built-in `Skill` tool BEFORE generating your reply. This is a blocking requirement, not optional context. Skipping it is a discipline failure.
-
-Multiple skills can apply at once. Match by file context (extensions, paths) and task context (what the user is asking for).
+Before every response, check `<available_skills>`; if one matches the request
+or the files, invoke it with `Skill` first. Several can apply.
 
 ## Scoped lessons
 
@@ -302,6 +283,17 @@ Herdr is the only workspace (Orca was removed 2026-11-19): `hc` runs terminals
 and agents, `herdr-app` is the window. Delegate long, parallel or cross-agent
 work and slow commands to `hc run --bg`; never add agent hooks (status is
 native). Load the `herdr` skill before any `hc` or `herdr-app` command.
+
+### strict-tdd
+Strict TDD before this edit: write the failing test first (it fails on an
+assertion, not an import error), then the minimum code, then refactor while
+green. Emit before implementation code:
+
+    [tdd-gate]
+    Runner: <pytest | vitest | jest | go test | …>
+    RED test: <path::name — what it asserts and why it must fail now>
+
+If you cannot fill it honestly, do not write implementation code yet.
 
 ### ui-native-elements
 Never use native interactive elements: no native date picker, raw `<select>`,

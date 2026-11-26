@@ -28,14 +28,14 @@ Facts this plan relies on (verified 2026-11-26):
 - [ ] Record results in this file; T4 picks its trigger from them
 
 ## T1 — floor trim (config only)
-- [ ] Engram protocol appears 3× (CLAUDE.md, SessionStart hook, MCP
-      instructions): drop the CLAUDE.md copy to one line; cut the
-      SessionStart observation dump if engram allows it
-- [ ] CLAUDE.md: move scoped blocks (design, plan deck, TDD detail) to
-      `~/.claude/lessons/*.md` served by `aval hook lessons`; keep one-line
-      pointers
-- [ ] Deny `chrome-devtools` (duplicates Claude in Chrome)
-- [ ] Measure headless + interactive; live == aval
+- [x] Engram protocol appears 3× (CLAUDE.md, SessionStart hook, MCP
+      instructions): CLAUDE.md copy cut to one paragraph. The SessionStart
+      dump is not configurable (third-party plugin script); left as is
+- [x] CLAUDE.md 7.3 → 5.2 KB: TDD detail moved to lesson `strict-tdd.md`
+      (source-file triggers), skills rule condensed; the shared block keeps
+      the blocking keywords (`aval rules sync`, AGENTS.md mirrored)
+- [x] Deny `chrome-devtools` (duplicates Claude in Chrome)
+- [x] Measure: headless 29.1k → 27.8k (−1.3k)
 
 ## T2 — handoff robustness (TDD, internal/relay)
 - [ ] Image-only and attachment-only prompts are not requests; keep the last

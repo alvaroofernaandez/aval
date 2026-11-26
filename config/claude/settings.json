@@ -338,6 +338,9 @@
     },
     {
       "serverName": "claude.ai Claude Docs"
+    },
+    {
+      "serverName": "chrome-devtools"
     }
   ]
 }
