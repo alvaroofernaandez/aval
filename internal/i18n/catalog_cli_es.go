@@ -170,6 +170,7 @@ var spanishCLI = catalog{
 	"cli.sync.rolled_back":        {other: "sincronización revertida; la copia {id} está marcada como fallida (aval restore --list)"},
 	"cli.sync.drift.settings":     {other: "~/.claude/settings.json cambiaría: {keys}"},
 	"cli.sync.drift.file_missing": {other: "archivo ausente; {keys}"},
+	"cli.sync.drift.unmanaged":    {other: "claves del repo que sync no gestiona y difieren del fichero vivo: {keys}"},
 	"cli.sync.drift.rules":        {other: "{path} está desactualizado"},
 	"cli.sync.drift.overlay":      {other: "{path} no está enlazado"},
 	"cli.sync.no_drift":           {other: "sync: sin desfase"},

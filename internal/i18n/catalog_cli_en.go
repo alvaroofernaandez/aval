@@ -170,6 +170,7 @@ var englishCLI = catalog{
 	"cli.sync.rolled_back":        {other: "sync rolled back; backup {id} is marked failed (aval restore --list)"},
 	"cli.sync.drift.settings":     {other: "~/.claude/settings.json would change: {keys}"},
 	"cli.sync.drift.file_missing": {other: "file missing; {keys}"},
+	"cli.sync.drift.unmanaged":    {other: "keys the repo sets that sync does not manage differ from the live file: {keys}"},
 	"cli.sync.drift.rules":        {other: "{path} is out of date"},
 	"cli.sync.drift.overlay":      {other: "{path} is not linked"},
 	"cli.sync.no_drift":           {other: "sync: no drift"},

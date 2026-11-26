@@ -406,6 +406,13 @@ func checkSync(repo, home string, out io.Writer, tr i18n.Translator) error {
 		}
 		drift = append(drift, syncLabel(tr, "settings")+tr.T("cli.sync.drift.settings", i18n.Args{"keys": keys}))
 	}
+	unmanaged, err := avalsync.UnmanagedDrift(avalsync.Options{Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home)})
+	if err != nil {
+		return err
+	}
+	if len(unmanaged) > 0 {
+		drift = append(drift, syncLabel(tr, "settings")+tr.T("cli.sync.drift.unmanaged", i18n.Args{"keys": strings.Join(unmanaged, ", ")}))
+	}
 	for _, r := range rep.Rules {
 		if !r.Skipped && r.Changed {
 			drift = append(drift, syncLabel(tr, "rules")+tr.T("cli.sync.drift.rules", i18n.Args{"path": short(home, r.Path)}))

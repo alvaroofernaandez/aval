@@ -456,3 +456,35 @@ func TestRunDropsHooksTheRepoRemoved(t *testing.T) {
 		t.Errorf("personal key lost: %v", m)
 	}
 }
+
+func TestUnmanagedDrift(t *testing.T) {
+	opt := fakeEnv(t)
+	write(t, filepath.Join(opt.Repo, "config/claude/settings.json"),
+		`{"hooks":{"Stop":[1]},"skipAutoPermissionPrompt":true,"model":"opus","theme":"dark","permissions":{"deny":["X"]}}`)
+	write(t, filepath.Join(opt.Home, ".claude/settings.json"), `{"model":"sonnet","theme":"dark","env":{"AVAL_RELAY":"1"},"effort":"high"}`)
+	got, err := UnmanagedDrift(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"model", "skipAutoPermissionPrompt"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("drift = %v, want %v (differing and missing repo keys; not managed keys, equal keys or live-only keys)", got, want)
+	}
+}
+
+func TestUnmanagedDrift_OverlayKeyIsNotDrift(t *testing.T) {
+	opt := fakeEnv(t)
+	write(t, filepath.Join(opt.Repo, "config/claude/settings.json"), `{"model":"opus"}`)
+	write(t, filepath.Join(opt.Home, ".claude/settings.json"), `{"model":"sonnet"}`)
+	write(t, filepath.Join(opt.PrivateDir, "settings.json"), `{"model":"sonnet"}`)
+	if got, err := UnmanagedDrift(opt); err != nil || len(got) != 0 {
+		t.Errorf("drift = %v, %v, want none: the private overlay owns the key", got, err)
+	}
+}
+
+func TestUnmanagedDrift_NoLiveFileReportsEveryRepoKey(t *testing.T) {
+	opt := fakeEnv(t)
+	write(t, filepath.Join(opt.Repo, "config/claude/settings.json"), `{"model":"opus","env":{"A":"1"}}`)
+	if got, _ := UnmanagedDrift(opt); !reflect.DeepEqual(got, []string{"model"}) {
+		t.Errorf("drift = %v, want [model]", got)
+	}
+}
