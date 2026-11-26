@@ -76,3 +76,17 @@ func touch(t *testing.T, path string, secs int) {
 		t.Fatal(err)
 	}
 }
+
+// Claude Code names a project dir after the cwd with every character that is
+// not a letter or digit replaced by "-", on every OS.
+func TestClaudeProjectDirName(t *testing.T) {
+	for in, want := range map[string]string{
+		"/work/app":                     "-work-app",
+		`C:\Users\a.b\my_app`:           "C--Users-a-b-my-app",
+		"/Users/x/Proyectos/sumi-panel": "-Users-x-Proyectos-sumi-panel",
+	} {
+		if got := claudeProjectDirName(in); got != want {
+			t.Errorf("claudeProjectDirName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
