@@ -226,6 +226,7 @@ func TestLessonsInjectionAgainstTheRealLessons(t *testing.T) {
 		{"editing a .tsx file injects the native-elements lesson", `{"session_id":"u2","tool_name":"Write","tool_input":{"file_path":"/p/web/src/Card.tsx"}}`, `native`},
 		{"editing a Dockerfile injects the Kiri lesson", `{"session_id":"d1","tool_name":"Edit","tool_input":{"file_path":"/p/api/Dockerfile"}}`, `Kiri`},
 		{"running docker injects the Kiri lesson", `{"session_id":"d2","tool_name":"Bash","tool_input":{"command":"docker compose up -d"}}`, `Kiri`},
+		{"editing Go code injects the strict-TDD lesson", `{"session_id":"g1","tool_name":"Edit","tool_input":{"file_path":"/p/main.go"}}`, `tdd-gate`},
 		{"committing injects the attribution lesson", `{"session_id":"c1","tool_name":"Bash","tool_input":{"command":"git commit -m \"feat: x\""}}`, `Co-Authored-By`},
 	}
 	for _, c := range cases {
@@ -233,8 +234,8 @@ func TestLessonsInjectionAgainstTheRealLessons(t *testing.T) {
 			t.Errorf("%s: /%s/ not found in %q", c.what, c.want, got)
 		}
 	}
-	if got := fire(`{"session_id":"n1","tool_name":"Edit","tool_input":{"file_path":"/p/main.go"}}`); got != "" {
-		t.Errorf("editing plain Go code injects nothing: got %q", got)
+	if got := fire(`{"session_id":"n1","tool_name":"Edit","tool_input":{"file_path":"/p/notes.md"}}`); got != "" {
+		t.Errorf("editing prose injects nothing: got %q", got)
 	}
 	if got := fire(`{"session_id":"d1","tool_name":"Edit","tool_input":{"file_path":"/p/api/Dockerfile"}}`); got != "" {
 		t.Errorf("a lesson shows once per session: got %q", got)
