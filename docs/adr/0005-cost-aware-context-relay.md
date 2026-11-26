@@ -1,6 +1,6 @@
 # 0005. The context relay is cost-aware
 
-Status: proposed (2026-11-23)
+Status: accepted with amendment (proposed 2026-11-23, amended 2026-11-26)
 
 ## Context
 
@@ -46,3 +46,21 @@ When built, the relay will:
 - Thresholds are starting values until the replay tool and quality pilot (#74)
   run.
 - This ADR moves to accepted, with an amendment, when the relay ships.
+
+## Amendment (2026-11-26): cold trigger as a hook, capsule across /clear
+
+The relay shipped (rc.6 to rc.9), so this ADR is accepted. Two changes:
+
+- **The cold-cache trigger advises instead of compacting.** `UserPromptSubmit`
+  cannot compact (P3), but it can block. `aval hook relay-prompt` reads exact
+  tokens and the last turn time from the transcript: cold cache (idle > 1 h)
+  and >= `ColdMinTokens` blocks the prompt and asks for `/clear`; warm and
+  >= `SoftTokens` adds a warning; resending the same prompt within 2 minutes
+  passes. It fails open and is silent unless `AVAL_RELAY=1`. The 1 h TTL is
+  assumed: the hook input carries no TTL.
+- **The capsule survives /clear.** `SessionEnd(reason=clear)` stores the
+  capsule plus the last assistant reply per working directory;
+  `SessionStart(clear)` injects it once, within 10 minutes. Two sessions
+  clearing in the same directory overwrite each other.
+- **Exact tokens come from the transcript** (`input + cache_creation +
+  cache_read` per assistant turn), also exposed as `aval context floor`.
