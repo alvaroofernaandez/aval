@@ -46,7 +46,11 @@
     "clerk-backend-api": "off",
     "repo-prep": "off",
     "high-end-visual-design": "off",
-    "anthropic-skills:skill-creator": "off"
+    "anthropic-skills:skill-creator": "off",
+    "design-refactor": "off",
+    "design-shotgun": "off",
+    "land-and-deploy": "off",
+    "remotion-best-practices": "off"
   },
   "hooks": {
     "PostToolUse": [
