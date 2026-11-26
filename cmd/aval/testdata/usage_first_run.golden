@@ -25,6 +25,8 @@ Health
                             [--json]
   aval deps               external tools aval relies on, and which are missing
                             [--json] [--layer harness|agent|env]
+  aval context            context floor: tokens loaded before the first prompt
+                            floor [--session <id>] [--project-dir <dir>]
   aval version            version, commit, build date and channel
   aval help               show this help
 

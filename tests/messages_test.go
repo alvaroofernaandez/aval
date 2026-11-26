@@ -307,6 +307,8 @@ Health
                             [--json]
   aval deps               external tools aval relies on, and which are missing
                             [--json] [--layer harness|agent|env]
+  aval context            context floor: tokens loaded before the first prompt
+                            floor [--session <id>] [--project-dir <dir>]
   aval version            version, commit, build date and channel
   aval help               show this help
 
@@ -392,6 +394,8 @@ Salud
                             [--json]
   aval deps               herramientas externas de las que depende aval, y cuáles faltan
                             [--json] [--layer harness|agent|env]
+  aval context            suelo de contexto: tokens cargados antes del primer prompt
+                            floor [--session <id>] [--project-dir <dir>]
   aval version            versión, commit, fecha de compilación y canal
   aval help               muestra esta ayuda
 

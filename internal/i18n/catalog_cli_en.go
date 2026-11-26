@@ -22,6 +22,7 @@ var englishCLI = catalog{
 	"cli.usage.cmd.budget":           {other: "always-on context per agent and hook latency"},
 	"cli.usage.cmd.deps":             {other: "external tools aval relies on, and which are missing"},
 	"cli.usage.cmd.relay":            {other: "context relay: status, log, pause, enable"},
+	"cli.usage.cmd.context":          {other: "context floor: tokens loaded before the first prompt"},
 	"cli.context.floor.main":         {other: "main first turn: {tokens} tokens ({short})"},
 	"cli.context.floor.sub":          {other: "sub-agent first turn: {tokens} tokens ({short})"},
 	"cli.context.floor.empty":        {other: "no assistant turn in {path}"},
