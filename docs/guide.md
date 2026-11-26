@@ -439,7 +439,7 @@ over. It really executes the hooks; `--skip-hooks` measures context only.
 settings, `install.manifest`, installers, auth, migrations, payments, `.github/workflows` or permissions, or more
 than 400 production lines; `medium` if there is code without test changes (or more than 100 lines); `low` if there
 are only docs/tests or a small change with tests. It returns the level, the reasons and the reviewers: none,
-`review-reliability`, or all four. The `ship` skill uses it to size the self-review.
+`review-reliability`, or all four.
 
 ---
 
