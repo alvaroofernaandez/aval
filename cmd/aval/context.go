@@ -31,7 +31,7 @@ func runContext(sub []string, wd string, c cmdIO) error {
 		if err != nil {
 			return err
 		}
-		*projectDir = filepath.Join(home, ".claude", "projects", strings.ReplaceAll(wd, string(filepath.Separator), "-"))
+		*projectDir = filepath.Join(home, ".claude", "projects", claudeProjectDirName(wd))
 	}
 	transcript, err := pickSession(*projectDir, *session)
 	if err != nil {
@@ -99,4 +99,16 @@ func firstSubagentTurn(transcript string) (relay.Turn, bool) {
 		}
 	}
 	return best, found
+}
+
+// claudeProjectDirName is the directory Claude Code keeps a cwd's transcripts
+// in: every character that is not an ASCII letter or digit becomes "-".
+func claudeProjectDirName(wd string) string {
+	b := []byte(wd)
+	for i, c := range b {
+		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9') {
+			b[i] = '-'
+		}
+	}
+	return string(b)
 }
