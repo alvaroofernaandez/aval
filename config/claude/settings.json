@@ -325,6 +325,15 @@
     },
     {
       "serverName": "claude.ai SlickTrip"
+    },
+    {
+      "serverName": "claude.ai Google Docs"
+    },
+    {
+      "serverName": "claude.ai Google Sheets"
+    },
+    {
+      "serverName": "claude.ai Google Slides"
     }
   ]
 }
