@@ -22,10 +22,15 @@ Facts this plan relies on (verified 2026-11-26):
   `internal/relay/capsule.go:169`).
 
 ## T0 — spike: clear from a blocked or finished turn (no code kept)
-- [ ] Does a UserPromptSubmit block end the turn with `turn.complete` in the
-      mod? If yes, level 3 can clear and resubmit the blocked prompt
-- [ ] Does `/clear` from the mod wipe the visible last reply (scrollback)?
-- [ ] Record results in this file; T4 picks its trigger from them
+Results in `~/Documents/aval/spikes/autoclear-t0/RESULTS.md` (2.1.332, haiku).
+- [x] A UserPromptSubmit block gives the mod only `prompt.submit` (no
+      `turn.complete`): a blocked prompt cannot be cleared and resubmitted.
+      The cold-cache path stays an advisor block
+- [x] Clearing from `turn.complete` wipes the last reply from screen and
+      scrollback. From `prompt.submit` clear and submit are refused by a host
+      check; from `turn.start` clear runs after the turn. Hence T4 clears at
+      `turn.complete` and re-shows the last reply in the submitted prompt
+- [x] Results recorded here
 
 ## T1 — floor trim (config only)
 - [x] Engram protocol appears 3× (CLAUDE.md, SessionStart hook, MCP
@@ -74,5 +79,11 @@ Facts this plan relies on (verified 2026-11-26):
       Evidence: `~/Documents/aval/spikes/autoclear-t4/screen.txt`.
 
 ## T5 — closing
-- [ ] ADR 0005 amendment (boundary trigger, handoff key, capsule fields)
-- [ ] Results table; PR stacked on #117
+- [x] ADR 0005 amendment (boundary trigger, handoff key and 24 h, capsule fields)
+- [x] Results table; PR stacked on #117
+
+## Results
+| Task | Metric | Before | After |
+|------|--------|--------|-------|
+| T1 | main first turn (headless) | 29.1k | 27.8k (−1.3k) |
+| T4 | /clear typed by the user at a commit boundary | manual | automatic (live check, tmux) |

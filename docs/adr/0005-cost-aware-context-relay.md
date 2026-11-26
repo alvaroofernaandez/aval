@@ -59,9 +59,10 @@ The relay shipped (rc.6 to rc.9), so this ADR is accepted. Two changes:
   passes. It fails open and is silent unless `AVAL_RELAY=1`. The 1 h TTL is
   assumed: the hook input carries no TTL.
 - **The capsule survives /clear.** `SessionEnd(reason=clear)` stores the
-  capsule plus the last assistant reply per working directory;
-  `SessionStart(clear)` injects it once, within 10 minutes. Two sessions
-  clearing in the same directory overwrite each other.
+  capsule plus the last assistant reply, keyed by working directory and the
+  Claude Code process that survives /clear (relay-autoclear T2; the old
+  cwd-only key is still read); `SessionStart(clear)` injects it once, within
+  24 hours.
 - **Exact tokens come from the transcript** (`input + cache_creation +
   cache_read` per assistant turn), also exposed as `aval context floor`.
 
