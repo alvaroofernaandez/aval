@@ -48,6 +48,7 @@ func TestHotPathsNeverReadConfig(t *testing.T) {
 		{"--theme", "tokio-night", "statusline"},
 		{"hook", "design-gate"},
 		{"hook", "plan-gate"},
+		{"hook", "relay-prompt"},
 		{"relay", "compact"},
 		{"relay", "commit"},
 		{"relay", "notify"},

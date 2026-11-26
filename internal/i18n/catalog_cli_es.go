@@ -25,6 +25,8 @@ var spanishCLI = catalog{
 	"cli.context.floor.main":         {other: "primer turno principal: {tokens} tokens ({short})"},
 	"cli.context.floor.sub":          {other: "primer turno de sub-agente: {tokens} tokens ({short})"},
 	"cli.context.floor.empty":        {other: "ningun turno del asistente en {path}"},
+	"cli.relay.prompt.block":         {other: "El contexto tiene {tokens} tokens y la cache del prompt caduco hace {idle}, asi que este prompt se facturaria entero. Ejecuta /clear: la capsula del relay conserva tu trabajo. Reenvia el mismo prompt en 2 minutos para continuar igualmente."},
+	"cli.relay.prompt.warn":          {other: "El contexto tiene {tokens} tokens. Considera /clear o un relay pronto: los contextos largos cuestan mas por turno."},
 	"cli.relay.paused":               {other: "relay en pausa en {repo}"},
 	"cli.relay.resumed":              {other: "relay reanudado en {repo}"},
 	"cli.relay.enabled":              {other: "relay activado: ventana de compactación de {window} tokens, mod {mod}. Reinicie Claude Code para cargarlo."},

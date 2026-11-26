@@ -25,6 +25,8 @@ var englishCLI = catalog{
 	"cli.context.floor.main":         {other: "main first turn: {tokens} tokens ({short})"},
 	"cli.context.floor.sub":          {other: "sub-agent first turn: {tokens} tokens ({short})"},
 	"cli.context.floor.empty":        {other: "no assistant turn in {path}"},
+	"cli.relay.prompt.block":         {other: "Context is {tokens} tokens and the prompt cache expired {idle} ago, so this prompt would be re-billed in full. Run /clear: the relay capsule carries your work over. Send the same prompt again within 2 minutes to continue anyway."},
+	"cli.relay.prompt.warn":          {other: "Context is {tokens} tokens. Consider /clear or a relay soon: long contexts cost more per turn."},
 	"cli.relay.paused":               {other: "relay paused in {repo}"},
 	"cli.relay.resumed":              {other: "relay resumed in {repo}"},
 	"cli.relay.enabled":              {other: "relay enabled: compaction window {window} tokens, mod {mod}. Restart Claude Code to load it."},

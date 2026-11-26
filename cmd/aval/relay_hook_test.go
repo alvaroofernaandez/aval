@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -86,5 +87,42 @@ func TestRelayHook_PausedRepoPrintsNothing(t *testing.T) {
 	_ = runHook([]string{"relay-precompact"}, cmdIO{stdin: bytes.NewReader(in), stdout: &out, stderr: &bytes.Buffer{}, env: func(k string) string { return env[k] }})
 	if out.Len() != 0 {
 		t.Fatalf("paused: printed %q, want nothing", out.String())
+	}
+}
+
+// promptHookRun runs relay-prompt on a transcript whose last turn is from
+// 2020 (a cold cache) with tokens in context.
+func promptHookRun(t *testing.T, state, relayOn string, tokens int, prompt string) string {
+	t.Helper()
+	dir := t.TempDir()
+	tr := filepath.Join(dir, "t.jsonl")
+	writeFile(t, tr, `{"type":"assistant","timestamp":"2020-01-01T10:00:00Z","message":{"usage":{"input_tokens":`+strconv.Itoa(tokens)+`}}}`+"\n")
+	in, _ := json.Marshal(map[string]string{"session_id": "s", "cwd": dir, "transcript_path": tr, "prompt": prompt})
+	env := map[string]string{"XDG_STATE_HOME": state, "AVAL_RELAY": relayOn, "AVAL_LANG": "en"}
+	var out bytes.Buffer
+	if err := runHook([]string{"relay-prompt"}, cmdIO{stdin: bytes.NewReader(in), stdout: &out, stderr: &bytes.Buffer{}, env: func(k string) string { return env[k] }}); err != nil {
+		t.Fatalf("hook: %v", err)
+	}
+	return out.String()
+}
+
+func TestRelayPromptHook_BlocksAColdBigContextThenLetsAResendThrough(t *testing.T) {
+	state := t.TempDir()
+	got := promptHookRun(t, state, "1", 150_000, "next")
+	var o struct{ Decision, Reason string }
+	if err := json.Unmarshal([]byte(got), &o); err != nil || o.Decision != "block" || !strings.Contains(o.Reason, "/clear") {
+		t.Fatalf("got %q (%v), want a block that names /clear", got, err)
+	}
+	if again := promptHookRun(t, state, "1", 150_000, "next"); again != "" {
+		t.Errorf("resend printed %q, want nothing", again)
+	}
+}
+
+func TestRelayPromptHook_Silent(t *testing.T) {
+	if got := promptHookRun(t, t.TempDir(), "", 150_000, "p"); got != "" {
+		t.Errorf("relay off printed %q", got)
+	}
+	if got := promptHookRun(t, t.TempDir(), "1", 50_000, "p"); got != "" {
+		t.Errorf("small context printed %q", got)
 	}
 }
