@@ -53,13 +53,14 @@ Facts this plan relies on (verified 2026-11-26):
 - [x] Golden test on a real transcript fixture; size stays under budget
 
 ## T4 — auto-clear at boundaries (Go policy + mod plumbing)
-- [ ] `aval relay boundary` (Go, TDD): given usage, idle time and the last
-      turn's signals (git commit, plan box checked, cache cold), answers
-      clear | none. Threshold provisional: ≥ 100k tokens
-- [ ] Mod `turn.complete`: ask `aval relay boundary`; on clear run
-      `$.command.run clear` (capsule via SessionEnd/SessionStart). Cold
-      cache path per T0 result (resubmit blocked prompt, or keep advisor)
-- [ ] AVAL_RELAY != 1 → no-op; any error → no clear
+- [x] `aval relay boundary` (Go, TDD): given usage and the last turn's
+      signals (successful git commit, plan box checked), answers clear | none.
+      Threshold provisional: ≥ 100k tokens (`AVAL_RELAY_BOUNDARY_TOKENS`)
+- [x] Mod `turn.complete`: ask `aval relay boundary`; on clear run
+      `$.command.run clear` then submit the last reply again (capsule via
+      SessionEnd/SessionStart). Cold cache path per T0 result: keep advisor
+      (a blocked prompt never reaches turn.complete)
+- [x] AVAL_RELAY != 1 → no-op; any error → no clear
 - [ ] Live check: a session crosses a commit boundary above threshold and
       continues without the user typing `/clear`
 
