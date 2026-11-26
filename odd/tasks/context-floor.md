@@ -71,6 +71,7 @@ the measured 200-230k optimum); two owners would conflict.
 | all | main first turn (headless, all hooks on) | 49.4k | 45.0k (−8.8%) |
 | T3 | general-purpose sub-agent first turn (headless probe) | 30.7k | 27.2k (−3.5k) |
 | T4 | main first turn (headless `claude -p`) | 49.4k | 45.0k (−4.3k) |
+| T8 | main first turn, interactive (innohelp local scope; deniedMcpServers: travel + Google Docs/Sheets/Slides) | 66k | 39k (−27k, −41%) |
 
 T4 detail: 19 rarely used user skills → `name-only` (history audit of 2167
 transcripts: ≤1 use or self-explanatory name); remote-ops and Kiri skills stay
@@ -83,6 +84,6 @@ Closing notes:
 - T6 capsule is keyed by cwd: two sessions clearing in the same directory
   overwrite each other. Cold TTL assumed 1 h (hook input has no TTL).
 - Not yet observed live: a real Claude Code UserPromptSubmit block and a real
-  SessionEnd(clear) → SessionStart(clear) round trip (unit + e2e on copies only).
+  SessionEnd(clear) → SessionStart(clear) round trip now observed live (capsule arrived after /clear).
 - Found while executing: `aval context` was dispatched but rejected by main's
   `knownCommand` gate; the test now pins every standalone command.
