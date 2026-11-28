@@ -64,7 +64,7 @@ opened, never merged; review is the owner's.
 - [x] Transcript reader, dedupe across files, per project, session, day and consumer
 - [x] Price table with an effective date; unknown model shows n/a; billing api or subscription
 - [x] 5 h block and 7 d window, `--check` budgets, `--json`
-- [ ] Reconciliation fixture matching ccusage totals (ccusage 20.1.2), PR
+- [x] Reconciliation fixture matching ccusage totals (ccusage 20.1.2), PR
 
 ## T8 — #55 `aval dev check`
 - [ ] One step table that ci.yml calls; pinned tools; per-OS rules in the table
