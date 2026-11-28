@@ -83,7 +83,10 @@ func digest(t *testing.T, root string, skip ...string) string {
 			}
 		}
 		rel, _ := filepath.Rel(root, path)
-		info, _ := d.Info()
+		info, err := d.Info()
+		if err != nil {
+			return nil // vanished between the directory read and Info
+		}
 		switch {
 		case d.Type()&fs.ModeSymlink != 0:
 			l, _ := os.Readlink(path)

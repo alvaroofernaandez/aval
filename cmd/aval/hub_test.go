@@ -193,7 +193,10 @@ func hashTree(t *testing.T, root string) string {
 			return nil
 		}
 		rel, _ := filepath.Rel(root, p)
-		info, _ := d.Info()
+		info, err := d.Info()
+		if err != nil {
+			return nil // vanished between the directory read and Info
+		}
 		switch {
 		case d.Type()&fs.ModeSymlink != 0:
 			l, _ := os.Readlink(p)
