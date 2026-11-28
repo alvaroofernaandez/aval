@@ -15,7 +15,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/alvaroofernaandez/aval/internal/core/agentcfg"
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
+	"github.com/alvaroofernaandez/aval/internal/core/generation"
 	"github.com/alvaroofernaandez/aval/internal/core/manifest"
 	"github.com/alvaroofernaandez/aval/internal/core/plan"
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
@@ -395,9 +397,13 @@ func checkHooks(opt Options, live map[string]any, liveErr error) []Result {
 		rs = append(rs, withDetails(result("hooks-retired", Fail, false, "%d retired: %s", len(retired), list(retired)), retired))
 	}
 
-	repo, err := avalsync.RepoSettings(avalsync.Options{Repo: opt.Repo, Home: opt.Home, GOOS: opt.GOOS})
+	sopt, source, err := desired(opt)
 	if err != nil {
-		return append(rs, result("hooks-drift", Fail, false, "cannot read repo settings: %v", err))
+		return append(rs, result("hooks-drift", Fail, false, "cannot read the active generation: %v", err))
+	}
+	repo, err := avalsync.RepoSettings(sopt)
+	if err != nil {
+		return append(rs, result("hooks-drift", Fail, false, "cannot read %s settings: %v", source, err))
 	}
 	want, got := map[string]int{}, map[string]int{}
 	for _, h := range hookCommands(repo) {
@@ -418,9 +424,9 @@ func checkHooks(opt Options, live map[string]any, liveErr error) []Result {
 		}
 	}
 	if missing == 0 && extra == 0 {
-		return append(rs, result("hooks-drift", OK, false, "live hooks match the repo"))
+		return append(rs, result("hooks-drift", OK, false, "live hooks match %s", source))
 	}
-	return append(rs, result("hooks-drift", Fail, true, "live hooks differ from the repo (%d missing, %d extra)", missing, extra))
+	return append(rs, result("hooks-drift", Fail, true, "live hooks differ from %s (%d missing, %d extra)", source, missing, extra))
 }
 
 func resolves(word, home string, lookPath func(string) (string, error)) bool {
@@ -567,13 +573,35 @@ func checkPlugins(opt Options, live map[string]any, liveErr error) Result {
 	return result("plugins", OK, false, "%d enabled plugins are installed", len(want))
 }
 
+// desired is what the live Claude Code settings must match (owner: G6 = A):
+// opt.Generation, else the active generation, else the repo when none is
+// active. source names it in messages.
+func desired(opt Options) (avalsync.Options, string, error) {
+	sopt := avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS, Generation: opt.Generation}
+	if sopt.Generation == "" {
+		dir, err := generation.ActiveDir(opt.Home, agentcfg.ClaudeCode)
+		if err != nil {
+			return sopt, "", err
+		}
+		sopt.Generation = dir
+	}
+	if sopt.Generation == "" {
+		return sopt, "the repo", nil
+	}
+	return sopt, "generation " + filepath.Base(filepath.Dir(sopt.Generation)), nil
+}
+
 func checkSettingsDrift(opt Options) Result {
-	keys, err := avalsync.SettingsDrift(avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS})
+	sopt, source, err := desired(opt)
+	if err != nil {
+		return result("settings-drift", Fail, false, "cannot read the active generation: %v", err)
+	}
+	keys, err := avalsync.SettingsDrift(sopt)
 	if err != nil {
 		return result("settings-drift", Fail, false, "%v", err)
 	}
 	if len(keys) == 0 {
-		return result("settings-drift", OK, false, "managed settings keys match the repo")
+		return result("settings-drift", OK, false, "managed settings keys match %s", source)
 	}
 	return withDetails(result("settings-drift", Fail, true, "live settings differ in: %s", strings.Join(keys, ", ")), keys)
 }

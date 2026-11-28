@@ -69,3 +69,21 @@ func TestAnInterruptedSwitchLeavesTheOldGenerationActive(t *testing.T) {
 		t.Errorf("list = %d generations, want 2 (pointer and leftovers are not generations)", len(gs))
 	}
 }
+
+func TestActiveDirIsTheCurrentGenerationsAdapterTree(t *testing.T) {
+	home := tempHome(t)
+	if d, err := generation.ActiveDir(home, "fake"); d != "" || err != nil {
+		t.Errorf("ActiveDir with none active = %q, %v; want empty", d, err)
+	}
+	a, _ := build(t, home, cfg("one"), t0)
+	if err := generation.SetCurrent(home, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(generation.Root(home), a.ID, "fake")
+	if d, err := generation.ActiveDir(home, "fake"); d != want || err != nil {
+		t.Errorf("ActiveDir = %q, %v; want %s", d, err, want)
+	}
+	if d := generation.Dir(home, a.ID, "fake"); d != want {
+		t.Errorf("Dir = %q, want %s", d, want)
+	}
+}

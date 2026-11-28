@@ -87,3 +87,15 @@ func clearLeftovers(root string) {
 		}
 	}
 }
+
+// Dir is the tree adapter rendered in generation id.
+func Dir(home, id, adapter string) string { return filepath.Join(Root(home), id, adapter) }
+
+// ActiveDir is Dir of the active generation, "" when none is active.
+func ActiveDir(home, adapter string) (string, error) {
+	id, err := Current(home)
+	if id == "" || err != nil {
+		return "", err
+	}
+	return Dir(home, id, adapter), nil
+}
