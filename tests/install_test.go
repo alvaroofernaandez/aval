@@ -323,6 +323,9 @@ func copyRepo(t *testing.T, dst string) {
 		if d.IsDir() && (d.Name() == ".git" || d.Name() == "node_modules") {
 			return filepath.SkipDir
 		}
+		if d.Name() == ".git" {
+			return nil // a linked worktree's .git file points at the real repo
+		}
 		target := filepath.Join(dst, rel)
 		switch {
 		case d.IsDir():
@@ -338,7 +341,10 @@ func copyRepo(t *testing.T, dst string) {
 			if err != nil {
 				return err
 			}
-			info, _ := d.Info()
+			info, err := d.Info()
+			if err != nil {
+				return err
+			}
 			return os.WriteFile(target, b, info.Mode().Perm())
 		}
 	})
