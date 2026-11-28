@@ -3,7 +3,6 @@ package tests
 import (
 	"encoding/json"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -80,7 +79,7 @@ func TestGuardHookLatency(t *testing.T) {
 	dir := t.TempDir()
 	in := filepath.Join(dir, "in.json")
 	write(t, in, `{"cwd":"/work/proj","tool_name":"Bash","tool_input":{"command":"git status && go test ./... | tail -5"}}`)
-	ms := hyperfineMeanMs(t, isoEnv(dir), in, aval+" hook guard")
-	t.Logf("guard hook mean: %.1f ms", ms)
-	isTrue(t, "the guard hook runs in under 10 ms (is "+strconv.FormatFloat(ms, 'f', 1, 64)+" ms)", ms > 0 && ms < 10)
+	l := hyperfineMs(t, isoEnv(dir), in, aval+" hook guard")
+	t.Logf("guard hook: %s", l)
+	isTrue(t, "the guard hook runs in under 10 ms ("+l.String()+")", l.under(10))
 }
