@@ -118,6 +118,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook guard || true",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook rate-guard || true",
             "timeout": 5
           }
