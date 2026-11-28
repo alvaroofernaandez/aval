@@ -23,10 +23,11 @@ Delivery: stacked PRs to main, one per issue, each with `Closes #N`. PRs are
 opened, never merged; review is the owner's.
 
 ## T1 — #119 flaky treeHash test helper
-- [ ] RED: a vanished entry (Info fails) is skipped, not a panic
-- [ ] RED: churn under `.git` does not change the hash
-- [ ] RED: gitEnv disables gc.auto and maintenance.auto
-- [ ] GREEN, `go test -count=50 ./internal/devmode`, PR
+- [x] RED: a vanished entry (Info fails) is skipped, not a panic
+- [x] RED: churn under `.git` does not change the hash
+- [x] RED: gitEnv disables gc.auto and maintenance.auto
+- [x] GREEN, `go test -count=50 ./internal/devmode`; siblings in cmd/aval/hub_test.go, tests/devmode_test.go, tests/install_test.go
+- [x] PR
 
 ## T2 — #8 single configuration model and adapter interface
 - [ ] `internal/agentcfg`: Config (rules, skills, commands, agents, hooks, permissions, MCP), loaded from the repo as it is
