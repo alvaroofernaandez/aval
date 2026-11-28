@@ -81,8 +81,6 @@ func renderBudgets(w io.Writer, r Report) error {
 
 func renderNotes(w io.Writer, r Report) {
 	switch r.Billing {
-	case BillingNone:
-		fmt.Fprintln(w, "\nBilling is not set, so no cost or plan share is shown. Run: aval config set usage.billing api|subscription")
 	case BillingSubscription:
 		if r.Block5h.Share == nil && r.Week7d.Share == nil {
 			fmt.Fprintln(w, "\nPlan share is n/a: the runtime reported no rate limits. Pass the status line JSON with --rate-limits <file>.")

@@ -461,17 +461,21 @@ Every response is tagged with a **consumer**. A Claude Code entry is `headless` 
 `sdk` (`sdk-cli` is `claude -p`, `sdk-ts` the TypeScript SDK) and `interactive` otherwise; a Pi session is `daemon`
 unless its header line says `"consumer": "interactive"` or `"headless"`.
 
-How it is paid is yours to say. `usage.billing` is unset by default and then only tokens show.
-`aval config set usage.billing api` adds an estimated cost from an embedded price table (list prices, dated; see
-`usage.PricesEffective`). A model the table does not list shows `n/a`, never a guess, and a total that leaves such
+How it is paid is yours to say. `usage.billing` defaults to `subscription`, so by default `aval usage` shows tokens and
+the plan share the runtime reported, never dollars.
+`aval config set usage.billing api` adds an estimated cost from an embedded price table (Anthropic's list prices,
+verified against the official pricing page and dated; see `usage.PricesEffective`; the 1 hour cache write is priced at
+the 5 minute rate). A model the table does not list shows `n/a`, never a guess, and a total that leaves such
 responses out is marked `+`. `subscription` shows the share of the 5 h and 7 d windows the runtime reported, never
 dollars and never an estimate of the plan limit: pass the status line JSON with `--rate-limits <file>` (`-` for stdin)
 and the shares come from its `rate_limits.five_hour` and `seven_day`; without it they read `n/a`.
 
 The 5 h block follows ccusage: it opens at the first message, floored to the hour in UTC, and closes five hours
 later; a message after that, or after a five hour gap, opens the next one. The 7 d window sums the last seven days.
-Budgets cap a consumer in a window: `aval config set usage.budget.headless.7d 50%` (its share of the window's
-tokens), `usage.budget.daemon.5h 2000000` (tokens) or `usage.budget.daemon.7d '$20'` (dollars, `api` billing only).
+A budget caps a consumer in a window and has three forms: `aval config set usage.budget.headless.7d 50%` is the
+consumer's share of all tokens used in that window (aval never knows your plan limit, so a share is relative to what
+the window consumed, not to the plan); `usage.budget.daemon.5h 2000000` is a plain token count; and
+`usage.budget.daemon.7d '$20'` is dollars, `api` billing only (skipped otherwise).
 `--check` reports and exits 1; stopping the work is up to the consumer. There are no default budgets.
 
 ---
@@ -488,7 +492,7 @@ Settings live in `${XDG_CONFIG_HOME:-~/.config}/aval/config` (`%APPDATA%\aval\co
 | `glyphs` | `auto`, `unicode`, `ascii` | `auto` | `AVAL_GLYPHS` | |
 | `motion` | `auto`, `off` | `auto` | `AVAL_MOTION` | |
 | `update_check` | `on`, `off` | `on` | `AVAL_NO_UPDATE_CHECK` | |
-| `usage.billing` | `api`, `subscription` | unset | | |
+| `usage.billing` | `api`, `subscription` | `subscription` | | |
 | `usage.budget.<consumer>.<window>` | a token count, a share (`50%`) or dollars (`$4.5`) | none | | |
 
 **Precedence:** flag, then environment variable, then file, then default. `NO_COLOR` is honoured and wins over all of it. `--plain` means `mono`, ASCII glyphs and motion off, in one flag. Hooks, `statusline` and `tmux` never read the UI keys.

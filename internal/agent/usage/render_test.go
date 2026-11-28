@@ -40,7 +40,7 @@ func TestRenderGoldens(t *testing.T) {
 	}{
 		{"day_api", Options{Billing: BillingAPI, By: ByDay, Budgets: budgets}},
 		{"consumer_subscription", Options{Billing: BillingSubscription, By: ByConsumer, Rates: RateLimits{FiveHour: &five}}},
-		{"project_unset_window5h", Options{By: ByProject, Window: "5h"}},
+		{"project_default_window5h", Options{By: ByProject, Window: "5h"}},
 	} {
 		r := buildFixture(t, c.o)
 		var txt, js bytes.Buffer

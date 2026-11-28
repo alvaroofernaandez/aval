@@ -81,3 +81,10 @@ func TestBuildChecksBudgetsAndReportsOverrun(t *testing.T) {
 		t.Error("under budget reported as over")
 	}
 }
+
+func TestUnsetBillingIsSubscription(t *testing.T) {
+	r := buildFixture(t, Options{})
+	if r.Billing != BillingSubscription {
+		t.Errorf("billing = %q, want %q", r.Billing, BillingSubscription)
+	}
+}

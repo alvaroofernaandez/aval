@@ -229,3 +229,14 @@ type discard struct{}
 func (discard) Write(p []byte) (int, error) { return len(p), nil }
 
 type discardBuf struct{ discard }
+
+func TestUsageBillingDefaultsToSubscription(t *testing.T) {
+	fixedClock(t)
+	u, r := runUsageJSON(t, usageEnv(t, ""), "--by", "day")
+	if r.code != 0 {
+		t.Fatalf("exit %d, stderr %q", r.code, r.stderr)
+	}
+	if u.Billing != "subscription" || u.Total.CostUSD != nil {
+		t.Errorf("billing = %q, cost = %v, want subscription and no cost", u.Billing, u.Total.CostUSD)
+	}
+}

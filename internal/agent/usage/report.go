@@ -6,8 +6,9 @@ import (
 	"time"
 )
 
-// Billing modes (the usage.billing setting). Unset shows tokens only: aval
-// does not assume how anyone pays.
+// Billing modes (the usage.billing setting). Unset means subscription: that
+// shows tokens and the plan share the runtime reports, never a dollar amount
+// nobody pays.
 const (
 	BillingNone         = ""
 	BillingAPI          = "api"
@@ -95,6 +96,9 @@ func (r Report) Over() bool {
 func Build(c Corpus, o Options) Report {
 	if o.Loc == nil {
 		o.Loc = time.UTC
+	}
+	if o.Billing == BillingNone {
+		o.Billing = BillingSubscription
 	}
 	r := Report{Options: o, Files: c.Files, Corrupt: c.Corrupt}
 	week := InLast(c.Entries, WeekLength, o.Now)
