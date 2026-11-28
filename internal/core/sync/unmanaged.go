@@ -2,11 +2,11 @@ package sync
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"slices"
 	"sort"
+
+	"github.com/alvaroofernaandez/aval/internal/core/agentcfg/claude"
 )
 
 // UnmanagedDrift lists the top-level keys of the repo settings that sync does
@@ -17,19 +17,18 @@ import (
 func UnmanagedDrift(opt Options) ([]string, error) {
 	repo, err := RepoSettings(opt)
 	if err != nil {
-		return nil, fmt.Errorf("sync: repo settings: %w", err)
-	}
-	live := map[string]any{}
-	if m, _, rerr := readJSONFile(filepath.Join(opt.Home, ".claude", "settings.json")); rerr == nil {
-		live = m
-	} else if !os.IsNotExist(unwrapPathErr(rerr)) {
-		return nil, fmt.Errorf("sync: live settings: %w", rerr)
-	}
-	overlay, err := overlaySettings(opt)
-	if err != nil {
 		return nil, err
 	}
-	managed := append(append([]string{"permissions"}, replaceKeys...), mergeKeys...)
+	a := opt.adapter()
+	live, _, err := a.Live(opt.claudeDir())
+	if err != nil {
+		return nil, fmt.Errorf("sync: %w", err)
+	}
+	overlay, err := a.Overlay()
+	if err != nil {
+		return nil, fmt.Errorf("sync: %w", err)
+	}
+	managed := append(append([]string{"permissions"}, claude.ReplaceKeys...), claude.MergeKeys...)
 	var drift []string
 	for k, v := range repo {
 		if _, owned := overlay[k]; owned || slices.Contains(managed, k) {

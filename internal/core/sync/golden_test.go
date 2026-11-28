@@ -81,3 +81,16 @@ func copyTree(t *testing.T, src, dst string) {
 		t.Fatal(err)
 	}
 }
+
+// BenchmarkSync is the #9 budget: a full sync (load, render through the Claude
+// adapter, merge, write) of the parity fixture under 1 s.
+func BenchmarkSync(b *testing.B) {
+	for b.Loop() {
+		home := b.TempDir()
+		opt := Options{Repo: filepath.Join("testdata", "parity", "repo"), Home: home,
+			PrivateDir: filepath.Join("testdata", "parity", "private"), GOOS: "linux", Now: fixedNow}
+		if _, err := Run(opt); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
