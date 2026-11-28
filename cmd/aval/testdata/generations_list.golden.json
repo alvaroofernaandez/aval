@@ -1,0 +1,26 @@
+[
+  {
+    "id": "gen-bfcd46d01d6b3199",
+    "contentHash": "sha256:bfcd46d01d6b31997062bb3571536204e2632ff6e307750eb1d174a103af4d9b",
+    "built": "2026-11-28T16:00:00Z",
+    "source": "abc123",
+    "adapters": [
+      {
+        "name": "fake",
+        "files": 2
+      }
+    ]
+  },
+  {
+    "id": "gen-c00469aa63138c4b",
+    "contentHash": "sha256:c00469aa63138c4ba0ef687410013e413bce8d5362b7bb3cfccd51bd5c5d8426",
+    "built": "2026-11-28T15:00:00Z",
+    "source": "abc123",
+    "adapters": [
+      {
+        "name": "fake",
+        "files": 1
+      }
+    ]
+  }
+]

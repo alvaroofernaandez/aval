@@ -59,6 +59,7 @@ var spanishCLI = catalog{
 	"cli.usage.cmd.design":           {other: "controles de diseño para el proyecto del directorio actual"},
 	"cli.usage.cmd.config":           {other: "muestra o cambia los ajustes de aval (tema, glifos, animación)"},
 	"cli.usage.cmd.restore":          {other: "lista o restaura copias de seguridad"},
+	"cli.usage.cmd.generations":      {other: "instantáneas inmutables de lo que aval genera: crear, listar, comparar"},
 	"cli.usage.cmd.uninstall":        {other: "quita los enlaces de aval y restaura lo que desplazaron"},
 	"cli.usage.cmd.dev":              {other: "HOME aislado para desarrollar aval"},
 	"cli.usage.cmd.hook":             {other: "hooks de agentes y el control previo al push de git"},

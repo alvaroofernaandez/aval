@@ -45,6 +45,8 @@ func runStandalone(name string, sub []string, repoFlag string, ui uiFlags, c cmd
 		return true, runDeps(sub, ui, c)
 	case "relay":
 		return true, runRelay(sub, ui, c)
+	case "generations":
+		return true, runGenerations(sub, repoFlag, c)
 	case "context":
 		wd, _ := os.Getwd()
 		return true, runContext(sub, wd, c)
