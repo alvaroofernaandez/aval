@@ -369,11 +369,26 @@ func payload(h hookSpec, home string) []byte {
 	return b
 }
 
+// guardBudget is the ceiling of `aval hook guard`: it runs before every Bash
+// call, so it gets half of the generic budget.
+const guardBudget = 10 * time.Millisecond
+
+var guardCommand = regexp.MustCompile(`\bhook guard\b`)
+
+// budgetFor is the p95 ceiling of one hook: the generic one, or the guard's
+// when that is stricter.
+func budgetFor(command string, args []string, global time.Duration) time.Duration {
+	if guardBudget < global && guardCommand.MatchString(command+" "+strings.Join(args, " ")) {
+		return guardBudget
+	}
+	return global
+}
+
 func measure(h hookSpec, opt Options) Hook {
 	m := Hook{Event: h.event, Matcher: h.matcher, Command: h.command, Async: h.async, Runs: opt.Runs}
 	m.Budgeted = (h.event == "PreToolUse" || h.event == "PostToolUse") && !h.async
 	if m.Budgeted {
-		m.BudgetMs = float64(opt.HookBudget) / float64(time.Millisecond)
+		m.BudgetMs = float64(budgetFor(h.command, h.args, opt.HookBudget)) / float64(time.Millisecond)
 	}
 	in := payload(h, opt.Home)
 

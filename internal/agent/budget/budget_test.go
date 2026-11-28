@@ -317,3 +317,46 @@ func TestClassifyVerdict(t *testing.T) {
 		}
 	}
 }
+
+// The guard hook runs before every Bash call, so it has its own, tighter
+// ceiling (10 ms) than the generic hook budget.
+func TestGuardHookHasATenMillisecondBudget(t *testing.T) {
+	testenv.SkipWindows(t, "the fixture hooks are POSIX shell scripts")
+	home := t.TempDir()
+	write(t, filepath.Join(home, ".claude", "settings.json"), `{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[
+	  {"type":"command","command":"cat >/dev/null; sleep 0.06 # aval hook guard"},
+	  {"type":"command","command":"cat >/dev/null; sleep 0.06 # another hook"}]}]}}`)
+
+	r, err := Run(Options{Home: home, Runs: 2, Timeout: 2 * time.Second, HookBudget: 500 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Hooks) != 2 {
+		t.Fatalf("hooks = %d, want 2: %+v", len(r.Hooks), r.Hooks)
+	}
+	guard, other := r.Hooks[0], r.Hooks[1]
+	if guard.BudgetMs != 10 || !guard.Over {
+		t.Errorf("the guard hook must be held to 10 ms and be over with a 60 ms sleep: %+v", guard)
+	}
+	if other.BudgetMs != 500 || other.Over {
+		t.Errorf("another hook keeps the generic budget: %+v", other)
+	}
+	if !r.Over {
+		t.Error("an over-budget guard fails the report")
+	}
+}
+
+func TestGuardBudgetNeverRaisesAStricterGlobalBudget(t *testing.T) {
+	if got := budgetFor("aval hook guard", nil, 5*time.Millisecond); got != 5*time.Millisecond {
+		t.Errorf("budgetFor = %v, want the stricter 5ms", got)
+	}
+	if got := budgetFor("a=x; $a hook guard || true", nil, 20*time.Millisecond); got != 10*time.Millisecond {
+		t.Errorf("budgetFor = %v, want 10ms", got)
+	}
+	if got := budgetFor("aval", []string{"hook", "guard"}, 20*time.Millisecond); got != 10*time.Millisecond {
+		t.Errorf("exec form: budgetFor = %v, want 10ms", got)
+	}
+	if got := budgetFor("aval hook guardian", nil, 20*time.Millisecond); got != 20*time.Millisecond {
+		t.Errorf("a lookalike keeps the generic budget, got %v", got)
+	}
+}
