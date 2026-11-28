@@ -16,6 +16,11 @@ import (
 	"strings"
 )
 
+// rateWindow is one plan window as the runtime reports it.
+type rateWindow struct {
+	UsedPercentage float64 `json:"used_percentage"`
+}
+
 type input struct {
 	Model struct {
 		DisplayName string `json:"display_name"`
@@ -29,9 +34,8 @@ type input struct {
 		GitWorktree string `json:"git_worktree"`
 	} `json:"workspace"`
 	RateLimits *struct {
-		FiveHour *struct {
-			UsedPercentage float64 `json:"used_percentage"`
-		} `json:"five_hour"`
+		FiveHour *rateWindow `json:"five_hour"`
+		SevenDay *rateWindow `json:"seven_day"`
 	} `json:"rate_limits"`
 	PromptCache *struct {
 		Warm            bool `json:"warm"`
