@@ -16,13 +16,16 @@ in backups and issues. `aval secrets` keeps tokens in the OS keychain and
 
 ## Tasks
 
-- [ ] **S1 port**: `Store`, memory adapter, `Exec` environment builder (value only for the child).
-- [ ] **S2 adapters**: macOS, Linux, Windows behind build tags; value over stdin where the binary allows it.
-- [ ] **S3 CLI**: `aval secrets set|get|list|rm|exec`.
-- [ ] **S4 migration**: `doctor --security --fix` with backup, atomic write, idempotent.
-- [ ] **S5 docs**: ADR, guide, CHANGELOG.
+- [x] **S1 port**: `Store`, memory adapter, `Exec` environment builder (value only for the child).
+- [x] **S2 adapters**: macOS, Linux, Windows behind build tags; value over stdin where the binary allows it.
+- [x] **S3 CLI**: `aval secrets set|get|list|rm|exec`.
+- [x] **S4 migration**: `doctor --security --fix` with backup, atomic write, idempotent.
+- [x] **S5 docs**: ADR, guide, CHANGELOG.
 
 ## Decisions taken
+
+- Owner (2026-11-28, option C): the backup of a rewritten file is a redacted copy (`<keychain:NAME>`) under `~/.aval-backup/secrets/`; each value is stored and read back before the rewrite; recovery is `aval secrets get NAME --show`.
+- Only env of stdio servers is rewritten; headers and flag args are reported, not rewritten.
 
 - macOS `security add-generic-password` only takes the value as an argument or a prompt: `set` uses the prompt through `-w` with no value so it reads the TTY; documented as a limitation.
 - Names are validated (`[A-Za-z0-9_.-]`) before they reach any adapter.
