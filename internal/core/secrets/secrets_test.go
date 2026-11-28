@@ -88,3 +88,18 @@ func TestChildEnvMissingNameFails(t *testing.T) {
 		t.Errorf("err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestChildEnvMapsAnEnvVarToASecretName(t *testing.T) {
+	m := NewMemory()
+	_ = m.Set("srv.TOKEN", "v1")
+	got, err := ChildEnv(m, []string{"API_TOKEN=srv.TOKEN"}, []string{"PATH=/bin"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"PATH=/bin", "API_TOKEN=v1"}; !slices.Equal(got, want) {
+		t.Errorf("env = %v, want %v", got, want)
+	}
+	if _, err := ChildEnv(m, []string{"=srv.TOKEN"}, nil); !errors.Is(err, ErrInvalidName) {
+		t.Errorf("empty env var: err = %v, want ErrInvalidName", err)
+	}
+}

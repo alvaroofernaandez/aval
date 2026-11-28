@@ -7,6 +7,7 @@ import (
 	"errors"
 	"maps"
 	"slices"
+	"strings"
 	"sync"
 )
 
@@ -94,16 +95,24 @@ func (s *Memory) List() ([]string, error) {
 	return slices.Sorted(maps.Keys(s.m)), nil
 }
 
-// ChildEnv returns base plus NAME=value for every name, read from s. base is
+// ChildEnv returns base plus NAME=value for every name (or ENVVAR=NAME to inject
+// the secret NAME under another variable), read from s. base is
 // not modified; the value lives only in the returned slice.
 func ChildEnv(s Store, names []string, base []string) ([]string, error) {
 	env := slices.Clone(base)
 	for _, n := range names {
-		v, err := s.Get(n)
+		envVar, secret := n, n
+		if k, v, ok := strings.Cut(n, "="); ok {
+			envVar, secret = k, v
+			if !ValidName(envVar) {
+				return nil, ErrInvalidName
+			}
+		}
+		v, err := s.Get(secret)
 		if err != nil {
 			return nil, err
 		}
-		env = append(env, n+"="+v)
+		env = append(env, envVar+"="+v)
 	}
 	return env, nil
 }
