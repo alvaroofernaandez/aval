@@ -14,6 +14,7 @@ import (
 // shows no relay segment.
 type Options struct {
 	RelayDir string    // the relay state directory; "" when there is none
+	StateDir string    // where rate-limits.json is kept; "" keeps nothing
 	Now      time.Time // the clock for the relay window
 }
 
@@ -31,6 +32,7 @@ const relayTail = 64 << 10
 func RenderWith(r io.Reader, o Options) string {
 	in := decode(r)
 	line := render(in)
+	persistRateLimits(o, in)
 	proj := in.Workspace.ProjectDir
 	if proj == "" {
 		proj = in.Workspace.CurrentDir

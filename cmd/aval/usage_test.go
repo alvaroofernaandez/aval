@@ -64,6 +64,9 @@ type usageJSON struct {
 		RemainingSeconds int64    `json:"remaining_seconds"`
 		SharePercent     *float64 `json:"share_percent"`
 	} `json:"block_5h"`
+	Week7d struct {
+		SharePercent *float64 `json:"share_percent"`
+	} `json:"week_7d"`
 	Over bool
 }
 
@@ -238,5 +241,69 @@ func TestUsageBillingDefaultsToSubscription(t *testing.T) {
 	}
 	if u.Billing != "subscription" || u.Total.CostUSD != nil {
 		t.Errorf("billing = %q, cost = %v, want subscription and no cost", u.Billing, u.Total.CostUSD)
+	}
+}
+
+// storedLimits writes the status line's rate-limits.json under the env's state
+// home, aged by age against the fixed clock.
+func storedLimits(t *testing.T, env map[string]string, body string, age time.Duration) {
+	t.Helper()
+	dir := filepath.Join(env["XDG_STATE_HOME"], "aval")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(dir, "rate-limits.json")
+	if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	at := usageNow().Add(-age)
+	if err := os.Chtimes(p, at, at); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUsageReadsTheStatusLineRateLimitsWithoutTheFlag(t *testing.T) {
+	fixedClock(t)
+	env := usageEnv(t, "")
+	env["XDG_STATE_HOME"] = filepath.Join(t.TempDir(), "state")
+	storedLimits(t, env, `{"rate_limits":{"five_hour":{"used_percentage":42},"seven_day":{"used_percentage":17}}}`, time.Minute)
+
+	u, _ := runUsageJSON(t, env)
+	if u.Block5h.SharePercent == nil || *u.Block5h.SharePercent != 42 || u.Week7d.SharePercent == nil || *u.Week7d.SharePercent != 17 {
+		t.Errorf("shares = %v / %v, want 42 and 17 from the stored reading", u.Block5h.SharePercent, u.Week7d.SharePercent)
+	}
+
+	flag := filepath.Join(t.TempDir(), "rl.json")
+	if err := os.WriteFile(flag, []byte(`{"rate_limits":{"five_hour":{"used_percentage":9}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	u, _ = runUsageJSON(t, env, "--rate-limits", flag)
+	if u.Block5h.SharePercent == nil || *u.Block5h.SharePercent != 9 || u.Week7d.SharePercent != nil {
+		t.Errorf("with the flag the stored reading must not be used: %v / %v", u.Block5h.SharePercent, u.Week7d.SharePercent)
+	}
+}
+
+func TestUsageIgnoresAStaleStoredReading(t *testing.T) {
+	fixedClock(t)
+	env := usageEnv(t, "")
+	env["XDG_STATE_HOME"] = filepath.Join(t.TempDir(), "state")
+	storedLimits(t, env, `{"rate_limits":{"five_hour":{"used_percentage":42}}}`, 6*time.Hour)
+	if u, _ := runUsageJSON(t, env); u.Block5h.SharePercent != nil {
+		t.Errorf("share = %v from a reading older than the 5 h window, want n/a", *u.Block5h.SharePercent)
+	}
+}
+
+// What `aval statusline` writes is what `aval usage` reads.
+func TestStatuslineAndUsageAgreeOnTheStateFile(t *testing.T) {
+	fixedClock(t)
+	env := usageEnv(t, "")
+	env["XDG_STATE_HOME"] = filepath.Join(t.TempDir(), "state")
+	in := `{"model":{"display_name":"Opus"},"rate_limits":{"five_hour":{"used_percentage":31}}}`
+	if r := runIn(t, env, in, "statusline"); r.code != 0 {
+		t.Fatalf("statusline exit %d: %q", r.code, r.stderr)
+	}
+	u, _ := runUsageJSON(t, env)
+	if u.Block5h.SharePercent == nil || *u.Block5h.SharePercent != 31 {
+		t.Errorf("share = %v, want 31 as the status line reported", u.Block5h.SharePercent)
 	}
 }

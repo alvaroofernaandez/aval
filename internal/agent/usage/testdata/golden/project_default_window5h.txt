@@ -8,6 +8,6 @@ total        3         3500   1750    500          20000       25750
 5h block   25750 tokens, closes 2026-11-21 15:00 UTC in 2h 00m, plan share n/a
 7d window  61000 tokens, plan share n/a
 
-Plan share is n/a: the runtime reported no rate limits. Pass the status line JSON with --rate-limits <file>.
+Plan share is n/a: no recent rate limits from the runtime. The status line keeps them while Claude Code runs; or pass --rate-limits <file>.
 
 3 files read, 1 line skipped as corrupt

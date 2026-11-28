@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"time"
 
+	"github.com/alvaroofernaandez/aval/internal/agent/statusline"
 	"github.com/alvaroofernaandez/aval/internal/agent/usage"
 	"github.com/alvaroofernaandez/aval/internal/core/config"
 )
@@ -47,7 +49,7 @@ func runUsage(args []string, c cmdIO) error {
 	if err != nil {
 		return err
 	}
-	rl, err := usageRateLimits(*rates, c.stdin)
+	rl, err := usageRateLimits(*rates, c.stdin, c.env)
 	if err != nil {
 		return err
 	}
@@ -86,11 +88,16 @@ func usageSettings(home string, c cmdIO) (string, []usage.Budget, error) {
 }
 
 // usageRateLimits reads the runtime's rate limits from a status line JSON
-// document: a file, or stdin for "-". No flag means none reported.
-func usageRateLimits(path string, stdin io.Reader) (usage.RateLimits, error) {
+// document: a file, or stdin for "-". Without the flag, the reading the status
+// line last kept is used when it is recent enough; otherwise none is reported.
+func usageRateLimits(path string, stdin io.Reader, getenv func(string) string) (usage.RateLimits, error) {
 	switch path {
 	case "":
-		return usage.RateLimits{}, nil
+		dir, ok := avalStateDir(getenv)
+		if !ok {
+			return usage.RateLimits{}, nil
+		}
+		return usage.LoadRateLimits(filepath.Join(dir, statusline.RateLimitsFile), usageNow()), nil
 	case "-":
 		return usage.ParseRateLimits(stdin), nil
 	}

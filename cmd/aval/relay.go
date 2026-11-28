@@ -182,20 +182,29 @@ func compactAnswer(c cmdIO) relay.Response {
 	return resp
 }
 
-// relayStore is the relay state under $XDG_STATE_HOME/aval/relay, by default
-// ~/.local/state/aval/relay, as the lessons hook keeps its state.
-func relayStore(getenv func(string) string) (statefs.Store, bool) {
+// avalStateDir is aval's state directory: $XDG_STATE_HOME/aval, by default
+// ~/.local/state/aval, as the lessons hook keeps its state.
+func avalStateDir(getenv func(string) string) (string, bool) {
 	state := getenv("XDG_STATE_HOME")
 	if state == "" {
 		home, err := userHomeDir(getenv)
 		if err != nil || home == "" {
-			return statefs.Store{}, false
+			return "", false
 		}
 		state = filepath.Join(home, ".local", "state")
 	}
+	return filepath.Join(state, "aval"), true
+}
+
+// relayStore is the relay state under aval's state directory, in relay/.
+func relayStore(getenv func(string) string) (statefs.Store, bool) {
+	dir, ok := avalStateDir(getenv)
+	if !ok {
+		return statefs.Store{}, false
+	}
 	now := time.Now()
 	return statefs.Store{
-		Dir:   filepath.Join(state, "aval", "relay"),
+		Dir:   filepath.Join(dir, "relay"),
 		PID:   os.Getpid(),
 		Start: now.UnixNano(),
 		Alive: func(_ int, start int64) bool { return now.Sub(time.Unix(0, start)) < relayLockTTL },

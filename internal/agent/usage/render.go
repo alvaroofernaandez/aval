@@ -83,7 +83,7 @@ func renderNotes(w io.Writer, r Report) {
 	switch r.Billing {
 	case BillingSubscription:
 		if r.Block5h.Share == nil && r.Week7d.Share == nil {
-			fmt.Fprintln(w, "\nPlan share is n/a: the runtime reported no rate limits. Pass the status line JSON with --rate-limits <file>.")
+			fmt.Fprintln(w, "\nPlan share is n/a: no recent rate limits from the runtime. The status line keeps them while Claude Code runs; or pass --rate-limits <file>.")
 		}
 	}
 	fmt.Fprintf(w, "\n%s read", plural(r.Files, "file"))
