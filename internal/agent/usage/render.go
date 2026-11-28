@@ -22,7 +22,20 @@ func Render(w io.Writer, r Report) error {
 		window = "window " + r.Window
 	}
 	fmt.Fprintf(w, "usage by %s, %s\n\n", r.By, window)
+	if err := renderRows(w, r); err != nil {
+		return err
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "5h block   %s\n", blockLine(r))
+	fmt.Fprintf(w, "7d window  %s\n", windowLine(r, r.Week7d))
+	if err := renderBudgets(w, r); err != nil {
+		return err
+	}
+	renderNotes(w, r)
+	return nil
+}
 
+func renderRows(w io.Writer, r Report) error {
 	api := r.Billing == BillingAPI
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	head := []string{strings.ToUpper(string(r.By)), "MESSAGES", "INPUT", "OUTPUT", "CACHE WRITE", "CACHE READ", "TOTAL"}
@@ -51,22 +64,22 @@ func Render(w io.Writer, r Report) error {
 	} else if api {
 		fmt.Fprintf(w, "\nPrices as of %s, estimated from list prices.\n", PricesEffective)
 	}
+	return nil
+}
 
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "5h block   %s\n", blockLine(r))
-	fmt.Fprintf(w, "7d window  %s\n", windowLine(r, r.Week7d))
-
-	if len(r.Checks) > 0 {
-		fmt.Fprintln(w, "\nBudgets")
-		tw = tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-		for _, v := range r.Checks {
-			fmt.Fprintf(tw, "  %s %s\t%s\t%s\n", v.Consumer, v.Window, budgetText(v), verdictText(v))
-		}
-		if err := tw.Flush(); err != nil {
-			return err
-		}
+func renderBudgets(w io.Writer, r Report) error {
+	if len(r.Checks) == 0 {
+		return nil
 	}
+	fmt.Fprintln(w, "\nBudgets")
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	for _, v := range r.Checks {
+		fmt.Fprintf(tw, "  %s %s\t%s\t%s\n", v.Consumer, v.Window, budgetText(v), verdictText(v))
+	}
+	return tw.Flush()
+}
 
+func renderNotes(w io.Writer, r Report) {
 	switch r.Billing {
 	case BillingNone:
 		fmt.Fprintln(w, "\nBilling is not set, so no cost or plan share is shown. Run: aval config set usage.billing api|subscription")
@@ -80,7 +93,6 @@ func Render(w io.Writer, r Report) error {
 		fmt.Fprintf(w, ", %s skipped as corrupt", plural(r.Corrupt, "line"))
 	}
 	fmt.Fprintln(w)
-	return nil
 }
 
 func blockLine(r Report) string {

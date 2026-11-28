@@ -54,9 +54,7 @@ func (x *fileContext) piLine(b []byte, seen map[uint64]struct{}, c *Corpus) {
 		}
 		if err := json.Unmarshal(b, &h); err != nil {
 			c.Corrupt++
-			return
-		}
-		if h.Type == "session" {
+		} else if h.Type == "session" {
 			x.pi = h.piHeader
 		}
 		return
@@ -72,10 +70,35 @@ func (x *fileContext) piLine(b []byte, seen map[uint64]struct{}, c *Corpus) {
 		c.Corrupt++
 		return
 	}
+	e, standalone, kind := x.piEntry(&l)
+	switch kind {
+	case piSkip:
+	case piBad:
+		c.Corrupt++
+	default:
+		if standalone {
+			x.piUsage = append(x.piUsage, e)
+			return
+		}
+		x.piMessages++
+		c.add(e, piKey(e), seen)
+	}
+}
+
+type piOutcome int
+
+const (
+	piOK piOutcome = iota
+	piSkip
+	piBad
+)
+
+// piEntry turns a parsed line into an entry: an assistant message carrying
+// usage, or a standalone {"type":"usage"} entry.
+func (x *fileContext) piEntry(l *piLine) (e Entry, standalone bool, kind piOutcome) {
 	var u *piUsage
 	var model string
 	ts := l.Timestamp
-	standalone := false
 	switch {
 	case l.Type == "message" && l.Message != nil && l.Message.Role == "assistant" && l.Message.Usage != nil:
 		u, model = l.Message.Usage, l.Message.Model
@@ -89,14 +112,13 @@ func (x *fileContext) piLine(b []byte, seen map[uint64]struct{}, c *Corpus) {
 			u = &l.piUsage
 		}
 	default:
-		return
+		return e, false, piSkip
 	}
 	t, ok := piTime(ts)
 	if !ok {
-		c.Corrupt++
-		return
+		return e, false, piBad
 	}
-	e := Entry{
+	e = Entry{
 		Time: t, Source: "pi", Project: x.pi.Cwd, Session: x.pi.ID, Model: model, Consumer: Daemon,
 		Tokens: Tokens{Input: u.Input, Output: u.Output, CacheWrite: u.CacheWrite, CacheRead: u.CacheRead},
 	}
@@ -113,12 +135,7 @@ func (x *fileContext) piLine(b []byte, seen map[uint64]struct{}, c *Corpus) {
 	if e.Session == "" {
 		e.Session = strings.TrimSuffix(filepath.Base(x.path), ".jsonl")
 	}
-	if standalone {
-		x.piUsage = append(x.piUsage, e)
-		return
-	}
-	x.piMessages++
-	c.add(e, piKey(e), seen)
+	return e, standalone, piOK
 }
 
 // piKey identifies a Pi response in case a forked session repeats it.
