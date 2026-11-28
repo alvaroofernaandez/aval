@@ -27,6 +27,7 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/core/agentcfg/fake` | core | The reference adapter the contract is proven against. |
 | `internal/core/agentcfg/claude` | core | The Claude Code adapter: renders ~/.claude/settings.json (hooks, permissions, Windows exec form) and merges it into the live file with the personal keys and the private overlay; `aval sync` goes through it. |
 | `internal/core/agentcfg/pi` | core | The Pi coding agent adapter: renders an isolated Pi agent directory (AGENTS.md with the shared rules, settings, mcp.json, skills, prompts), reports what Pi cannot express, and refuses any API key. |
+| `internal/core/generation` | core | Immutable, content-addressed generations: every adapter's rendering stored read-only under ~/.aval/generations/<id>/ (id gen-<16 hex> of the content hash), listed and diffed. |
 | `internal/ui` | ui | The hub: themes, screens, the preview, confirm, run, result rhythm. |
 | `internal/ui/caps` | leaf | Detects what the terminal can render, from the environment only. |
 | `internal/ui/cli` | ui | Status glyphs and words for plain command output. |

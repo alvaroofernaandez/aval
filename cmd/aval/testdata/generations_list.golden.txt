@@ -1,0 +1,3 @@
+ID                    BUILT              SOURCE  ADAPTERS
+gen-bfcd46d01d6b3199  2026-11-28 16:00Z  abc123  fake (2 files, 0 warnings)
+gen-c00469aa63138c4b  2026-11-28 15:00Z  abc123  fake (1 file, 0 warnings)

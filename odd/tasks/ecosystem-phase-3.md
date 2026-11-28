@@ -51,8 +51,8 @@ opened, never merged; review is the owner's.
 - [x] Contract suite green on a sample and on the whole repo, PR
 
 ## T5 — #120 immutable generations
-- [ ] Build: content-addressed id, writes only under ~/.aval/generations
-- [ ] Activate: atomic symlink swap (copy mode on Windows), doctor after activation, restore on failure
+- [x] Build: content-addressed id gen-<16 hex> (owner G2 = A), writes only under ~/.aval/generations, read-only, atomic rename; `aval generations build|list|diff --json` (PR 1 of 3, owner G3 = A)
+- [ ] Activate (owner G1 = A): atomic swap of ~/.aval/generations/current, Claude Code through the txsync merge, doctor after activation, restore on failure; Pi consumers get pi/ applied into ~/.aval/consumers/<name>/pi with the login link
 - [ ] Rollback, list and diff with stable `--json`, pin and retention like backup
 - [ ] Consumer pin file so Pen and factories boot from a pinned generation, PR
 

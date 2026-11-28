@@ -35,6 +35,8 @@ Health
 Undo
   aval restore            list or restore backup runs
                             [--list | latest | <id> | --pin <id>]
+  aval generations        immutable snapshots of what aval renders: build, list, diff
+                            <build | list | diff <a> <b>> [--json]
   aval uninstall          remove aval's links and restore what they displaced
                             [--dry-run] [--yes]
 

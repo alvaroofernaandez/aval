@@ -60,6 +60,7 @@ var englishCLI = catalog{
 	"cli.usage.cmd.design":           {other: "design gates for the project in the current directory"},
 	"cli.usage.cmd.config":           {other: "show or change aval settings (theme, glyphs, motion)"},
 	"cli.usage.cmd.restore":          {other: "list or restore backup runs"},
+	"cli.usage.cmd.generations":      {other: "immutable snapshots of what aval renders: build, list, diff"},
 	"cli.usage.cmd.uninstall":        {other: "remove aval's links and restore what they displaced"},
 	"cli.usage.cmd.dev":              {other: "sandboxed HOME for developing aval"},
 	"cli.usage.cmd.hook":             {other: "agent hooks and the git pre-push gate"},

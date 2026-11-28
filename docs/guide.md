@@ -289,6 +289,7 @@ Full reference. `aval help` prints the usage, and so does a bare `aval` without 
 | `aval sync [--dry-run] [--check]` | Pushes managed settings into the live `settings.json` and into Codex/Gemini | yes |
 | `aval rules sync [--check]` | Replicates shared `CLAUDE.md` rules and lessons into OpenCode's `AGENTS.md` | yes |
 | `aval restore [--list] [latest\|<id>] [--pin <id>]` | Undoes an install or sync | yes |
+| `aval generations build\|list\|diff <a> <b> [--json]` | Immutable, content-addressed snapshots of what aval renders for every agent (Claude Code, Pi) | build only |
 | `aval uninstall [--dry-run] [--yes]` | Removes this repo's links and returns what was displaced | yes |
 | `aval budget [--json] [--skip-hooks] [--runs N]` | Always-on context and hook latency | no |
 | `aval usage [--by project\|session\|day\|consumer] [--window 5h\|7d] [--json] [--check] [--rate-limits <file\|->]` | Tokens, cost or plan share from the local agent transcripts; `--check` exits 1 when a budget is over | no |
@@ -355,6 +356,24 @@ secrets in outgoing commits and warns (without blocking) about drift via `aval s
 `settings.json` is a fragment that is merged last (it wins over the repo); `links.manifest` holds
 lines of `<source relative to the private folder>  <destination relative to $HOME>` and `sync` links them,
 first saving whatever was at the destination.
+
+### 🧊 Generations
+
+A **generation** is a read-only snapshot of everything aval renders for every agent runtime: the
+Claude Code settings rendering and a complete Pi agent directory (`AGENTS.md`, `settings.json`,
+`mcp.json`, skills, prompts). It lives in `~/.aval/generations/<id>/<adapter>/` with its record in
+`generation.json` (`contentHash`, build time, the repo commit, and what each runtime could not express).
+
+The id is `gen-<16 hex>`, the start of the sha256 of the rendered tree, so the same repo state always
+gives the same id and building it again changes nothing. A build is written aside and renamed into
+place: an interrupted build leaves no generation. Nothing secret is stored: the adapters refuse API
+keys, and the Pi login is linked when a generation is used, never copied into it.
+
+```sh
+aval generations build       # render every adapter into a new generation (--json)
+aval generations list        # id, build time, source commit, files and warnings per adapter (--json)
+aval generations diff <a> <b>  # added, removed and changed files (--json)
+```
 
 ### ↩️ Restore, uninstall and transactional sync
 

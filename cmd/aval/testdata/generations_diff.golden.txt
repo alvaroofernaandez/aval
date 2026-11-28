@@ -1,0 +1,2 @@
+added    fake/commands/dde6f51078266d1c
+changed  fake/rules/7f33fa1d0d8c8d4e

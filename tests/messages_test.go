@@ -320,6 +320,8 @@ Health
 Undo
   aval restore            list or restore backup runs
                             [--list | latest | <id> | --pin <id>]
+  aval generations        immutable snapshots of what aval renders: build, list, diff
+                            <build | list | diff <a> <b>> [--json]
   aval uninstall          remove aval's links and restore what they displaced
                             [--dry-run] [--yes]
 
@@ -409,6 +411,8 @@ Salud
 Deshacer
   aval restore            lista o restaura copias de seguridad
                             [--list | latest | <id> | --pin <id>]
+  aval generations        instantáneas inmutables de lo que aval genera: crear, listar, comparar
+                            <build | list | diff <a> <b>> [--json]
   aval uninstall          quita los enlaces de aval y restaura lo que desplazaron
                             [--dry-run] [--yes]
 
