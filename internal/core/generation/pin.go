@@ -57,6 +57,9 @@ func Prune(home string) ([]string, error) {
 	if id, err := Previous(home); err == nil {
 		keep[id] = true
 	}
+	for _, id := range consumerPins(home) {
+		keep[id] = true
+	}
 	var removed []string
 	kept := 0
 	for _, g := range gs { // newest first
