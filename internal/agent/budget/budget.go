@@ -383,16 +383,13 @@ func measure(h hookSpec, opt Options) Hook {
 	runOnce(h, in, opt)
 
 	var samples []float64
+	timedOut := false
 	for i := 0; i < opt.Runs; i++ {
-		d, timedOut := runOnce(h, in, opt)
-		m.TimedOut = m.TimedOut || timedOut
+		d, t := runOnce(h, in, opt)
+		timedOut = timedOut || t
 		samples = append(samples, float64(d)/float64(time.Millisecond))
 	}
-	sort.Float64s(samples)
-	m.P50Ms = round(percentile(samples, 0.50))
-	m.P95Ms = round(percentile(samples, 0.95))
-	m.Over = m.Budgeted && (m.TimedOut || m.P95Ms > m.BudgetMs)
-	return m
+	return classify(m, samples, timedOut)
 }
 
 func runOnce(h hookSpec, stdin []byte, opt Options) (time.Duration, bool) {
@@ -414,23 +411,6 @@ func runOnce(h hookSpec, stdin []byte, opt Options) (time.Duration, bool) {
 		return opt.Timeout, true
 	}
 	return d, false
-}
-
-func round(ms float64) float64 { return float64(int(ms*100+0.5)) / 100 }
-
-// percentile is nearest-rank over an ascending sample.
-func percentile(sorted []float64, p float64) float64 {
-	if len(sorted) == 0 {
-		return 0
-	}
-	idx := int(p*float64(len(sorted))+0.999999) - 1
-	if idx < 0 {
-		idx = 0
-	}
-	if idx >= len(sorted) {
-		idx = len(sorted) - 1
-	}
-	return sorted[idx]
 }
 
 // --- output ----------------------------------------------------------------

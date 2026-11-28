@@ -42,7 +42,6 @@ complexity|internal/ui/screen_select.go|Model.selectLines|19
 complexity|internal/ui/screen_settings.go|Model.settingsAction|16
 complexity|tools/brand/brand.go|run|17
 file-lines|cmd/aval/main.go|764
-file-lines|internal/agent/budget/budget.go|506
 file-lines|internal/core/backup/backup.go|1102
 file-lines|internal/core/doctor/doctor.go|620
 file-lines|internal/core/sync/sync.go|716
