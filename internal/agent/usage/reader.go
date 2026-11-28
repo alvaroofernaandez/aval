@@ -73,10 +73,20 @@ func Read(roots []Root) (Corpus, error) {
 func readFile(f io.Reader, r Root, path string, seen map[uint64]struct{}, c *Corpus) error {
 	br := bufio.NewReaderSize(f, 256<<10)
 	ctx := fileContext{root: r, path: path}
+	var long []byte // a line longer than the buffer, assembled
 	for {
-		line, err := br.ReadBytes('\n')
-		if len(bytes.TrimSpace(line)) > 0 {
-			ctx.line(bytes.TrimSpace(line), seen, c)
+		line, err := br.ReadSlice('\n')
+		if errors.Is(err, bufio.ErrBufferFull) {
+			long = append(long, line...)
+			continue
+		}
+		if long != nil {
+			line, long = append(long, line...), nil
+		}
+		// line is only valid until the next read: it is parsed now and the
+		// parsers copy what they keep.
+		if t := bytes.TrimSpace(line); len(t) > 0 {
+			ctx.line(t, seen, c)
 		}
 		if err != nil {
 			ctx.finish(seen, c)

@@ -121,3 +121,17 @@ func TestReadPiStandaloneUsageCountsOnlyWithoutMessages(t *testing.T) {
 		t.Errorf("entries = %d, want 2: one from the usage-only file, one (not two) from the file with both", len(c.Entries))
 	}
 }
+
+func TestReadHandlesALineLongerThanTheBuffer(t *testing.T) {
+	dir := t.TempDir()
+	long := strings.Repeat("y", 600<<10)
+	body := `{"type":"assistant","timestamp":"2026-11-20T09:00:00Z","message":{"model":"m","content":"` + long + `","usage":{"input_tokens":7}}}` + "\n" +
+		`{"type":"assistant","timestamp":"2026-11-20T09:01:00Z","message":{"model":"m","usage":{"input_tokens":3}}}` + "\n"
+	if err := os.WriteFile(filepath.Join(dir, "s.jsonl"), []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	c, err := Read([]Root{{Dir: dir, Source: "claude"}})
+	if err != nil || len(c.Entries) != 2 || c.Entries[0].Tokens.Input != 7 || c.Entries[1].Tokens.Input != 3 || c.Corrupt != 0 {
+		t.Errorf("entries = %+v corrupt %d err %v", c.Entries, c.Corrupt, err)
+	}
+}
