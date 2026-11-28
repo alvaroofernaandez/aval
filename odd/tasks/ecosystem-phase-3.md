@@ -59,10 +59,10 @@ opened, never merged; review is the owner's.
 - [x] Consumer pin file so Pen and factories boot from a pinned generation, PR (3 of 3)
 
 ## T6 — HCS-0008 invariants as tests
-- [ ] Projected or reported: every Config element is rendered or warned about, per adapter
-- [ ] One generation per run: a run reads exactly one generation id
-- [ ] Host settings win: the overlay never removes a host deny
-- [ ] No ambient config: adapters read only their inputs, never the real HOME, PR
+- [x] Projected or reported: every Config element is rendered or warned about, per adapter (`internal/core/txsync/invariants_test.go`)
+- [x] One generation per run: a run reads exactly one generation id
+- [x] Host settings win: the overlay never removes a host deny
+- [x] No ambient config: adapters read only their inputs, never the real HOME, PR
 
 ## T7 — #29 `aval usage`
 - [ ] Transcript reader, dedupe across files, per project, session, day and consumer
