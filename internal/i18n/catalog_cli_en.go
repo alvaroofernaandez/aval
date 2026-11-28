@@ -23,6 +23,7 @@ var englishCLI = catalog{
 	"cli.usage.cmd.usage":            {other: "tokens, cost or plan share per project, session, day and consumer"},
 	"cli.usage.cmd.deps":             {other: "external tools aval relies on, and which are missing"},
 	"cli.usage.cmd.relay":            {other: "context relay: status, log, pause, enable"},
+	"cli.usage.cmd.secrets":          {other: "keychain secrets: set, get, list, rm, exec"},
 	"cli.usage.cmd.context":          {other: "context floor: tokens loaded before the first prompt"},
 	"cli.context.floor.main":         {other: "main first turn: {tokens} tokens ({short})"},
 	"cli.context.floor.sub":          {other: "sub-agent first turn: {tokens} tokens ({short})"},

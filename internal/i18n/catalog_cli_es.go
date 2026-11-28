@@ -23,6 +23,7 @@ var spanishCLI = catalog{
 	"cli.usage.cmd.usage":            {other: "tokens, coste o cuota del plan por proyecto, sesión, día y consumidor"},
 	"cli.usage.cmd.deps":             {other: "herramientas externas de las que depende aval, y cuáles faltan"},
 	"cli.usage.cmd.relay":            {other: "relay de contexto: status, log, pause, enable"},
+	"cli.usage.cmd.secrets":          {other: "secretos en el llavero: set, get, list, rm, exec"},
 	"cli.usage.cmd.context":          {other: "suelo de contexto: tokens cargados antes del primer prompt"},
 	"cli.context.floor.main":         {other: "primer turno principal: {tokens} tokens ({short})"},
 	"cli.context.floor.sub":          {other: "primer turno de sub-agente: {tokens} tokens ({short})"},

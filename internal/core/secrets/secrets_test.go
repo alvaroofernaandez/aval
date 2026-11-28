@@ -3,7 +3,6 @@ package secrets
 import (
 	"errors"
 	"slices"
-	"strings"
 	"testing"
 )
 
@@ -51,8 +50,8 @@ func TestErrorsNeverCarryTheValue(t *testing.T) {
 	m := NewMemory()
 	_ = m.Set("K", "SENTINEL-VALUE")
 	_, err := m.Get("MISSING")
-	if err == nil || strings.Contains(err.Error(), "SENTINEL-VALUE") {
-		t.Errorf("error %v must exist and not carry a value", err)
+	if err != ErrNotFound {
+		t.Errorf("err = %v, want the bare sentinel, which cannot carry a value", err)
 	}
 }
 
