@@ -18,22 +18,37 @@ func (p Price) Of(t Tokens) Cost {
 	return Cost(t.Input*p.Input + t.Output*p.Output + t.CacheWrite*p.CacheWrite + t.CacheRead*p.CacheRead)
 }
 
-// prices is Anthropic's public list price per million tokens, in cents, per
-// model family as it appears in a transcript once the date suffix is dropped.
-// A family not listed here has no price: newer models are added by a release of
-// aval, never guessed.
+// prices is Anthropic's list price per million tokens, in cents, per model
+// family as it appears in a transcript once the date suffix is dropped.
+//
+// Source: https://platform.claude.com/docs/en/about-claude/pricing (the page
+// docs.claude.com/en/docs/about-claude/pricing redirects there), verified on
+// 2026-11-28 against the "Model pricing" table. Columns are base input, output,
+// 5 minute cache write and cache hit. The 1 hour cache write (2x input) is not
+// modelled: transcripts count both cache writes together, so they are priced at
+// the 5 minute rate. Model ids are the ones Claude Code writes in transcripts.
+//
+// Left out on purpose, so they show n/a: the claude-3 family (retired, not on
+// the page), claude-haiku-5-5 (priced by prompt length, which one rate cannot
+// express) and the limited-availability claude-mythos family.
 var prices = map[string]Price{
 	"claude-opus-4":     {1500, 7500, 1875, 150},
 	"claude-opus-4-1":   {1500, 7500, 1875, 150},
 	"claude-opus-4-5":   {500, 2500, 625, 50},
-	"claude-3-opus":     {1500, 7500, 1875, 150},
+	"claude-opus-4-6":   {500, 2500, 625, 50},
+	"claude-opus-4-7":   {500, 2500, 625, 50},
+	"claude-opus-4-8":   {500, 2500, 625, 50},
+	"claude-opus-5":     {500, 2500, 625, 50},
+	"claude-opus-5-5":   {400, 2000, 500, 20},
 	"claude-sonnet-4":   {300, 1500, 375, 30},
 	"claude-sonnet-4-5": {300, 1500, 375, 30},
-	"claude-3-7-sonnet": {300, 1500, 375, 30},
-	"claude-3-5-sonnet": {300, 1500, 375, 30},
+	"claude-sonnet-4-6": {300, 1500, 375, 30},
+	"claude-sonnet-5":   {200, 1000, 250, 20},
+	"claude-sonnet-5-5": {200, 1000, 250, 10},
 	"claude-haiku-4-5":  {100, 500, 125, 10},
-	"claude-3-5-haiku":  {80, 400, 100, 8},
-	"claude-3-haiku":    {25, 125, 30, 3},
+	"claude-fable-5":    {1000, 5000, 1250, 100},
+	"claude-fable-5-1":  {1000, 5000, 1250, 25},
+	"claude-fable-5-2":  {800, 4000, 1000, 20},
 }
 
 // family drops the "-latest" alias and a trailing -YYYYMMDD release date.
