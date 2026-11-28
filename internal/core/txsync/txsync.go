@@ -88,7 +88,7 @@ func Run(opt Options) (*Outcome, error) {
 	out := &Outcome{}
 	syncOpt := avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS, Now: opt.Now}
 	if opt.Generation != "" {
-		if _, err := generation.Read(opt.Home, opt.Generation); err != nil {
+		if err := generation.Verify(opt.Home, opt.Generation); err != nil {
 			return out, err
 		}
 		syncOpt.Generation = generation.Dir(opt.Home, opt.Generation, agentcfg.ClaudeCode)
@@ -146,7 +146,22 @@ func Run(opt Options) (*Outcome, error) {
 		return out, err
 	}
 	out.RunID = run.ID
-	return out, generation.EndSwitch(opt.Home)
+	return out, finishSwitch(opt)
+}
+
+// finishSwitch records a finished activation in the history, then forgets
+// its crash record.
+func finishSwitch(opt Options) error {
+	if opt.Generation != "" {
+		when := time.Now
+		if opt.Now != nil {
+			when = opt.Now
+		}
+		if err := generation.AppendHistory(opt.Home, opt.Generation, when()); err != nil {
+			return err
+		}
+	}
+	return generation.EndSwitch(opt.Home)
 }
 
 // verify runs the doctor checks sync can change against what was applied

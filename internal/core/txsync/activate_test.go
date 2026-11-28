@@ -154,3 +154,31 @@ func crashAt(t *testing.T, stage string) {
 	}
 	t.Cleanup(func() { crash = func(string) {} })
 }
+
+func TestATamperedGenerationIsRefusedAndWritesNothing(t *testing.T) {
+	opt := env(t)
+	live := filepath.Join(opt.Home, ".claude/settings.json")
+	put(t, live, `{"model":"sonnet"}`, 0o600)
+	a := genWith(t, opt, "a", "")
+	p := filepath.Join(generation.Dir(opt.Home, a, agentcfg.ClaudeCode), claude.SettingsFile)
+	_ = os.Chmod(p, 0o644)
+	put(t, p, `{"env":{"EDITED":"by hand"}}`, 0o644)
+	opt.Generation = a
+	if _, err := Run(opt); !errors.Is(err, generation.ErrTampered) {
+		t.Fatalf("err = %v, want ErrTampered", err)
+	}
+	if got := read(t, live); got != `{"model":"sonnet"}` || current(t, opt) != "" {
+		t.Errorf("a refused activation changed things: current %q, live %s", current(t, opt), got)
+	}
+}
+
+// Every activation is recorded, so a bare rollback finds the one before.
+func TestActivationsAreRecordedInTheHistory(t *testing.T) {
+	opt := env(t)
+	a, b := genWith(t, opt, "a", ""), genWith(t, opt, "b", "")
+	activate(t, opt, a)
+	activate(t, opt, b)
+	if prev, err := generation.Previous(opt.Home); prev != a || err != nil {
+		t.Errorf("Previous = %q, %v; want %s", prev, err, a)
+	}
+}
