@@ -289,7 +289,7 @@ Full reference. `aval help` prints the usage, and so does a bare `aval` without 
 | `aval sync [--dry-run] [--check]` | Pushes managed settings into the live `settings.json` and into Codex/Gemini | yes |
 | `aval rules sync [--check]` | Replicates shared `CLAUDE.md` rules and lessons into OpenCode's `AGENTS.md` | yes |
 | `aval restore [--list] [latest\|<id>] [--pin <id>]` | Undoes an install or sync | yes |
-| `aval generations build\|list\|diff <a> <b>\|activate <id>\|rollback [<id>] [--json]` | Immutable, content-addressed snapshots of what aval renders for every agent (Claude Code, Pi); activate and roll back through the sync transaction | build, activate, rollback |
+| `aval generations build\|list\|diff <a> <b>\|activate <id>\|rollback [<id>]\|pin <id>\|unpin <id>\|prune\|consumer <name> [<id>] [--json]` | Immutable, content-addressed snapshots of what aval renders for every agent (Claude Code, Pi); activate and roll back through the sync transaction | build, activate, rollback, pin, prune, consumer |
 | `aval uninstall [--dry-run] [--yes]` | Removes this repo's links and returns what was displaced | yes |
 | `aval budget [--json] [--skip-hooks] [--runs N]` | Always-on context and hook latency | no |
 | `aval deps [--json] [--layer harness\|agent\|env]` | External tool inventory: layer, users, effect if missing, native substitute, and whether each is installed; exits 1 when a blocking tool is missing | no |
@@ -394,6 +394,23 @@ aval generations rollback [<id>]   # back to the generation active before this o
 ```
 
 Two bare rollbacks in a row toggle between the last two generations, like `cd -`.
+
+**Retention** follows the backup rule: the 5 newest unpinned generations are kept, and every activation
+prunes the rest. The active generation, the one active before it, a generation you pinned and any
+generation a consumer is pinned to are never removed and do not count among the 5.
+
+**Consumers.** A runtime that keeps state in its config dir (Pen, the factories) must not write into the
+immutable store. `aval generations consumer <name> [<id>]` copies the generation's `pi/` tree (the active
+one by default) into the writable `~/.aval/consumers/<name>/pi`, links `auth.json` to your Pi login
+(never a copy), drops files the previous generation rendered and this one does not, and writes
+`~/.aval/consumers/<name>/generation` with the id. That file is the consumer's pin: it boots from that
+generation until you apply another, whatever `aval sync` activates meanwhile.
+
+```sh
+aval generations pin <id>          # keep it through retention; unpin releases it
+aval generations prune             # apply the retention rule now
+aval generations consumer pen      # apply the active generation's pi/ tree for the consumer "pen"
+```
 
 ### ↩️ Restore, uninstall and transactional sync
 
