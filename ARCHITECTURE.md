@@ -22,6 +22,9 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/core/update` | core | Refreshes an installation: pull, then re-apply. |
 | `internal/core/config` | core | Owns the aval config file (`key = value`). |
 | `internal/core/repoloc` | core | Finds the aval repository on disk. |
+| `internal/core/agentcfg` | core | The single configuration model (rules, skills, commands, agents, hooks, permissions, MCP) and the Adapter interface each agent runtime implements. |
+| `internal/core/agentcfg/contract` | core | The contract suite every adapter passes: deterministic, projected or reported, confined to its target, idempotent. |
+| `internal/core/agentcfg/fake` | core | The reference adapter the contract is proven against. |
 | `internal/ui` | ui | The hub: themes, screens, the preview, confirm, run, result rhythm. |
 | `internal/ui/caps` | leaf | Detects what the terminal can render, from the environment only. |
 | `internal/ui/cli` | ui | Status glyphs and words for plain command output. |
