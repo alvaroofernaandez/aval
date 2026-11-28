@@ -44,10 +44,11 @@ opened, never merged; review is the owner's.
 - [x] Rules, skills, commands, agents as `Rendered.Linked` (owner: option A); contract suite green on the whole repo, PR
 
 ## T4 — Pi adapter (#68 Pi slice, #10 support matrix row)
-- [ ] `internal/core/agentcfg/pi`: settings, AGENTS.md rules, skills, prompts; isolated agent dir (no ambient config)
-- [ ] Capabilities: no MCP, no permission model, hooks via extension only; loss warnings
-- [ ] Billing guard: nothing rendered carries an API key; subscription auth only
-- [ ] Contract suite green, PR
+- [x] `internal/core/agentcfg/pi`: settings, AGENTS.md rules (shared block only, owner: option A), skills, prompts, mcp.json; isolated agent dir (`Env` sets PI_CODING_AGENT_DIR)
+- [x] Capabilities: MCP native via mcp.json (Pi v1.7; owner: P2 = A), no subagents, no permission model, hooks via extension only; loss warnings, partial prompts warned
+- [x] Billing guard: nothing rendered carries an API key (ErrAPIKey); `Env` drops ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN and ANTHROPIC_OAUTH_TOKEN
+- [x] Subscription login inside the isolated dir: Apply links auth.json to ~/.pi/agent/auth.json (owner: P1 = A)
+- [x] Contract suite green on a sample and on the whole repo, PR
 
 ## T5 — #120 immutable generations
 - [ ] Build: content-addressed id, writes only under ~/.aval/generations
