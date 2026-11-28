@@ -48,6 +48,7 @@ flowchart TD
   cmd_aval --> design_gate
   cmd_aval --> design_hook
   cmd_aval --> devmode
+  cmd_aval --> devmode_check
   cmd_aval --> devops
   cmd_aval --> docs
   cmd_aval --> i18n

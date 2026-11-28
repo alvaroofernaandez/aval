@@ -88,8 +88,9 @@ func TestFastSkipsTheSlowStepsAndSaysWhy(t *testing.T) {
 			t.Errorf("%s skip = %q under --fast, want it to run", n, got)
 		}
 	}
-	if got := find(t, es, "test").Args; slices.Contains(got, "-race") {
-		t.Errorf("test args under --fast = %v, want no -race", got)
+	// -short is the repo's own switch for its slow end-to-end cases (tests/helpers_test.go).
+	if got := find(t, es, "test").Args; slices.Contains(got, "-race") || !slices.Contains(got, "-short") {
+		t.Errorf("test args under --fast = %v, want -short and no -race", got)
 	}
 }
 

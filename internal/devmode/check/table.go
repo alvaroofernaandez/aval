@@ -25,9 +25,10 @@ var Steps = []Step{
 	},
 	{
 		// -race needs cgo and a C toolchain, which a Windows runner does not
-		// reliably provide; --fast leaves it out to stay an edit-loop command.
+		// reliably provide. --fast drops it and passes -short, the repo's switch for
+		// its slow end-to-end cases, to stay an edit-loop command.
 		Name: "test", Tool: "go", Args: []string{"test", "./...", "-race"},
-		Fast: true, FastArgs: []string{"test", "./..."},
+		Fast: true, FastArgs: []string{"test", "./...", "-short"},
 		OSArgs: map[string][]string{"windows": {"test", "./..."}},
 	},
 	{
