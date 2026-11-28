@@ -12,13 +12,13 @@ import (
 )
 
 func TestNoGenerationIsActiveAtFirst(t *testing.T) {
-	if id, err := generation.Current(tempHome(t)); id != "" || err != nil {
+	if id, err := generation.Current(t.TempDir()); id != "" || err != nil {
 		t.Errorf("Current = %q, %v; want none", id, err)
 	}
 }
 
 func TestSetCurrentSwitchesTheActiveGeneration(t *testing.T) {
-	home := tempHome(t)
+	home := t.TempDir()
 	a, _ := build(t, home, cfg("one"), t0)
 	b, _ := build(t, home, cfg("two"), t0.Add(time.Hour))
 	for _, id := range []string{a.ID, b.ID, a.ID} {
@@ -45,7 +45,7 @@ func TestSetCurrentSwitchesTheActiveGeneration(t *testing.T) {
 // A switch that died before its rename leaves the old generation active, and
 // the next switch is not blocked by its leftovers.
 func TestAnInterruptedSwitchLeavesTheOldGenerationActive(t *testing.T) {
-	home := tempHome(t)
+	home := t.TempDir()
 	a, _ := build(t, home, cfg("one"), t0)
 	b, _ := build(t, home, cfg("two"), t0)
 	if err := generation.SetCurrent(home, a.ID); err != nil {
@@ -71,7 +71,7 @@ func TestAnInterruptedSwitchLeavesTheOldGenerationActive(t *testing.T) {
 }
 
 func TestActiveDirIsTheCurrentGenerationsAdapterTree(t *testing.T) {
-	home := tempHome(t)
+	home := t.TempDir()
 	if d, err := generation.ActiveDir(home, "fake"); d != "" || err != nil {
 		t.Errorf("ActiveDir with none active = %q, %v; want empty", d, err)
 	}

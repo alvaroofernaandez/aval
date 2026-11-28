@@ -2,9 +2,6 @@ package doctor
 
 import (
 	"encoding/json"
-	"io/fs"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/alvaroofernaandez/aval/internal/core/agentcfg"
@@ -16,14 +13,6 @@ import (
 // the Stop hook, and makes it the active one.
 func activeGeneration(t *testing.T, o Options, cmd string) {
 	t.Helper()
-	t.Cleanup(func() { // generations are read-only; let TempDir remove them
-		_ = filepath.WalkDir(generation.Root(o.Home), func(p string, d fs.DirEntry, err error) error {
-			if err == nil && d.IsDir() {
-				_ = os.Chmod(p, 0o755)
-			}
-			return nil
-		})
-	})
 	b, _ := json.Marshal(map[string]any{"hooks": map[string]any{"Stop": []any{
 		map[string]any{"hooks": []any{map[string]any{"type": "command", "command": cmd}}}}},
 		"enabledPlugins": map[string]any{"p@m": true, "off@m": false}})

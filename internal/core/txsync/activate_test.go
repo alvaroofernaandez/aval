@@ -2,7 +2,6 @@ package txsync
 
 import (
 	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,14 +17,6 @@ import (
 // with env AVAL_GEN=tag, and with an extra Stop hook command when hook != "".
 func genWith(t *testing.T, opt Options, tag, hook string) string {
 	t.Helper()
-	t.Cleanup(func() { // generations are read-only; let TempDir remove them
-		_ = filepath.WalkDir(generation.Root(opt.Home), func(p string, d fs.DirEntry, err error) error {
-			if err == nil && d.IsDir() {
-				_ = os.Chmod(p, 0o755)
-			}
-			return nil
-		})
-	})
 	cfg, err := agentcfg.LoadSettings(filepath.Join(opt.Repo, "config/claude/settings.json"))
 	if err != nil {
 		t.Fatal(err)
