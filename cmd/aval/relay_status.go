@@ -226,12 +226,16 @@ func padRight(s string, width int) string {
 	return s + strings.Repeat(" ", max(0, width-len(s)))
 }
 
-// statuslineOptions points the status line at the relay state. Env only: the
+// statuslineOptions points the status line at the relay state and at the file
+// where it keeps the reported rate limits. Env only: the
 // status line is a hot path and reads no config.
 func statuslineOptions(getenv func(string) string) statusline.Options {
 	o := statusline.Options{Now: time.Now()}
 	if store, ok := relayStore(getenv); ok {
 		o.RelayDir = store.Dir
+	}
+	if dir, ok := avalStateDir(getenv); ok {
+		o.StateDir = dir
 	}
 	return o
 }

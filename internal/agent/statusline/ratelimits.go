@@ -27,30 +27,46 @@ func persistRateLimits(o Options, in input) {
 	if o.StateDir == "" || rl == nil || (rl.FiveHour == nil && rl.SevenDay == nil) {
 		return
 	}
+	body := rateLimitsJSON(rl.FiveHour, rl.SevenDay)
+	target := filepath.Join(o.StateDir, RateLimitsFile)
+	if unchangedAndFresh(target, body, o.Now) || os.MkdirAll(o.StateDir, 0o700) != nil {
+		return
+	}
+	writeAtomic(target, body)
+}
+
+// rateLimitsJSON is the status line's own shape, with only the windows given.
+func rateLimitsJSON(five, seven *rateWindow) []byte {
 	body := []byte(`{"rate_limits":{`)
 	sep := ""
 	for _, w := range []struct {
 		name string
 		used *rateWindow
-	}{{"five_hour", rl.FiveHour}, {"seven_day", rl.SevenDay}} {
+	}{{"five_hour", five}, {"seven_day", seven}} {
 		if w.used == nil {
 			continue
 		}
 		body = append(body, sep+`"`+w.name+`":{"used_percentage":`+strconv.FormatFloat(w.used.UsedPercentage, 'f', -1, 64)+`}`...)
 		sep = ","
 	}
-	body = append(body, "}}\n"...)
+	return append(body, "}}\n"...)
+}
 
-	target := filepath.Join(o.StateDir, RateLimitsFile)
-	if old, err := os.ReadFile(target); err == nil && string(old) == string(body) {
-		if fi, err := os.Stat(target); err == nil && o.Now.Sub(fi.ModTime()) < rateLimitsRefresh {
-			return
-		}
+// unchangedAndFresh reports that target already holds body and was written
+// within rateLimitsRefresh.
+func unchangedAndFresh(target string, body []byte, now time.Time) bool {
+	old, err := os.ReadFile(target)
+	if err != nil || string(old) != string(body) {
+		return false
 	}
-	if os.MkdirAll(o.StateDir, 0o700) != nil {
-		return
-	}
-	tmp, err := os.CreateTemp(o.StateDir, RateLimitsFile+".tmp*")
+	fi, err := os.Stat(target)
+	return err == nil && now.Sub(fi.ModTime()) < rateLimitsRefresh
+}
+
+// writeAtomic writes body to a temp file next to target and renames it over
+// target, mode 0600. It leaves nothing behind when a step fails.
+func writeAtomic(target string, body []byte) {
+	tmp, err := os.CreateTemp(filepath.Dir(target), filepath.Base(target)+".tmp*")
 	if err != nil {
 		return
 	}

@@ -467,8 +467,10 @@ the plan share the runtime reported, never dollars.
 verified against the official pricing page and dated; see `usage.PricesEffective`; the 1 hour cache write is priced at
 the 5 minute rate). A model the table does not list shows `n/a`, never a guess, and a total that leaves such
 responses out is marked `+`. `subscription` shows the share of the 5 h and 7 d windows the runtime reported, never
-dollars and never an estimate of the plan limit: pass the status line JSON with `--rate-limits <file>` (`-` for stdin)
-and the shares come from its `rate_limits.five_hour` and `seven_day`; without it they read `n/a`.
+dollars and never an estimate of the plan limit. `aval statusline` keeps the `rate_limits.five_hour` and `seven_day`
+it receives in `$XDG_STATE_HOME/aval/rate-limits.json` (default `~/.local/state/aval`, mode 0600, written atomically
+and at most once a minute when nothing changed), and `aval usage` shows them. A reading older than its window (5 h,
+7 d) reads `n/a`. `--rate-limits <file>` (`-` for stdin) takes status line JSON instead and wins over the stored one.
 
 The 5 h block follows ccusage: it opens at the first message, floored to the hour in UTC, and closes five hours
 later; a message after that, or after a five hour gap, opens the next one. The 7 d window sums the last seven days.
