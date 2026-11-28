@@ -1,6 +1,9 @@
 package guard
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 var ctx = Context{Cwd: "/work/proj", Home: "/home/u"}
 
@@ -185,4 +188,47 @@ func TestSecretReadRule(t *testing.T) {
 		{`cp a.txt ~/.ssh/config`, ""},
 		{`git add .env.example`, ""},
 	})
+}
+
+func TestRmTempDirs(t *testing.T) {
+	c := Context{Cwd: "/work/proj", Home: "/home/u", Tmp: []string{"/var/folders/ab/cd/T"},
+		Real: func(p string) string {
+			switch {
+			case p == "/tmp/link" || strings.HasPrefix(p, "/tmp/link/"):
+				return "/etc" + strings.TrimPrefix(p, "/tmp/link")
+			case p == "/tmp" || strings.HasPrefix(p, "/tmp/"):
+				return "/private" + p
+			}
+			return p
+		}}
+	cases := []struct {
+		cmd  string
+		deny bool
+	}{
+		{`rm -rf /tmp/x`, false},
+		{`rm -rf /private/tmp/x/y`, false},
+		{`rm -rf /var/folders/zz/yy/T/tmp.abc`, false},
+		{`rm -rf /var/folders/ab/cd/T/x`, false},
+		{`rm -rf /tmp/x /tmp/y`, false},
+		{`rm -rf /tmp`, true},
+		{`rm -rf /tmp/`, true},
+		{`rm -rf /tmp/*`, true},
+		{`rm -rf /private/tmp`, true},
+		{`rm -rf /var/folders`, true},
+		{`rm -rf /tmp/../etc`, true},
+		{`rm -rf /tmp/x/../../etc`, true},
+		{`rm -rf /tmp/x /etc`, true},
+		{`rm -rf /tmpfoo/x`, true},
+		{`rm -rf /var/foldersx/a`, true},
+		{`rm -rf /tmp/link/x`, true},
+		{`rm -rf /tmp/link/*`, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.cmd, func(t *testing.T) {
+			_, hit := Check(tc.cmd, c)
+			if hit != tc.deny {
+				t.Errorf("Check(%q) denied = %v, want %v", tc.cmd, hit, tc.deny)
+			}
+		})
+	}
 }

@@ -5,7 +5,9 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -129,5 +131,46 @@ func TestGuardImportsOnlySafeStdlib(t *testing.T) {
 				t.Errorf("%s imports %s", f, p)
 			}
 		}
+	}
+}
+
+func TestRunAllowsRmInsideTempDirs(t *testing.T) {
+	o := opts(nil)
+	o.Getenv = func(k string) string {
+		if k == "TMPDIR" {
+			return "/srv/scratch/"
+		}
+		return ""
+	}
+	for _, c := range []string{"rm -rf /tmp/x", "rm -rf /srv/scratch/job1"} {
+		if got := runHook(payload("Bash", c), o); got != "" {
+			t.Errorf("%q denied: %q", c, got)
+		}
+	}
+	for _, c := range []string{"rm -rf /srv/scratch", "rm -rf /srv/scratch/../etc", "rm -rf /srv/other"} {
+		if got := runHook(payload("Bash", c), o); got == "" {
+			t.Errorf("%q must stay denied", c)
+		}
+	}
+}
+
+func TestRunDeniesRmThroughASymlinkOutOfTemp(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks need privileges on windows")
+	}
+	root := t.TempDir()
+	if err := os.Symlink("/etc", filepath.Join(root, "link")); err != nil {
+		t.Skip(err)
+	}
+	o := opts(nil)
+	o.Getenv = func(k string) string {
+		if k == "TMPDIR" {
+			return root
+		}
+		return ""
+	}
+	target := filepath.ToSlash(filepath.Join(root, "link", "x"))
+	if got := runHook(payload("Bash", "rm -rf "+target), o); got == "" {
+		t.Errorf("rm through a symlink that leaves the temp dir passed")
 	}
 }

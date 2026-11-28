@@ -38,6 +38,31 @@ func readAllow(o RunOptions) func() ([]string, error) {
 	}
 }
 
+// tmpRoots is the resolved $TMPDIR, the one temp root the fixed list cannot know.
+func tmpRoots(o RunOptions) []string {
+	if d := o.Getenv("TMPDIR"); d != "" && filepath.IsAbs(d) {
+		return []string{filepath.ToSlash(filepath.Clean(d))}
+	}
+	return nil
+}
+
+// realPath resolves symlinks of p through its deepest existing ancestor, so a
+// path that does not exist yet still resolves. Any failure returns p as is.
+func realPath(p string) string {
+	p = filepath.FromSlash(p)
+	for rest := ""; ; {
+		if r, err := filepath.EvalSymlinks(p); err == nil {
+			return filepath.ToSlash(filepath.Join(r, rest))
+		}
+		parent := filepath.Dir(p)
+		if parent == p {
+			return filepath.ToSlash(filepath.Join(p, rest))
+		}
+		rest = filepath.Join(filepath.Base(p), rest)
+		p = parent
+	}
+}
+
 // Run reads a PreToolUse payload and writes a deny when a Bash command breaks
 // a rule. Anything unexpected, a panic included, writes nothing.
 func Run(in io.Reader, out io.Writer, o RunOptions) {
@@ -56,7 +81,7 @@ func Run(in io.Reader, out io.Writer, o RunOptions) {
 	if json.Unmarshal(raw, &p) != nil || p.ToolName != "Bash" || p.ToolInput.Command == "" {
 		return
 	}
-	d := Decide(p.ToolInput.Command, Options{Ctx: Context{Cwd: p.Cwd, Home: o.Home}, ReadAllow: readAllow(o)})
+	d := Decide(p.ToolInput.Command, Options{Ctx: Context{Cwd: p.Cwd, Home: o.Home, Tmp: tmpRoots(o), Real: realPath}, ReadAllow: readAllow(o)})
 	if !d.Deny {
 		return
 	}

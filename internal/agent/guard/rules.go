@@ -20,7 +20,14 @@ import (
 )
 
 // Context is what the rules need to know about where the command runs.
-type Context struct{ Cwd, Home string }
+type Context struct {
+	Cwd, Home string
+	// Tmp lists extra temp roots (the resolved $TMPDIR); the fixed ones are
+	// /tmp, /private/tmp and /var/folders.
+	Tmp []string
+	// Real resolves symlinks of a path; nil means the lexical path is trusted.
+	Real func(string) string
+}
 
 // Finding is a rule that matched: its name and the simple command that did.
 type Finding struct{ Rule, Command string }
@@ -198,7 +205,46 @@ func rmTargetRisky(t string, c Context) bool {
 	case strings.ContainsAny(path.Base(p), "*?[") && (path.Dir(p) == "/" || c.Home != "" && path.Dir(p) == home):
 		return true
 	}
+	if inTemp(p, c) {
+		return false
+	}
 	return !within(p, cwd) && !(c.Home != "" && within(p, home))
+}
+
+var tempRoots = []string{"/tmp", "/private/tmp", "/var/folders"}
+
+func (c Context) tempRoots() []string { return append(append([]string{}, tempRoots...), c.Tmp...) }
+
+func (c Context) real(p string) string {
+	if c.Real == nil {
+		return p
+	}
+	return clean(c.Real(p))
+}
+
+// strictlyIn: p lies below dir, never dir itself.
+func strictlyIn(p, dir string) bool { return p != dir && within(p, dir) }
+
+// inTemp: p is below a temp root, lexically and after symlinks, and is not a
+// glob that would sweep a whole root. The root itself is never a target.
+func inTemp(p string, c Context) bool {
+	roots := c.tempRoots()
+	var hit string
+	for _, r := range roots {
+		if r = clean(r); strictlyIn(p, r) && (hit == "" || len(r) > len(hit)) {
+			hit = r
+		}
+	}
+	if hit == "" || strings.ContainsAny(path.Base(p), "*?[") && path.Dir(p) == hit {
+		return false
+	}
+	real := c.real(p)
+	for _, r := range roots {
+		if r = clean(r); strictlyIn(real, r) || strictlyIn(real, c.real(r)) {
+			return true
+		}
+	}
+	return false
 }
 
 // --- git push ----------------------------------------------------------

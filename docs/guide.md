@@ -467,7 +467,7 @@ OpenCode has no such hook: it reads the lessons by hand.
 
 **Guard** (`aval hook guard`). `defaultMode: bypassPermissions` runs Bash without asking, so a PreToolUse hook
 (`Bash`) denies, with a reason, the commands nobody can undo: `rm -rf` outside the project and home (or on `/`,
-`~`, `$HOME`, `.`), `git push --force`/`-f`/`--force-with-lease` to `main` or `master`, `DROP DATABASE` and
+`~`, `$HOME`, `.`; targets inside `/tmp`, `/private/tmp`, `/var/folders` and `$TMPDIR` are allowed, symlinks resolved), `git push --force`/`-f`/`--force-with-lease` to `main` or `master`, `DROP DATABASE` and
 `TRUNCATE` through `psql`, `mysql` or `mongosh` on a host that is not local, `docker volume|system prune`,
 `kubectl delete`, a download piped into a shell (`curl ... | sh`, `bash <(curl ...)`) and reading `~/.ssh`,
 `~/.aws` or an `.env*` file with `cat`, `head`, `tail`, `less`, `bat`, `cp`, `grep` or `<` (`.env.example`,

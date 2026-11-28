@@ -48,6 +48,9 @@ command after whitespace normalisation, never a prefix. Read only after a match.
 - `.env.example`, `.env.sample`, `.env.template`, `.env.dist` are allowed; `.envrc` is not.
 - A bare `git push --force` (no refspec) is allowed: the branch is unknown without running git.
 
+- `rm` below `/tmp`, `/private/tmp`, `/var/folders` and the resolved `$TMPDIR` is allowed with no allow-list entry (owner, 2026-11-28). The root itself and a glob directly under it stay denied; `..` is cleaned lexically and symlinks are resolved on the deepest existing ancestor, so a link leaving the temp dir is denied.
+- The OpenCode port of the guard is a separate issue; this PR is Claude Code only.
+
 ## Not in scope
 
 Sandboxing, semantic SQL analysis, tools other than Bash.
