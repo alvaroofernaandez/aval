@@ -3,7 +3,6 @@ package tests
 import (
 	"encoding/json"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -126,8 +125,8 @@ func TestLessonsHookLatency(t *testing.T) {
 	dir := t.TempDir()
 	in := filepath.Join(dir, "in.json")
 	write(t, in, `{"session_id":"lat","tool_name":"Edit","tool_input":{"file_path":"/p/main.go"}}`)
-	ms := hyperfineMeanMs(t, isoEnv(dir, "AVAL_LESSONS_DIR="+lessonsDir()), in, aval+" hook lessons")
-	isTrue(t, "the lessons hook runs in under 10 ms (is "+strconv.FormatFloat(ms, 'f', 1, 64)+" ms)", ms > 0 && ms < 10)
+	l := hyperfineMs(t, isoEnv(dir, "AVAL_LESSONS_DIR="+lessonsDir()), in, aval+" hook lessons")
+	isTrue(t, "the lessons hook runs in under 10 ms ("+l.String()+")", l.under(10))
 }
 
 // The always-on text got smaller.

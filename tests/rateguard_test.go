@@ -2,11 +2,11 @@ package tests
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -35,20 +35,36 @@ func TestRateGuardBinaryDeniesABatch(t *testing.T) {
 	eq(t, "a curl loop on innohelp.es is denied", "deny", v.H.D)
 }
 
-// hyperfineMeanMs runs cmd under hyperfine with stdin from the file in and
-// returns the mean wall time in milliseconds.
-func hyperfineMeanMs(t *testing.T, env []string, in, cmd string) float64 {
+// latency is one hyperfine measurement, in milliseconds.
+type latency struct{ Min, Mean, Median float64 }
+
+// String prints every statistic, so a failure shows how loaded the run was.
+func (l latency) String() string {
+	return fmt.Sprintf("min %.1f ms, median %.1f ms, mean %.1f ms", l.Min, l.Median, l.Mean)
+}
+
+// under is the gate of an absolute latency budget. It is the fastest run:
+// load from other processes only ever adds time, so a busy machine raises the
+// mean and the median but not the floor, while a real regression raises every
+// run, the fastest included (#125).
+func (l latency) under(ms float64) bool { return l.Min > 0 && l.Min < ms }
+
+// hyperfineMs runs cmd under hyperfine with stdin from the file in.
+func hyperfineMs(t *testing.T, env []string, in, cmd string) latency {
 	t.Helper()
 	out := filepath.Join(t.TempDir(), "hf.json")
 	run(repo, env, "", "hyperfine", "-N", "--warmup", "10", "--runs", "50",
 		"--input", in, "--export-json", out, cmd)
+	type stats struct {
+		Min    float64 `json:"min"`
+		Mean   float64 `json:"mean"`
+		Median float64 `json:"median"`
+	}
 	var hf struct {
 		Results []struct {
-			Mean    *float64 `json:"mean"`
+			stats
 			Summary *struct {
-				Wall struct {
-					Mean float64 `json:"mean"`
-				} `json:"time_wall_clock"`
+				Wall stats `json:"time_wall_clock"`
 			} `json:"summary"`
 		} `json:"results"`
 	}
@@ -60,13 +76,11 @@ func hyperfineMeanMs(t *testing.T, env []string, in, cmd string) float64 {
 	if len(hf.Results) == 0 {
 		t.Fatal("hyperfine report has no results")
 	}
-	mean := 0.0
-	if hf.Results[0].Summary != nil { // newer hyperfine nests it under summary
-		mean = hf.Results[0].Summary.Wall.Mean
-	} else if hf.Results[0].Mean != nil {
-		mean = *hf.Results[0].Mean
+	s := hf.Results[0].stats
+	if hf.Results[0].Summary != nil { // hyperfine 2 nests them under summary
+		s = hf.Results[0].Summary.Wall
 	}
-	return mean * 1000
+	return latency{Min: s.Min * 1000, Mean: s.Mean * 1000, Median: s.Median * 1000}
 }
 
 func TestRateGuardHookLatency(t *testing.T) {
@@ -76,9 +90,9 @@ func TestRateGuardHookLatency(t *testing.T) {
 	dir := t.TempDir()
 	in := filepath.Join(dir, "in.json")
 	write(t, in, rateGuardBatch)
-	ms := hyperfineMeanMs(t, isoEnv(dir), in, aval+" hook rate-guard")
-	t.Logf("rate-guard hook mean: %.1f ms", ms)
-	isTrue(t, "the rate-guard hook runs in under 10 ms (is "+strconv.FormatFloat(ms, 'f', 1, 64)+" ms)", ms > 0 && ms < 10)
+	l := hyperfineMs(t, isoEnv(dir), in, aval+" hook rate-guard")
+	t.Logf("rate-guard hook: %s", l)
+	isTrue(t, "the rate-guard hook runs in under 10 ms ("+l.String()+")", l.under(10))
 }
 
 func rateGuardHook(t *testing.T) (hookCmd, bool) {
