@@ -225,3 +225,27 @@ func TestDryRunBuildsNoGeneration(t *testing.T) {
 		t.Errorf("a dry run built %d generations", len(gs))
 	}
 }
+
+// An activation prunes like a backup does: the newest Retain unpinned
+// generations stay, and the one just activated is never among the removed.
+func TestActivationPrunesOldGenerations(t *testing.T) {
+	opt := env(t)
+	var ids []string
+	for i := range generation.Retain + 3 {
+		ids = append(ids, genWith(t, opt, string(rune('a'+i)), ""))
+	}
+	activate(t, opt, ids[0])
+	gs, err := generation.List(opt.Home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(gs) != generation.Retain+1 {
+		t.Errorf("%d generations after activation, want %d (Retain unpinned + the active one)", len(gs), generation.Retain+1)
+	}
+	if current(t, opt) != ids[0] {
+		t.Errorf("active = %s, want %s", current(t, opt), ids[0])
+	}
+	if _, err := generation.Read(opt.Home, ids[0]); err != nil {
+		t.Errorf("the active generation was pruned: %v", err)
+	}
+}

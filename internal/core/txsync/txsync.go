@@ -211,6 +211,9 @@ func finishSwitch(opt Options) error {
 		if err := generation.AppendHistory(opt.Home, opt.Generation, when()); err != nil {
 			return err
 		}
+		// Retention is housekeeping: the activation already succeeded, so a
+		// generation that cannot be removed now is retried at the next one.
+		_, _ = generation.Prune(opt.Home)
 	}
 	return generation.EndSwitch(opt.Home)
 }
