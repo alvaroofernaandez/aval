@@ -316,6 +316,10 @@ func run(t *testing.T, dir string, env []string, name string, args ...string) st
 func gitEnv(extra ...string) []string {
 	return append(append([]string{}, os.Environ()...), append([]string{
 		"GIT_CONFIG_GLOBAL=" + os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
+		// No auto gc or maintenance: they rewrite .git behind the test's back.
+		"GIT_CONFIG_COUNT=2",
+		"GIT_CONFIG_KEY_0=gc.auto", "GIT_CONFIG_VALUE_0=0",
+		"GIT_CONFIG_KEY_1=maintenance.auto", "GIT_CONFIG_VALUE_1=false",
 		"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t",
 	}, extra...)...)
 }
@@ -339,13 +343,29 @@ func put(t *testing.T, path, content string) {
 
 func treeHash(t *testing.T, root string) string {
 	t.Helper()
+	return treeHashWalk(root, filepath.WalkDir)
+}
+
+// treeHashWalk is treeHash over an injectable walker, so a test can hand it
+// an entry that vanished between the directory read and Info.
+func treeHashWalk(root string, walk func(string, fs.WalkDirFunc) error) string {
 	var lines []string
-	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+	_ = walk(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
 		rel, _ := filepath.Rel(root, p)
-		info, _ := d.Info()
+		if d.Name() == ".git" {
+			// CopyRepo never copies .git, and git rewrites it on its own.
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return nil // vanished between the directory read and Info
+		}
 		switch {
 		case d.Type()&fs.ModeSymlink != 0:
 			l, _ := os.Readlink(p)
@@ -555,5 +575,57 @@ func TestListAndRemove(t *testing.T) {
 	}
 	if err := Remove(base, "../b", realHome); err == nil {
 		t.Error("a traversal name must be refused")
+	}
+}
+
+// vanishedEntry is a file git removed between the directory read and Info.
+type vanishedEntry struct{ name string }
+
+func (v vanishedEntry) Name() string               { return v.name }
+func (v vanishedEntry) IsDir() bool                { return false }
+func (v vanishedEntry) Type() fs.FileMode          { return 0 }
+func (v vanishedEntry) Info() (fs.FileInfo, error) { return nil, fs.ErrNotExist }
+
+func TestTreeHashSkipsAnEntryThatVanished(t *testing.T) {
+	root := t.TempDir()
+	empty := treeHashWalk(root, func(string, fs.WalkDirFunc) error { return nil })
+	var got string
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				t.Fatalf("treeHash panicked on an entry whose Info failed: %v", r)
+			}
+		}()
+		got = treeHashWalk(root, func(r string, fn fs.WalkDirFunc) error {
+			return fn(filepath.Join(r, "index.lock"), vanishedEntry{"index.lock"}, nil)
+		})
+	}()
+	if got != empty {
+		t.Errorf("a vanished entry changed the hash: %s, want the empty tree %s", got, empty)
+	}
+}
+
+func TestTreeHashIgnoresGitChurn(t *testing.T) {
+	root := t.TempDir()
+	put(t, filepath.Join(root, "a.md"), "a")
+	put(t, filepath.Join(root, ".git", "HEAD"), "ref: refs/heads/main")
+	before := treeHash(t, root)
+	put(t, filepath.Join(root, ".git", "index.lock"), "lock")
+	if treeHash(t, root) != before {
+		t.Error("a file git writes under .git changed the tree hash; CopyRepo never copies .git")
+	}
+}
+
+func TestGitEnvDisablesAutoMaintenance(t *testing.T) {
+	needGit(t)
+	dir := t.TempDir()
+	run(t, dir, gitEnv(), "git", "init", "-q")
+	for key, want := range map[string]string{"gc.auto": "0", "maintenance.auto": "false"} {
+		c := exec.Command("git", "config", "--get", key)
+		c.Dir, c.Env = dir, gitEnv()
+		out, _ := c.Output()
+		if got := strings.TrimSpace(string(out)); got != want {
+			t.Errorf("git config %s under gitEnv = %q, want %q", key, got, want)
+		}
 	}
 }
