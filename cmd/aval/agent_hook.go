@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/agent/fmthook"
+	"github.com/alvaroofernaandez/aval/internal/agent/guard"
 	"github.com/alvaroofernaandez/aval/internal/agent/lessons"
 	"github.com/alvaroofernaandez/aval/internal/agent/rateguard"
 	"github.com/alvaroofernaandez/aval/internal/agent/repoprofile"
@@ -54,6 +55,11 @@ func runHook(args []string, c cmdIO) error {
 	case "rate-guard":
 		// PreToolUse on Bash, sync: fails open, exits 0 whatever happens.
 		rateguard.Run(in, out, func() ([]string, error) { return rateGuardHosts(getenv) })
+	case "guard":
+		// PreToolUse on Bash, sync: fails open, exits 0 whatever happens. The
+		// allow-list is read only after a rule matched (ADR 0009).
+		home, _ := userHomeDir(getenv)
+		guard.Run(in, out, guard.RunOptions{Home: home, Getenv: getenv, ReadFile: os.ReadFile})
 	case "rtk-rewrite":
 		rtkhook.Run(in, out, c.stderr, rtkhook.Lookup())
 	case "pre-push":
@@ -69,7 +75,7 @@ func runHook(args []string, c cmdIO) error {
 		// can be mistaken for a block.
 		_ = lessons.Run(in, out, lessonsOptions(getenv))
 	default:
-		return newUsage("usage: aval hook lessons|repo-profile|relay-precompact|relay-sessionstart|relay-prompt|relay-sessionend|design-gate|plan-gate|design-shot-stop|rate-guard|rtk-rewrite|pre-push|fmt (reads hook JSON on stdin)")
+		return newUsage("usage: aval hook lessons|repo-profile|relay-precompact|relay-sessionstart|relay-prompt|relay-sessionend|design-gate|plan-gate|design-shot-stop|rate-guard|guard|rtk-rewrite|pre-push|fmt (reads hook JSON on stdin)")
 	}
 	return nil
 }

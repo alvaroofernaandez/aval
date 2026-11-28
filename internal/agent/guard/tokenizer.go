@@ -27,7 +27,7 @@ type heredoc struct {
 	cmd   int // index in out, resolved when the line ends
 }
 
-type parser struct {
+type lexer struct {
 	s       []rune
 	i       int
 	lenient bool
@@ -48,14 +48,14 @@ type parser struct {
 // lenient mode ignores quoting altogether and never fails, which is what the
 // guard falls back to when the text does not parse.
 func parse(s string, lenient bool) ([]command, error) {
-	p := &parser{s: []rune(s), lenient: lenient}
+	p := &lexer{s: []rune(s), lenient: lenient}
 	if err := p.run(); err != nil {
 		return nil, err
 	}
 	return p.out, nil
 }
 
-func (p *parser) run() error {
+func (p *lexer) run() error {
 	for p.i < len(p.s) {
 		r := p.s[p.i]
 		switch r {
@@ -119,20 +119,20 @@ func (p *parser) run() error {
 	return p.flushSubs()
 }
 
-func (p *parser) add(r rune) {
+func (p *lexer) add(r rune) {
 	p.w = append(p.w, r)
 	p.have = true
 	p.i++
 }
 
-func (p *parser) peek(n int) rune {
+func (p *lexer) peek(n int) rune {
 	if p.i+n < len(p.s) {
 		return p.s[p.i+n]
 	}
 	return 0
 }
 
-func (p *parser) amp() {
+func (p *lexer) amp() {
 	if p.peek(1) == '&' {
 		p.endWord()
 		p.endCmd(false)
@@ -148,7 +148,7 @@ func (p *parser) amp() {
 	p.i++
 }
 
-func (p *parser) pipe() {
+func (p *lexer) pipe() {
 	if p.have && len(p.w) > 0 && p.w[len(p.w)-1] == '>' { // >|
 		p.add('|')
 		return
@@ -167,7 +167,7 @@ func (p *parser) pipe() {
 	}
 }
 
-func (p *parser) escape() {
+func (p *lexer) escape() {
 	if p.peek(1) == '\n' { // line continuation
 		p.i += 2
 		return
@@ -182,7 +182,7 @@ func (p *parser) escape() {
 	p.i += 2
 }
 
-func (p *parser) singleQuote() error {
+func (p *lexer) singleQuote() error {
 	p.i++
 	if p.lenient {
 		return nil
@@ -199,7 +199,7 @@ func (p *parser) singleQuote() error {
 	return nil
 }
 
-func (p *parser) doubleQuote() error {
+func (p *lexer) doubleQuote() error {
 	p.i++
 	if p.lenient {
 		return nil
@@ -235,7 +235,7 @@ func (p *parser) doubleQuote() error {
 }
 
 // dollar handles $(...), ${...} and a lone $.
-func (p *parser) dollar() error {
+func (p *lexer) dollar() error {
 	if p.lenient {
 		p.add('$')
 		return nil
@@ -262,7 +262,7 @@ func (p *parser) dollar() error {
 	return nil
 }
 
-func (p *parser) backtick() error {
+func (p *lexer) backtick() error {
 	if p.lenient {
 		p.endWord()
 		p.endCmd(false)
@@ -280,7 +280,7 @@ func (p *parser) backtick() error {
 }
 
 // openParen is a subshell paren, or the start of <(...) / >(...).
-func (p *parser) openParen() error {
+func (p *lexer) openParen() error {
 	if !p.lenient && p.have && len(p.w) == 1 && (p.w[0] == '<' || p.w[0] == '>') {
 		end, ok := closeParen(p.s, p.i+1)
 		if !ok {
@@ -297,7 +297,7 @@ func (p *parser) openParen() error {
 
 // substitute records the inner script as a command of its own and keeps the
 // raw text in the word, so a rule can still see "bash <(curl x)".
-func (p *parser) substitute(open string, inner []rune, next int) error {
+func (p *lexer) substitute(open string, inner []rune, next int) error {
 	closer := ")"
 	if open == "`" {
 		closer = "`"
@@ -309,7 +309,7 @@ func (p *parser) substitute(open string, inner []rune, next int) error {
 	return nil
 }
 
-func (p *parser) flushSubs() error {
+func (p *lexer) flushSubs() error {
 	for len(p.subs) > 0 {
 		sub := p.subs[0]
 		p.subs = p.subs[1:]
@@ -350,7 +350,7 @@ func closeParen(s []rune, from int) (int, bool) {
 	return 0, false
 }
 
-func (p *parser) endWord() {
+func (p *lexer) endWord() {
 	if !p.have {
 		return
 	}
@@ -369,7 +369,7 @@ func (p *parser) endWord() {
 	p.cur.Words = append(p.cur.Words, w)
 }
 
-func (p *parser) redirectOp(op, rest string) {
+func (p *lexer) redirectOp(op, rest string) {
 	if (op == ">&" || op == "<&") && (rest == "-" || rest != "" && strings.Trim(rest, "0123456789") == "") {
 		return // fd duplication: 2>&1
 	}
@@ -379,7 +379,7 @@ func (p *parser) redirectOp(op, rest string) {
 	}
 }
 
-func (p *parser) target(t string) {
+func (p *lexer) target(t string) {
 	op := p.op
 	p.op = ""
 	switch op {
@@ -396,7 +396,7 @@ func (p *parser) target(t string) {
 	p.cur.Redirs = append(p.cur.Redirs, redirect{op, t})
 }
 
-func (p *parser) endCmd(pipe bool) {
+func (p *lexer) endCmd(pipe bool) {
 	if len(p.cur.Words) == 0 && len(p.cur.Redirs) == 0 {
 		return
 	}
@@ -412,7 +412,7 @@ func (p *parser) endCmd(pipe bool) {
 
 // readHeredocs consumes the bodies of the heredocs opened on the line that
 // just ended and attaches each to its command.
-func (p *parser) readHeredocs() {
+func (p *lexer) readHeredocs() {
 	for _, h := range p.pend {
 		var body strings.Builder
 		for p.i+1 < len(p.s) {

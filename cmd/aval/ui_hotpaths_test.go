@@ -48,6 +48,7 @@ func TestHotPathsNeverReadConfig(t *testing.T) {
 		{"--theme", "tokio-night", "statusline"},
 		{"hook", "design-gate"},
 		{"hook", "plan-gate"},
+		{"hook", "guard"},
 		{"hook", "relay-prompt"},
 		{"relay", "compact"},
 		{"relay", "commit"},
@@ -68,7 +69,7 @@ func TestHotPathsNeverReadConfig(t *testing.T) {
 // AVAL_LANG, a Spanish locale and a language in the config change nothing,
 // not even a bad --lang.
 func TestHooksIgnoreTheLanguage(t *testing.T) {
-	cases := [][]string{{"statusline"}, {"hook", "design-gate"}, {"hook", "plan-gate"}, {"hook", "fmt"}, {"relay", "compact"}, {"relay", "commit"}, {"relay", "notify"}}
+	cases := [][]string{{"statusline"}, {"hook", "design-gate"}, {"hook", "plan-gate"}, {"hook", "guard"}, {"hook", "fmt"}, {"relay", "compact"}, {"relay", "commit"}, {"relay", "notify"}}
 	spanish := map[string]string{"AVAL_LANG": "es", "LANG": "es_ES.UTF-8", "LC_ALL": "es_ES.UTF-8"}
 	for _, args := range cases {
 		base := langRun(t, "", nil, args...)
@@ -131,6 +132,7 @@ func TestMachineOutputIgnoresTheLanguage(t *testing.T) {
 		{"doctor --json", "", []string{"doctor", "--json", "--repo", repo}},
 		{"doctor --json --security", "", []string{"doctor", "--json", "--security", "--repo", repo}},
 		{"the rate-guard deny", rateGuardBatch, []string{"hook", "rate-guard"}},
+		{"the guard deny", `{"cwd":` + q(proj) + `,"tool_name":"Bash","tool_input":{"command":"rm -rf /"}}`, []string{"hook", "guard"}},
 		{"the design-gate deny", design, []string{"hook", "design-gate"}},
 		{"the statusline", `{"model":{"display_name":"Opus"},"workspace":{"current_dir":"/tmp/x"}}`, []string{"statusline"}},
 	}

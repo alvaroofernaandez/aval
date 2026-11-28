@@ -1,3 +1,16 @@
+// Package guard is the PreToolUse hook that denies destructive Bash commands
+// in bypass mode: rm -rf outside the project and home, a forced push to
+// main or master, DROP DATABASE or TRUNCATE on a non-local host, docker and
+// kubectl prune or delete, a download piped into a shell, and reading secrets.
+//
+// The rules work on words, not on raw text: a tokenizer splits the command,
+// wrappers (sh -c, env, sudo, xargs, ...) are peeled up to four levels, and
+// flags are normalised before they are compared. A script that does not parse
+// is re-read loosely and denied only if a rule still matches.
+//
+// It is a hot path: pure string work, no exec, no network. The private
+// allow-list is read only after a rule has matched (ADR 0009), so a command
+// that breaks no rule does no I/O at all.
 package guard
 
 import (
