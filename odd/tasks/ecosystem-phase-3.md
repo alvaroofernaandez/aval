@@ -30,11 +30,12 @@ opened, never merged; review is the owner's.
 - [x] PR
 
 ## T2 — #8 single configuration model and adapter interface
-- [ ] `internal/agentcfg`: Config (rules, skills, commands, agents, hooks, permissions, MCP), loaded from the repo as it is
-- [ ] Adapter interface: Name, Capabilities, Render, Apply, Diff; loss warnings for unsupported capabilities
-- [ ] Validation: broken references (missing skill, hook without command)
-- [ ] Reusable contract suite and a fake adapter; render budget benchmark
-- [ ] ADR 0002 amendment and archRules entry for the new packages, PR
+- [x] `internal/core/agentcfg`: Config (rules, skills, commands, agents, hooks, permissions, MCP), loaded from the repo as it is
+- [x] Adapter interface: Name, Capabilities, Render, Apply, Diff; loss warnings for unsupported capabilities
+- [x] Validation: broken references (missing skill, hook without command, duplicates, no description)
+- [x] Reusable contract suite and a fake adapter; render budget benchmark (2.3 ms Load+Render)
+- [x] Under `core/*` (sync imports it), so no ADR 0002 change; ARCHITECTURE.md rows
+- [x] PR
 
 ## T3 — #9 Claude Code adapter on the single model
 - [ ] Golden of the current `aval sync` output captured before the refactor
