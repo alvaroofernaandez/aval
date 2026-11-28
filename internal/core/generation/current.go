@@ -152,3 +152,6 @@ func UndoSwitch(home string) error {
 	}
 	return EndSwitch(home)
 }
+
+// ErrNoActive means no generation is active.
+var ErrNoActive = errors.New("generation: none is active")

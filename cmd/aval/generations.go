@@ -11,12 +11,13 @@ import (
 	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/core/agentcfg"
+	"github.com/alvaroofernaandez/aval/internal/core/agentcfg/pi"
 	"github.com/alvaroofernaandez/aval/internal/core/generation"
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
 	"github.com/alvaroofernaandez/aval/internal/core/txsync"
 )
 
-const generationsUsage = "aval generations <build | list | diff <a> <b> | activate <id> | rollback [<id>]> [--json]"
+const generationsUsage = "aval generations <build | list | diff <a> <b> | activate <id> | rollback [<id>] | pin <id> | unpin <id> | prune | consumer <name> [<id>]> [--json]"
 
 // runGenerations is `aval generations`: build an immutable generation of
 // what aval renders for every adapter, list the stored ones, diff two.
@@ -41,6 +42,12 @@ func runGenerations(sub []string, repoFlag string, c cmdIO) error {
 		return generationsActivate(repoFlag, home, args[1], asJSON, c)
 	case args[0] == "rollback" && len(args) <= 2:
 		return generationsRollback(repoFlag, home, args[1:], asJSON, c)
+	case (args[0] == "pin" || args[0] == "unpin") && len(args) == 2:
+		return generationsPin(home, args[1], args[0] == "pin", c)
+	case args[0] == "prune" && len(args) == 1:
+		return generationsPrune(home, c)
+	case args[0] == "consumer" && (len(args) == 2 || len(args) == 3):
+		return generationsConsumer(home, args[1:], c)
 	}
 	return newUsage(generationsUsage)
 }
@@ -131,6 +138,52 @@ func generationsActivate(repoFlag, home, id string, asJSON bool, c cmdIO) error 
 		}{res.Generation, res.RunID, nonNil(res.Recovered)})
 	}
 	_, err = fmt.Fprintf(c.stdout, "activated %s (backup %s)\n", res.Generation, res.RunID)
+	return err
+}
+
+// generationsPin protects a generation from prune, or lifts it.
+func generationsPin(home, id string, on bool, c cmdIO) error {
+	if err := generation.Pin(home, id, on); err != nil {
+		return err
+	}
+	verb := "pinned"
+	if !on {
+		verb = "unpinned"
+	}
+	_, err := fmt.Fprintf(c.stdout, "%s %s\n", verb, id)
+	return err
+}
+
+// generationsPrune applies the retention rule now.
+func generationsPrune(home string, c cmdIO) error {
+	removed, err := generation.Prune(home)
+	for _, id := range removed {
+		fmt.Fprintf(c.stdout, "removed %s\n", id)
+	}
+	if err == nil && len(removed) == 0 {
+		_, err = fmt.Fprintln(c.stdout, "nothing to prune")
+	}
+	return err
+}
+
+// generationsConsumer applies the pi/ tree of a generation (the active one
+// by default) into the consumer's own dir and pins the consumer to it.
+func generationsConsumer(home string, args []string, c cmdIO) error {
+	id := ""
+	if len(args) == 2 {
+		id = args[1]
+	} else if cur, err := generation.Current(home); err != nil {
+		return err
+	} else if cur == "" {
+		return generation.ErrNoActive
+	} else {
+		id = cur
+	}
+	target, err := generation.ApplyConsumer(home, args[0], id, pi.ForHome(home))
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(c.stdout, "%s applied to %s\n", id, target)
 	return err
 }
 
