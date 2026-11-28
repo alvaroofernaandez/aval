@@ -293,7 +293,7 @@ The deck fonts (Space Grotesk, IBM Plex Sans, SIL Open Font License 1.1) are emb
 | `aval sync` | Writes what the repo manages into `~/.claude/settings.json` and Codex/Gemini; transactional (`--dry-run`, `--check`) |
 | `aval update` | `git pull` and links what is new (`--dry-run`) |
 | `aval restore` · `aval uninstall` | Undo an install or sync from `~/.aval-backup` (`--list`, `latest`, `<id>`, `--pin`) · remove only this repo's links |
-| `aval generations` | Immutable, content-addressed snapshots of what aval renders for Claude Code and Pi (`build`, `list`, `diff`, `--json`) |
+| `aval generations` | Immutable, content-addressed snapshots of what aval renders for Claude Code and Pi (`build`, `list`, `diff`, `activate`, `rollback`, `--json`); `aval sync` builds and activates one |
 | `aval budget` | Always-on context per agent and the latency of each hook; exits 1 when over budget |
 | `aval deps` | The external tools aval relies on, by layer, and which are missing; offline, no repo needed (`--json`, `--layer`) |
 | `aval review assess` | Risk level of the diff, from git alone, and which reviewers to run |
