@@ -68,7 +68,9 @@ func TestReadPiSessionsAreDaemonRows(t *testing.T) {
 func TestRootsHonourTheConfigDirVariables(t *testing.T) {
 	env := map[string]string{"CLAUDE_CONFIG_DIR": "/a, /b", "PI_CODING_AGENT_DIR": "/pi"}
 	got := Roots(func(k string) string { return env[k] }, "/home/u")
-	want := []Root{{"/a/projects", "claude"}, {"/b/projects", "claude"}, {"/pi/sessions", "pi"}}
+	want := []Root{
+		{filepath.Join("/a", "projects"), "claude"}, {filepath.Join("/b", "projects"), "claude"}, {filepath.Join("/pi", "sessions"), "pi"},
+	}
 	if !slices.Equal(got, want) {
 		t.Errorf("roots = %v, want %v", got, want)
 	}
