@@ -103,6 +103,7 @@ flowchart TD
 | `internal/deck` | nothing internal | - | leaf |
 | `internal/release` | nothing internal | - | leaf |
 | `internal/devmode` | nothing internal | - | leaf |
+| `internal/devmode/*` | nothing internal | - | leaf: the step table and runner behind aval dev check (ADR 0002, 2026-11-28) |
 | `internal/i18n` | nothing internal | - | leaf: message catalog and language selection (ADR 0006) |
 | `internal/relay` | nothing internal | - | leaf: I/O-free context relay core (ADR 0005) |
 | `internal/relay/*` | `internal/relay` | - | relay adapters: state files, runtime shims, facts |

@@ -57,6 +57,7 @@ var archRules = []archRule{
 	{pkg: "internal/deck", why: "leaf"},
 	{pkg: "internal/release", why: "leaf"},
 	{pkg: "internal/devmode", why: "leaf"},
+	{pkg: "internal/devmode/*", why: "leaf: the step table and runner behind aval dev check (ADR 0002, 2026-11-28)"},
 	{pkg: "internal/i18n", why: "leaf: message catalog and language selection (ADR 0006)"},
 	{pkg: "internal/relay", why: "leaf: I/O-free context relay core (ADR 0005)"},
 	{pkg: "internal/relay/*", allow: []string{"internal/relay"}, why: "relay adapters: state files, runtime shims, facts"},
