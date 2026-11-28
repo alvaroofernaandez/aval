@@ -15,7 +15,6 @@ complexity|internal/agent/review/review.go|tier|21
 complexity|internal/agent/rtkhook/rtkhook.go|Run|18
 complexity|internal/core/backup/backup.go|Store.undoCreation|16
 complexity|internal/core/doctor/commands.go|tokenize|27
-complexity|internal/core/doctor/doctor.go|checkHooks|21
 complexity|internal/core/manifest/manifest.go|Parse|21
 complexity|internal/core/uninstall/uninstall.go|removeLink|17
 complexity|internal/deck/gate.go|Gate|20
@@ -43,7 +42,7 @@ complexity|internal/ui/screen_settings.go|Model.settingsAction|16
 complexity|tools/brand/brand.go|run|17
 file-lines|cmd/aval/main.go|764
 file-lines|internal/core/backup/backup.go|1102
-file-lines|internal/core/doctor/doctor.go|620
+file-lines|internal/core/doctor/doctor.go|561
 file-lines|internal/ui/operation.go|539
 file-lines|internal/ui/screen_backups.go|646
 file-lines|internal/ui/screen_dev.go|564
@@ -60,9 +59,8 @@ func-lines|internal/agent/rateguard/rateguard.go|Decide|68
 func-lines|internal/agent/repoprofile/repoprofile.go|Profile|61
 func-lines|internal/agent/review/review.go|tier|71
 func-lines|internal/agent/rtkhook/rtkhook.go|Run|78
-func-lines|internal/core/doctor/doctor.go|checkHooks|73
 func-lines|internal/core/manifest/manifest.go|Parse|87
-func-lines|internal/core/txsync/txsync.go|Run|65
+func-lines|internal/core/txsync/txsync.go|Run|62
 func-lines|internal/deck/gate.go|Gate|72
 func-lines|internal/deck/spec.go|Deck.Validate|108
 func-lines|internal/design/gate/hardcodes.go|Hardcodes|78

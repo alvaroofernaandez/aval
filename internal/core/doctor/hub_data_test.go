@@ -222,6 +222,12 @@ const goldenJSON = `[
     "fixable": false
   },
   {
+    "id": "generation",
+    "status": "ok",
+    "message": "no generation is active; the repo is the desired state",
+    "fixable": false
+  },
+  {
     "id": "overlay",
     "status": "ok",
     "message": "absent (optional): ~/.config/aval/private",

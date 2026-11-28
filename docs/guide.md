@@ -289,7 +289,7 @@ Full reference. `aval help` prints the usage, and so does a bare `aval` without 
 | `aval sync [--dry-run] [--check]` | Pushes managed settings into the live `settings.json` and into Codex/Gemini | yes |
 | `aval rules sync [--check]` | Replicates shared `CLAUDE.md` rules and lessons into OpenCode's `AGENTS.md` | yes |
 | `aval restore [--list] [latest\|<id>] [--pin <id>]` | Undoes an install or sync | yes |
-| `aval generations build\|list\|diff <a> <b> [--json]` | Immutable, content-addressed snapshots of what aval renders for every agent (Claude Code, Pi) | build only |
+| `aval generations build\|list\|diff <a> <b>\|activate <id>\|rollback [<id>] [--json]` | Immutable, content-addressed snapshots of what aval renders for every agent (Claude Code, Pi); activate and roll back through the sync transaction | build, activate, rollback |
 | `aval uninstall [--dry-run] [--yes]` | Removes this repo's links and returns what was displaced | yes |
 | `aval budget [--json] [--skip-hooks] [--runs N]` | Always-on context and hook latency | no |
 | `aval usage [--by project\|session\|day\|consumer] [--window 5h\|7d] [--json] [--check] [--rate-limits <file\|->]` | Tokens, cost or plan share from the local agent transcripts; `--check` exits 1 when a budget is over | no |
@@ -359,7 +359,7 @@ first saving whatever was at the destination.
 
 ### 🧊 Generations
 
-A **generation** is a read-only snapshot of everything aval renders for every agent runtime: the
+A **generation** is an immutable snapshot of everything aval renders for every agent runtime: the
 Claude Code settings rendering and a complete Pi agent directory (`AGENTS.md`, `settings.json`,
 `mcp.json`, skills, prompts). It lives in `~/.aval/generations/<id>/<adapter>/` with its record in
 `generation.json` (`contentHash`, build time, the repo commit, and what each runtime could not express).
@@ -367,13 +367,35 @@ Claude Code settings rendering and a complete Pi agent directory (`AGENTS.md`, `
 The id is `gen-<16 hex>`, the start of the sha256 of the rendered tree, so the same repo state always
 gives the same id and building it again changes nothing. A build is written aside and renamed into
 place: an interrupted build leaves no generation. Nothing secret is stored: the adapters refuse API
-keys, and the Pi login is linked when a generation is used, never copied into it.
+keys, and the Pi login is linked when a generation is used, never copied into it. Its files are
+read-only; its directories are not, so `rm -rf` deletes one. The `contentHash`, not the permissions,
+proves a generation unchanged: `aval doctor` re-hashes the active one (check `generation`), and
+activation refuses one that no longer matches.
+
+**`aval sync` builds and activates.** Every sync renders the repo into a generation (the same repo
+state gives the same one) and activates it. The **active generation is the desired state**: `aval
+doctor` compares `~/.claude/settings.json` with it (`settings-drift`, `hooks-drift`), and with the repo
+only while none is active. `aval sync --dry-run` and `--check` still compare with the repo and build
+nothing.
+
+**Activation** goes through the same transaction as sync: back up, merge the generation's managed
+settings with your personal keys and the private overlay, run the doctor checks, and restore
+everything if one fails. The pointer `~/.aval/generations/current` moves last, in one atomic rename (a
+symlink on macOS and Linux, a file holding the id on Windows). A crash mid-activation is undone by the
+next sync: files and pointer go back to the previous generation, never a mix. Every activation is
+appended to `~/.aval/generations/history` (`<id> <time>`), which is the record of what was live when.
+Rolling back to a generation gives back, byte for byte, the settings of its first activation. The
+Codex and Gemini rules mirrors are still written from the repo.
 
 ```sh
-aval generations build       # render every adapter into a new generation (--json)
-aval generations list        # id, build time, source commit, files and warnings per adapter (--json)
-aval generations diff <a> <b>  # added, removed and changed files (--json)
+aval generations build             # render every adapter into a new generation (--json)
+aval generations list              # id, build time, source commit, files and warnings per adapter (--json)
+aval generations diff <a> <b>      # added, removed and changed files (--json)
+aval generations activate <id>     # make a generation live, through the sync transaction (--json)
+aval generations rollback [<id>]   # back to the generation active before this one, or to <id>
 ```
+
+Two bare rollbacks in a row toggle between the last two generations, like `cd -`.
 
 ### ↩️ Restore, uninstall and transactional sync
 

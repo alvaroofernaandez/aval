@@ -52,8 +52,10 @@ opened, never merged; review is the owner's.
 
 ## T5 — #120 immutable generations
 - [x] Build: content-addressed id gen-<16 hex> (owner G2 = A), writes only under ~/.aval/generations, read-only, atomic rename; `aval generations build|list|diff --json` (PR 1 of 3, owner G3 = A)
-- [ ] Activate (owner G1 = A): atomic swap of ~/.aval/generations/current, Claude Code through the txsync merge, doctor after activation, restore on failure; Pi consumers get pi/ applied into ~/.aval/consumers/<name>/pi with the login link
-- [ ] Rollback, list and diff with stable `--json`, pin and retention like backup
+- [x] Activate (owner G1, G4, G5, G6 = A): atomic swap of ~/.aval/generations/current (symlink, pointer file on Windows), Claude Code through the txsync merge, doctor after activation, restore on failure, crash recovery; sync = build + activate; the active generation is the doctor's desired state; files 0444 + contentHash check (G8 = A) (PR 2 of 3)
+- [x] Rollback (G7 = A): append-only history, bare rollback toggles, `rollback <id>`
+- [ ] Pi consumers get pi/ applied into ~/.aval/consumers/<name>/pi with the login link
+- [ ] Pin and retention like backup
 - [ ] Consumer pin file so Pen and factories boot from a pinned generation, PR
 
 ## T6 — HCS-0008 invariants as tests

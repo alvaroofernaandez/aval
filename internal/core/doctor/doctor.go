@@ -70,6 +70,7 @@ func Run(opt Options) []Result {
 		checkSkills(opt),
 		checkPlugins(opt, live, liveErr),
 		checkSettingsDrift(opt),
+		checkGeneration(opt),
 	)
 	rs = append(rs, checkOverlay(opt)...)
 	if opt.ConfigPath != "" {
@@ -87,17 +88,6 @@ func Run(opt Options) []Result {
 	return rs
 }
 
-// fixKind maps a fixable result to the repair that clears it.
-func fixKind(r Result) FixKind {
-	switch {
-	case !r.Fixable:
-		return FixNone
-	case r.ID == "broken-links":
-		return FixBrokenLinks
-	}
-	return FixSync
-}
-
 // RunOnly runs every check and keeps the ones whose ID equals, or starts
 // with, one of ids ("overlay" also keeps "overlay-links"). It never writes.
 func RunOnly(opt Options, ids ...string) []Result {
@@ -111,19 +101,6 @@ func RunOnly(opt Options, ids ...string) []Result {
 		}
 	}
 	return out
-}
-
-// Fix removes broken links, then runs sync for the drift it can repair.
-func Fix(opt Options) ([]string, error) {
-	var removed []string
-	for _, p := range brokenLinks(opt) {
-		if err := os.Remove(p); err != nil {
-			return removed, fmt.Errorf("doctor: remove %s: %w", p, err)
-		}
-		removed = append(removed, p)
-	}
-	_, err := avalsync.Run(avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS})
-	return removed, err
 }
 
 // RemoveBroken removes every dangling link, snapshotting each into rec first
@@ -395,32 +372,7 @@ func checkHooks(opt Options, live map[string]any, liveErr error) []Result {
 		rs = append(rs, withDetails(result("hooks-retired", Fail, false, "%d retired: %s", len(retired), list(retired)), retired))
 	}
 
-	repo, err := avalsync.RepoSettings(avalsync.Options{Repo: opt.Repo, Home: opt.Home, GOOS: opt.GOOS})
-	if err != nil {
-		return append(rs, result("hooks-drift", Fail, false, "cannot read repo settings: %v", err))
-	}
-	want, got := map[string]int{}, map[string]int{}
-	for _, h := range hookCommands(repo) {
-		want[h.event+" "+h.command]++
-	}
-	for _, h := range cmds {
-		got[h.event+" "+h.command]++
-	}
-	var missing, extra int
-	for k, n := range want {
-		if got[k] < n {
-			missing += n - got[k]
-		}
-	}
-	for k, n := range got {
-		if want[k] < n {
-			extra += n - want[k]
-		}
-	}
-	if missing == 0 && extra == 0 {
-		return append(rs, result("hooks-drift", OK, false, "live hooks match the repo"))
-	}
-	return append(rs, result("hooks-drift", Fail, true, "live hooks differ from the repo (%d missing, %d extra)", missing, extra))
+	return append(rs, checkHooksDrift(opt, cmds))
 }
 
 func resolves(word, home string, lookPath func(string) (string, error)) bool {
@@ -565,17 +517,6 @@ func checkPlugins(opt Options, live map[string]any, liveErr error) Result {
 		return withDetails(result("plugins", Warn, false, "%d enabled but not installed: %s", len(missing), list(missing)), missing)
 	}
 	return result("plugins", OK, false, "%d enabled plugins are installed", len(want))
-}
-
-func checkSettingsDrift(opt Options) Result {
-	keys, err := avalsync.SettingsDrift(avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS})
-	if err != nil {
-		return result("settings-drift", Fail, false, "%v", err)
-	}
-	if len(keys) == 0 {
-		return result("settings-drift", OK, false, "managed settings keys match the repo")
-	}
-	return withDetails(result("settings-drift", Fail, true, "live settings differ in: %s", strings.Join(keys, ", ")), keys)
 }
 
 // --- private overlay -------------------------------------------------------------

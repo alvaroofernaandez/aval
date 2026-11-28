@@ -288,7 +288,7 @@ func newHubServices(e hubEnv, home, repoFlag string, us uiSettings) (ui.Services
 	// hub closing afterwards finds nothing open.
 	svc.FinishReapply = closeRunner
 
-	syncOpt := txsync.Options{Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: goos}
+	syncOpt := txsync.Options{Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: goos, Source: repoCommit(repo)}
 	svc.SyncPreview = func() (*txsync.Outcome, error) {
 		o := syncOpt
 		o.DryRun = true
@@ -341,7 +341,7 @@ func fixCheck(opt doctor.Options, store *backup.Store, id, home, goos string) ([
 		}
 		return lines, err
 	}
-	out, err := txsync.Run(txsync.Options{Repo: opt.Repo, Home: home, PrivateDir: opt.PrivateDir, GOOS: goos})
+	out, err := txsync.Run(txsync.Options{Repo: opt.Repo, Home: home, PrivateDir: opt.PrivateDir, GOOS: goos, Source: repoCommit(opt.Repo)})
 	var lines []string
 	if out != nil {
 		if out.RolledBack {

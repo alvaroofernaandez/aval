@@ -38,6 +38,10 @@ type Options struct {
 	// opens its own backup run and commits it; a caller that passes one (the
 	// transactional sync) owns the commit.
 	Recorder *backup.Recorder
+	// Generation is the directory of a generation's Claude Code rendering
+	// (<generation>/claude-code). When set, the managed settings come from
+	// its settings.json instead of the repo.
+	Generation string
 }
 
 // SettingsResult describes what happened to ~/.claude/settings.json.
@@ -77,6 +81,13 @@ func repoModel(opt Options) (agentcfg.Config, error) {
 // Claude adapter's rendering, with hooks and status line rewritten for
 // Windows and untouched elsewhere.
 func RepoSettings(opt Options) (map[string]any, error) {
+	if opt.Generation != "" {
+		_, r, err := render(opt)
+		if err != nil {
+			return nil, err
+		}
+		return agentcfg.DecodeJSON(r.Files[0].Data)
+	}
 	cfg, err := repoModel(opt)
 	if err != nil {
 		return nil, err
@@ -85,6 +96,9 @@ func RepoSettings(opt Options) (map[string]any, error) {
 }
 
 func render(opt Options) (*claude.Adapter, agentcfg.Rendered, error) {
+	if opt.Generation != "" {
+		return generationRendering(opt)
+	}
 	cfg, err := repoModel(opt)
 	if err != nil {
 		return nil, agentcfg.Rendered{}, err
@@ -92,6 +106,20 @@ func render(opt Options) (*claude.Adapter, agentcfg.Rendered, error) {
 	a := opt.adapter()
 	r, err := a.Render(cfg)
 	return a, r, err
+}
+
+// generationRendering is the settings a generation rendered, byte for byte:
+// it was rendered for this OS when it was built, so it is not rendered again.
+func generationRendering(opt Options) (*claude.Adapter, agentcfg.Rendered, error) {
+	path := filepath.Join(opt.Generation, claude.SettingsFile)
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, agentcfg.Rendered{}, fmt.Errorf("sync: generation settings: %w", err)
+	}
+	if _, err := agentcfg.DecodeJSON(b); err != nil {
+		return nil, agentcfg.Rendered{}, fmt.Errorf("sync: generation settings %s: %w", path, err)
+	}
+	return opt.adapter(), agentcfg.Rendered{Files: []agentcfg.File{{Path: claude.SettingsFile, Data: b, Mode: 0o600}}}, nil
 }
 
 // SettingsDrift lists the top-level keys sync would change, writing nothing.

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,21 +14,6 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/agentcfg/fake"
 	"github.com/alvaroofernaandez/aval/internal/core/generation"
 )
-
-// genHome is a home whose read-only generations the test can still delete.
-func genHome(t *testing.T) string {
-	t.Helper()
-	home := t.TempDir()
-	t.Cleanup(func() {
-		_ = filepath.WalkDir(home, func(p string, d fs.DirEntry, err error) error {
-			if err == nil && d.IsDir() {
-				_ = os.Chmod(p, 0o755)
-			}
-			return nil
-		})
-	})
-	return home
-}
 
 func runGen(t *testing.T, home string, args ...string) (string, error) {
 	t.Helper()
@@ -46,7 +30,7 @@ func runGen(t *testing.T, home string, args ...string) (string, error) {
 }
 
 func TestGenerationsBuildRendersEveryAdapterOfTheRepo(t *testing.T) {
-	home := genHome(t)
+	home := t.TempDir()
 	out, err := runGen(t, home, "generations", "build", "--json")
 	if err != nil {
 		t.Fatalf("build: %v\n%s", err, out)
@@ -76,7 +60,7 @@ func TestGenerationsBuildRendersEveryAdapterOfTheRepo(t *testing.T) {
 // adapters, so list and diff print the same bytes on every machine.
 func goldenGenerations(t *testing.T) (home, a, b string) {
 	t.Helper()
-	home = genHome(t)
+	home = t.TempDir()
 	at := time.Date(2026, 11, 28, 15, 0, 0, 0, time.UTC)
 	for i, rule := range []string{"one", "two"} {
 		c := agentcfg.Config{Rules: []agentcfg.Rule{{ID: "agent-rules", Body: rule}}}
@@ -134,7 +118,7 @@ func TestGenerationsListAndDiffMatchTheGoldens(t *testing.T) {
 }
 
 func TestGenerationsRejectsBadUse(t *testing.T) {
-	home := genHome(t)
+	home := t.TempDir()
 	for _, args := range [][]string{{"generations"}, {"generations", "nope"}, {"generations", "diff", "gen-1"}} {
 		var u *usageError
 		if _, err := runGen(t, home, args...); !errors.As(err, &u) {

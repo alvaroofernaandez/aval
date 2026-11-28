@@ -3,6 +3,7 @@ package tests
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -72,7 +73,7 @@ func runMessages(t *testing.T, cases []msgCase) {
 			eq(t, "exit code\n"+r.Out(), c.code, r.Code)
 			eq(t, "stderr", c.stderr, got)
 			if c.stdout != "" {
-				out := fold.Replace(r.Stdout)
+				out := genID.ReplaceAllString(fold.Replace(r.Stdout), "gen-ID")
 				eq(t, "stdout", c.stdout, filepath.ToSlash(osErrorText(out)))
 			}
 		})
@@ -96,6 +97,9 @@ func placeholders(home, dir string) *strings.Replacer {
 // osErrorText folds the Windows wording of a missing path into the Unix one:
 // aval prints the operating system's error verbatim, and the pins cover aval's
 // words, not the C runtime's.
+// genID is a generation id: a content hash, so it differs per OS rendering.
+var genID = regexp.MustCompile(`gen-[0-9a-f]{16}`)
+
 func osErrorText(s string) string {
 	return strings.NewReplacer(
 		"The system cannot find the path specified.", "no such file or directory",
@@ -320,8 +324,8 @@ Health
 Undo
   aval restore            list or restore backup runs
                             [--list | latest | <id> | --pin <id>]
-  aval generations        immutable snapshots of what aval renders: build, list, diff
-                            <build | list | diff <a> <b>> [--json]
+  aval generations        immutable snapshots of what aval renders: build, activate, roll back
+                            <build | list | diff <a> <b> | activate <id> | rollback [<id>]> [--json]
   aval uninstall          remove aval's links and restore what they displaced
                             [--dry-run] [--yes]
 
@@ -411,8 +415,8 @@ Salud
 Deshacer
   aval restore            lista o restaura copias de seguridad
                             [--list | latest | <id> | --pin <id>]
-  aval generations        instantáneas inmutables de lo que aval genera: crear, listar, comparar
-                            <build | list | diff <a> <b>> [--json]
+  aval generations        instantáneas inmutables de lo que aval genera: crear, activar, revertir
+                            <build | list | diff <a> <b> | activate <id> | rollback [<id>]> [--json]
   aval uninstall          quita los enlaces de aval y restaura lo que desplazaron
                             [--dry-run] [--yes]
 
@@ -505,10 +509,11 @@ func TestMessagesDoctor(t *testing.T) {
 				"OK      skills          no ~/.claude/skills directory\n" +
 				"OK      plugins         no live settings.json to check\n" +
 				"FAIL    settings-drift  sync: repo settings: open DIR/repo/config/claude/settings.json: no such file or directory\n" +
+				"OK      generation      no generation is active; the repo is the desired state\n" +
 				"OK      overlay         absent (optional): ~/.config/aval/private\n" +
 				"OK      config          no config file, using defaults\n" +
 				"FAIL    deps            blocking tools missing: git (aval deps lists all)\n" +
-				"\n7 ok, 2 warn, 3 fail\n"},
+				"\n8 ok, 2 warn, 3 fail\n"},
 		{name: "doctor in Spanish", setup: bare, args: []string{"--lang", "es", "doctor", "--repo", "DIR/repo"}, env: []string{"PATH=DIR/empty"}, code: 1,
 			stdout: "ESTADO  COMPROBACIÓN    MENSAJE\n" +
 				"OK      links           0 manifest links in place\n" +
@@ -520,10 +525,11 @@ func TestMessagesDoctor(t *testing.T) {
 				"OK      skills          no ~/.claude/skills directory\n" +
 				"OK      plugins         no live settings.json to check\n" +
 				"FALLO   settings-drift  sync: repo settings: open DIR/repo/config/claude/settings.json: no such file or directory\n" +
+				"OK      generation      no generation is active; the repo is the desired state\n" +
 				"OK      overlay         absent (optional): ~/.config/aval/private\n" +
 				"OK      config          no config file, using defaults\n" +
 				"FALLO   deps            blocking tools missing: git (aval deps lists all)\n" +
-				"\n7 correctos, 2 avisos, 3 fallos\n"},
+				"\n8 correctos, 2 avisos, 3 fallos\n"},
 	})
 }
 
@@ -569,11 +575,13 @@ func TestMessagesMaintenance(t *testing.T) {
 		{name: "sync with nothing to change", setup: synced, args: []string{"sync", "--repo", "DIR/repo"},
 			stdout: "settings  ~/.claude/settings.json is up to date\n" +
 				"rules     ~/.codex/AGENTS.md skipped (agent not installed)\n" +
-				"rules     ~/.gemini/GEMINI.md skipped (agent not installed)\n"},
+				"rules     ~/.gemini/GEMINI.md skipped (agent not installed)\n" +
+				"generation gen-ID is active (aval generations list)\n"},
 		{name: "sync with nothing to change, Spanish", setup: synced, args: []string{"sync", "--repo", "DIR/repo"}, env: es,
 			stdout: "ajustes   ~/.claude/settings.json está al día\n" +
 				"reglas    ~/.codex/AGENTS.md omitido (agente no instalado)\n" +
-				"reglas    ~/.gemini/GEMINI.md omitido (agente no instalado)\n"},
+				"reglas    ~/.gemini/GEMINI.md omitido (agente no instalado)\n" +
+				"la generación gen-ID está activa (aval generations list)\n"},
 		{name: "sync check with drift", setup: machine, args: []string{"sync", "--check", "--repo", "DIR/repo"}, code: 1,
 			stdout: "drift  settings  ~/.claude/settings.json would change: file missing; spinnerTipsEnabled\n\nRun `aval sync` to apply.\n"},
 		{name: "sync check with drift, Spanish", setup: machine, args: []string{"sync", "--check", "--repo", "DIR/repo"}, env: es, code: 1,

@@ -110,6 +110,7 @@ func runSync(repo, home string, args []string, dryRun bool, out io.Writer, tr i1
 
 	res, err := txsync.Run(txsync.Options{
 		Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS, DryRun: *dry,
+		Source: repoCommit(repo),
 	})
 	if res != nil {
 		for _, id := range res.Recovered {
@@ -120,6 +121,8 @@ func runSync(repo, home string, args []string, dryRun bool, out io.Writer, tr i1
 		}
 		if res.RolledBack {
 			fmt.Fprintf(out, "\n%s\n", tr.T("cli.sync.rolled_back", i18n.Args{"id": res.RunID}))
+		} else if err == nil && res.Generation != "" {
+			fmt.Fprintln(out, tr.T("cli.sync.generation", i18n.Args{"id": res.Generation}))
 		}
 	}
 	return err

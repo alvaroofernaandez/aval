@@ -39,21 +39,6 @@ func clock(t time.Time) func() time.Time { return func() time.Time { return t } 
 
 var t0 = time.Date(2026, 11, 28, 15, 0, 0, 0, time.UTC)
 
-// tempHome is a home whose read-only generations the test can still delete.
-func tempHome(t *testing.T) string {
-	t.Helper()
-	home := t.TempDir()
-	t.Cleanup(func() {
-		_ = filepath.WalkDir(home, func(p string, d fs.DirEntry, err error) error {
-			if err == nil && d.IsDir() {
-				_ = os.Chmod(p, 0o755)
-			}
-			return nil
-		})
-	})
-	return home
-}
-
 func build(t *testing.T, home string, c agentcfg.Config, at time.Time) (generation.Generation, bool) {
 	t.Helper()
 	g, created, err := generation.Build(generation.Options{Home: home, Config: c, Adapters: []agentcfg.Adapter{fake.New()}, Source: "abc123", Now: clock(at)})
@@ -66,9 +51,9 @@ func build(t *testing.T, home string, c agentcfg.Config, at time.Time) (generati
 var idRe = regexp.MustCompile(`^gen-[0-9a-f]{16}$`)
 
 func TestSameInputsSameIDDifferentInputsDifferentID(t *testing.T) {
-	a, created := build(t, tempHome(t), cfg("one"), t0)
-	b, _ := build(t, tempHome(t), cfg("one"), t0.Add(time.Hour))
-	c, _ := build(t, tempHome(t), cfg("two"), t0)
+	a, created := build(t, t.TempDir(), cfg("one"), t0)
+	b, _ := build(t, t.TempDir(), cfg("one"), t0.Add(time.Hour))
+	c, _ := build(t, t.TempDir(), cfg("two"), t0)
 	if !idRe.MatchString(a.ID) || !created {
 		t.Fatalf("id = %q created = %v, want gen-<16 hex>, created", a.ID, created)
 	}
@@ -84,7 +69,7 @@ func TestSameInputsSameIDDifferentInputsDifferentID(t *testing.T) {
 }
 
 func TestRebuildIsANoOp(t *testing.T) {
-	home := tempHome(t)
+	home := t.TempDir()
 	first, _ := build(t, home, cfg("one"), t0)
 	again, created := build(t, home, cfg("one"), t0.Add(time.Hour))
 	if created || !again.Built.Equal(first.Built) {
@@ -112,7 +97,7 @@ func hashTree(root, skip string) string {
 }
 
 func TestBuildWritesOnlyUnderTheStoreAndReadOnly(t *testing.T) {
-	home := tempHome(t)
+	home := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(home, ".aval", "state"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +131,7 @@ func TestBuildWritesOnlyUnderTheStoreAndReadOnly(t *testing.T) {
 }
 
 func TestAFailingAdapterBuildsNothing(t *testing.T) {
-	home := tempHome(t)
+	home := t.TempDir()
 	_, _, err := generation.Build(generation.Options{Home: home, Config: cfg("one"), Adapters: []agentcfg.Adapter{fake.New(), failing{fake.New()}}, Now: clock(t0)})
 	if !errors.Is(err, errBoom) {
 		t.Fatalf("err = %v, want the failing adapter named", err)
@@ -157,7 +142,7 @@ func TestAFailingAdapterBuildsNothing(t *testing.T) {
 }
 
 func TestListNewestFirstAndSkipsUnfinishedBuilds(t *testing.T) {
-	home := tempHome(t)
+	home := t.TempDir()
 	old, _ := build(t, home, cfg("one"), t0)
 	young, _ := build(t, home, cfg("two"), t0.Add(time.Hour))
 	if err := os.MkdirAll(filepath.Join(generation.Root(home), ".tmp-123"), 0o755); err != nil {
@@ -177,7 +162,7 @@ func TestListNewestFirstAndSkipsUnfinishedBuilds(t *testing.T) {
 }
 
 func TestDiff(t *testing.T) {
-	home := tempHome(t)
+	home := t.TempDir()
 	a, _ := build(t, home, cfg("one"), t0)
 	two := cfg("two")
 	two.Commands = append(two.Commands, agentcfg.Command{Name: "debug", Description: "Debug"})

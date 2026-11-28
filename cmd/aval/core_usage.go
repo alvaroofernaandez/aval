@@ -37,7 +37,7 @@ var commands = []command{
 	{"design", "<gate|ack> ...", "Agent tooling"},
 	{"config", "[list | get <key> | set <key> <value> | path]", "Setup"},
 	{"restore", "[--list | latest | <id> | --pin <id>]", "Undo"},
-	{"generations", "<build | list | diff <a> <b>> [--json]", "Undo"},
+	{"generations", "<build | list | diff <a> <b> | activate <id> | rollback [<id>]> [--json]", "Undo"},
 	{"uninstall", "[--dry-run] [--yes]", "Undo"},
 	{"dev", "[run | diff | check | reset | ls | rm | project]", "Setup"},
 	{"hook", "<lessons|design-gate|pre-push|...>", "Plumbing"},

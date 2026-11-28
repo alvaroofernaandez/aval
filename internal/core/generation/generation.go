@@ -58,6 +58,9 @@ type AdapterInfo struct {
 	Name     string   `json:"name"`
 	Files    int      `json:"files"`
 	Warnings []string `json:"warnings,omitempty"`
+	// Modes are the file modes that are not 0644, by path, so Verify can
+	// re-hash the tree where the OS does not keep them (Windows).
+	Modes map[string]string `json:"modes,omitempty"`
 }
 
 // Change is one path that differs between two generations.
@@ -85,6 +88,14 @@ func Build(opt Options) (Generation, bool, error) {
 	g := Generation{ID: "gen-" + sum[:16], ContentHash: "sha256:" + sum, Built: now(opt).UTC(), Source: opt.Source}
 	for _, o := range outs {
 		info := AdapterInfo{Name: o.name, Files: len(o.r.Files)}
+		for _, f := range o.r.Files {
+			if m := mode(f); m != 0o644 {
+				if info.Modes == nil {
+					info.Modes = map[string]string{}
+				}
+				info.Modes[f.Path] = fmt.Sprintf("%04o", m)
+			}
+		}
 		for _, w := range o.r.Warnings {
 			info.Warnings = append(info.Warnings, w.String())
 		}
@@ -196,16 +207,13 @@ func store(root string, g Generation, outs []rendering) error {
 	return nil
 }
 
-// readOnly drops every write bit under dir, files first, then directories.
+// readOnly drops the write bits of every file under dir. Directories stay
+// writable, so a plain rm deletes a generation; Verify, not the permissions,
+// proves it unchanged (owner: G8 = A).
 func readOnly(dir string) error {
-	var dirs []string
-	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
+	return filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
 			return err
-		}
-		if d.IsDir() {
-			dirs = append(dirs, p)
-			return nil
 		}
 		info, err := d.Info()
 		if err != nil {
@@ -213,27 +221,10 @@ func readOnly(dir string) error {
 		}
 		return os.Chmod(p, info.Mode().Perm()&^0o222)
 	})
-	if err != nil {
-		return err
-	}
-	for i := len(dirs) - 1; i >= 0; i-- {
-		if err := os.Chmod(dirs[i], 0o555); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
-// removeTree deletes a read-only tree: write bits back on, then RemoveAll.
-func removeTree(dir string) error {
-	_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
-		if err == nil && d.IsDir() {
-			_ = os.Chmod(p, 0o755)
-		}
-		return nil
-	})
-	return os.RemoveAll(dir)
-}
+// removeTree deletes an unfinished build.
+func removeTree(dir string) error { return os.RemoveAll(dir) }
 
 // Read returns the record of generation id.
 func Read(home, id string) (Generation, error) {
