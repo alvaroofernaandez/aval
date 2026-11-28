@@ -22,6 +22,7 @@ flowchart TD
     design_ack["design/ack"]
     design_gate["design/gate"]
     devmode["devmode"]
+    devmode_check["devmode/check"]
     devops["devops/*"]
     docs["docs/*"]
     herdr["herdr/*"]
