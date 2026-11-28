@@ -2,6 +2,8 @@ package doctor
 
 import (
 	"encoding/json"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/alvaroofernaandez/aval/internal/core/agentcfg"
@@ -47,4 +49,24 @@ func TestTheActiveGenerationIsTheDesiredState(t *testing.T) {
 	rs = Run(o)
 	expect(t, rs, "hooks-drift", Fail, true)
 	expect(t, rs, "settings-drift", Fail, true)
+}
+
+// The generation check re-hashes the active generation (owner: G8 = A).
+func TestTheGenerationCheckReHashesTheActiveGeneration(t *testing.T) {
+	o := healthy(t)
+	expect(t, Run(o), "generation", OK, false)
+	activeGeneration(t, o, "git status")
+	expect(t, Run(o), "generation", OK, false)
+
+	dir, _ := generation.ActiveDir(o.Home, agentcfg.ClaudeCode)
+	p := dir + "/" + claude.SettingsFile
+	_ = os.Chmod(p, 0o644)
+	w(t, p, `{"env":{"EDITED":"by hand"}}`)
+	r := expect(t, Run(o), "generation", Fail, true)
+	if !strings.Contains(r.Message, "contentHash") {
+		t.Errorf("message %q should say the content hash no longer matches", r.Message)
+	}
+	if _, ok := descriptions["generation"]; !ok {
+		t.Error("the generation check has no description for the hub")
+	}
 }

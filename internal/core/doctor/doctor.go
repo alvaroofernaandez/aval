@@ -70,6 +70,7 @@ func Run(opt Options) []Result {
 		checkSkills(opt),
 		checkPlugins(opt, live, liveErr),
 		checkSettingsDrift(opt),
+		checkGeneration(opt),
 	)
 	rs = append(rs, checkOverlay(opt)...)
 	if opt.ConfigPath != "" {
@@ -85,17 +86,6 @@ func Run(opt Options) []Result {
 		rs[i].Fix = fixKind(rs[i])
 	}
 	return rs
-}
-
-// fixKind maps a fixable result to the repair that clears it.
-func fixKind(r Result) FixKind {
-	switch {
-	case !r.Fixable:
-		return FixNone
-	case r.ID == "broken-links":
-		return FixBrokenLinks
-	}
-	return FixSync
 }
 
 // RunOnly runs every check and keeps the ones whose ID equals, or starts

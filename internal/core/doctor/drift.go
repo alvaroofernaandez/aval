@@ -75,3 +75,19 @@ func checkHooksDrift(opt Options, cmds []hookCmd) Result {
 	}
 	return result("hooks-drift", Fail, true, "live hooks differ from %s (%d missing, %d extra)", source, missing, extra)
 }
+
+// checkGeneration re-hashes the active generation against its contentHash:
+// its files are read-only, but only the hash proves them unchanged.
+func checkGeneration(opt Options) Result {
+	id, err := generation.Current(opt.Home)
+	switch {
+	case err != nil:
+		return result("generation", Fail, true, "%v", err)
+	case id == "":
+		return result("generation", OK, false, "no generation is active; the repo is the desired state")
+	}
+	if err := generation.Verify(opt.Home, id); err != nil {
+		return result("generation", Fail, true, "%v: it no longer matches its contentHash; aval sync activates a fresh build", err)
+	}
+	return result("generation", OK, false, "%s is active and matches its contentHash", id)
+}

@@ -32,6 +32,9 @@ var descriptions = map[string]description{
 	"settings-drift": {"Settings match the repo",
 		"The keys aval manages in ~/.claude/settings.json should equal the repo's. Drift means a hand edit or a stale sync.",
 		"aval sync"},
+	"generation": {"Active generation intact",
+		"The active generation is the snapshot the live config must match. Its files are read-only, and its contentHash proves they were not changed after the build.",
+		"aval sync, which builds and activates a fresh generation"},
 	"overlay": {"Private overlay",
 		"The optional private overlay holds settings and links that stay out of the repo. This reports what it contains.",
 		"Nothing to fix; create the directory to use it (aval config shows the path)"},
@@ -66,4 +69,15 @@ var descriptions = map[string]description{
 func Describe(id string) (title, why, howToFix string) {
 	d := descriptions[id]
 	return d.title, d.why, d.how
+}
+
+// fixKind maps a fixable result to the repair that clears it.
+func fixKind(r Result) FixKind {
+	switch {
+	case !r.Fixable:
+		return FixNone
+	case r.ID == "broken-links":
+		return FixBrokenLinks
+	}
+	return FixSync
 }

@@ -498,10 +498,11 @@ func TestMessagesDoctor(t *testing.T) {
 				"OK      skills          no ~/.claude/skills directory\n" +
 				"OK      plugins         no live settings.json to check\n" +
 				"FAIL    settings-drift  sync: repo settings: open DIR/repo/config/claude/settings.json: no such file or directory\n" +
+				"OK      generation      no generation is active; the repo is the desired state\n" +
 				"OK      overlay         absent (optional): ~/.config/aval/private\n" +
 				"OK      config          no config file, using defaults\n" +
 				"FAIL    deps            blocking tools missing: git (aval deps lists all)\n" +
-				"\n7 ok, 2 warn, 3 fail\n"},
+				"\n8 ok, 2 warn, 3 fail\n"},
 		{name: "doctor in Spanish", setup: bare, args: []string{"--lang", "es", "doctor", "--repo", "DIR/repo"}, env: []string{"PATH=DIR/empty"}, code: 1,
 			stdout: "ESTADO  COMPROBACIÓN    MENSAJE\n" +
 				"OK      links           0 manifest links in place\n" +
@@ -513,10 +514,11 @@ func TestMessagesDoctor(t *testing.T) {
 				"OK      skills          no ~/.claude/skills directory\n" +
 				"OK      plugins         no live settings.json to check\n" +
 				"FALLO   settings-drift  sync: repo settings: open DIR/repo/config/claude/settings.json: no such file or directory\n" +
+				"OK      generation      no generation is active; the repo is the desired state\n" +
 				"OK      overlay         absent (optional): ~/.config/aval/private\n" +
 				"OK      config          no config file, using defaults\n" +
 				"FALLO   deps            blocking tools missing: git (aval deps lists all)\n" +
-				"\n7 correctos, 2 avisos, 3 fallos\n"},
+				"\n8 correctos, 2 avisos, 3 fallos\n"},
 	})
 }
 

@@ -89,7 +89,7 @@ func TestAFailingCheckAfterActivationKeepsThePreviousGeneration(t *testing.T) {
 
 	opt.Generation = bad
 	out, err := Run(opt)
-	if err == nil || !failedCheck(out, "hooks-resolve") || !strings.Contains(err.Error(), "hooks-resolve") {
+	if err == nil || !failedCheck(out, "hooks-resolve") || !out.RolledBack {
 		t.Fatalf("activating a generation that fails hooks-resolve: %v, %+v", err, out)
 	}
 	if got := read(t, live); got != before || current(t, opt) != a {
