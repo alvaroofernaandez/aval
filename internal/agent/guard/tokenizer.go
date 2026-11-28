@@ -57,66 +57,64 @@ func parse(s string, lenient bool) ([]command, error) {
 
 func (p *lexer) run() error {
 	for p.i < len(p.s) {
-		r := p.s[p.i]
-		switch r {
-		case ' ', '\t', '\r':
-			p.endWord()
-			p.i++
-		case '\n':
-			p.endWord()
-			p.endCmd(false)
-			p.readHeredocs()
-			p.i++
-		case '#':
-			if p.have {
-				p.add(r)
-				continue
-			}
-			for p.i < len(p.s) && p.s[p.i] != '\n' {
-				p.i++
-			}
-		case ';':
-			p.endWord()
-			p.endCmd(false)
-			p.i++
-		case '&':
-			p.amp()
-		case '|':
-			p.pipe()
-		case '(':
-			if err := p.openParen(); err != nil {
-				return err
-			}
-		case ')':
-			p.endWord()
-			p.endCmd(false)
-			p.i++
-		case '`':
-			if err := p.backtick(); err != nil {
-				return err
-			}
-		case '$':
-			if err := p.dollar(); err != nil {
-				return err
-			}
-		case '\\':
-			p.escape()
-		case '\'':
-			if err := p.singleQuote(); err != nil {
-				return err
-			}
-		case '"':
-			if err := p.doubleQuote(); err != nil {
-				return err
-			}
-		default:
-			p.add(r)
+		if err := p.step(p.s[p.i]); err != nil {
+			return err
 		}
 	}
 	p.endWord()
 	p.endCmd(false)
 	p.readHeredocs()
 	return p.flushSubs()
+}
+
+// step consumes the character at p.i (and whatever it opens).
+func (p *lexer) step(r rune) error {
+	switch r {
+	case ' ', '\t', '\r':
+		p.endWord()
+		p.i++
+	case '\n':
+		p.endWord()
+		p.endCmd(false)
+		p.readHeredocs()
+		p.i++
+	case '#':
+		p.comment()
+	case ';', ')':
+		p.endWord()
+		p.endCmd(false)
+		p.i++
+	case '&':
+		p.amp()
+	case '|':
+		p.pipe()
+	case '(':
+		return p.openParen()
+	case '`':
+		return p.backtick()
+	case '$':
+		return p.dollar()
+	case '\\':
+		p.escape()
+	case '\'':
+		return p.singleQuote()
+	case '"':
+		return p.doubleQuote()
+	default:
+		p.add(r)
+	}
+	return nil
+}
+
+// comment: a # inside a word is literal, otherwise it runs to the end of line.
+func (p *lexer) comment() {
+	if p.have {
+		p.add('#')
+		return
+	}
+	for p.i < len(p.s) && p.s[p.i] != '\n' {
+		p.i++
+	}
 }
 
 func (p *lexer) add(r rune) {
@@ -208,12 +206,7 @@ func (p *lexer) doubleQuote() error {
 	for p.i < len(p.s) && p.s[p.i] != '"' {
 		switch r := p.s[p.i]; {
 		case r == '\\' && p.i+1 < len(p.s):
-			if n := p.s[p.i+1]; n == '$' || n == '"' || n == '\\' || n == '`' {
-				p.w = append(p.w, n)
-			} else {
-				p.w = append(p.w, r, n)
-			}
-			p.i += 2
+			p.dqEscape()
 		case r == '$' && p.peek(1) == '(':
 			if err := p.dollar(); err != nil {
 				return err
@@ -232,6 +225,17 @@ func (p *lexer) doubleQuote() error {
 	}
 	p.i++
 	return nil
+}
+
+// dqEscape: inside double quotes a backslash only escapes $ " \ and `.
+func (p *lexer) dqEscape() {
+	n := p.s[p.i+1]
+	if n == '$' || n == '"' || n == '\\' || n == '`' {
+		p.w = append(p.w, n)
+	} else {
+		p.w = append(p.w, '\\', n)
+	}
+	p.i += 2
 }
 
 // dollar handles $(...), ${...} and a lone $.

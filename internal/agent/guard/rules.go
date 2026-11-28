@@ -53,43 +53,57 @@ func check(script string, c Context, depth int) (Finding, bool) {
 	return Finding{}, false
 }
 
-func checkCommand(cs []command, i int, c Context, depth int, lenient bool) (Finding, bool) {
-	words, env := peel(cs[i].Words)
-	text := strings.Join(cs[i].Words, " ")
-	hit := func(rule string) (Finding, bool) { return Finding{rule, text}, true }
+// scene is one simple command with everything a rule may look at.
+type scene struct {
+	name  string
+	args  []string
+	env   map[string]string
+	cs    []command
+	i     int
+	c     Context
+	words []string
+}
 
+// rules are tried in order; the first that applies names the finding.
+var rules = []struct {
+	name    string
+	applies func(s scene) bool
+}{
+	{ruleRm, func(s scene) bool { return s.name == "rm" && rmOutsideRoots(s.args, s.c) }},
+	{rulePush, func(s scene) bool { return s.name == "git" && forcePushesProtected(s.args) }},
+	{ruleSQL, func(s scene) bool {
+		return sqlTools[s.name] && destroysRemoteData(s.name, s.args, s.env, s.cs, s.i)
+	}},
+	{ruleDocker, func(s scene) bool { return (s.name == "docker" || s.name == "podman") && dockerPrune(s.args) }},
+	{ruleKubectl, func(s scene) bool { return (s.name == "kubectl" || s.name == "oc") && kubectlDelete(s.args) }},
+	{rulePipe, func(s scene) bool { return shells[s.name] && readsDownload(s.words, s.cs, s.i) }},
+	{ruleSecret, func(s scene) bool { return secretReaders[s.name] && readsSecret(s.name, s.args, s.c) }},
+}
+
+func checkCommand(cs []command, i int, c Context, depth int, lenient bool) (Finding, bool) {
+	text := strings.Join(cs[i].Words, " ")
 	for _, r := range cs[i].Redirs {
 		if r.Op == "<" && secretPath(r.Target, c) {
-			return hit(ruleSecret)
+			return Finding{ruleSecret, text}, true
 		}
 	}
+	words, env := peel(cs[i].Words)
 	if len(words) == 0 {
 		return Finding{}, false
 	}
 	if script, ok := inlineScript(words, lenient); ok {
 		if downloadsInto(script) {
-			return hit(rulePipe)
+			return Finding{rulePipe, text}, true
 		}
 		if f, ok := check(script, c, depth+1); ok {
 			return f, true
 		}
 	}
-	name, args := base(words[0]), words[1:]
-	switch {
-	case name == "rm" && rmOutsideRoots(args, c):
-		return hit(ruleRm)
-	case name == "git" && forcePushesProtected(args):
-		return hit(rulePush)
-	case sqlTools[name] && destroysRemoteData(name, args, env, cs, i):
-		return hit(ruleSQL)
-	case (name == "docker" || name == "podman") && dockerPrune(args):
-		return hit(ruleDocker)
-	case (name == "kubectl" || name == "oc") && kubectlDelete(args):
-		return hit(ruleKubectl)
-	case shells[name] && readsDownload(words, cs, i):
-		return hit(rulePipe)
-	case secretReaders[name] && readsSecret(name, args, c):
-		return hit(ruleSecret)
+	s := scene{name: base(words[0]), args: words[1:], env: env, cs: cs, i: i, c: c, words: words}
+	for _, r := range rules {
+		if r.applies(s) {
+			return Finding{r.name, text}, true
+		}
 	}
 	return Finding{}, false
 }
@@ -139,15 +153,12 @@ func within(p, dir string) bool {
 	return dir != "" && (p == dir || strings.HasPrefix(p, strings.TrimSuffix(dir, "/")+"/"))
 }
 
-func rmOutsideRoots(args []string, c Context) bool {
-	recursive := false
-	var targets []string
-parse:
+// rmTargets reads rm's arguments: whether it is recursive, and what it removes.
+func rmTargets(args []string) (recursive bool, targets []string) {
 	for i, a := range args {
 		switch {
 		case a == "--":
-			targets = append(targets, args[i+1:]...)
-			break parse
+			return recursive, append(targets, args[i+1:]...)
 		case a == "--recursive":
 			recursive = true
 		case strings.HasPrefix(a, "--"):
@@ -157,28 +168,37 @@ parse:
 			targets = append(targets, a)
 		}
 	}
+	return recursive, targets
+}
+
+func rmOutsideRoots(args []string, c Context) bool {
+	recursive, targets := rmTargets(args)
 	if !recursive {
 		return false
 	}
-	home, cwd := clean(c.Home), clean(c.Cwd)
 	for _, t := range targets {
-		p, ok := resolve(t, c)
-		if !ok {
-			if c.Cwd == "" && strings.HasPrefix(t, "..") {
-				return true
-			}
-			continue
-		}
-		switch {
-		case p == "/", c.Home != "" && p == home, c.Cwd != "" && p == cwd:
-			return true
-		case strings.ContainsAny(path.Base(p), "*?[") && (path.Dir(p) == "/" || c.Home != "" && path.Dir(p) == home):
-			return true
-		case !within(p, cwd) && !(c.Home != "" && within(p, home)):
+		if rmTargetRisky(t, c) {
 			return true
 		}
 	}
 	return false
+}
+
+// rmTargetRisky: the filesystem root, the home folder, the project itself,
+// anything outside both roots, or a glob directly under / or home.
+func rmTargetRisky(t string, c Context) bool {
+	p, ok := resolve(t, c)
+	if !ok {
+		return c.Cwd == "" && strings.HasPrefix(t, "..")
+	}
+	home, cwd := clean(c.Home), clean(c.Cwd)
+	switch {
+	case p == "/", c.Home != "" && p == home, c.Cwd != "" && p == cwd:
+		return true
+	case strings.ContainsAny(path.Base(p), "*?[") && (path.Dir(p) == "/" || c.Home != "" && path.Dir(p) == home):
+		return true
+	}
+	return !within(p, cwd) && !(c.Home != "" && within(p, home))
 }
 
 // --- git push ----------------------------------------------------------
@@ -190,34 +210,40 @@ func forcePushesProtected(args []string) bool {
 	if len(pos) == 0 || pos[0] != "push" {
 		return false
 	}
-	force := false
-	start := 0
-	for i, a := range args { // options after the subcommand
-		if a == "push" {
-			start = i + 1
-			break
-		}
-	}
-	for _, a := range args[start:] {
-		switch {
-		case a == "--force", strings.HasPrefix(a, "--force-with-lease"), a == "-f":
-			force = true
-		case strings.HasPrefix(a, "-") && !strings.HasPrefix(a, "--"):
-			force = force || strings.ContainsRune(a, 'f')
-		}
-	}
+	force := pushForces(args)
 	for _, p := range pos[1:] {
 		plus := strings.HasPrefix(p, "+")
-		ref := strings.TrimPrefix(p, "+")
-		if i := strings.LastIndexByte(ref, ':'); i >= 0 {
-			ref = ref[i+1:]
-		}
-		ref = strings.TrimPrefix(ref, "refs/heads/")
-		if (force || plus) && (ref == "main" || ref == "master") {
+		if (force || plus) && protectedRef(strings.TrimPrefix(p, "+")) {
 			return true
 		}
 	}
 	return false
+}
+
+// pushForces: --force, -f (alone or in a cluster such as -fu) or
+// --force-with-lease, among the options after the push subcommand.
+func pushForces(args []string) bool {
+	after := false
+	for _, a := range args {
+		switch {
+		case !after:
+			after = a == "push"
+		case a == "--force", a == "-f", strings.HasPrefix(a, "--force-with-lease"):
+			return true
+		case strings.HasPrefix(a, "-") && !strings.HasPrefix(a, "--") && strings.ContainsRune(a, 'f'):
+			return true
+		}
+	}
+	return false
+}
+
+// protectedRef is main or master as the destination of a refspec.
+func protectedRef(ref string) bool {
+	if i := strings.LastIndexByte(ref, ':'); i >= 0 {
+		ref = ref[i+1:]
+	}
+	ref = strings.TrimPrefix(ref, "refs/heads/")
+	return ref == "main" || ref == "master"
 }
 
 // --- sql ---------------------------------------------------------------
@@ -252,28 +278,42 @@ func destroysRemoteData(name string, args []string, env map[string]string, cs []
 func sqlHosts(name string, args []string) []string {
 	var hosts []string
 	mongo := strings.HasPrefix(name, "mongo")
-	positional := 0
+	seenPositional := false
 	for i := 0; i < len(args); i++ {
 		a := args[i]
-		switch {
-		case a == "-h" && !mongo || a == "--host" || a == "--uri" || a == "--connection-string":
-			if i+1 < len(args) {
-				hosts = append(hosts, hostOf(args[i+1]))
+		if h, takesNext, ok := hostFlag(a, mongo); ok {
+			if takesNext {
+				if i+1 >= len(args) {
+					continue
+				}
 				i++
+				h = hostOf(args[i])
 			}
-		case strings.HasPrefix(a, "--host="):
-			hosts = append(hosts, hostOf(a[len("--host="):]))
-		case strings.HasPrefix(a, "-h") && !strings.HasPrefix(a, "--") && !mongo && len(a) > 2:
-			hosts = append(hosts, a[2:])
-		case strings.Contains(a, "://"):
+			hosts = append(hosts, h)
+			continue
+		}
+		if strings.Contains(a, "://") {
 			hosts = append(hosts, hostOf(a))
-		case strings.HasPrefix(a, "-"):
-		case mongo && positional == 0 && (strings.ContainsAny(a, ".:")) && !strings.ContainsAny(a, " ()"):
-			positional++
+		} else if mongo && !seenPositional && !strings.HasPrefix(a, "-") && strings.ContainsAny(a, ".:") && !strings.ContainsAny(a, " ()") {
+			seenPositional = true
 			hosts = append(hosts, hostOf(a))
 		}
 	}
 	return hosts
+}
+
+// hostFlag recognises the options that name a host: -h and --host (the value
+// is the next word or attached), --uri, --connection-string.
+func hostFlag(a string, mongo bool) (host string, takesNext, ok bool) {
+	switch {
+	case a == "--host" || a == "--uri" || a == "--connection-string" || a == "-h" && !mongo:
+		return "", true, true
+	case strings.HasPrefix(a, "--host="):
+		return hostOf(a[len("--host="):]), false, true
+	case strings.HasPrefix(a, "-h") && !strings.HasPrefix(a, "--") && !mongo && len(a) > 2:
+		return a[2:], false, true
+	}
+	return "", false, false
 }
 
 // hostOf extracts the host from a bare host, host:port/db or a URI. Several
