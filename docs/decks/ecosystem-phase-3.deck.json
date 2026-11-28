@@ -1,0 +1,60 @@
+{
+  "title": "Ecosystem phase 3",
+  "lang": "en",
+  "slides": [
+    {"layout": "cover", "eyebrow": "plan · ecosystem phase 3", "title": "One configuration, every agent, a state you can go back to", "lede": "aval describes the setup once and gives it to Claude Code and to Pi. Each version is kept, can be pinned and rolled back, and its cost is measured.", "note": "The promise: the same rules everywhere, a known state, and real numbers about usage."},
+    {"layout": "statement", "eyebrow": "First, one word", "title": "A generation is a frozen copy of the setup", "lede": "Everything aval writes for every agent, stored read-only under a name made from its content. Same content, same name."},
+    {"layout": "cards", "eyebrow": "The problem", "title": "Today the setup only lives in place", "items": [
+      {"title": "Written twice", "text": "Claude Code and OpenCode get their config from separate code; nothing proves they say the same.", "tone": "warn"},
+      {"title": "No way back", "text": "A sync overwrites. Going back to last Tuesday is not possible, only to the run just before.", "tone": "warn"},
+      {"title": "No idea of cost", "text": "Usage windows run out without warning, and no one knows which project spent them.", "tone": "warn"}
+    ]},
+    {"layout": "steps", "eyebrow": "The plan", "title": "Four pieces, in order", "items": [
+      {"title": "One model", "text": "Rules, skills, commands, hooks, permissions and MCP described once."},
+      {"title": "Adapters", "text": "Claude Code and Pi read the model; what an agent cannot do is warned about, never dropped."},
+      {"title": "Generations", "text": "Build, activate, roll back and pin a frozen copy.", "tone": "good"},
+      {"title": "Usage", "text": "Tokens per project, session, day and consumer, checked against ccusage."}
+    ]},
+    {"layout": "timeline", "eyebrow": "An example", "title": "A normal day with Pen", "items": [
+      {"tag": "09:00", "title": "Pen boots", "text": "It starts Pi on generation 3f2a, pinned."},
+      {"tag": "11:00", "title": "The owner changes a rule", "text": "aval sync builds generation 9c41 and activates it for Claude Code."},
+      {"tag": "11:01", "title": "Pen is untouched", "text": "It keeps 3f2a until it is told to move.", "tone": "good"},
+      {"tag": "18:00", "title": "aval usage --by consumer", "text": "Interactive, daemon and headless shares of the 5 h and 7 d windows."}
+    ]},
+    {"layout": "checklist", "eyebrow": "What is guaranteed", "title": "Rules that are tests, not promises", "items": [
+      {"title": "Projected or reported", "text": "Every part of the model is written or warned about."},
+      {"title": "One generation per run", "text": "A run never mixes two states."},
+      {"title": "Host settings win", "text": "The overlay can add a deny, never remove one."},
+      {"title": "No ambient config", "text": "Adapters read only what they are given."},
+      {"title": "Subscription billing", "text": "No API key is ever written or forwarded.", "tone": "good"}
+    ]},
+    {"layout": "section", "eyebrow": "Part two", "title": "Inside: how it is built", "lede": "Packages, how they connect and why."},
+    {"layout": "flow", "eyebrow": "The pieces", "title": "From the repo to each agent", "items": [
+      {"title": "Loader", "text": "Reads the repo as it is today into one Config."},
+      {"title": "Adapter", "text": "Renders files for one agent and lists the losses."},
+      {"title": "Generation store", "text": "Keeps the rendered files by content hash.", "tone": "good"},
+      {"title": "Activator", "text": "Swaps one link, checks the doctor, restores on failure."}
+    ]},
+    {"layout": "table", "eyebrow": "Decisions taken", "title": "Why it is built this way", "columns": ["We decided", "Because", "Instead of"], "rows": [
+      ["HCS-style ids and a content hash", "The spec is a single-author draft that changes weekly", "Full HCS conformance"],
+      ["Reuse txsync and backup", "They already back up, verify and restore", "A second transaction engine"],
+      ["Pi gets its own agent dir", "No ambient config, nothing leaks from the user's Pi", "Writing into ~/.pi"],
+      ["Cost and quota apart", "On a subscription, dollars are not the limit", "One cost column"]
+    ]},
+    {"layout": "table", "eyebrow": "Map", "title": "Where each part lives", "columns": ["Part", "Where", "Issue"], "rows": [
+      ["Model and contract", "internal/agentcfg", "#8"],
+      ["Claude Code adapter", "internal/agentcfg/claude", "#9"],
+      ["Pi adapter", "internal/agentcfg/pi", "#68, #10"],
+      ["Generations", "internal/core/generation", "#120"],
+      ["Usage", "internal/agent/usage", "#29"],
+      ["One CI table", "aval dev check", "#55"]
+    ]},
+    {"layout": "steps", "eyebrow": "The road", "title": "One pull request per issue, stacked", "items": [
+      {"title": "Fix the flaky test", "text": "#119 first, so every later PR gets a clean CI.", "tone": "good"},
+      {"title": "Model, then Claude Code", "text": "#8 and #9, with a golden parity proof."},
+      {"title": "Pi, then generations", "text": "Pi adapter, then #120 and the invariant tests."},
+      {"title": "Usage and dev check", "text": "#29 and #55, independent of the chain."}
+    ]},
+    {"layout": "closing", "eyebrow": "Next step", "title": "Fix #119, then the model", "lede": "PRs are opened and left for the owner's review; nothing is merged by the agent."}
+  ]
+}
