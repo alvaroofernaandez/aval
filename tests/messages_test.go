@@ -350,6 +350,8 @@ Plumbing
   aval statusline         Claude Code status line
   aval relay              context relay: status, log, pause, enable
                             <subcommand>
+  aval secrets            keychain secrets: set, get, list, rm, exec
+                            <subcommand>
   aval tmux               tmux, Ghostty and zsh helpers
                             <helper>
   aval macos              macOS defaults and LaunchAgents
@@ -440,6 +442,8 @@ Piezas internas
                             <lessons|design-gate|pre-push|...>
   aval statusline         línea de estado de Claude Code
   aval relay              relay de contexto: status, log, pause, enable
+                            <subcommand>
+  aval secrets            secretos en el llavero: set, get, list, rm, exec
                             <subcommand>
   aval tmux               utilidades de tmux, Ghostty y zsh
                             <helper>

@@ -255,7 +255,9 @@ func TestCIRunsOnPullRequestsWithoutSecrets(t *testing.T) {
 // ciExemptTags: custom build tags that gate test files and that CI does not set.
 // Empty today: the only gate is `!windows` (tmux e2e), which runs on Linux and
 // macOS. Add `"e2e": "needs a real X; run locally with go test -tags e2e ./pkg"`.
-var ciExemptTags = map[string]string{}
+var ciExemptTags = map[string]string{
+	"integration": "needs a real OS keychain (login keychain, Secret Service, Credential Manager) that CI runners do not unlock; run locally with go test -tags integration ./internal/core/secrets",
+}
 
 // ciExemptRunners: path globs (slash form, relative to the repo root) of
 // non-Go test files that CI does not run.

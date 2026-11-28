@@ -17,6 +17,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/config"
 	"github.com/alvaroofernaandez/aval/internal/core/deps"
 	"github.com/alvaroofernaandez/aval/internal/core/doctor"
+	"github.com/alvaroofernaandez/aval/internal/core/secrets"
 	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
 	"github.com/alvaroofernaandez/aval/internal/core/txsync"
 	"github.com/alvaroofernaandez/aval/internal/core/uninstall"
@@ -49,7 +50,7 @@ func short(home, p string) string {
 // runDoctor is `aval doctor [--fix] [--json]`: offline, read-only unless --fix.
 func runDoctor(repo, home string, args []string, out io.Writer, ui uiSettings) error {
 	fs := newFlagSet("doctor", out)
-	fix := fs.Bool("fix", false, "remove broken links and run sync")
+	fix := fs.Bool("fix", false, "remove broken links and run sync; with --security, move inline MCP tokens into the keychain")
 	asJSON := fs.Bool("json", false, "print the results as a JSON array")
 	security := fs.Bool("security", false, "also run the security checks")
 	var allow stringList
@@ -76,6 +77,11 @@ func runDoctor(repo, home string, args []string, out io.Writer, ui uiSettings) e
 		}
 		if err != nil {
 			return err
+		}
+		if *security {
+			if serr := fixSecrets(opt, secrets.Default(), home, out, tr); serr != nil {
+				return serr
+			}
 		}
 		fmt.Fprintln(out)
 	}

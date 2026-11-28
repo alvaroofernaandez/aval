@@ -340,6 +340,16 @@ warns), hooks that point to scripts outside the repo and `~/.claude/hooks`, and 
 secrets in `env`/`args` (only the server and key are printed, never the value). To silence a check:
 `--allow <id>[:<subject>]` or one line per id in `~/.config/aval/private/doctor-allow`.
 
+**Secrets** (`aval secrets`). Tokens live in the operating system keychain (macOS `security`, Linux `secret-tool`,
+Windows Credential Manager); there is no plaintext fallback, so a machine without a keychain gets an error.
+`aval secrets set NAME` reads the value from stdin, `get NAME` only answers with its exit code (`--show` prints it),
+`list` and `rm NAME` do what they say, and `exec NAME[,VAR=NAME] -- cmd args` starts `cmd` with the secrets in its
+environment only (a real exec on macOS and Linux). `aval doctor --security --fix` moves the literal `env` tokens of
+stdio MCP servers into the keychain and rewrites the entry to `aval secrets exec VAR=NAME -- <original command>`.
+Each value is stored and read back before the file is rewritten atomically, and a copy of the original with every value
+replaced by `<keychain:NAME>` is saved in `~/.aval-backup/secrets/`, so no backup holds a token. To read a value back:
+`aval secrets get NAME --show`. Headers and flag arguments are reported but not rewritten, because there is no process to wrap.
+
 `sync` keeps `~/.claude/settings.json` as a real file (other tools rewrite it and it holds personal
 keys): it **replaces** `hooks`, `attribution`, `worktree`, `spinnerTipsEnabled` and
 `subagentPromptCacheTtl`, **merges** `env`, `enabledPlugins`, `skillOverrides` and
