@@ -27,7 +27,7 @@ Read by any coding agent working in this repository (Claude Code loads it throug
 - **Plan before execution.** Substantial work gets a plan in `odd/tasks/<feature>.md` and a deck (`plan-deck`) before the first source edit.
 - **Visible surfaces.** Run the design pipeline and `aval design ack <surface>` before editing one; prove it with `aval design gate`.
 - **Never push unasked.**
-- **Hooks and the statusline never load config.** They are hot paths: pure work on their input, no config read, no exec, no network. Amended 2026-11-23 (ADR 0007): a hook may start an already resolved tool under a timeout, never on its no-op path.
+- **Hooks and the statusline never load config.** They are hot paths: pure work on their input, no config read, no exec, no network. Amended 2026-11-23 (ADR 0007): a hook may start an already resolved tool under a timeout, never on its no-op path. Amended 2026-11-28 (ADR 0009): `aval hook guard` may read its private allow-list, only after a rule has matched.
 - **Opening the hub writes nothing and never touches the network.** It reads local state only (the update badge uses refs already fetched).
 - **Decisions are recorded, never rewritten.** A changed decision gets a dated amendment or a new ADR.
 

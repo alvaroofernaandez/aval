@@ -373,7 +373,7 @@ func measure(h hookSpec, opt Options) Hook {
 	m := Hook{Event: h.event, Matcher: h.matcher, Command: h.command, Async: h.async, Runs: opt.Runs}
 	m.Budgeted = (h.event == "PreToolUse" || h.event == "PostToolUse") && !h.async
 	if m.Budgeted {
-		m.BudgetMs = float64(opt.HookBudget) / float64(time.Millisecond)
+		m.BudgetMs = float64(budgetFor(h.command, h.args, opt.HookBudget)) / float64(time.Millisecond)
 	}
 	in := payload(h, opt.Home)
 

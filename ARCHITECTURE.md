@@ -47,6 +47,7 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/agent/fmthook` | leaf | Hook that formats the file an agent just edited with its project's formatter. |
 | `internal/agent/lessons` | leaf | Hook that injects a short lesson when a tool call matches it. |
 | `internal/agent/prepush` | leaf | The git pre-push gate against employer material and secrets. |
+| `internal/agent/guard` | leaf | Hook that denies destructive Bash commands in bypass mode, with a private allow-list. |
 | `internal/agent/rateguard` | leaf | Hook that stops bursts of requests to hosts that ban rapid clients. |
 | `internal/agent/repoprofile` | leaf | SessionStart hook that tells the agent the project's stack. |
 | `internal/agent/review` | leaf | Sizes a code review from git: a risk tier and the lenses to run. |

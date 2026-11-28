@@ -1,12 +1,14 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/agent/fmthook"
+	"github.com/alvaroofernaandez/aval/internal/agent/guard"
 	"github.com/alvaroofernaandez/aval/internal/agent/lessons"
 	"github.com/alvaroofernaandez/aval/internal/agent/rateguard"
 	"github.com/alvaroofernaandez/aval/internal/agent/repoprofile"
@@ -29,31 +31,13 @@ func runHook(args []string, c cmdIO) error {
 	switch name {
 	case "repo-profile":
 		repoprofile.Run(in, out) // SessionStart; never fails the session
-	case "design-gate":
-		// PreToolUse, sync: fails open, exits 0 whatever happens.
-		cache, err := ack.CacheDirFrom(getenv, home)
-		if err != nil {
-			return nil
-		}
-		hook.Gate(in, out, hook.GateOptions{
-			Off: getenv("DESIGN_PIPELINE_OFF") != "", Cache: cache, TTL: ack.TTLFrom(getenv), Now: time.Now(),
-		})
-	case "plan-gate":
-		// PreToolUse, sync: fails open, exits 0 whatever happens.
-		cache, err := deck.PlanCacheDirFrom(getenv, home)
-		if err != nil {
-			return nil
-		}
-		deck.Gate(in, out, deck.GateOptions{Off: getenv("AVAL_PLAN_DECK_OFF") != "", Now: time.Now(), Cache: cache})
-	case "design-shot-stop":
-		cache, err := ack.CacheDirFrom(getenv, home)
-		if err != nil {
-			return nil
-		}
-		hook.ShotStop(in, out, hook.StopOptions{Off: getenv("DESIGN_PIPELINE_OFF") != "", Cache: cache})
+	case "design-gate", "plan-gate", "design-shot-stop":
+		gateHook(name, in, out, getenv, home)
 	case "rate-guard":
 		// PreToolUse on Bash, sync: fails open, exits 0 whatever happens.
 		rateguard.Run(in, out, func() ([]string, error) { return rateGuardHosts(getenv) })
+	case "guard":
+		runGuard(in, out, getenv)
 	case "rtk-rewrite":
 		rtkhook.Run(in, out, c.stderr, rtkhook.Lookup())
 	case "pre-push":
@@ -69,9 +53,43 @@ func runHook(args []string, c cmdIO) error {
 		// can be mistaken for a block.
 		_ = lessons.Run(in, out, lessonsOptions(getenv))
 	default:
-		return newUsage("usage: aval hook lessons|repo-profile|relay-precompact|relay-sessionstart|relay-prompt|relay-sessionend|design-gate|plan-gate|design-shot-stop|rate-guard|rtk-rewrite|pre-push|fmt (reads hook JSON on stdin)")
+		return newUsage("usage: aval hook lessons|repo-profile|relay-precompact|relay-sessionstart|relay-prompt|relay-sessionend|design-gate|plan-gate|design-shot-stop|rate-guard|guard|rtk-rewrite|pre-push|fmt (reads hook JSON on stdin)")
 	}
 	return nil
+}
+
+// gateHook runs the design and plan gates: PreToolUse (and Stop for the shot
+// check), sync, fail open, exit 0 whatever happens.
+func gateHook(name string, in io.Reader, out io.Writer, getenv func(string) string, home func() (string, error)) {
+	switch name {
+	case "design-gate":
+		cache, err := ack.CacheDirFrom(getenv, home)
+		if err != nil {
+			return
+		}
+		hook.Gate(in, out, hook.GateOptions{
+			Off: getenv("DESIGN_PIPELINE_OFF") != "", Cache: cache, TTL: ack.TTLFrom(getenv), Now: time.Now(),
+		})
+	case "plan-gate":
+		cache, err := deck.PlanCacheDirFrom(getenv, home)
+		if err != nil {
+			return
+		}
+		deck.Gate(in, out, deck.GateOptions{Off: getenv("AVAL_PLAN_DECK_OFF") != "", Now: time.Now(), Cache: cache})
+	case "design-shot-stop":
+		cache, err := ack.CacheDirFrom(getenv, home)
+		if err != nil {
+			return
+		}
+		hook.ShotStop(in, out, hook.StopOptions{Off: getenv("DESIGN_PIPELINE_OFF") != "", Cache: cache})
+	}
+}
+
+// runGuard is PreToolUse on Bash, sync: fails open, exits 0 whatever happens.
+// The allow-list is read only after a rule matched (ADR 0009).
+func runGuard(in io.Reader, out io.Writer, getenv func(string) string) {
+	home, _ := userHomeDir(getenv)
+	guard.Run(in, out, guard.RunOptions{Home: home, Getenv: getenv, ReadFile: os.ReadFile})
 }
 
 func lessonsOptions(getenv func(string) string) lessons.Options {

@@ -272,3 +272,64 @@ func gofmtPath(t *testing.T) string {
 	}
 	return p
 }
+
+func guardHook(t *testing.T, in string) string {
+	t.Helper()
+	var out bytes.Buffer
+	if err := runHook([]string{"guard"}, procIO(strings.NewReader(in), &out)); err != nil {
+		t.Fatalf("guard must exit 0, got %v", err)
+	}
+	return out.String()
+}
+
+func guardPayload(cwd, cmd string) string {
+	return `{"session_id":"s","cwd":` + q(cwd) + `,"tool_name":"Bash","tool_input":{"command":` + q(cmd) + `}}`
+}
+
+func TestRunHookGuardDeniesWithTheExactJSON(t *testing.T) {
+	testenv.SetHome(t, t.TempDir())
+	t.Setenv("AVAL_PRIVATE_DIR", t.TempDir())
+	got := guardHook(t, guardPayload(t.TempDir(), "rm -rf /"))
+	want := `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"aval guard blocked this command (rm-outside-roots: rm -rf outside the project and home, or on /, ~ or the home folder). Command: rm -rf /. If you really mean it, add the full command as one line to ~/.config/aval/private/guard.allow (a private file, never committed)."}}` + "\n"
+	if got != want {
+		t.Errorf("output:\n  got  %q\n  want %q", got, want)
+	}
+}
+
+func TestRunHookGuardAllowsCommonWorkWithNoOutput(t *testing.T) {
+	testenv.SetHome(t, t.TempDir())
+	t.Setenv("AVAL_PRIVATE_DIR", t.TempDir())
+	cwd := t.TempDir()
+	for _, cmd := range []string{"go test ./...", "git push origin feature", "rm -rf ./dist", "git status"} {
+		if got := guardHook(t, guardPayload(cwd, cmd)); got != "" {
+			t.Errorf("%s: output = %q, want none", cmd, got)
+		}
+	}
+}
+
+func TestRunHookGuardReadsTheAllowListFromThePrivateOverlay(t *testing.T) {
+	testenv.SetHome(t, t.TempDir())
+	priv := t.TempDir()
+	t.Setenv("AVAL_PRIVATE_DIR", priv)
+	cwd := t.TempDir()
+	writeFile(t, filepath.Join(priv, "guard.allow"), "# mine\ndocker system prune -af\n")
+	if got := guardHook(t, guardPayload(cwd, "docker system prune -af")); got != "" {
+		t.Errorf("an allow-listed command was denied: %q", got)
+	}
+	if got := guardHook(t, guardPayload(cwd, "docker system prune")); !strings.Contains(got, `"deny"`) {
+		t.Errorf("a similar command must stay denied, got %q", got)
+	}
+}
+
+func TestRunHookGuardFailsOpen(t *testing.T) {
+	testenv.SetHome(t, t.TempDir())
+	t.Setenv("AVAL_PRIVATE_DIR", t.TempDir())
+	for name, in := range map[string]string{
+		"bad JSON":      `{"tool_name":"Bash","tool_input":`,
+		"non-Bash tool": `{"tool_name":"Write","tool_input":{"command":"rm -rf /"}}`,
+	} {
+		if got := guardHook(t, in); got != "" {
+			t.Errorf("%s: output = %q, want none", name, got)
+		}
+	}
+}
