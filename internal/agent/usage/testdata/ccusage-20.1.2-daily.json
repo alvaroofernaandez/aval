@@ -1,0 +1,90 @@
+{
+  "daily": [
+    {
+      "agent": "all",
+      "cacheCreationTokens": 3000,
+      "cacheReadTokens": 27000,
+      "inputTokens": 3500,
+      "metadata": {
+        "agents": [
+          "claude"
+        ]
+      },
+      "modelBreakdowns": [
+        {
+          "cacheCreationTokens": 1000,
+          "cacheReadTokens": 5000,
+          "cost": 0.0525,
+          "inputTokens": 500,
+          "modelName": "claude-opus-4-1-20250805",
+          "outputTokens": 250
+        },
+        {
+          "cacheCreationTokens": 2000,
+          "cacheReadTokens": 22000,
+          "cost": 0.0456,
+          "inputTokens": 3000,
+          "modelName": "claude-sonnet-4-20250514",
+          "outputTokens": 1500
+        }
+      ],
+      "modelsUsed": [
+        "claude-opus-4-1-20250805",
+        "claude-sonnet-4-20250514"
+      ],
+      "outputTokens": 1750,
+      "period": "2026-11-20",
+      "totalCost": 0.09809999999999999,
+      "totalTokens": 35250
+    },
+    {
+      "agent": "all",
+      "cacheCreationTokens": 500,
+      "cacheReadTokens": 20000,
+      "inputTokens": 3500,
+      "metadata": {
+        "agents": [
+          "claude"
+        ]
+      },
+      "modelBreakdowns": [
+        {
+          "cacheCreationTokens": 500,
+          "cacheReadTokens": 20000,
+          "cost": 0.040425,
+          "inputTokens": 3100,
+          "modelName": "claude-sonnet-4-20250514",
+          "outputTokens": 1550
+        },
+        {
+          "cacheCreationTokens": 0,
+          "cacheReadTokens": 0,
+          "cost": 0.0,
+          "inputTokens": 400,
+          "missingPricing": true,
+          "modelName": "claude-mystery-9",
+          "outputTokens": 200
+        }
+      ],
+      "modelsUsed": [
+        "claude-mystery-9",
+        "claude-sonnet-4-20250514"
+      ],
+      "outputTokens": 1750,
+      "period": "2026-11-21",
+      "totalCost": 0.040425,
+      "totalTokens": 25750
+    }
+  ],
+  "totals": {
+    "cacheCreationTokens": 3500,
+    "cacheReadTokens": 47000,
+    "inputTokens": 7000,
+    "outputTokens": 3500,
+    "totalCost": 0.138525,
+    "totalTokens": 61000,
+    "unpricedModels": [
+      "claude-mystery-9"
+    ]
+  }
+}
