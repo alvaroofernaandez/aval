@@ -182,3 +182,46 @@ func TestActivationsAreRecordedInTheHistory(t *testing.T) {
 		t.Errorf("Previous = %q, %v; want %s", prev, err, a)
 	}
 }
+
+// aval sync is build plus activate (owner: G6 = A): it renders every adapter
+// from the repo into a generation and activates it; the same repo state
+// activates the same generation again.
+func TestSyncBuildsAndActivatesAGenerationOfTheRepo(t *testing.T) {
+	opt := env(t)
+	out, err := Run(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := current(t, opt)
+	if id == "" || out.Generation != id {
+		t.Fatalf("current = %q, outcome generation = %q; want the built one active", id, out.Generation)
+	}
+	g, err := generation.Read(opt.Home, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, a := range g.Adapters {
+		names = append(names, a.Name)
+	}
+	if strings.Join(names, ",") != "claude-code,pi" {
+		t.Errorf("adapters = %v, want claude-code and pi", names)
+	}
+	if _, err := Run(opt); err != nil || current(t, opt) != id {
+		t.Errorf("a second sync of the same repo: %v, current %s; want %s", err, current(t, opt), id)
+	}
+	if gs, _ := generation.List(opt.Home); len(gs) != 1 {
+		t.Errorf("%d generations after two syncs of the same repo, want 1", len(gs))
+	}
+}
+
+func TestDryRunBuildsNoGeneration(t *testing.T) {
+	opt := env(t)
+	opt.DryRun = true
+	if _, err := Run(opt); err != nil {
+		t.Fatal(err)
+	}
+	if gs, _ := generation.List(opt.Home); len(gs) != 0 || current(t, opt) != "" {
+		t.Errorf("a dry run built %d generations", len(gs))
+	}
+}

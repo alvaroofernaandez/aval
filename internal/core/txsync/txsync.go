@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/core/agentcfg"
+	"github.com/alvaroofernaandez/aval/internal/core/agentcfg/claude"
+	"github.com/alvaroofernaandez/aval/internal/core/agentcfg/pi"
 	"github.com/alvaroofernaandez/aval/internal/core/backup"
 	"github.com/alvaroofernaandez/aval/internal/core/doctor"
 	"github.com/alvaroofernaandez/aval/internal/core/generation"
@@ -32,6 +34,8 @@ type Options struct {
 	// Claude Code settings are applied instead of the repo's, and it becomes
 	// the current generation once the doctor checks pass.
 	Generation string
+	// Source is the repo commit recorded in the generation a sync builds.
+	Source string
 }
 
 // Crash points of an activation, for the crash tests.
@@ -42,6 +46,52 @@ const (
 
 // crash is called at each stage; the crash tests make it panic.
 var crash = func(string) {}
+
+// target resolves what a run applies. A sync builds the repo into a
+// generation and activates it (owner: G6 = A); an activation names one. A
+// dry run keeps rendering the repo and builds nothing. The generation must
+// still hash to its contentHash.
+func target(opt Options) (Options, avalsync.Options, error) {
+	syncOpt := avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS, Now: opt.Now}
+	if opt.Generation == "" && !opt.DryRun {
+		id, err := build(opt)
+		if err != nil {
+			return opt, syncOpt, err
+		}
+		opt.Generation = id
+	}
+	if opt.Generation != "" {
+		if err := generation.Verify(opt.Home, opt.Generation); err != nil {
+			return opt, syncOpt, err
+		}
+		syncOpt.Generation = generation.Dir(opt.Home, opt.Generation, agentcfg.ClaudeCode)
+	}
+	return opt, syncOpt, nil
+}
+
+// Adapters are what every generation renders: Claude Code as sync renders
+// it on opt.GOOS, and Pi.
+func Adapters(opt Options) []agentcfg.Adapter {
+	return []agentcfg.Adapter{
+		claude.New(claude.Options{GOOS: opt.GOOS, Home: opt.Home, PrivateDir: opt.PrivateDir}),
+		pi.New(),
+	}
+}
+
+// build renders the repo into a generation (a no-op when it exists).
+func build(opt Options) (string, error) {
+	cfg, err := agentcfg.Load(opt.Repo)
+	if err != nil {
+		return "", fmt.Errorf("sync: %w", err)
+	}
+	g, _, err := generation.Build(generation.Options{
+		Home: opt.Home, Config: cfg, Adapters: Adapters(opt), Source: opt.Source, Now: opt.Now,
+	})
+	if err != nil {
+		return "", fmt.Errorf("sync: %w", err)
+	}
+	return g.ID, nil
+}
 
 // Recover restores the runs of transactions that died before finishing
 // (no completion marker: a crash), marks them failed, and puts back the
@@ -81,17 +131,18 @@ type Outcome struct {
 	Recovered  []string
 	Failed     []doctor.Result
 	RolledBack bool
+	// Generation is the generation the run activated, or tried to activate
+	// when it failed ("" for a dry run).
+	Generation string
 }
 
 // Run applies sync transactionally.
 func Run(opt Options) (*Outcome, error) {
 	out := &Outcome{}
-	syncOpt := avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS, Now: opt.Now}
-	if opt.Generation != "" {
-		if err := generation.Verify(opt.Home, opt.Generation); err != nil {
-			return out, err
-		}
-		syncOpt.Generation = generation.Dir(opt.Home, opt.Generation, agentcfg.ClaudeCode)
+	opt, syncOpt, err := target(opt)
+	out.Generation = opt.Generation
+	if err != nil {
+		return out, err
 	}
 
 	if opt.DryRun {
