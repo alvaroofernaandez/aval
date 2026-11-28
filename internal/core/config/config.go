@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 )
@@ -45,11 +46,12 @@ var defaults = map[string]string{
 }
 
 var enums = map[string][]string{
-	"background":   {"auto", "dark", "light"},
-	"glyphs":       {"auto", "unicode", "ascii"},
-	"motion":       {"auto", "off"},
-	"update_check": {"on", "off"},
-	"language":     {"auto", "en", "es"},
+	"background":    {"auto", "dark", "light"},
+	"glyphs":        {"auto", "unicode", "ascii"},
+	"motion":        {"auto", "off"},
+	"update_check":  {"on", "off"},
+	"language":      {"auto", "en", "es"},
+	"usage.billing": {"api", "subscription"},
 }
 
 var envNames = map[string]string{
@@ -140,7 +142,7 @@ func Load(path string) (*File, []Warning, error) {
 		if !ok {
 			continue
 		}
-		if !slices.Contains(keys, k) {
+		if !slices.Contains(keys, k) && !usageKey(k) {
 			f.unknown = append(f.unknown, k)
 			f.unknownAt = append(f.unknownAt, UnknownKey{Key: k, Line: i + 1})
 			continue
@@ -191,7 +193,7 @@ func (f *File) Resolve(key string, flags map[string]string, getenv func(string) 
 // untouched on error. Comments, unknown keys and order are preserved; an
 // existing line is replaced in place, a new key is appended.
 func Set(path, key, value string) error {
-	if !slices.Contains(keys, key) {
+	if !slices.Contains(keys, key) && !usageKey(key) {
 		return fmt.Errorf("config: unknown key %q. Valid: %s", key, strings.Join(keys, ", "))
 	}
 	if bad := invalid(key, value); bad != nil {
@@ -283,6 +285,14 @@ func invalid(key, value string) *InvalidValueError {
 	if key == "repo" {
 		return nil
 	}
+	if strings.HasPrefix(key, "usage.budget.") {
+		if budgetValue.MatchString(value) {
+			return nil
+		}
+		e := &InvalidValueError{Key: key, Value: value}
+		e.msg = fmt.Sprintf("%s = %q is not a budget. Use a token count, a share like 50%% or an amount like $4.5.", key, value)
+		return e
+	}
 	valid, noun := enums[key], "a valid "+key
 	if key == "theme" {
 		valid, noun = Themes, "a theme"
@@ -368,3 +378,38 @@ type InvalidValueError struct {
 }
 
 func (e *InvalidValueError) Error() string { return e.msg }
+
+// Prefixed returns the file's valid values for the open key family that starts
+// with prefix (the usage.* keys).
+func (f *File) Prefixed(prefix string) map[string]string {
+	out := map[string]string{}
+	for k, e := range f.vals {
+		if strings.HasPrefix(k, prefix) {
+			out[k] = e.value
+		}
+	}
+	return out
+}
+
+// usageKey reports whether key belongs to the open usage family: usage.billing
+// and usage.budget.<consumer>.<window>. It is not in Keys(), which is the list
+// the settings view and `aval config list` show.
+func usageKey(key string) bool {
+	if key == "usage.billing" {
+		return true
+	}
+	rest, ok := strings.CutPrefix(key, "usage.budget.")
+	if !ok {
+		return false
+	}
+	consumer, window, ok := strings.Cut(rest, ".")
+	return ok && slices.Contains(budgetConsumers, consumer) && slices.Contains(budgetWindows, window)
+}
+
+var (
+	budgetConsumers = []string{"interactive", "daemon", "headless"}
+	budgetWindows   = []string{"5h", "7d"}
+	// A budget is a token count, a share of the window's tokens ("50%") or an
+	// amount in dollars ("$4.5").
+	budgetValue = regexp.MustCompile(`^(\d+|\d+(\.\d+)?%|\$\d+(\.\d+)?)$`)
+)
