@@ -157,11 +157,11 @@ func TestHookLatencyAgainstBudget(t *testing.T) {
 	if pre.Runs != 3 || !pre.Budgeted || pre.BudgetMs != 100 {
 		t.Errorf("pre = %+v", pre)
 	}
-	if pre.Over {
-		t.Errorf("a fast hook must be under budget: %+v", pre)
-	}
+	// Only lower bounds on the wall clock: a loaded machine makes every hook
+	// slower, never faster, so "the fast hook is under budget" belongs to
+	// TestClassifyVerdict, which needs no clock (#125).
 	if !post.Over || post.P50Ms < 280 || post.P95Ms < post.P50Ms {
-		t.Errorf("slow sync hook must be over budget with p50>=140ms: %+v", post)
+		t.Errorf("slow sync hook must be over budget with p50>=280ms: %+v", post)
 	}
 	if stop.Budgeted || stop.Over || !stop.Async || stop.P50Ms < 280 {
 		t.Errorf("an async hook is reported (p50 measured) but never budgeted: %+v", stop)
@@ -290,5 +290,30 @@ func TestExecFormHookIsMeasured(t *testing.T) {
 	}
 	if len(r.Hooks) != 1 || r.Hooks[0].TimedOut || r.Hooks[0].P50Ms <= 0 {
 		t.Errorf("hooks = %+v, want one measured exec-form hook", r.Hooks)
+	}
+}
+
+// The verdict, on synthetic samples: no wall clock, so no load can flip it.
+func TestClassifyVerdict(t *testing.T) {
+	sync := Hook{Event: "PreToolUse", Budgeted: true, BudgetMs: 100}
+	async := Hook{Event: "Stop", Async: true}
+	for _, c := range []struct {
+		name     string
+		h        Hook
+		samples  []float64
+		timedOut bool
+		over     bool
+		p50, p95 float64
+	}{
+		{"under budget", sync, []float64{3, 1, 2, 4, 90}, false, false, 3, 90},
+		{"p95 over budget", sync, []float64{1, 2, 3, 4, 101}, false, true, 3, 101},
+		{"exactly at budget is under", sync, []float64{100, 100}, false, false, 100, 100},
+		{"a timeout is over even when fast", sync, []float64{1, 1}, true, true, 1, 1},
+		{"an async hook is never over", async, []float64{900, 900}, true, false, 900, 900},
+	} {
+		got := classify(c.h, c.samples, c.timedOut)
+		if got.Over != c.over || got.P50Ms != c.p50 || got.P95Ms != c.p95 || got.TimedOut != c.timedOut {
+			t.Errorf("%s: %+v, want over=%v p50=%v p95=%v timedOut=%v", c.name, got, c.over, c.p50, c.p95, c.timedOut)
+		}
 	}
 }

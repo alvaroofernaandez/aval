@@ -130,8 +130,9 @@ func TestShellStartupBudget(t *testing.T) {
 		d = append(d, time.Since(start))
 	}
 	sort.Slice(d, func(i, j int) bool { return d[i] < d[j] })
-	median := d[len(d)/2]
-	if median >= startupBudget {
-		t.Errorf("interactive startup median %v, budget %v", median, startupBudget)
+	// The gate is the fastest start: load only adds time, a regression slows
+	// every start (#125). The median is printed to show how loaded the run was.
+	if fastest, median := d[0], d[len(d)/2]; fastest >= startupBudget {
+		t.Errorf("interactive startup fastest %v (median %v), budget %v", fastest, median, startupBudget)
 	}
 }
