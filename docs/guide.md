@@ -305,6 +305,7 @@ Full reference. `aval help` prints the usage, and so does a bare `aval` without 
 | `aval pdf init <dir>` · `aval pdf assets [dir]` | PDF report project · `assets/brand.css` | no |
 | `aval reap-orphan-tests [--min-age s] [--dry-run]` | Terminates orphaned test processes (launched by a LaunchAgent) | no |
 | `aval dev [shell\|run\|diff\|project\|ls\|reset\|rm]` | Tries aval in a sandbox without touching your machine ([dev mode](devmode.md)) | yes |
+| `aval dev check [--fast] [--only NAME] [--list] [--keep-going]` | Runs the quality steps CI runs (gofmt, vet, tests, npm tests, actionlint, agents lint, gitleaks) and prints one verdict ([dev mode](devmode.md#aval-dev-check-what-ci-runs-locally)) | no |
 
 ### 🩺 Doctor, sync and the private layer
 
@@ -986,6 +987,7 @@ declared the file clean searched for `token` **as a standalone word** before `:`
 ```sh
 go test ./...                      # everything; tests that need a missing tool are skipped
 go test -short ./...               # fast subset (skips the slow end-to-end tests)
+aval dev check                     # everything CI runs, in CI's order, with its pinned tools
 node --test npm/cli/lib/*.test.js  # npm packaging
 AVAL_LIVE_CHECKS=1 go test ./tests # plus checks against this machine
 ```

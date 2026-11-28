@@ -40,6 +40,17 @@ Strict TDD: write the failing test first, make it pass with the minimum code,
 then refactor.
 
 ```bash
+aval dev check --fast   # the edit loop: gofmt, vet, tests without -race, npm tests, actionlint
+aval dev check          # exactly what CI runs, on your machine
+```
+
+`aval dev check` is the single definition of "green": CI calls it too, so
+there is no second list of steps to remember. It needs `actionlint` and
+`gitleaks` at the pinned versions and says the exact install command when one
+is missing (`aval dev check --list` shows every step and its pin). Underneath
+it runs what you would type by hand:
+
+```bash
 go test ./...
 go vet ./...
 gofmt -l .        # must print nothing
@@ -61,7 +72,7 @@ attribution trailers.
 
 - Linked to an approved issue.
 - Stay under ~400 changed lines; split larger work into chained PRs.
-- `go test ./...` green, `gofmt` clean.
+- `aval dev check` green (it is what CI runs: tests, `go vet`, `gofmt`, actionlint, gitleaks).
 - Docs updated in the same PR when behaviour changes.
 
 ## AI-assisted contributions
