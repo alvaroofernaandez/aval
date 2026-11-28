@@ -308,6 +308,7 @@ The deck fonts (Space Grotesk, IBM Plex Sans, SIL Open Font License 1.1) are emb
 | `aval reap-orphan-tests` | Ends orphaned test processes (`--min-age`, `--dry-run`) |
 | `aval release <…>` | Cuts versions, release candidates and promotions: [releasing](docs/releasing.md) |
 | `aval dev` | Try aval in a sandbox that never touches your machine: [dev mode](docs/devmode.md) |
+| `aval dev check` | Runs locally exactly what CI runs, one table of steps and one verdict: [dev mode](docs/devmode.md#aval-dev-check-what-ci-runs-locally) |
 
 Details for each one are in the [guide](docs/guide.md#️-commands).
 

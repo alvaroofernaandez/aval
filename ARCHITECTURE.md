@@ -38,6 +38,7 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/relay/adapter/workfacts` | relay adapter | Open plan tasks and the git working tree for the capsule; git runs with a short timeout and a failure omits the section. |
 | `internal/relay/adapter/notify` | relay adapter | The OS notification of a relay as an argv: osascript, notify-send, a PowerShell toast on Windows and WSL, or an OSC 9 sequence; the text is never part of a script. |
 | `internal/devmode` | leaf | The `aval dev` sandbox: a throwaway HOME for trying aval. |
+| `internal/devmode/check` | leaf | The step table and runner behind `aval dev check`: what CI runs, locally. |
 | `internal/deck` | leaf | Renders a JSON slide spec into a PDF deck. |
 | `internal/agent/budget` | leaf | Measures always-on context and hook latency per agent. |
 | `internal/agent/fmthook` | leaf | Hook that formats the file an agent just edited with its project's formatter. |

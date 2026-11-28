@@ -14,7 +14,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/i18n"
 )
 
-// runDev is `aval dev [shell|run|reset|ls|rm|diff|project] [--name N] [--nested]`.
+// runDev is `aval dev [shell|run|reset|ls|rm|diff|project|check] [--name N] [--nested]`.
 // All the logic lives in internal/devmode; this file only wires the commands
 // to it and to the install and sync code the sandbox exists to exercise.
 func runDev(repoFlag string, args []string) error {
@@ -55,7 +55,7 @@ func runDev(repoFlag string, args []string) error {
 		return devDiff(repoFlag, realHome, os.Stdout)
 	case "shell", "run", "reset", "project":
 	default:
-		return fmt.Errorf("unknown dev command %q (shell, run, reset, ls, rm, diff, project)", sub)
+		return fmt.Errorf("unknown dev command %q (shell, run, reset, ls, rm, diff, project, check)", sub)
 	}
 
 	repo, err := resolveRepo(repoFlag)

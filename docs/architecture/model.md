@@ -22,6 +22,7 @@ flowchart TD
     design_ack["design/ack"]
     design_gate["design/gate"]
     devmode["devmode"]
+    devmode_check["devmode/check"]
     devops["devops/*"]
     docs["docs/*"]
     herdr["herdr/*"]
@@ -47,6 +48,7 @@ flowchart TD
   cmd_aval --> design_gate
   cmd_aval --> design_hook
   cmd_aval --> devmode
+  cmd_aval --> devmode_check
   cmd_aval --> devops
   cmd_aval --> docs
   cmd_aval --> i18n
@@ -103,6 +105,7 @@ flowchart TD
 | `internal/deck` | nothing internal | - | leaf |
 | `internal/release` | nothing internal | - | leaf |
 | `internal/devmode` | nothing internal | - | leaf |
+| `internal/devmode/*` | nothing internal | - | leaf: the step table and runner behind aval dev check (ADR 0002, 2026-11-28) |
 | `internal/i18n` | nothing internal | - | leaf: message catalog and language selection (ADR 0006) |
 | `internal/relay` | nothing internal | - | leaf: I/O-free context relay core (ADR 0005) |
 | `internal/relay/*` | `internal/relay` | - | relay adapters: state files, runtime shims, facts |

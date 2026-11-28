@@ -18,6 +18,8 @@ type cmdIO struct {
 	// prober finds the tools of the dependency inventory; nil is the real
 	// machine, probed through env's PATH.
 	prober deps.Prober
+	// devcheck is the machine `aval dev check` runs on; nil is the real one.
+	devcheck *devCheckEnv
 }
 
 // exitCode is an error that ends run with exactly this code and prints
@@ -40,6 +42,9 @@ func runStandalone(name string, sub []string, repoFlag string, ui uiFlags, c cmd
 	case "deck":
 		return true, runDeck(sub, c.stdout, realDeckDeps())
 	case "dev":
+		if len(sub) > 0 && sub[0] == "check" {
+			return true, runDevCheck(sub[1:], repoFlag, ui, c)
+		}
 		return true, runDev(repoFlag, sub)
 	case "deps":
 		return true, runDeps(sub, ui, c)

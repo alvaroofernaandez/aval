@@ -83,3 +83,15 @@ adapters live below it, in `internal/relay/*`, and may import
 line reach it only through `cmd/aval`, and the relay redacts credentials with
 its own table instead of importing `agent/prepush`, whose table holds
 employer names, not credential shapes.
+
+### 2026-11-28
+
+`internal/devmode/*` is a new family of leaves: the first member is
+`internal/devmode/check`, the step table and runner behind `aval dev check`
+(issue #55, task T8 of `odd/tasks/ecosystem-phase-3.md`). It imports nothing
+internal and nothing imports it but `cmd/aval`, which wires it to the command
+line. `internal/devmode` itself stays a leaf with no members of its own to
+share: the sandbox and the check do not import each other.
+
+The family is a rule of its own because `archRules` matches `internal/devmode`
+exactly; a subpackage would otherwise be a package no rule matches.

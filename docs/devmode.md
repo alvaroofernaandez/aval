@@ -36,3 +36,35 @@ The sandbox installs from a **copy** of the repo (without `.git`), so the symlin
 - The network is not blocked: `git fetch`, `npm`, `gh` and hooks that call out still go out. Environment tokens (`GH_TOKEN`, `SSH_AUTH_SOCK`) are inherited.
 - The sandbox has no `.git`: `aval update` does not work inside it. It rebuilds on every entry; the repo is copied again, but what is already installed is updated with `aval install --yes` or `aval dev reset`.
 - Docker, Homebrew, the macOS Keychain and LaunchAgents are not isolated.
+
+## `aval dev check`: what CI runs, locally
+
+`aval dev check` runs, in order and with the same pinned tools, every quality step CI runs. The steps are one table, `internal/devmode/check/table.go`; `ci.yml` builds the binary and calls this command, so a green here is a green there. A test fails if a quality command shows up in `ci.yml` outside the table.
+
+| Step | Runs | Where | `--fast` |
+| :--- | :--- | :--- | :---: |
+| `gofmt` | `gofmt -l .` (any output fails) | all | yes |
+| `vet` | `go vet ./...` | all | yes |
+| `test` | `go test ./... -race` | all; **no `-race` on Windows** (a table rule) | yes, as `go test ./... -short` |
+| `npm` | `node --test npm/cli/lib/*.test.js` | all | yes |
+| `actionlint` | `actionlint` over `.github/workflows` | all | yes |
+| `agents` | `npx -y agnix@<pin> validate .` (needs the network) | not Windows | no |
+| `gitleaks` | `gitleaks detect --source .` over the whole history | all | no |
+
+```
+aval dev check [--fast] [--only NAME] [--list] [--keep-going]
+```
+
+- `--list` prints every step with its tool, pinned version, the systems it runs on and whether it is in the fast set. Nothing runs.
+- `--fast` is the edit loop: it leaves out the race detector, the agents lint and gitleaks, names what it skipped, and says that green is then not the CI verdict.
+- `--only NAME` runs one step; an unknown name lists the valid ones. `--keep-going` runs every step even after one fails.
+- The exit code is the failing step's own (the first one, with `--keep-going`). A failing step prints its captured output before the table; the last line is the verdict (`green` or `red`, `verde` or `rojo` in Spanish) with counts and total time.
+
+**Pinned tools.** Versions live in one place, the constants of `internal/devmode/check/table.go` (Go `1.25`, Node `22`, actionlint `v1.7.12`, gitleaks `v8.30.1`, agnix `0.61.0`); `ci.yml`'s setup and install steps must carry the same values, which a test checks. Before running anything the command looks for every tool the steps need and, if one is missing, prints the exact command and installs nothing:
+
+```
+error: missing tools:
+  actionlint v1.7.12: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+```
+
+**Changing a step.** Edit the table (`Name`, `Tool`, `Args`, `OnlyOS`/`SkipOS`, `Fast`, `FastArgs`, `OSArgs`); CI picks it up without touching the YAML. A new tool also needs its pin and an install line in `ci.yml`.

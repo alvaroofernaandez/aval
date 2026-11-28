@@ -37,7 +37,7 @@ var commands = []command{
 	{"config", "[list | get <key> | set <key> <value> | path]", "Setup"},
 	{"restore", "[--list | latest | <id> | --pin <id>]", "Undo"},
 	{"uninstall", "[--dry-run] [--yes]", "Undo"},
-	{"dev", "[run | diff | reset | ls | rm | project]", "Setup"},
+	{"dev", "[run | diff | check | reset | ls | rm | project]", "Setup"},
 	{"hook", "<lessons|design-gate|pre-push|...>", "Plumbing"},
 	{"statusline", "", "Plumbing"},
 	{"relay", "<subcommand>", "Plumbing"},

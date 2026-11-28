@@ -68,8 +68,8 @@ opened, never merged; review is the owner's.
 - [ ] Reconciliation fixture matching ccusage totals, PR
 
 ## T8 — #55 `aval dev check`
-- [ ] One step table that ci.yml calls; pinned tools; per-OS rules in the table
-- [ ] `--list`, `--fast`, `--only`, `--keep-going`; a test that ci.yml has no quality steps outside the table, PR
+- [x] One step table that ci.yml calls; pinned tools; per-OS rules in the table
+- [x] `--list`, `--fast`, `--only`, `--keep-going`; a test that ci.yml has no quality steps outside the table, PR
 
 ## After phase 3
 Continue the open issues in milestone order (v0.3.0, v0.4.0, v0.5.0, ...),

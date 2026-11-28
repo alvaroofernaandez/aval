@@ -103,7 +103,7 @@ func (s uiSettings) capsInputs(getenv func(string) string, goos string, isTTY bo
 // for doctor, whose config check reports them.
 func settingsForCommand(cmd string, flags uiFlags, getenv func(string) string, home string, stderr io.Writer) (uiSettings, error) {
 	switch cmd {
-	case "install", "doctor", "deps", "":
+	case "install", "doctor", "deps", "dev-check", "":
 	case "sync", "restore", "uninstall", "update":
 		// These print for people but draw nothing: they need the language
 		// only, and a config warning stays as quiet as it always was.

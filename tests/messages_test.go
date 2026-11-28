@@ -274,6 +274,8 @@ func TestMessagesTools(t *testing.T) {
 	runMessages(t, []msgCase{
 		{name: "rules sync without the shared block", setup: noBlock, args: []string{"rules", "sync", "--repo", "DIR/repo"}, code: 1, stderr: "error: rules sync: no block found in DIR/repo/config/claude/CLAUDE.md\n"},
 		{name: "pdf assets with a missing brand dir", setup: emptyDir("project"), args: []string{"pdf", "assets", "DIR/project", "--brand-dir", "DIR/gone"}, code: 1, stderr: "error: Brand image directory not found: DIR/gone\n"},
+		{name: "dev check with an unknown step", args: []string{"dev", "check", "--only", "nope"}, code: 1, stderr: "error: unknown step \"nope\" (steps: gofmt, vet, test, npm, actionlint, agents, gitleaks)\n"},
+		{name: "dev check with a stray argument", args: []string{"dev", "check", "extra"}, code: 1, stderr: "error: usage: aval dev check [--fast] [--only NAME] [--list] [--keep-going]: unexpected argument \"extra\"\n"},
 		{name: "dev inside a dev shell", args: []string{"dev"}, env: []string{"AVAL_DEV=1"}, code: 1, stderr: "error: already inside an aval dev shell (AVAL_DEV=1); exit it first, or pass --nested to stack another sandbox\n"},
 	})
 }
@@ -298,7 +300,7 @@ Setup
   aval config             show or change aval settings (theme, glyphs, motion)
                             [list | get <key> | set <key> <value> | path]
   aval dev                sandboxed HOME for developing aval
-                            [run | diff | reset | ls | rm | project]
+                            [run | diff | check | reset | ls | rm | project]
 
 Health
   aval doctor             check this machine against the repo
@@ -385,7 +387,7 @@ Preparación
   aval config             muestra o cambia los ajustes de aval (tema, glifos, animación)
                             [list | get <key> | set <key> <value> | path]
   aval dev                HOME aislado para desarrollar aval
-                            [run | diff | reset | ls | rm | project]
+                            [run | diff | check | reset | ls | rm | project]
 
 Salud
   aval doctor             comprueba este equipo frente al repositorio
