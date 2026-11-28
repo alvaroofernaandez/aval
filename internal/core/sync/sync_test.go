@@ -43,69 +43,6 @@ func decode(t *testing.T, s string) map[string]any {
 	return m
 }
 
-func TestMergeSettings(t *testing.T) {
-	cases := []struct {
-		name        string
-		repo, live  string
-		overlay     string
-		want        string
-		wantChanged []string
-	}{
-		{
-			name:        "managed keys are replaced",
-			repo:        `{"hooks":{"Stop":[1]},"attribution":{"commit":""},"worktree":{"a":1},"spinnerTipsEnabled":false,"subagentPromptCacheTtl":"1h","statusLine":{"type":"command","command":"aval statusline"}}`,
-			live:        `{"hooks":{"Old":[2]},"attribution":{"commit":"x"},"worktree":{"a":0},"spinnerTipsEnabled":true,"subagentPromptCacheTtl":"5m"}`,
-			want:        `{"hooks":{"Stop":[1]},"attribution":{"commit":""},"worktree":{"a":1},"spinnerTipsEnabled":false,"subagentPromptCacheTtl":"1h","statusLine":{"type":"command","command":"aval statusline"}}`,
-			wantChanged: []string{"attribution", "hooks", "spinnerTipsEnabled", "statusLine", "subagentPromptCacheTtl", "worktree"},
-		},
-		{
-			name:        "maps merge, repo wins per key, live-only kept",
-			repo:        `{"env":{"A":"repo","B":"repo"},"enabledPlugins":{"p":true}}`,
-			live:        `{"env":{"A":"live","C":"live"},"enabledPlugins":{"q":false}}`,
-			want:        `{"env":{"A":"repo","B":"repo","C":"live"},"enabledPlugins":{"p":true,"q":false}}`,
-			wantChanged: []string{"enabledPlugins", "env"},
-		},
-		{
-			name:        "everything else in live is untouched",
-			repo:        `{"model":"opus","permissions":{"allow":["x"]}}`,
-			live:        `{"model":"sonnet","pluginConfigs":{"k":1}}`,
-			want:        `{"model":"sonnet","pluginConfigs":{"k":1}}`,
-			wantChanged: nil,
-		},
-		{
-			name:        "overlay wins over repo and deep-merges",
-			repo:        `{"skillOverrides":{"a":"off"},"env":{"A":"1"}}`,
-			live:        `{}`,
-			overlay:     `{"skillOverrides":{"a":"on","b":"off"},"model":"haiku"}`,
-			want:        `{"skillOverrides":{"a":"on","b":"off"},"env":{"A":"1"},"model":"haiku"}`,
-			wantChanged: []string{"env", "model", "skillOverrides"},
-		},
-		{
-			name:        "already in sync reports nothing",
-			repo:        `{"hooks":{"Stop":[1]},"env":{"A":"1"}}`,
-			live:        `{"hooks":{"Stop":[1]},"env":{"A":"1","Z":"live"}}`,
-			want:        `{"hooks":{"Stop":[1]},"env":{"A":"1","Z":"live"}}`,
-			wantChanged: nil,
-		},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			var overlay map[string]any
-			if c.overlay != "" {
-				overlay = decode(t, c.overlay)
-			}
-			got, changed := MergeSettings(decode(t, c.repo), decode(t, c.live), overlay)
-			if !reflect.DeepEqual(got, decode(t, c.want)) {
-				gb, _ := json.Marshal(got)
-				t.Errorf("merged = %s\nwant     %s", gb, c.want)
-			}
-			if !reflect.DeepEqual(changed, c.wantChanged) {
-				t.Errorf("changed = %v, want %v", changed, c.wantChanged)
-			}
-		})
-	}
-}
-
 func fakeEnv(t *testing.T) Options {
 	t.Helper()
 	repo, home := t.TempDir(), t.TempDir()

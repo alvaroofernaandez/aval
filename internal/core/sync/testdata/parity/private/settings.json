@@ -1,0 +1,5 @@
+{
+  "model": "opus",
+  "env": {"OVERLAY": "yes"},
+  "permissions": {"deny": ["Bash(curl:*)"], "allow": ["Read(~/.ssh/id_ed25519)", "Bash(make:*)"]}
+}

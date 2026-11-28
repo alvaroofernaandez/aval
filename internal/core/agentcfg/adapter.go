@@ -74,6 +74,17 @@ type Rendered struct {
 	// Warnings report the elements the runtime cannot express, or expresses
 	// only in part.
 	Warnings []Warning
+	// Linked lists the elements an `aval install` link delivers instead of
+	// the files: the runtime reads them, the adapter does not write them.
+	Linked []Link
+}
+
+// Link is an element delivered by an install link from the repo to the home.
+type Link struct {
+	ID         string
+	Capability Capability
+	Source     string // repo-relative, slash-separated
+	Dest       string // home-relative, slash-separated
 }
 
 // Warning reports an element that was not projected, or only in part.

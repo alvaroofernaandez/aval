@@ -104,3 +104,40 @@ func TestSuitePassesTheFake(t *testing.T) {
 		t.Errorf("the reference adapter failed the suite: %v", s.errors)
 	}
 }
+
+// An element an install link delivers counts as delivered: the files need not
+// carry it, but the link must be named and stay inside the home.
+func TestSuiteAcceptsLinkedElements(t *testing.T) {
+	linking := &broken{Adapter: fake.New(), render: func(r agentcfg.Rendered) agentcfg.Rendered {
+		r.Projected = r.Projected[1:]
+		r.Linked = []agentcfg.Link{{ID: "rule.agent-rules", Capability: agentcfg.CapRules, Source: "config/claude/CLAUDE.md", Dest: ".claude/CLAUDE.md"}}
+		return r
+	}}
+	s := &spy{t: t}
+	contract.Run(s, linking, cfg)
+	if len(s.errors) != 0 {
+		t.Errorf("a linked element was not counted as delivered: %v", s.errors)
+	}
+}
+
+func TestSuiteRejectsBadLinks(t *testing.T) {
+	cases := map[string]agentcfg.Link{
+		"unsupported yet linked": {ID: "skill.strict-tdd", Capability: agentcfg.CapSkills, Source: "skills/strict-tdd", Dest: ".claude/skills/strict-tdd"},
+		"link out of the home":   {ID: "rule.agent-rules", Capability: agentcfg.CapRules, Source: "config/claude/CLAUDE.md", Dest: "../etc/CLAUDE.md"},
+		"link without a source":  {ID: "rule.agent-rules", Capability: agentcfg.CapRules, Dest: ".claude/CLAUDE.md"},
+	}
+	for name, l := range cases {
+		t.Run(name, func(t *testing.T) {
+			a := &fake.Adapter{Caps: agentcfg.Capabilities{agentcfg.CapRules: agentcfg.Full}}
+			b := &broken{Adapter: a, render: func(r agentcfg.Rendered) agentcfg.Rendered {
+				r.Linked = append(r.Linked, l)
+				return r
+			}}
+			s := &spy{t: t}
+			contract.Run(s, b, cfg)
+			if len(s.errors) == 0 {
+				t.Errorf("the suite passed a %s", name)
+			}
+		})
+	}
+}

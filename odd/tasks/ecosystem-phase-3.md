@@ -38,13 +38,13 @@ opened, never merged; review is the owner's.
 - [x] PR
 
 ## T3 — #9 Claude Code adapter on the single model
-- [ ] Golden of the current `aval sync` output captured before the refactor
-- [ ] `internal/agentcfg/claude` renders the managed settings and rules; parity test
-- [ ] `aval sync` goes through the adapter; personal keys and overlay kept; old duplicated logic removed
-- [ ] Contract suite green for the adapter, PR
+- [x] Golden of the current `aval sync` output captured before the refactor (darwin, linux, windows)
+- [x] `internal/core/agentcfg/claude` renders the managed settings; parity test against the repo and the goldens
+- [x] `aval sync` goes through the adapter; personal keys and overlay kept; merge and ForOS moved, sync's duplicate rules reader and JSON decoder removed
+- [x] Rules, skills, commands, agents as `Rendered.Linked` (owner: option A); contract suite green on the whole repo, PR
 
 ## T4 — Pi adapter (#68 Pi slice, #10 support matrix row)
-- [ ] `internal/agentcfg/pi`: settings, AGENTS.md rules, skills, prompts; isolated agent dir (no ambient config)
+- [ ] `internal/core/agentcfg/pi`: settings, AGENTS.md rules, skills, prompts; isolated agent dir (no ambient config)
 - [ ] Capabilities: no MCP, no permission model, hooks via extension only; loss warnings
 - [ ] Billing guard: nothing rendered carries an API key; subscription auth only
 - [ ] Contract suite green, PR

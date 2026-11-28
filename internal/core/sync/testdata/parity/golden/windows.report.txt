@@ -1,0 +1,7 @@
+changed: attribution, enabledPlugins, env, extraKnownMarketplaces, hooks, model, permissions, skillOverrides, spinnerTipsEnabled, statusLine, subagentPromptCacheTtl, worktree
+created: false
+written: true
+warnings:
+permissions: overlay allow "Read(~/.ssh/id_ed25519)" dropped, denied by "Read(~/.ssh/**)"
+rules .codex/AGENTS.md changed=true skipped=false
+rules .gemini/GEMINI.md changed=false skipped=true

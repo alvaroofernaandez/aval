@@ -1,0 +1,297 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "enabledPlugins": {
+    "alvaro-dev-references@synced": false,
+    "alvaro-toolkit@synced": false,
+    "bencium-innovative-ux-designer@bencium-marketplace": false,
+    "claude-code-wakatime@wakatime": true,
+    "claude-security@claude-plugins-official": false,
+    "context-meter@better-claude": true,
+    "engram@engram": true,
+    "flightseatmap@synced": false,
+    "gopls-lsp@claude-plugins-official": true,
+    "hasdata@synced": false,
+    "image-preview@better-claude": true,
+    "mine@local": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "quick-peek@better-claude": true,
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "session-report@claude-plugins-official": true,
+    "sub-meter@better-claude": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "variflight@synced": false,
+    "warp@claude-code-warp": false
+  },
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_EFFORT": "medium",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet",
+    "OVERLAY": "yes",
+    "PERSONAL": "1",
+    "USER": "alvaroofernaandez"
+  },
+  "extraKnownMarketplaces": {
+    "bencium-marketplace": {
+      "source": {
+        "repo": "bencium/bencium-marketplace",
+        "source": "github"
+      }
+    },
+    "better-claude": {
+      "source": {
+        "repo": "midudev/better-claude",
+        "source": "github"
+      }
+    },
+    "claude-code-warp": {
+      "source": {
+        "repo": "warpdotdev/claude-code-warp",
+        "source": "github"
+      }
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/anthropics/claude-plugins-official.git"
+      }
+    },
+    "engram": {
+      "source": {
+        "repo": "Gentleman-Programming/engram",
+        "source": "github"
+      }
+    },
+    "wakatime": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/wakatime/claude-code-wakatime.git"
+      }
+    }
+  },
+  "feedbackSurveyState": {
+    "lastShownTime": 1760000000000
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook fmt || true",
+            "timeout": 5,
+            "type": "command"
+          },
+          {
+            "async": true,
+            "command": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then code-review-graph update --skip-flows; fi",
+            "timeout": 60,
+            "type": "command"
+          }
+        ],
+        "matcher": "Edit|Write"
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook relay-precompact || true",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook lessons || true",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "Edit|Write|NotebookEdit|Bash"
+      },
+      {
+        "hooks": [
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook rate-guard || true",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook design-gate || true",
+            "timeout": 30,
+            "type": "command"
+          },
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook plan-gate || true",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "Edit|Write|NotebookEdit"
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "command": "rm -f /tmp/dk_* /tmp/.dk_* /tmp/dk.json 2>/dev/null",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook relay-sessionend || true",
+            "timeout": 2,
+            "type": "command"
+          }
+        ],
+        "matcher": "clear"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "code-review-graph status",
+            "timeout": 15,
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      },
+      {
+        "hooks": [
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook relay-sessionstart || true",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "compact|clear"
+      },
+      {
+        "hooks": [
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook repo-profile || true",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "startup|resume|clear"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook design-shot-stop || true",
+            "timeout": 5,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" hook relay-prompt || true",
+            "timeout": 5,
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  },
+  "model": "opus",
+  "permissions": {
+    "additionalDirectories": [
+      "~/notes"
+    ],
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(make:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(sudo rm -rf /)",
+      "Bash(sudo rm -rf ~)",
+      "Read(**/.credentials.json)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(~/.aws/**)",
+      "Read(~/.claude/.credentials.json)",
+      "Read(~/.ssh/**)",
+      "Workflow",
+      "Bash(curl:*)"
+    ]
+  },
+  "skillOverrides": {
+    "accessibility": "off",
+    "ai-sdk-5": "off",
+    "alvarofernandez-dev": "name-only",
+    "anthropic-skills:skill-creator": "off",
+    "architecture-evidence": "name-only",
+    "browse": "off",
+    "chained-pr": "name-only",
+    "clerk-backend-api": "off",
+    "clerk-cli": "name-only",
+    "clerk-custom-ui": "off",
+    "clerk-setup": "off",
+    "clerk-tanstack-patterns": "off",
+    "clerk-webhooks": "off",
+    "cognitive-doc-design": "name-only",
+    "contabo": "name-only",
+    "design-refactor": "off",
+    "design-shotgun": "off",
+    "docker-build-optimized": "name-only",
+    "docker-space-optimizer": "name-only",
+    "hallmark": "off",
+    "high-end-visual-design": "off",
+    "issue-creation-pro": "name-only",
+    "land-and-deploy": "off",
+    "logo-design": "name-only",
+    "mac-disk-cleanup": "name-only",
+    "manual-de-uso-cliente": "name-only",
+    "owasp-security": "off",
+    "pdf-report": "name-only",
+    "react-doctor": "off",
+    "readme-portal": "name-only",
+    "redesign-existing-projects": "name-only",
+    "remotion-best-practices": "off",
+    "repo-prep": "off",
+    "tailwind-4": "off",
+    "transitions-dev": "name-only",
+    "ui-craft-dense-dashboard": "name-only",
+    "video-shotcraft": "name-only",
+    "zod-4": "off"
+  },
+  "spinnerTipsEnabled": false,
+  "statusLine": {
+    "command": "a=\"$HOME/.local/bin/aval\"; [ -x \"$a\" ] || a=\"$(command -v aval)\"; [ -x \"$a\" ] && \"$a\" statusline || echo claude",
+    "padding": 0,
+    "type": "command"
+  },
+  "subagentPromptCacheTtl": "1h",
+  "theme": "dark",
+  "worktree": {
+    "symlinkDirectories": [
+      "node_modules",
+      ".pnpm-store",
+      ".venv"
+    ]
+  }
+}
