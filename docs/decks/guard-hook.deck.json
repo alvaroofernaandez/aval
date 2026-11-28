@@ -1,0 +1,234 @@
+{
+ "title": "The Bash guard",
+ "lang": "en",
+ "slides": [
+  {
+   "layout": "cover",
+   "eyebrow": "plan \u00b7 aval hook guard",
+   "title": "A net under bypass mode",
+   "lede": "The agent runs Bash without asking. We add a hook that refuses the few commands nobody can undo.",
+   "note": "What changes for the person: dangerous commands are stopped with a reason, everything else is as fast as before."
+  },
+  {
+   "layout": "cards",
+   "eyebrow": "The problem",
+   "title": "Bypass mode has no brake today",
+   "items": [
+    {
+     "title": "Only prose protects you",
+     "text": "CLAUDE.md asks the model not to run rm -rf /. A model can misread it.",
+     "tone": "warn"
+    },
+    {
+     "title": "Some mistakes are final",
+     "text": "A force push to main or a dropped database cannot be taken back.",
+     "tone": "warn"
+    },
+    {
+     "title": "Wrappers hide the command",
+     "text": "sh -c, env or xargs can carry the same command past a text check.",
+     "tone": "warn"
+    }
+   ]
+  },
+  {
+   "layout": "steps",
+   "eyebrow": "How it works",
+   "title": "Read, unwrap, check, decide",
+   "items": [
+    {
+     "title": "Split the command",
+     "text": "Quotes, pipes, ; and && become simple commands."
+    },
+    {
+     "title": "Peel the wrappers",
+     "text": "sudo, env, xargs, sh -c are opened, four levels deep at most."
+    },
+    {
+     "title": "Apply the rules",
+     "text": "Flags are normalised, so -rf, -fr and --recursive --force are the same."
+    },
+    {
+     "title": "Deny with a reason",
+     "text": "The reason names the rule, the command and how to allow it.",
+     "tone": "good"
+    }
+   ]
+  },
+  {
+   "layout": "groups",
+   "eyebrow": "What it covers",
+   "title": "Three families of commands",
+   "items": [
+    {
+     "title": "Deleting and publishing",
+     "text": "rm -rf outside the project and home; force push to main.",
+     "chips": [
+      "/",
+      "~",
+      "-f"
+     ],
+     "tone": "warn"
+    },
+    {
+     "title": "Databases and infrastructure",
+     "text": "DROP, TRUNCATE on a remote host; prune and delete.",
+     "chips": [
+      "psql",
+      "docker prune",
+      "kubectl delete"
+     ]
+    },
+    {
+     "title": "Pipes and secrets",
+     "text": "A download run as it arrives; keys and env files read.",
+     "chips": [
+      "curl | sh",
+      "~/.ssh",
+      "~/.aws",
+      ".env"
+     ]
+    }
+   ]
+  },
+  {
+   "layout": "compare",
+   "eyebrow": "Your own exceptions",
+   "title": "The allow-list is read only after a match",
+   "items": [
+    {
+     "tag": "every other command",
+     "title": "Nothing is read",
+     "text": "No config, no exec, no network. The hook stays under 10 ms.",
+     "tone": "good"
+    },
+    {
+     "tag": "a command that matched a rule",
+     "title": "guard.allow is consulted",
+     "text": "One full command per line in your private folder. A similar command is still denied.",
+     "tone": "muted"
+    }
+   ]
+  },
+  {
+   "layout": "section",
+   "eyebrow": "Part two",
+   "title": "Inside: how it is built",
+   "lede": "One Go package, one hook entry, one budget line."
+  },
+  {
+   "layout": "tree",
+   "eyebrow": "How it decides",
+   "title": "When the text cannot be parsed",
+   "items": [
+    {
+     "title": "Parses fine?",
+     "tag": "Run the rules",
+     "tone": "good"
+    },
+    {
+     "title": "Broken quotes, but a rule matches?",
+     "tag": "Deny",
+     "tone": "warn"
+    },
+    {
+     "title": "Nothing matches, or an error?",
+     "tag": "Allow: never block work by accident"
+    }
+   ]
+  },
+  {
+   "layout": "table",
+   "eyebrow": "Decisions taken",
+   "title": "Why it is built this way",
+   "columns": [
+    "We decided",
+    "Because",
+    "Instead of"
+   ],
+   "rows": [
+    [
+     "Read guard.allow after a match",
+     "The no-op path keeps ADR 0007: no config read",
+     "Loading it on every call"
+    ],
+    [
+     "Rules over word lists",
+     "Flag order and wrappers cannot dodge them",
+     "Regexes on raw text"
+    ],
+    [
+     "Fail open on internal errors",
+     "A bug must never freeze the session",
+     "Deny when in doubt"
+    ],
+    [
+     "Unknown variables are allowed",
+     "rm -rf \"$BUILD\" is routine",
+     "Deny every unresolved path"
+    ]
+   ]
+  },
+  {
+   "layout": "table",
+   "eyebrow": "Where things live",
+   "title": "The map",
+   "columns": [
+    "Piece",
+    "Place"
+   ],
+   "rows": [
+    [
+     "Engine and rules",
+     "internal/agent/guard"
+    ],
+    [
+     "Hook entry",
+     "cmd/aval/agent_hook.go"
+    ],
+    [
+     "Registration",
+     "config/claude/settings.json"
+    ],
+    [
+     "Latency budget",
+     "internal/agent/budget"
+    ],
+    [
+     "Amended rule",
+     "docs/adr/0009 and AGENTS.md"
+    ]
+   ]
+  },
+  {
+   "layout": "steps",
+   "eyebrow": "The road",
+   "title": "Seven small commits",
+   "items": [
+    {
+     "title": "Tokenizer",
+     "text": "The first gate: a failing table test."
+    },
+    {
+     "title": "Unwrapper and rules",
+     "text": "One family at a time, each with its allow cases."
+    },
+    {
+     "title": "Decision and allow-list",
+     "text": "Reason text and fail modes."
+    },
+    {
+     "title": "Hook, budget, docs",
+     "text": "Wired in, measured, written down.",
+     "tone": "good"
+    }
+   ]
+  },
+  {
+   "layout": "closing",
+   "eyebrow": "Next step",
+   "title": "Start with the tokenizer",
+   "lede": "Everything else reads its output."
+  }
+ ]
+}
