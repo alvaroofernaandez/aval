@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"path/filepath"
+	"strings"
 )
 
 // RunOptions is the machine a hook run needs, all injectable.
@@ -40,8 +41,8 @@ func readAllow(o RunOptions) func() ([]string, error) {
 
 // tmpRoots is the resolved $TMPDIR, the one temp root the fixed list cannot know.
 func tmpRoots(o RunOptions) []string {
-	if d := o.Getenv("TMPDIR"); d != "" && filepath.IsAbs(d) {
-		return []string{filepath.ToSlash(filepath.Clean(d))}
+	if d := strings.ReplaceAll(o.Getenv("TMPDIR"), `\`, "/"); isAbs(d) {
+		return []string{clean(d)}
 	}
 	return nil
 }
