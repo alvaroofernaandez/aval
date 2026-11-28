@@ -391,6 +391,10 @@ func (f *File) Prefixed(prefix string) map[string]string {
 	return out
 }
 
+// Known reports whether key is a setting aval has: one of Keys() or a usage.*
+// key.
+func Known(key string) bool { return slices.Contains(keys, key) || usageKey(key) }
+
 // usageKey reports whether key belongs to the open usage family: usage.billing
 // and usage.budget.<consumer>.<window>. It is not in Keys(), which is the list
 // the settings view and `aval config list` show.

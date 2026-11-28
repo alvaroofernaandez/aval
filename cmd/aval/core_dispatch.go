@@ -48,6 +48,8 @@ func runStandalone(name string, sub []string, repoFlag string, ui uiFlags, c cmd
 	case "context":
 		wd, _ := os.Getwd()
 		return true, runContext(sub, wd, c)
+	case "usage":
+		return true, runUsage(sub, c)
 	}
 	return false, nil
 }

@@ -159,11 +159,7 @@ func unknownSource(path, key string) string {
 }
 
 func configGet(path, key string, stdout, stderr io.Writer, getenv func(string) string, tr i18n.Translator) error {
-	valid := false
-	for _, k := range config.Keys() {
-		valid = valid || k == key
-	}
-	if !valid {
+	if !config.Known(key) {
 		err := fmt.Errorf("%w %q. Valid: %s", errUnknownKey, key, strings.Join(config.Keys(), ", "))
 		return localizedError{err: err, text: tr.T("cli.config.unknown_key", i18n.Args{"key": strconv.Quote(key), "valid": strings.Join(config.Keys(), ", ")})}
 	}
