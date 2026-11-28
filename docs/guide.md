@@ -295,7 +295,7 @@ Full reference. `aval help` prints the usage, and so does a bare `aval` without 
 | `aval usage [--by project\|session\|day\|consumer] [--window 5h\|7d] [--json] [--check] [--rate-limits <file\|->]` | Tokens, cost or plan share from the local agent transcripts; `--check` exits 1 when a budget is over | no |
 | `aval deps [--json] [--layer harness\|agent\|env]` | External tool inventory: layer, users, effect if missing, native substitute, and whether each is installed; exits 1 when a blocking tool is missing | no |
 | `aval review assess [--base <ref>] [--json]` | Risk level of the diff and reviewers | no |
-| `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `rate-guard`, `design-gate`, `plan-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push`, `fmt` | no |
+| `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `guard`, `rate-guard`, `design-gate`, `plan-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push`, `fmt` | no |
 | `aval statusline` | Claude Code status line | no |
 | `aval design ack <surface>` | Design pipeline ack (required by the `design-gate` hook) | no |
 | `aval design gate <gate> …` | `contrast <fg> <bg> [--large]` · `tokens` · `pairs <colors.json> [--aaa]` · `hardcodes [--ext] [--no-tw]` · `theme-refs --theme` · `component [--root]` · `emoji` · `native` | no |
@@ -464,6 +464,22 @@ Body of the lesson, at most 600 characters.
 A lesson fires only once per session, prints nothing when there is no match, never blocks, and takes ~3 ms.
 The hook uses `~/.local/bin/aval` or, if absent, the `aval` on `PATH`; without a binary it is a silent no-op.
 OpenCode has no such hook: it reads the lessons by hand.
+
+**Guard** (`aval hook guard`). `defaultMode: bypassPermissions` runs Bash without asking, so a PreToolUse hook
+(`Bash`) denies, with a reason, the commands nobody can undo: `rm -rf` outside the project and home (or on `/`,
+`~`, `$HOME`, `.`), `git push --force`/`-f`/`--force-with-lease` to `main` or `master`, `DROP DATABASE` and
+`TRUNCATE` through `psql`, `mysql` or `mongosh` on a host that is not local, `docker volume|system prune`,
+`kubectl delete`, a download piped into a shell (`curl ... | sh`, `bash <(curl ...)`) and reading `~/.ssh`,
+`~/.aws` or an `.env*` file with `cat`, `head`, `tail`, `less`, `bat`, `cp`, `grep` or `<` (`.env.example`,
+`.env.sample`, `.env.template` and `.env.dist` pass). It works on words, not raw text, so flag order and
+wrappers (`sh -c`, `bash -c`, `eval`, `env`, `sudo`, `nohup`, `xargs`, `time`, `command`) do not evade it, up
+to four levels deep. The deny names the rule and the command. Text that does not parse is read loosely and
+denied only if a rule still matches; an internal error lets the command through. Limits: a bare
+`git push --force` (no branch) and an `rm` target built from an unknown `$VAR` pass, because the guard runs
+nothing to find out. To allow one command, add it as a full line (whitespace is normalised; `#` comments) to
+`~/.config/aval/private/guard.allow` (`$AVAL_PRIVATE_DIR/guard.allow`); it matches that command and no other.
+The file is read only after a rule matched (ADR 0009), so every other command does no read, no exec and no
+network, and `aval budget` holds the hook to 10 ms.
 
 **Rate guard** (`aval hook rate-guard`). Some hosts ban the client IP after a burst of requests: Helice
 (`innohelp.es`, `helice.app`) did, after ~45 back-to-back `curl` calls. The PreToolUse hook (`Bash`) denies a

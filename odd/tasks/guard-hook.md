@@ -33,13 +33,13 @@ command after whitespace normalisation, never a prefix. Read only after a match.
 
 ## Tasks
 
-- [ ] **G1 tokenizer**: simple commands, pipes, substitutions, heredocs, redirections, lenient mode.
-- [ ] **G2 unwrapper**: wrappers peeled, `sh -c` recursion bounded at depth 4.
-- [ ] **G3 rules**: rm, git push, SQL, docker/kubectl, curl|sh, secrets (AC-1..AC-6).
-- [ ] **G4 decision**: allow-list after a match, reason text, fail closed / open (AC-7..AC-10).
-- [ ] **G5 hook**: `Run`, `aval hook guard`, settings.json entry, hot-path tests.
-- [ ] **G6 budget**: `aval budget` measures the guard against 10 ms (AC-11), benchmark over 200 commands.
-- [ ] **G7 docs**: ADR 0009 (amends the hook rule: a matched deny may read the allow-list), AGENTS.md amendment, guide.md, CHANGELOG.
+- [x] **G1 tokenizer**: simple commands, pipes, substitutions, heredocs, redirections, lenient mode.
+- [x] **G2 unwrapper**: wrappers peeled, `sh -c` recursion bounded at depth 4.
+- [x] **G3 rules**: rm, git push, SQL, docker/kubectl, curl|sh, secrets (AC-1..AC-6).
+- [x] **G4 decision**: allow-list after a match, reason text, fail closed / open (AC-7..AC-10).
+- [x] **G5 hook**: `Run`, `aval hook guard`, settings.json entry, hot-path tests.
+- [x] **G6 budget**: `aval budget` measures the guard against 10 ms (AC-11), benchmark over 200 commands.
+- [x] **G7 docs**: ADR 0009 (amends the hook rule: a matched deny may read the allow-list), AGENTS.md amendment, guide.md, CHANGELOG.
 
 ## Decisions taken
 

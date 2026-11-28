@@ -62,3 +62,4 @@ What changed and why.
 | [0006](0006-i18n-human-output.md) | Accepted (2026-11-23) | Human output is English or Spanish; machine output stays English. |
 | [0007](0007-hooks-may-start-a-resolved-tool.md) | Accepted (2026-11-23) | A hook may start an already resolved tool under a timeout, never on its no-op path. |
 | [0008](0008-process-boundary-core-memory-desktop.md) | Accepted (2026-11-24) | Core, memory and desktop talk over a versioned process protocol; memory is born in core, desktop in its own repository. |
+| [0009](0009-guard-reads-its-allow-list-after-a-match.md) | Accepted (2026-11-28) | The guard hook reads its private allow-list only after a rule matched, so the no-op path does no read. |
