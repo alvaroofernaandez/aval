@@ -30,8 +30,10 @@ type failing struct{ *fake.Adapter }
 
 func (failing) Name() string { return "failing" }
 func (failing) Render(agentcfg.Config) (agentcfg.Rendered, error) {
-	return agentcfg.Rendered{}, errors.New("boom")
+	return agentcfg.Rendered{}, errBoom
 }
+
+var errBoom = errors.New("boom")
 
 func clock(t time.Time) func() time.Time { return func() time.Time { return t } }
 
@@ -146,7 +148,7 @@ func TestBuildWritesOnlyUnderTheStoreAndReadOnly(t *testing.T) {
 func TestAFailingAdapterBuildsNothing(t *testing.T) {
 	home := tempHome(t)
 	_, _, err := generation.Build(generation.Options{Home: home, Config: cfg("one"), Adapters: []agentcfg.Adapter{fake.New(), failing{fake.New()}}, Now: clock(t0)})
-	if err == nil || !strings.Contains(err.Error(), "failing") {
+	if !errors.Is(err, errBoom) {
 		t.Fatalf("err = %v, want the failing adapter named", err)
 	}
 	if ents, _ := os.ReadDir(generation.Root(home)); len(ents) != 0 {

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -135,11 +136,12 @@ func TestGenerationsListAndDiffMatchTheGoldens(t *testing.T) {
 func TestGenerationsRejectsBadUse(t *testing.T) {
 	home := genHome(t)
 	for _, args := range [][]string{{"generations"}, {"generations", "nope"}, {"generations", "diff", "gen-1"}} {
-		if _, err := runGen(t, home, args...); err == nil || !strings.Contains(err.Error(), "aval generations") {
+		var u *usageError
+		if _, err := runGen(t, home, args...); !errors.As(err, &u) {
 			t.Errorf("%v: err = %v, want the usage", args, err)
 		}
 	}
-	if _, err := runGen(t, home, "generations", "diff", "gen-0000000000000000", "gen-0000000000000001"); err == nil || !strings.Contains(err.Error(), "unknown generation") {
+	if _, err := runGen(t, home, "generations", "diff", "gen-0000000000000000", "gen-0000000000000001"); !errors.Is(err, generation.ErrUnknown) {
 		t.Errorf("unknown ids: %v", err)
 	}
 }
