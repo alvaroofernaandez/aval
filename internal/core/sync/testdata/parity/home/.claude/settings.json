@@ -1,0 +1,9 @@
+{
+  "model": "sonnet",
+  "feedbackSurveyState": {"lastShownTime": 1760000000000},
+  "hooks": {"Notification": [{"hooks": [{"type": "command", "command": "old-hook"}]}]},
+  "enabledPlugins": {"mine@local": true},
+  "env": {"PERSONAL": "1"},
+  "permissions": {"allow": ["Bash(ls:*)"], "additionalDirectories": ["~/notes"]},
+  "theme": "dark"
+}
