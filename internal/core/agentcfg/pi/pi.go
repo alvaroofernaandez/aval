@@ -7,6 +7,8 @@
 //	mcp.json                {"mcpServers": ...}, denied servers left out
 //	skills/<name>/...       each skill directory, byte for byte
 //	prompts/<command>.md    each command, with the front matter Pi reads
+//	auth.json               Apply only: a link to the owner's subscription
+//	                        login, never a copy, never in Files
 //
 // Pi has no subagents and no permission model, and hooks exist only as
 // TypeScript extensions: those elements are reported, never rendered.
@@ -40,7 +42,16 @@ var apiEnv = []string{"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_OA
 var promptKeys = []string{"description", "argument-hint"}
 
 // Adapter renders a Pi agent directory.
-type Adapter struct{}
+type Adapter struct {
+	// Login is the owner's Pi subscription login that Apply links into the
+	// target; empty links nothing.
+	Login string
+}
+
+// ForHome returns the adapter that links the login of the Pi install in home.
+func ForHome(home string) *Adapter {
+	return &Adapter{Login: filepath.Join(home, ".pi", "agent", "auth.json")}
+}
 
 // New returns the adapter.
 func New() *Adapter { return &Adapter{} }
@@ -94,8 +105,40 @@ func (a *Adapter) Diff(target string, r agentcfg.Rendered) ([]agentcfg.Change, e
 }
 
 // Apply implements agentcfg.Adapter.
+// After the files, it links <target>/auth.json to the login, when there is one.
 func (a *Adapter) Apply(target string, r agentcfg.Rendered, opt agentcfg.ApplyOptions) ([]agentcfg.Change, error) {
-	return agentcfg.ApplyFiles(target, r, opt)
+	changes, err := agentcfg.ApplyFiles(target, r, opt)
+	if err != nil || opt.DryRun {
+		return changes, err
+	}
+	return changes, a.linkLogin(target)
+}
+
+// linkLogin points <target>/auth.json at the owner's login, so the isolated dir
+// bills the subscription without a copy of the credential. A missing login
+// links nothing (Pi asks for /login), and a real file already there is kept.
+func (a *Adapter) linkLogin(target string) error {
+	if a.Login == "" {
+		return nil
+	}
+	if _, err := os.Stat(a.Login); err != nil {
+		return nil
+	}
+	dst := filepath.Join(target, "auth.json")
+	if cur, err := os.Readlink(dst); err == nil {
+		if cur == a.Login {
+			return nil
+		}
+		if err := os.Remove(dst); err != nil {
+			return fmt.Errorf("pi: login link: %w", err)
+		}
+	} else if _, err := os.Lstat(dst); err == nil {
+		return nil
+	}
+	if err := os.Symlink(a.Login, dst); err != nil {
+		return fmt.Errorf("pi: login link: %w", err)
+	}
+	return nil
 }
 
 // Env returns base prepared for a Pi run on agentDir: PI_CODING_AGENT_DIR

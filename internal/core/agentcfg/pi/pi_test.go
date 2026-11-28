@@ -11,6 +11,7 @@ import (
 	"github.com/alvaroofernaandez/aval/internal/core/agentcfg"
 	"github.com/alvaroofernaandez/aval/internal/core/agentcfg/contract"
 	"github.com/alvaroofernaandez/aval/internal/core/agentcfg/pi"
+	"github.com/alvaroofernaandez/aval/internal/testenv"
 )
 
 func sample(t *testing.T) agentcfg.Config {
@@ -169,4 +170,62 @@ func TestDeniedServerIsLeftOut(t *testing.T) {
 	if slices.Contains(r.Projected, "mcp.docs") {
 		t.Error("a denied server is listed as projected")
 	}
+}
+
+// The isolated dir reuses the owner's subscription login by a link (owner:
+// option A): the credential is never copied, so it is never in Files and never
+// in a generation's hash.
+func TestApplyLinksTheSubscriptionLogin(t *testing.T) {
+	testenv.SkipWindows(t, "symlinks need developer mode on Windows")
+	home := t.TempDir()
+	login := filepath.Join(home, ".pi", "agent", "auth.json")
+	if err := os.MkdirAll(filepath.Dir(login), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(login, []byte(`{"anthropic":{"type":"oauth"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	a := pi.ForHome(home)
+	r, err := a.Render(sample(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range r.Files {
+		if strings.Contains(f.Path, "auth") || strings.Contains(string(f.Data), "oauth") {
+			t.Fatalf("the login is in the rendering: %s", f.Path)
+		}
+	}
+	target := filepath.Join(t.TempDir(), "gen")
+	for i := 0; i < 2; i++ { // the second Apply keeps the link as it is
+		if _, err := a.Apply(target, r, agentcfg.ApplyOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if dest, err := os.Readlink(filepath.Join(target, "auth.json")); err != nil || dest != login {
+		t.Errorf("auth.json -> %q (%v), want a link to %s", dest, err, login)
+	}
+	if d, err := a.Diff(target, r); err != nil || len(d) != 0 {
+		t.Errorf("Diff after Apply = %v, %v", d, err)
+	}
+}
+
+// No login yet: nothing is linked, and Apply still succeeds (Pi asks for
+// /login itself).
+func TestApplyWithoutALoginLinksNothing(t *testing.T) {
+	a := pi.ForHome(t.TempDir())
+	r, err := a.Render(sample(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(t.TempDir(), "gen")
+	if _, err := a.Apply(target, r, agentcfg.ApplyOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(filepath.Join(target, "auth.json")); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("auth.json without a login: %v, want none", err)
+	}
+}
+
+func TestContractWithALogin(t *testing.T) {
+	contract.Run(t, pi.ForHome(t.TempDir()), sample(t))
 }
