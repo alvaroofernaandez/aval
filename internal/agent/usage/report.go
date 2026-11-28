@@ -3,6 +3,7 @@ package usage
 import (
 	"encoding/json"
 	"io"
+	"os"
 	"time"
 )
 
@@ -129,4 +130,28 @@ func Build(c Corpus, o Options) Report {
 	}
 	r.Checks = append(r.Checks, Check(live, map[string][]Entry{"5h": block, "7d": week})...)
 	return r
+}
+
+// LoadRateLimits reads the rate limits the status line last kept. A window's
+// reading older than that window is dropped: a share from a closed block would
+// pass for the current one.
+func LoadRateLimits(path string, now time.Time) RateLimits {
+	f, err := os.Open(path)
+	if err != nil {
+		return RateLimits{}
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return RateLimits{}
+	}
+	out := ParseRateLimits(f)
+	age := now.Sub(fi.ModTime())
+	if age > BlockLength {
+		out.FiveHour = nil
+	}
+	if age > WeekLength {
+		out.SevenDay = nil
+	}
+	return out
 }

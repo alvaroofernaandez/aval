@@ -1,6 +1,8 @@
 package usage
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -86,5 +88,34 @@ func TestUnsetBillingIsSubscription(t *testing.T) {
 	r := buildFixture(t, Options{})
 	if r.Billing != BillingSubscription {
 		t.Errorf("billing = %q, want %q", r.Billing, BillingSubscription)
+	}
+}
+
+func TestLoadRateLimitsDropsAReadingOlderThanItsWindow(t *testing.T) {
+	now := time.Date(2026, 11, 21, 13, 0, 0, 0, time.UTC)
+	p := filepath.Join(t.TempDir(), "rate-limits.json")
+	if err := os.WriteFile(p, []byte(`{"rate_limits":{"five_hour":{"used_percentage":42},"seven_day":{"used_percentage":17}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		age        time.Duration
+		five, week bool
+	}{
+		{time.Minute, true, true},
+		{4 * time.Hour, true, true},
+		{6 * time.Hour, false, true},
+		{8 * 24 * time.Hour, false, false},
+	} {
+		at := now.Add(-c.age)
+		if err := os.Chtimes(p, at, at); err != nil {
+			t.Fatal(err)
+		}
+		got := LoadRateLimits(p, now)
+		if (got.FiveHour != nil) != c.five || (got.SevenDay != nil) != c.week {
+			t.Errorf("age %v: five_hour=%v seven_day=%v, want %v and %v", c.age, got.FiveHour, got.SevenDay, c.five, c.week)
+		}
+	}
+	if got := LoadRateLimits(filepath.Join(t.TempDir(), "none.json"), now); got.FiveHour != nil || got.SevenDay != nil {
+		t.Errorf("a missing file reports %+v, want none", got)
 	}
 }
