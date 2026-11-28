@@ -84,6 +84,7 @@ type Command struct {
 // Agent is a sub-agent definition.
 type Agent struct {
 	Name        string
+	File        string // the file it was read from, e.g. "planner.md"
 	Description string
 	Model       string
 	// Skills are skills the agent preloads; each must exist in Config.Skills.

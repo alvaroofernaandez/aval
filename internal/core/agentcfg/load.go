@@ -49,15 +49,41 @@ func Load(repo string) (Config, error) {
 	if c.Agents, err = loadAgents(filepath.Join(repo, "config", "claude", "agents")); err != nil {
 		return c, err
 	}
-	settings, err := readSettings(filepath.Join(repo, "config", "claude", "settings.json"))
+	s, err := LoadSettings(filepath.Join(repo, "config", "claude", "settings.json"))
+	c.Hooks, c.Permissions, c.MCP.Denied, c.Native = s.Hooks, s.Permissions, s.MCP.Denied, s.Native
+	return c, err
+}
+
+// LoadSettings reads only the settings part of the model from a Claude Code
+// settings.json: hooks, permissions, denied MCP servers, and the whole file as
+// Native["claude-code"].
+func LoadSettings(path string) (Config, error) {
+	settings, err := readSettings(path)
 	if err != nil {
-		return c, err
+		return Config{}, err
 	}
-	c.Hooks = hooksFrom(settings["hooks"])
-	c.Permissions = permissionsFrom(settings["permissions"])
-	c.MCP.Denied = deniedFrom(settings["deniedMcpServers"])
-	c.Native = map[string]map[string]any{ClaudeCode: settings}
-	return c, nil
+	return FromSettings(settings), nil
+}
+
+// FromSettings is LoadSettings for settings already decoded. The map is kept
+// as it is, not copied.
+func FromSettings(settings map[string]any) Config {
+	return Config{
+		Hooks:       hooksFrom(settings["hooks"]),
+		Permissions: permissionsFrom(settings["permissions"]),
+		MCP:         MCP{Denied: deniedFrom(settings["deniedMcpServers"])},
+		Native:      map[string]map[string]any{ClaudeCode: settings},
+	}
+}
+
+// RulesBlock is the shared agent-rules block of a CLAUDE.md, the text every
+// runtime receives as its rules.
+func RulesBlock(path string) (string, error) {
+	rules, err := loadRules(path)
+	if err != nil {
+		return "", err
+	}
+	return rules[0].Body, nil
 }
 
 func loadRules(path string) ([]Rule, error) {
@@ -186,27 +212,41 @@ func loadAgents(dir string) ([]Agent, error) {
 		if name == "" {
 			name = names[i]
 		}
-		out = append(out, Agent{Name: name, Description: fm.values["description"], Model: fm.values["model"], Skills: fm.lists["skills"], Body: body, Raw: raw})
+		out = append(out, Agent{Name: name, File: names[i] + ".md", Description: fm.values["description"], Model: fm.values["model"], Skills: fm.lists["skills"], Body: body, Raw: raw})
 	}
 	return out, err
 }
 
+// readSettings reads a settings file; its errors carry the path and no
+// prefix, so callers word them as before (sync: repo settings: <path>: ...).
 func readSettings(path string) (map[string]any, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("agentcfg: %w", err)
+		return nil, err
 	}
-	return DecodeJSON(b)
+	m, err := decodeJSON(b)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	return m, nil
 }
 
 // DecodeJSON decodes a JSON object keeping numbers as json.Number, so a
 // re-encoding writes them back unchanged.
 func DecodeJSON(b []byte) (map[string]any, error) {
+	m, err := decodeJSON(b)
+	if err != nil {
+		return nil, fmt.Errorf("agentcfg: %w", err)
+	}
+	return m, nil
+}
+
+func decodeJSON(b []byte) (map[string]any, error) {
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.UseNumber()
 	var m map[string]any
 	if err := dec.Decode(&m); err != nil {
-		return nil, fmt.Errorf("agentcfg: %w", err)
+		return nil, err
 	}
 	if m == nil {
 		m = map[string]any{}

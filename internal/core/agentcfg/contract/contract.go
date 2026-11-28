@@ -84,17 +84,33 @@ func projectedOrReported(t T, a agentcfg.Adapter, cfg agentcfg.Config, r agentcf
 	for _, w := range r.Warnings {
 		reported[w.ID] = true
 	}
+	linked := links(t, a.Name(), r)
 	caps := a.Capabilities()
 	for _, e := range cfg.Elements() {
 		switch {
 		case caps[e.Capability] == agentcfg.Unsupported && !reported[e.ID]:
 			t.Errorf("%s: %s is %s, unsupported, but no warning reports it", a.Name(), e.ID, e.Capability)
-		case caps[e.Capability] == agentcfg.Unsupported && projected[e.ID]:
-			t.Errorf("%s: %s is %s, unsupported, yet it is listed as projected", a.Name(), e.ID, e.Capability)
-		case !projected[e.ID] && !reported[e.ID]:
-			t.Errorf("%s: %s was dropped in silence: neither projected nor reported", a.Name(), e.ID)
+		case caps[e.Capability] == agentcfg.Unsupported && (projected[e.ID] || linked[e.ID]):
+			t.Errorf("%s: %s is %s, unsupported, yet it is listed as delivered", a.Name(), e.ID, e.Capability)
+		case !projected[e.ID] && !linked[e.ID] && !reported[e.ID]:
+			t.Errorf("%s: %s was dropped in silence: neither projected, linked nor reported", a.Name(), e.ID)
 		}
 	}
+}
+
+// links checks every install link names a source and stays inside the home,
+// and returns the ids they deliver.
+func links(t T, name string, r agentcfg.Rendered) map[string]bool {
+	t.Helper()
+	out := map[string]bool{}
+	for _, l := range r.Linked {
+		if l.Source == "" || agentcfg.SafePath(l.Source) != nil || agentcfg.SafePath(l.Dest) != nil {
+			t.Errorf("%s: link of %s is not a clean repo source to a home destination: %q -> %q", name, l.ID, l.Source, l.Dest)
+			continue
+		}
+		out[l.ID] = true
+	}
+	return out
 }
 
 func confinedPaths(t T, name string, r agentcfg.Rendered) bool {
