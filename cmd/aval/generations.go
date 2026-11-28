@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"runtime"
 	"slices"
 	"strings"
 	"text/tabwriter"
 	"time"
 
 	"github.com/alvaroofernaandez/aval/internal/core/agentcfg"
-	"github.com/alvaroofernaandez/aval/internal/core/agentcfg/claude"
-	"github.com/alvaroofernaandez/aval/internal/core/agentcfg/pi"
 	"github.com/alvaroofernaandez/aval/internal/core/generation"
+	avalsync "github.com/alvaroofernaandez/aval/internal/core/sync"
+	"github.com/alvaroofernaandez/aval/internal/core/txsync"
 )
 
-const generationsUsage = "aval generations <build | list | diff <a> <b>> [--json]"
+const generationsUsage = "aval generations <build | list | diff <a> <b> | activate <id> | rollback [<id>]> [--json]"
 
 // runGenerations is `aval generations`: build an immutable generation of
 // what aval renders for every adapter, list the stored ones, diff two.
@@ -33,25 +34,50 @@ func runGenerations(sub []string, repoFlag string, c cmdIO) error {
 	case args[0] == "build" && len(args) == 1:
 		return generationsBuild(repoFlag, home, asJSON, c)
 	case args[0] == "list" && len(args) == 1:
-		gs, err := generation.List(home)
-		if err != nil {
-			return err
-		}
-		if asJSON {
-			return writeJSON(c.stdout, nonNil(gs))
-		}
-		return printGenerations(c.stdout, gs)
+		return generationsList(home, asJSON, c)
 	case args[0] == "diff" && len(args) == 3:
-		d, err := generation.Diff(home, args[1], args[2])
-		if err != nil {
-			return err
-		}
-		if asJSON {
-			return writeJSON(c.stdout, nonNil(d))
-		}
-		return printDiff(c.stdout, d)
+		return generationsDiff(home, args[1], args[2], asJSON, c)
+	case args[0] == "activate" && len(args) == 2:
+		return generationsActivate(repoFlag, home, args[1], asJSON, c)
+	case args[0] == "rollback" && len(args) <= 2:
+		return generationsRollback(repoFlag, home, args[1:], asJSON, c)
 	}
 	return newUsage(generationsUsage)
+}
+
+func generationsList(home string, asJSON bool, c cmdIO) error {
+	gs, err := generation.List(home)
+	if err != nil {
+		return err
+	}
+	if asJSON {
+		return writeJSON(c.stdout, nonNil(gs))
+	}
+	return printGenerations(c.stdout, gs)
+}
+
+func generationsDiff(home, a, b string, asJSON bool, c cmdIO) error {
+	d, err := generation.Diff(home, a, b)
+	if err != nil {
+		return err
+	}
+	if asJSON {
+		return writeJSON(c.stdout, nonNil(d))
+	}
+	return printDiff(c.stdout, d)
+}
+
+// generationsRollback re-activates the named generation, or with no id the
+// one active before the current one (owner: G7 = A).
+func generationsRollback(repoFlag, home string, ids []string, asJSON bool, c cmdIO) error {
+	if len(ids) == 1 {
+		return generationsActivate(repoFlag, home, ids[0], asJSON, c)
+	}
+	id, err := generation.Previous(home)
+	if err != nil {
+		return err
+	}
+	return generationsActivate(repoFlag, home, id, asJSON, c)
 }
 
 func generationsBuild(repoFlag, home string, asJSON bool, c cmdIO) error {
@@ -66,7 +92,7 @@ func generationsBuild(repoFlag, home string, asJSON bool, c cmdIO) error {
 	g, created, err := generation.Build(generation.Options{
 		Home:     home,
 		Config:   cfg,
-		Adapters: []agentcfg.Adapter{claude.New(claude.Options{Home: home}), pi.New()},
+		Adapters: txsync.Adapters(txsync.Options{Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS}),
 		Source:   repoCommit(repo),
 	})
 	if err != nil {
@@ -83,6 +109,28 @@ func generationsBuild(repoFlag, home string, asJSON bool, c cmdIO) error {
 	} else {
 		_, err = fmt.Fprintf(c.stdout, "%s already built (%s)\n", g.ID, g.Built.Format(time.RFC3339))
 	}
+	return err
+}
+
+// generationsActivate makes generation id live through the sync
+// transaction: backup, apply, doctor, restore on failure (owner: G5 = A).
+func generationsActivate(repoFlag, home, id string, asJSON bool, c cmdIO) error {
+	repo, err := resolveRepoWith(repoFlag, c.env)
+	if err != nil {
+		return err
+	}
+	res, err := txsync.Run(txsync.Options{Repo: repo, Home: home, PrivateDir: avalsync.PrivateDir(home), GOOS: runtime.GOOS, Generation: id})
+	if err != nil {
+		return err
+	}
+	if asJSON {
+		return writeJSON(c.stdout, struct {
+			Generation string   `json:"generation"`
+			Backup     string   `json:"backup"`
+			Recovered  []string `json:"recovered"`
+		}{res.Generation, res.RunID, nonNil(res.Recovered)})
+	}
+	_, err = fmt.Fprintf(c.stdout, "activated %s (backup %s)\n", res.Generation, res.RunID)
 	return err
 }
 
