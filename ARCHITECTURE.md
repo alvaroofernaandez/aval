@@ -25,6 +25,7 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/core/agentcfg` | core | The single configuration model (rules, skills, commands, agents, hooks, permissions, MCP) and the Adapter interface each agent runtime implements. |
 | `internal/core/agentcfg/contract` | core | The contract suite every adapter passes: deterministic, projected or reported, confined to its target, idempotent. |
 | `internal/core/agentcfg/fake` | core | The reference adapter the contract is proven against. |
+| `internal/core/agentcfg/claude` | core | The Claude Code adapter: renders ~/.claude/settings.json (hooks, permissions, Windows exec form) and merges it into the live file with the personal keys and the private overlay; `aval sync` goes through it. |
 | `internal/ui` | ui | The hub: themes, screens, the preview, confirm, run, result rhythm. |
 | `internal/ui/caps` | leaf | Detects what the terminal can render, from the environment only. |
 | `internal/ui/cli` | ui | Status glyphs and words for plain command output. |
