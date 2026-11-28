@@ -99,3 +99,56 @@ func ActiveDir(home, adapter string) (string, error) {
 	}
 	return Dir(home, id, adapter), nil
 }
+
+// switchMarker records the generation that was current when an activation
+// began, so a crash before it finished can be undone (UndoSwitch).
+const switchMarker = ".switching"
+
+// BeginSwitch records the current generation before an activation changes it.
+func BeginSwitch(home string) error {
+	prev, err := Current(home)
+	if err != nil {
+		return err
+	}
+	root := Root(home)
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return fmt.Errorf("generation: %w", err)
+	}
+	tmp := filepath.Join(root, switchMarker+".tmp")
+	if err := os.WriteFile(tmp, []byte(prev+"\n"), 0o644); err != nil {
+		return fmt.Errorf("generation: %w", err)
+	}
+	if err := os.Rename(tmp, filepath.Join(root, switchMarker)); err != nil {
+		return fmt.Errorf("generation: %w", err)
+	}
+	return nil
+}
+
+// EndSwitch forgets the record of a finished (or never started) activation.
+func EndSwitch(home string) error {
+	if err := os.Remove(filepath.Join(Root(home), switchMarker)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("generation: %w", err)
+	}
+	return nil
+}
+
+// UndoSwitch puts back the generation that was current when an unfinished
+// activation began (none, when none was). Without a record it does nothing.
+func UndoSwitch(home string) error {
+	b, err := os.ReadFile(filepath.Join(Root(home), switchMarker))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("generation: %w", err)
+	}
+	if prev := strings.TrimSpace(string(b)); prev != "" {
+		err = SetCurrent(home, prev)
+	} else if err = os.Remove(filepath.Join(Root(home), CurrentName)); errors.Is(err, fs.ErrNotExist) {
+		err = nil
+	}
+	if err != nil {
+		return fmt.Errorf("generation: undo an interrupted activation: %w", err)
+	}
+	return EndSwitch(home)
+}

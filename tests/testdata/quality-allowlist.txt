@@ -61,7 +61,7 @@ func-lines|internal/agent/repoprofile/repoprofile.go|Profile|61
 func-lines|internal/agent/review/review.go|tier|71
 func-lines|internal/agent/rtkhook/rtkhook.go|Run|78
 func-lines|internal/core/manifest/manifest.go|Parse|87
-func-lines|internal/core/txsync/txsync.go|Run|65
+func-lines|internal/core/txsync/txsync.go|Run|64
 func-lines|internal/deck/gate.go|Gate|72
 func-lines|internal/deck/spec.go|Deck.Validate|108
 func-lines|internal/design/gate/hardcodes.go|Hardcodes|78
