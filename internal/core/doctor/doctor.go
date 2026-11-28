@@ -103,19 +103,6 @@ func RunOnly(opt Options, ids ...string) []Result {
 	return out
 }
 
-// Fix removes broken links, then runs sync for the drift it can repair.
-func Fix(opt Options) ([]string, error) {
-	var removed []string
-	for _, p := range brokenLinks(opt) {
-		if err := os.Remove(p); err != nil {
-			return removed, fmt.Errorf("doctor: remove %s: %w", p, err)
-		}
-		removed = append(removed, p)
-	}
-	_, err := avalsync.Run(avalsync.Options{Repo: opt.Repo, Home: opt.Home, PrivateDir: opt.PrivateDir, GOOS: opt.GOOS})
-	return removed, err
-}
-
 // RemoveBroken removes every dangling link, snapshotting each into rec first
 // so backup.Store.Restore can put it back. The caller owns rec and commits it.
 // The sync half of Fix is deliberately absent: txsync imports doctor.

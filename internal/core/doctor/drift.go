@@ -1,6 +1,8 @@
 package doctor
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -90,4 +92,21 @@ func checkGeneration(opt Options) Result {
 		return result("generation", Fail, true, "%v: it no longer matches its contentHash; aval sync activates a fresh build", err)
 	}
 	return result("generation", OK, false, "%s is active and matches its contentHash", id)
+}
+
+// Fix removes broken links, then runs sync for the drift it can repair.
+func Fix(opt Options) ([]string, error) {
+	var removed []string
+	for _, p := range brokenLinks(opt) {
+		if err := os.Remove(p); err != nil {
+			return removed, fmt.Errorf("doctor: remove %s: %w", p, err)
+		}
+		removed = append(removed, p)
+	}
+	sopt, _, err := desired(opt)
+	if err != nil {
+		return removed, err
+	}
+	_, err = avalsync.Run(sopt)
+	return removed, err
 }

@@ -70,3 +70,16 @@ func TestTheGenerationCheckReHashesTheActiveGeneration(t *testing.T) {
 		t.Error("the generation check has no description for the hub")
 	}
 }
+
+// doctor --fix repairs drift toward the desired state, the active generation.
+func TestFixRestoresTheActiveGeneration(t *testing.T) {
+	o := healthy(t)
+	activeGeneration(t, o, "git status")
+	liveWithCommand(t, o, `"$HOME/.claude/hooks/ok.sh"`)
+	if _, err := Fix(o); err != nil {
+		t.Fatal(err)
+	}
+	rs := Run(o)
+	expect(t, rs, "settings-drift", OK, false)
+	expect(t, rs, "hooks-drift", OK, false)
+}
