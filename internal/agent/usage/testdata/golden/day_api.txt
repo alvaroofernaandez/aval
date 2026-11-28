@@ -1,0 +1,17 @@
+usage by day, all time
+
+DAY         MESSAGES  INPUT  OUTPUT  CACHE WRITE  CACHE READ  TOTAL  COST
+2026-11-20  3         3500   1750    3000         27000       35250  $0.0981
+2026-11-21  3         3500   1750    500          20000       25750  $0.0404+
+total       6         7000   3500    3500         47000       61000  $0.1385+
+
++ cost leaves out 1 response from models with no price: claude-mystery-9 (prices as of 2026-11-28)
+
+5h block   25750 tokens, closes 2026-11-21 15:00 UTC in 2h 00m, $0.0404+
+7d window  61000 tokens, $0.1385+
+
+Budgets
+  headless 7d     20000 tokens                OVER, used 25000
+  interactive 7d  90% of the window's tokens  ok, used 59%
+
+3 files read, 1 line skipped as corrupt

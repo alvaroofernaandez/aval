@@ -74,6 +74,9 @@ type Verdict struct {
 	// Unknown is set for a dollar budget when cost n/a made the sum a lower bound
 	// that is still under the limit.
 	Unknown bool
+	// Skipped is a dollar budget under a billing mode other than api: with no
+	// price-table cost to show, it is not evaluated.
+	Skipped bool
 }
 
 // Check compares each budget with the usage of its consumer in its window.

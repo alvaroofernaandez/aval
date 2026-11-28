@@ -1,0 +1,11 @@
+usage by consumer, all time
+
+CONSUMER     MESSAGES  INPUT  OUTPUT  CACHE WRITE  CACHE READ  TOTAL
+interactive  5         4000   2000    3000         27000       36000
+headless     1         3000   1500    500          20000       25000
+total        6         7000   3500    3500         47000       61000
+
+5h block   25750 tokens, closes 2026-11-21 15:00 UTC in 2h 00m, plan share 42% (reported by the runtime)
+7d window  61000 tokens, plan share n/a
+
+3 files read, 1 line skipped as corrupt

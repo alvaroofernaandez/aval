@@ -1,0 +1,96 @@
+{
+  "billing": "api",
+  "by": "day",
+  "window": "all",
+  "prices_effective": "2026-11-28",
+  "rows": [
+    {
+      "key": "2026-11-20",
+      "messages": 3,
+      "input": 3500,
+      "output": 1750,
+      "cache_write": 3000,
+      "cache_read": 27000,
+      "total": 35250,
+      "cost_usd": 0.0981
+    },
+    {
+      "key": "2026-11-21",
+      "messages": 3,
+      "input": 3500,
+      "output": 1750,
+      "cache_write": 500,
+      "cache_read": 20000,
+      "total": 25750,
+      "cost_usd": 0.040425,
+      "unpriced": 1,
+      "unpriced_models": [
+        "claude-mystery-9"
+      ]
+    }
+  ],
+  "total": {
+    "messages": 6,
+    "input": 7000,
+    "output": 3500,
+    "cache_write": 3500,
+    "cache_read": 47000,
+    "total": 61000,
+    "cost_usd": 0.138525,
+    "unpriced": 1,
+    "unpriced_models": [
+      "claude-mystery-9"
+    ]
+  },
+  "block_5h": {
+    "messages": 3,
+    "input": 3500,
+    "output": 1750,
+    "cache_write": 500,
+    "cache_read": 20000,
+    "total": 25750,
+    "cost_usd": 0.040425,
+    "unpriced": 1,
+    "unpriced_models": [
+      "claude-mystery-9"
+    ],
+    "active": true,
+    "start": "2026-11-21T10:00:00Z",
+    "end": "2026-11-21T15:00:00Z",
+    "remaining_seconds": 7200
+  },
+  "week_7d": {
+    "messages": 6,
+    "input": 7000,
+    "output": 3500,
+    "cache_write": 3500,
+    "cache_read": 47000,
+    "total": 61000,
+    "cost_usd": 0.138525,
+    "unpriced": 1,
+    "unpriced_models": [
+      "claude-mystery-9"
+    ]
+  },
+  "checks": [
+    {
+      "consumer": "headless",
+      "window": "7d",
+      "unit": "tokens",
+      "limit": 20000,
+      "used": 25000,
+      "over": true
+    },
+    {
+      "consumer": "interactive",
+      "window": "7d",
+      "unit": "share",
+      "limit": 90,
+      "used": 59.01639344262295,
+      "over": false
+    }
+  ],
+  "over": true,
+  "files": 3,
+  "corrupt_lines": 1
+}
