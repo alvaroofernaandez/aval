@@ -1,6 +1,7 @@
 package fake_test
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/alvaroofernaandez/aval/internal/core/agentcfg"
@@ -52,4 +53,13 @@ func TestUnsupportedCapabilityWarnsPerElement(t *testing.T) {
 	if _, ok := got["rule.agent-rules"]; ok {
 		t.Errorf("a supported rule was reported as lost: %v", r.Warnings)
 	}
+}
+
+func TestAdapterContractOnTheRepo(t *testing.T) {
+	repo, _ := filepath.Abs("../../../..")
+	cfg, err := agentcfg.Load(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract.Run(t, fake.New(), cfg)
 }
