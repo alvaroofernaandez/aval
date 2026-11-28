@@ -291,6 +291,7 @@ Full reference. `aval help` prints the usage, and so does a bare `aval` without 
 | `aval restore [--list] [latest\|<id>] [--pin <id>]` | Undoes an install or sync | yes |
 | `aval uninstall [--dry-run] [--yes]` | Removes this repo's links and returns what was displaced | yes |
 | `aval budget [--json] [--skip-hooks] [--runs N]` | Always-on context and hook latency | no |
+| `aval usage [--by project\|session\|day\|consumer] [--window 5h\|7d] [--json] [--check] [--rate-limits <file\|->]` | Tokens, cost or plan share from the local agent transcripts; `--check` exits 1 when a budget is over | no |
 | `aval deps [--json] [--layer harness\|agent\|env]` | External tool inventory: layer, users, effect if missing, native substitute, and whether each is installed; exits 1 when a blocking tool is missing | no |
 | `aval review assess [--base <ref>] [--json]` | Risk level of the diff and reviewers | no |
 | `aval hook <name>` | Agent hooks (JSON on stdin): `lessons`, `rate-guard`, `design-gate`, `plan-gate`, `design-shot-stop`, `rtk-rewrite`, `repo-profile`, `pre-push`, `fmt` | no |
@@ -442,6 +443,42 @@ than 400 production lines; `medium` if there is code without test changes (or mo
 are only docs/tests or a small change with tests. It returns the level, the reasons and the reviewers: none,
 `review-reliability`, or all four. The `ship` skill uses it to size the self-review.
 
+**Usage** (`aval usage`). Tokens, and cost or plan share, from the transcripts already on disk: Claude Code's
+`projects/**/*.jsonl` under `CLAUDE_CONFIG_DIR` (comma separated; else `~/.config/claude` and `~/.claude`, the way
+ccusage finds them) and Pi's sessions under `PI_CODING_AGENT_DIR/sessions` (else `~/.pi/agent/sessions`). It
+only reads them: no network, no prices downloaded, no API key read. A response written to more than one file
+counts once (message id plus request id, as ccusage does), and a line that is not valid JSON is skipped and
+counted.
+
+```sh
+aval usage                            # per day, all time
+aval usage --by project               # or session, day, consumer
+aval usage --window 5h                # the open 5 h block and the time until it closes
+aval usage --window 7d --json         # the last seven days, stable JSON
+aval usage --check                    # exit 1 when a configured budget is over
+```
+
+Every response is tagged with a **consumer**. A Claude Code entry is `headless` when its `entrypoint` field starts with
+`sdk` (`sdk-cli` is `claude -p`, `sdk-ts` the TypeScript SDK) and `interactive` otherwise; a Pi session is `daemon`
+unless its header line says `"consumer": "interactive"` or `"headless"`.
+
+How it is paid is yours to say. `usage.billing` defaults to `subscription`, so by default `aval usage` shows tokens and
+the plan share the runtime reported, never dollars.
+`aval config set usage.billing api` adds an estimated cost from an embedded price table (Anthropic's list prices,
+verified against the official pricing page and dated; see `usage.PricesEffective`; the 1 hour cache write is priced at
+the 5 minute rate). A model the table does not list shows `n/a`, never a guess, and a total that leaves such
+responses out is marked `+`. `subscription` shows the share of the 5 h and 7 d windows the runtime reported, never
+dollars and never an estimate of the plan limit: pass the status line JSON with `--rate-limits <file>` (`-` for stdin)
+and the shares come from its `rate_limits.five_hour` and `seven_day`; without it they read `n/a`.
+
+The 5 h block follows ccusage: it opens at the first message, floored to the hour in UTC, and closes five hours
+later; a message after that, or after a five hour gap, opens the next one. The 7 d window sums the last seven days.
+A budget caps a consumer in a window and has three forms: `aval config set usage.budget.headless.7d 50%` is the
+consumer's share of all tokens used in that window (aval never knows your plan limit, so a share is relative to what
+the window consumed, not to the plan); `usage.budget.daemon.5h 2000000` is a plain token count; and
+`usage.budget.daemon.7d '$20'` is dollars, `api` billing only (skipped otherwise).
+`--check` reports and exits 1; stopping the work is up to the consumer. There are no default budgets.
+
 ---
 
 ## ⚙️ Configuration
@@ -456,6 +493,8 @@ Settings live in `${XDG_CONFIG_HOME:-~/.config}/aval/config` (`%APPDATA%\aval\co
 | `glyphs` | `auto`, `unicode`, `ascii` | `auto` | `AVAL_GLYPHS` | |
 | `motion` | `auto`, `off` | `auto` | `AVAL_MOTION` | |
 | `update_check` | `on`, `off` | `on` | `AVAL_NO_UPDATE_CHECK` | |
+| `usage.billing` | `api`, `subscription` | `subscription` | | |
+| `usage.budget.<consumer>.<window>` | a token count, a share (`50%`) or dollars (`$4.5`) | none | | |
 
 **Precedence:** flag, then environment variable, then file, then default. `NO_COLOR` is honoured and wins over all of it. `--plain` means `mono`, ASCII glyphs and motion off, in one flag. Hooks, `statusline` and `tmux` never read the UI keys.
 

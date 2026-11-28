@@ -20,6 +20,7 @@ var spanishCLI = catalog{
 	"cli.usage.cmd.sync":             {other: "fusiona los ajustes del repositorio en la configuración activa"},
 	"cli.usage.cmd.rules":            {other: "refleja las reglas compartidas de CLAUDE.md en el AGENTS.md de OpenCode"},
 	"cli.usage.cmd.budget":           {other: "contexto fijo por agente y latencia de los hooks"},
+	"cli.usage.cmd.usage":            {other: "tokens, coste o cuota del plan por proyecto, sesión, día y consumidor"},
 	"cli.usage.cmd.deps":             {other: "herramientas externas de las que depende aval, y cuáles faltan"},
 	"cli.usage.cmd.relay":            {other: "relay de contexto: status, log, pause, enable"},
 	"cli.usage.cmd.context":          {other: "suelo de contexto: tokens cargados antes del primer prompt"},

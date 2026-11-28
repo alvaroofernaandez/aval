@@ -50,6 +50,7 @@ Layers, from the top: `cmd/aval` may import anything; `ui/cli` sits on `ui`, `ui
 | `internal/agent/rtkhook` | leaf | Hook that rewrites Bash commands through `rtk`. |
 | `internal/agent/rules` | leaf | Mirrors the blocking rules of CLAUDE.md into OpenCode's AGENTS.md. |
 | `internal/agent/statusline` | leaf | Renders Claude Code's status line. |
+| `internal/agent/usage` | leaf | Reads Claude Code and Pi transcripts into tokens, cost and the 5 h and 7 d windows (`aval usage`). |
 | `internal/design/ack` | leaf | Records that the design pipeline ran for a project. |
 | `internal/design/gate` | leaf | Design gates: contrast, tokens, hardcoded values, specs, emoji. |
 | `internal/design/hook` | hook | The design hooks: deny UI edits until ack, ask for a render. |

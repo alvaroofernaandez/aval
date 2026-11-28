@@ -127,6 +127,7 @@ func TestMessagesUsage(t *testing.T) {
 			stderr: "error: capa desconocida \"kernel\"; use harness, agent o env\nuso: aval deps [--json] [--layer harness|agent|env]\n"},
 		{name: "relay with an unknown subcommand", args: []string{"relay", "bogus"}, code: 1, stderr: "error: usage: aval relay status|log [--json] | pause|resume|enable|disable | compact|commit|notify|boundary\n"},
 		{name: "config with an unknown subcommand", args: []string{"config", "bogus"}, code: 1, stderr: "error: unknown config command \"bogus\"; usage: aval config [list | get <key> | set <key> <value> | path]\n"},
+		{name: "usage with an unknown grouping", args: []string{"usage", "--by", "week"}, code: 1, stderr: "error: usage: aval usage [--by project|session|day|consumer] [--window 5h|7d] [--json] [--check] [--rate-limits <file|->]\n"},
 		{name: "kiri without up", args: []string{"kiri"}, unix: true, code: 1, stderr: "error: usage: aval kiri up    (make Docker ready on Kiri; idempotent, deletes nothing)\n"},
 		{name: "docker without cleanup", args: []string{"docker"}, unix: true, code: 1, stderr: "error: usage: aval docker cleanup [--dry-run]    (safe prunes on the kiri context only)\n"},
 		{name: "pdf without a subcommand", args: []string{"pdf"}, code: 1, stderr: "error: usage:\n  aval pdf init <project-dir> [asset flags]    scaffold a PDF report project\n  aval pdf assets [project-dir] [asset flags]  build <project-dir>/assets/brand.css\nasset flags:\n  --brand-dir <dir>   logo, banner.png and <name>.* portraits (default: brand)\n  --people a,b        portrait names\n  --logo-file <name>  logo inside --brand-dir (default: logo.png)\n  --ink r,g,b         dark logo colourway (default: 23,20,31)\n  --accent r,g,b      branded logo colourway (default: 110,59,106)\n"},
@@ -307,6 +308,8 @@ Health
                             [--fix] [--json]
   aval budget             always-on context per agent and hook latency
                             [--json]
+  aval usage              tokens, cost or plan share per project, session, day and consumer
+                            [--by project|session|day|consumer] [--window 5h|7d] [--json] [--check]
   aval deps               external tools aval relies on, and which are missing
                             [--json] [--layer harness|agent|env]
   aval context            context floor: tokens loaded before the first prompt
@@ -394,6 +397,8 @@ Salud
                             [--fix] [--json]
   aval budget             contexto fijo por agente y latencia de los hooks
                             [--json]
+  aval usage              tokens, coste o cuota del plan por proyecto, sesión, día y consumidor
+                            [--by project|session|day|consumer] [--window 5h|7d] [--json] [--check]
   aval deps               herramientas externas de las que depende aval, y cuáles faltan
                             [--json] [--layer harness|agent|env]
   aval context            suelo de contexto: tokens cargados antes del primer prompt

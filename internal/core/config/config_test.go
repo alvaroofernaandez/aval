@@ -320,3 +320,57 @@ func TestResolveLanguage(t *testing.T) {
 		t.Errorf("default: %q %s", v, s)
 	}
 }
+
+func TestUsageKeysAreKnownAndValidated(t *testing.T) {
+	p := write(t, "usage.billing = subscription\nusage.budget.headless.7d = 50%\nusage.budget.daemon.5h = $4.5\nusage.budget.interactive.7d = 2000000\n")
+	f, warns, err := Load(p)
+	if err != nil || len(warns) != 0 {
+		t.Fatalf("err=%v warns=%v", err, warns)
+	}
+	if v, ok := f.Get("usage.billing"); !ok || v != "subscription" {
+		t.Errorf("usage.billing = %q, %v", v, ok)
+	}
+	if got := f.Prefixed("usage.budget."); len(got) != 3 || got["usage.budget.headless.7d"] != "50%" {
+		t.Errorf("budgets = %v", got)
+	}
+	if u := f.Unknown(); len(u) != 0 {
+		t.Errorf("usage keys reported as unknown: %v", u)
+	}
+	if got := strings.Join(Keys(), ","); strings.Contains(got, "usage") {
+		t.Errorf("Keys() lists the usage family: %s (the family is open, the list stays the UI settings)", got)
+	}
+}
+
+func TestUsageKeysRejectBadValues(t *testing.T) {
+	p := write(t, "usage.billing = free\nusage.budget.robot.7d = 5%\n")
+	f, warns, err := Load(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var inv *InvalidValueError
+	if len(warns) != 1 || !errors.As(warns[0].Invalid, &inv) || inv.Key != "usage.billing" {
+		t.Errorf("warns = %+v, want one invalid usage.billing", warns)
+	}
+	if _, ok := f.Get("usage.billing"); ok {
+		t.Error("the bad billing value was stored")
+	}
+	if len(f.Unknown()) != 1 {
+		t.Errorf("unknown = %v, want the misspelt consumer key reported", f.Unknown())
+	}
+	for _, c := range []struct{ key, value string }{
+		{"usage.billing", "free"},
+		{"usage.budget.headless.7d", "lots"},
+		{"usage.budget.headless.7d", "50 %"},
+	} {
+		if err := Set(filepath.Join(t.TempDir(), "c"), c.key, c.value); !errors.As(err, &inv) {
+			t.Errorf("Set(%s, %q) = %v, want an InvalidValueError", c.key, c.value, err)
+		}
+	}
+	if err := Set(filepath.Join(t.TempDir(), "c"), "usage.budget.headless.1h", "5%"); err == nil || errors.As(err, &inv) {
+		t.Errorf("Set on a window that does not exist = %v, want the unknown-key error", err)
+	}
+	good := filepath.Join(t.TempDir(), "c")
+	if err := Set(good, "usage.budget.headless.7d", "50%"); err != nil {
+		t.Errorf("Set budget: %v", err)
+	}
+}

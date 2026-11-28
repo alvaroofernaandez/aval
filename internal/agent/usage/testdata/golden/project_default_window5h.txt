@@ -1,0 +1,13 @@
+usage by project, window 5h
+
+PROJECT      MESSAGES  INPUT  OUTPUT  CACHE WRITE  CACHE READ  TOTAL
+/work/alpha  1         3000   1500    500          20000       25000
+/work/beta   2         500    250     0            0           750
+total        3         3500   1750    500          20000       25750
+
+5h block   25750 tokens, closes 2026-11-21 15:00 UTC in 2h 00m, plan share n/a
+7d window  61000 tokens, plan share n/a
+
+Plan share is n/a: the runtime reported no rate limits. Pass the status line JSON with --rate-limits <file>.
+
+3 files read, 1 line skipped as corrupt

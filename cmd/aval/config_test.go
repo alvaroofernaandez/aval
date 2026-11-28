@@ -236,3 +236,20 @@ func TestBareConfigWithoutATerminalStillLists(t *testing.T) {
 		t.Errorf("bare config without a terminal did not list:\n%s", e.stdout.String())
 	}
 }
+
+func TestConfigGetReadsTheUsageKeys(t *testing.T) {
+	e := newCfgEnv(t)
+	if err := e.run("set", "usage.billing", "subscription"); err != nil {
+		t.Fatal(err)
+	}
+	e.stdout.Reset()
+	if err := e.run("get", "usage.billing"); err != nil {
+		t.Fatalf("get usage.billing: %v", err)
+	}
+	if got := e.stdout.String(); got != "subscription\n" {
+		t.Errorf("stdout = %q, want subscription", got)
+	}
+	if err := e.run("get", "usage.nope"); !errors.Is(err, errUnknownKey) {
+		t.Errorf("get of an unknown usage key = %v, want errUnknownKey", err)
+	}
+}

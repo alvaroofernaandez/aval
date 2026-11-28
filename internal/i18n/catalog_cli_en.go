@@ -20,6 +20,7 @@ var englishCLI = catalog{
 	"cli.usage.cmd.sync":             {other: "merge repo-managed settings into the live config"},
 	"cli.usage.cmd.rules":            {other: "mirror CLAUDE.md's shared rules into OpenCode's AGENTS.md"},
 	"cli.usage.cmd.budget":           {other: "always-on context per agent and hook latency"},
+	"cli.usage.cmd.usage":            {other: "tokens, cost or plan share per project, session, day and consumer"},
 	"cli.usage.cmd.deps":             {other: "external tools aval relies on, and which are missing"},
 	"cli.usage.cmd.relay":            {other: "context relay: status, log, pause, enable"},
 	"cli.usage.cmd.context":          {other: "context floor: tokens loaded before the first prompt"},

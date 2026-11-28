@@ -1,0 +1,75 @@
+{
+  "billing": "subscription",
+  "by": "project",
+  "window": "5h",
+  "rows": [
+    {
+      "key": "/work/alpha",
+      "messages": 1,
+      "input": 3000,
+      "output": 1500,
+      "cache_write": 500,
+      "cache_read": 20000,
+      "total": 25000
+    },
+    {
+      "key": "/work/beta",
+      "messages": 2,
+      "input": 500,
+      "output": 250,
+      "cache_write": 0,
+      "cache_read": 0,
+      "total": 750,
+      "unpriced": 1,
+      "unpriced_models": [
+        "claude-mystery-9"
+      ]
+    }
+  ],
+  "total": {
+    "messages": 3,
+    "input": 3500,
+    "output": 1750,
+    "cache_write": 500,
+    "cache_read": 20000,
+    "total": 25750,
+    "unpriced": 1,
+    "unpriced_models": [
+      "claude-mystery-9"
+    ]
+  },
+  "block_5h": {
+    "messages": 3,
+    "input": 3500,
+    "output": 1750,
+    "cache_write": 500,
+    "cache_read": 20000,
+    "total": 25750,
+    "unpriced": 1,
+    "unpriced_models": [
+      "claude-mystery-9"
+    ],
+    "active": true,
+    "start": "2026-11-21T10:00:00Z",
+    "end": "2026-11-21T15:00:00Z",
+    "remaining_seconds": 7200,
+    "share_percent": null
+  },
+  "week_7d": {
+    "messages": 6,
+    "input": 7000,
+    "output": 3500,
+    "cache_write": 3500,
+    "cache_read": 47000,
+    "total": 61000,
+    "unpriced": 1,
+    "unpriced_models": [
+      "claude-mystery-9"
+    ],
+    "share_percent": null
+  },
+  "checks": [],
+  "over": false,
+  "files": 3,
+  "corrupt_lines": 1
+}
