@@ -278,7 +278,7 @@ var ciExemptTools = map[string]string{
 
 // ciPreinstalled: tools every GitHub-hosted runner image ships (or, with go and
 // node, that ci.yml sets up), so ci.yml need not install them.
-var ciPreinstalled = map[string]bool{"git": true, "go": true, "sh": true, "bash": true, "node": true, "npx": true, "ps": true, "plutil": true}
+var ciPreinstalled = map[string]bool{"git": true, "go": true, "gofmt": true, "sh": true, "bash": true, "node": true, "npx": true, "ps": true, "plutil": true}
 
 type ciExemptions struct{ tags, runners, tools map[string]string }
 
@@ -394,6 +394,37 @@ func walkRepo(root string, visit func(rel string, d os.DirEntry)) {
 
 type ciStep struct{ cond, run, workdir string }
 
+// ciTable is the command lines the table behind `aval dev check` runs, from
+// `aval dev check --list`. ciGaps expands the ci.yml step that calls the
+// command into them, so the guards below still see `go test ./...` and
+// `node --test` although the YAML no longer spells them. A test sets it with
+// useCITable.
+var ciTable []string
+
+var colGapRe = regexp.MustCompile(`\s{2,}`)
+
+// useCITable sets ciTable to cmds, or, when cmds is nil, to what the binary
+// built from this repo lists; it restores the old value when t ends.
+func useCITable(t *testing.T, cmds []string) {
+	t.Helper()
+	if cmds == nil {
+		r := run(repo, isoEnv(t.TempDir(), "AVAL_LANG=en"), "", avalBin(t), "dev", "check", "--list")
+		eq(t, "aval dev check --list exit code\n"+r.Out(), 0, r.Code)
+		lines := strings.Split(strings.TrimSpace(r.Stdout), "\n")
+		for _, l := range lines[1:] { // the header names the columns; the command is the sixth
+			if f := colGapRe.Split(strings.TrimSpace(l), 6); len(f) == 6 {
+				cmds = append(cmds, f[5])
+			}
+		}
+		if len(cmds) == 0 {
+			t.Fatalf("no commands in `aval dev check --list`:\n%s", r.Stdout)
+		}
+	}
+	old := ciTable
+	ciTable = cmds
+	t.Cleanup(func() { ciTable = old })
+}
+
 // ciSteps splits the test job into steps, reading name/if/run/working-directory.
 func ciSteps(job string) []ciStep {
 	var steps []ciStep
@@ -475,6 +506,11 @@ func ciGaps(root string, ex ciExemptions) []string {
 
 	// `go test ./...` from the module root, on every OS; collect -tags.
 	steps := ciSteps(testJob)
+	for i := range steps {
+		if ciCheckRe.MatchString(steps[i].run) {
+			steps[i].run += strings.Join(ciTable, "\n") + "\n"
+		}
+	}
 	ciTags := map[string]bool{}
 	for _, img := range osList {
 		pair, known := ciOSes[img]
@@ -747,12 +783,14 @@ func wantGap(t *testing.T, gaps []string, substr string) {
 }
 
 func TestWorkflowCIRunsEveryTest(t *testing.T) {
+	useCITable(t, nil)
 	for _, g := range ciGaps(repo, realCIExemptions) {
 		t.Error(g)
 	}
 }
 
 func TestWorkflowCIGapsAreDetected(t *testing.T) {
+	useCITable(t, nil)
 	none := ciExemptions{}
 	t.Run("baseline passes", func(t *testing.T) {
 		if g := ciGaps(fakeCIRepo(t, nil, nil), none); len(g) != 0 {
@@ -760,12 +798,12 @@ func TestWorkflowCIGapsAreDetected(t *testing.T) {
 		}
 	})
 	t.Run("narrowed go test", func(t *testing.T) {
-		d := fakeCIRepo(t, func(s string) string { return strings.ReplaceAll(s, "go test ./...", "go test ./internal/...") }, nil)
-		wantGap(t, ciGaps(d, none), "go test ./...")
+		useCITable(t, []string{"go test ./internal/..."})
+		wantGap(t, ciGaps(fakeCIRepo(t, nil, nil), none), "go test ./...")
 	})
 	t.Run("one OS without go test", func(t *testing.T) {
 		d := fakeCIRepo(t, func(s string) string {
-			return strings.Replace(s, "if: runner.os == 'Windows'", "if: runner.os == 'Plan9'", 1)
+			return strings.Replace(s, "      - name: aval dev check\n", "      - name: aval dev check\n        if: runner.os != 'Windows'\n", 1)
 		}, nil)
 		wantGap(t, ciGaps(d, none), "Windows")
 	})
@@ -802,8 +840,8 @@ func TestWorkflowCIGapsAreDetected(t *testing.T) {
 		wantGap(t, ciGaps(fakeCIRepo(t, nil, nil), ex), "stale ciExemptTags")
 	})
 	t.Run("tag set by ci needs no exemption, exemption goes stale", func(t *testing.T) {
-		d := fakeCIRepo(t, func(s string) string { return strings.ReplaceAll(s, "go test ./...", "go test -tags e2e ./...") },
-			map[string]string{"e/e_test.go": "//go:build e2e\n\npackage e\n"})
+		useCITable(t, []string{"go test -tags e2e ./..."})
+		d := fakeCIRepo(t, nil, map[string]string{"e/e_test.go": "//go:build e2e\n\npackage e\n"})
 		if g := ciGaps(d, none); len(g) != 0 {
 			t.Errorf("unexpected gaps: %q", g)
 		}
@@ -936,5 +974,114 @@ func TestReleaseNpmTagComesFromTheRule(t *testing.T) {
 	}
 	if !strings.Contains(js["npm"], `npm dist-tag rm "${name}" superseded`) {
 		t.Error("release.yml: the npm job must remove the superseded dist-tag after publishing")
+	}
+}
+
+// --- ci.yml has no quality steps of its own (issue #55) --------------------------
+//
+// What "green" means is one table, internal/devmode/check/table.go, and ci.yml
+// only builds the binary and calls `aval dev check`. A quality command written
+// into the YAML would be a second definition that drifts from the table (the
+// Windows -race rule used to live there as an `if:`).
+
+var (
+	// A quality tool launched as a command: anywhere on a line for the go tool,
+	// at the start of a line for the rest (an install line names them too).
+	ciQualityRe = regexp.MustCompile(`\bgo (vet|test)\b|\bgofmt\b|\bnode --test\b|(?m)^\s*(actionlint|gitleaks (detect|git|dir)|npx\b.*\bagnix)\b`)
+	ciCheckRe   = regexp.MustCompile(`\baval(\.exe|\$ext)?"?\s+dev check\b`)
+)
+
+// ciQualityGaps lists the ways the test job of ci can escape the table.
+func ciQualityGaps(ci string) []string {
+	job, ok := jobs(ci)["test"]
+	if !ok {
+		return []string{"ci.yml has no `test` job"}
+	}
+	var gaps []string
+	calls := false
+	for _, s := range ciSteps(job) {
+		for _, line := range strings.Split(s.run, "\n") {
+			switch {
+			case ciCheckRe.MatchString(line):
+				calls = true
+			case ciQualityRe.MatchString(line):
+				gaps = append(gaps, fmt.Sprintf("ci.yml runs %q itself: quality steps belong in internal/devmode/check/table.go", strings.TrimSpace(line)))
+			}
+		}
+	}
+	if !calls {
+		gaps = append(gaps, "ci.yml never calls `aval dev check`, so CI and the local command can disagree")
+	}
+	return gaps
+}
+
+func TestCIQualityStepsLiveOnlyInTheTable(t *testing.T) {
+	ci := workflows(t)["ci.yml"]
+	for _, g := range ciQualityGaps(ci) {
+		t.Error(g)
+	}
+}
+
+func TestCIQualityGuardDetectsAStepOutsideTheTable(t *testing.T) {
+	ci := workflows(t)["ci.yml"]
+	cases := map[string]string{
+		"a go vet step":      "      - name: vet\n        run: go vet ./...\n",
+		"a gofmt step":       "      - name: fmt\n        run: test -z \"$(gofmt -l .)\"\n",
+		"an npm test step":   "      - name: npm\n        run: node --test npm/cli/lib/*.test.js\n",
+		"a go test step":     "      - name: t\n        run: go test ./... -race\n",
+		"a gitleaks scan":    "      - name: leaks\n        run: |\n          gitleaks detect --source .\n",
+		"an actionlint step": "      - name: lint\n        run: actionlint\n",
+	}
+	for name, step := range cases {
+		planted := strings.Replace(ci, "  # A short fuzzing pass", step+"\n  # A short fuzzing pass", 1)
+		if planted == ci {
+			t.Fatal("anchor for the planted step not found in ci.yml")
+		}
+		if got := ciQualityGaps(planted); len(got) == 0 {
+			t.Errorf("%s outside the table was not detected", name)
+		}
+	}
+	noCall := ciCheckRe.ReplaceAllString(ci, "aval version")
+	if got := ciQualityGaps(noCall); len(got) == 0 {
+		t.Error("a ci.yml that never calls aval dev check was not detected")
+	}
+}
+
+func tablePin(t *testing.T, name string) string {
+	t.Helper()
+	src := read(t, "internal/devmode/check/table.go")
+	m := regexp.MustCompile(`\b` + name + `\s*=\s*"([^"]+)"`).FindStringSubmatch(src)
+	if m == nil {
+		t.Fatalf("internal/devmode/check/table.go has no %s", name)
+	}
+	return m[1]
+}
+
+// The versions live in table.go; ci.yml's setup and install steps must carry the
+// same ones (they run before `aval dev check` exists to say what to install).
+func TestCIToolVersionsMatchTheTablePins(t *testing.T) {
+	ci := ciWithoutComments(workflows(t)["ci.yml"])
+	for _, c := range []struct{ what, re, pin string }{
+		{"setup-go", `go-version:\s*"([^"]+)"`, "GoVersion"},
+		{"setup-node", `node-version:\s*"([^"]+)"`, "NodeVersion"},
+		{"gitleaks install", `gitleaks/v8@(\S+)`, "GitleaksVersion"},
+		{"actionlint install", `actionlint/cmd/actionlint@(\S+)`, "ActionlintVersion"},
+	} {
+		m := regexp.MustCompile(c.re).FindAllStringSubmatch(ci, -1)
+		if len(m) == 0 {
+			t.Errorf("ci.yml has no %s step", c.what)
+			continue
+		}
+		for _, x := range m {
+			if want := tablePin(t, c.pin); x[1] != want {
+				t.Errorf("ci.yml %s pins %q, the table pins %s = %q", c.what, x[1], c.pin, want)
+			}
+		}
+	}
+	if got, want := regexp.MustCompile(`agnixVersion\s*=\s*"([^"]+)"`).FindStringSubmatch(read(t, "tests/agnix_test.go")), tablePin(t, "AgnixVersion"); got == nil || got[1] != want {
+		t.Errorf("tests/agnix_test.go pins agnix %v, the table pins %q", got, want)
+	}
+	if m := regexp.MustCompile(`(?m)^go (\S+)`).FindStringSubmatch(read(t, "go.mod")); m == nil || m[1] != tablePin(t, "GoVersion") {
+		t.Errorf("go.mod go directive %v differs from the table's GoVersion %q", m, tablePin(t, "GoVersion"))
 	}
 }
